@@ -1,0 +1,29 @@
+.container {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.balance {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 1rem 0;
+  color: #2c3e50;
+}
+
+.stale {
+  color: #e67e22;
+}
+
+.staleLabel {
+  font-size: 0.875rem;
+  color: #e67e22;
+}
+
+.info {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
