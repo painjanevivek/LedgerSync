@@ -1,6 +1,6 @@
 # Phase 3 — Safe transfer core evidence
 
-**Status:** Code complete; live PostgreSQL evidence pending a configured isolated integration database.
+**Status:** Validated against an isolated PostgreSQL 16 instance on 2026-08-18.
 
 ## Delivered
 
@@ -18,17 +18,23 @@
 - `npm run lint` in `web/`.
 - `npm run build` in `web/`.
 
-## Pending live-database evidence
+## Live PostgreSQL validation
 
-- `tests/integration/idempotency_test.go`, `concurrent_transfers_test.go`, and `reconciliation_test.go` require `LEDGERSYNC_TEST_DATABASE_URL` and apply the versioned migrations before seeding an isolated fixture.
-- They were discovered and compiled by `go test ./...`, but skipped because `LEDGERSYNC_TEST_DATABASE_URL` is absent.
-- Docker Desktop is installed but its service is disabled, so this workstation cannot currently start the isolated PostgreSQL compose profile.
-- Do not treat Phase 3 as a production release gate until these tests run against an isolated PostgreSQL instance and their output is attached here.
-
-## Required next validation command
+- A disposable PostgreSQL 16 container was started on `127.0.0.1:5432`; it was separate from application environments and used only for this evidence run.
+- The integration harness applied the repository migrations, seeded the isolated tenant/account fixture, and exercised the actual PostgreSQL repository implementation. No test was skipped.
+- Command executed:
 
 ```powershell
 $env:LEDGERSYNC_TEST_DATABASE_URL = 'postgres://ledgersync:development-only-change-me@127.0.0.1:5432/ledgersync?sslmode=disable'
 $env:GOCACHE = 'D:\Work\Project\Dev\LedgerSync\.cache\go-build'
 & 'C:\Program Files\Go\bin\go.exe' test ./tests/integration -run 'Test(Transfer|Competing|Posted)' -count=1 -v
 ```
+
+- Result: `PASS` in `2.613s`.
+- Proven invariants:
+  - Competing transfers cannot overdraw the source account.
+  - Retrying a completed request with the same idempotency key replays the original outcome without a second movement.
+  - Reusing an idempotency key for a different financial intent is rejected.
+  - Posted account-balance projections reconcile exactly to the immutable ledger.
+
+The temporary container is removed after this evidence run; no application or customer database was modified.
