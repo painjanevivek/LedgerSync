@@ -1,0 +1,124 @@
+openapi: 3.1.0
+info:
+  title: LedgerSync Private Transfer API
+  version: 1.0.0
+  description: >-
+    Private API behind the LedgerSync BFF. Money is represented as an exact
+    decimal string at the boundary and never as a JSON number. A 201 response
+    is a final idempotent transfer outcome; inspect `status` for `posted` or
+    `rejected`.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+paths:
+  /transfers:
+    post:
+      operationId: createTransfer
+      summary: Submit an exact same-currency transfer.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CorrelationID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
+      responses:
+        '201':
+          description: Transfer posted once.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResult'
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Private API access token issued by the configured OIDC provider.
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 255 }
+    CorrelationID:
+      in: header
+      name: X-Request-ID
+      required: false
+      schema: { type: string, format: uuid }
+  schemas:
+    CreateTransferRequest:
+      type: object
+      required: [source_account_id, destination_account_id, amount, currency]
+      additionalProperties: false
+      properties:
+        source_account_id: { type: string, format: uuid }
+        destination_account_id: { type: string, format: uuid }
+        amount:
+          type: string
+          pattern: '^[0-9]+(\.[0-9]+)?$'
+          example: '125.50'
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
+    TransferResult:
+      type: object
+      required: [transfer_id, status, currency, amount_minor, occurred_at, minimum_balance_versions]
+      properties:
+        transfer_id: { type: string, format: uuid }
+        status: { type: string, enum: [posted, rejected] }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
+        amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Exact minor-unit amount. JavaScript clients should treat this as a string if integer precision is not guaranteed.
+        occurred_at: { type: string, format: date-time }
+        minimum_balance_versions:
+          type: object
+          additionalProperties: { type: integer, format: int64, minimum: 0 }
+        rejection_code:
+          type: string
+          description: Present only when status is rejected; no ledger postings were created.
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string, format: uuid }
+  responses:
+    InvalidRequest:
+      description: Validation failed without changing any financial state.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: Authentication is required.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: The principal cannot access this account.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Conflict:
+      description: A duplicate key has a mismatched request or remains in progress.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    RateLimited:
+      description: The caller has exceeded the transfer request limit.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    InternalError:
+      description: A non-sensitive server error.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }

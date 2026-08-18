@@ -1,0 +1,2 @@
+# Generated reports are binary artifacts; do not apply text normalization or show textual diffs.
+*.pdf binary
