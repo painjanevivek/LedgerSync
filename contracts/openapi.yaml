@@ -5,8 +5,13 @@ info:
   description: >-
     Private API behind the LedgerSync BFF. Money is represented as an exact
     decimal string at the boundary and never as a JSON number.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
 servers:
   - url: /api
+security:
+  - bearerAuth: []
 paths:
   /transfers:
     post:
@@ -35,6 +40,13 @@ paths:
         '429': { $ref: '#/components/responses/RateLimited' }
         '500': { $ref: '#/components/responses/InternalError' }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >-
+        Private API access token issued by the configured OIDC provider.
   parameters:
     IdempotencyKey:
       in: header
