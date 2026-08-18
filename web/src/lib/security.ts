@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Session } from "@/lib/session";
 
 export const securityHeaders: Record<string, string> = {
-  "Content-Security-Policy": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
   "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -12,7 +11,14 @@ export const securityHeaders: Record<string, string> = {
   "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
 };
 
-export function addSecurityHeaders(response: NextResponse): NextResponse {
+export function contentSecurityPolicy(nonce?: string): string {
+  const scriptSource = nonce ? `script-src 'self' 'nonce-${nonce}'` : "script-src 'self'";
+  const styleSource = nonce ? `style-src 'self' 'nonce-${nonce}'` : "style-src 'self'";
+  return `default-src 'self'; ${scriptSource}; ${styleSource}; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'`;
+}
+
+export function addSecurityHeaders(response: NextResponse, nonce?: string): NextResponse {
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy(nonce));
   for (const [name, value] of Object.entries(securityHeaders)) response.headers.set(name, value);
   if (process.env.NODE_ENV === "production") response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   return response;

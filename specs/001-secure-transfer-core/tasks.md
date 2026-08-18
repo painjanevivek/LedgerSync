@@ -119,17 +119,17 @@
 
 ## Phase 7: Polish and cross-cutting launch readiness
 
-- [ ] T068 [P] Build dashboard sign-in, owned-account, balance, transaction-history, and sign-out screens in `web/src/app/` and `web/src/features/accounts/`
-- [ ] T069 [P] Build accessible transfer form, exact-money input, stable idempotency-key lifecycle, confirmation, and error states in `web/src/features/transfers/`
-- [ ] T070 Implement plain-language RYEW refresh and temporary-unavailability UX in `web/src/features/accounts/BalanceStatus.tsx`
-- [ ] T071 [P] Add Playwright authorized transfer/retry/error journey tests in `web/tests/e2e/transfer.spec.ts`
-- [ ] T072 [P] Add axe accessibility checks in `web/tests/e2e/accessibility.spec.ts`
-- [ ] T073 Add Go formatting, vet, lint, race, fuzz/property, Testcontainers, and coverage gates in `.github/workflows/quality.yml`
-- [ ] T074 [P] Add secret, dependency, container, IaC, and SBOM/provenance gates in `.github/workflows/security.yml`
-- [ ] T075 [P] Add reproducible fault-injection profile and Toxiproxy scenarios in `deploy/compose/docker-compose.fault.yml` and `tests/fault/`
-- [ ] T076 Add load-test scenarios, initial SLO targets, and capacity report template in `tests/performance/` and `docs/performance-baseline.md`
-- [ ] T077 Add public architecture, API, operations, and developer onboarding documentation in `README.md` and `docs/`
-- [ ] T078 Run every scenario in `quickstart.md` and attach release evidence in `docs/release-evidence/secure-transfer-core.md`
+- [X] T068 [P] Build dashboard sign-in, owned-account, balance, transaction-history, and sign-out screens in `web/src/app/` and `web/src/features/accounts/`
+- [X] T069 [P] Build accessible transfer form, exact-money input, stable idempotency-key lifecycle, confirmation, and error states in `web/src/features/transfers/`
+- [X] T070 Implement plain-language RYEW refresh and temporary-unavailability UX in `web/src/features/accounts/BalanceStatus.tsx`
+- [X] T071 [P] Add Playwright authorized transfer/retry/error journey tests in `web/tests/e2e/transfer.spec.ts`
+- [X] T072 [P] Add axe accessibility checks in `web/tests/e2e/accessibility.spec.ts`
+- [X] T073 Add Go formatting, vet, lint, race, fuzz/property, Testcontainers, and coverage gates in `.github/workflows/quality.yml`
+- [X] T074 [P] Add secret, dependency, container, IaC, and SBOM/provenance gates in `.github/workflows/security.yml`
+- [X] T075 [P] Add reproducible fault-injection profile and Toxiproxy scenarios in `deploy/compose/docker-compose.fault.yml` and `tests/fault/`
+- [X] T076 Add load-test scenarios, initial SLO targets, and capacity report template in `tests/performance/` and `docs/performance-baseline.md`
+- [X] T077 Add public architecture, API, operations, and developer onboarding documentation in `README.md` and `docs/`
+- [X] T078 Run every scenario in `quickstart.md` and attach release evidence in `docs/release-evidence/secure-transfer-core.md`
 
 ## Dependencies and execution order
 

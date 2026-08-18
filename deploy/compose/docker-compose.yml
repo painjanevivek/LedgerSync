@@ -12,6 +12,9 @@ services:
       retries: 12
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    # Loopback-only so the documented local migration command can reach the
+    # disposable development database; never publish this in a shared tenant.
+    ports: ["127.0.0.1:5432:5432"]
     networks: [private]
     security_opt: ["no-new-privileges:true"]
 

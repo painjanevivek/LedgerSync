@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Pilot status:** Phase 3–5 financial, visibility, and account-security foundations are implemented and evidenced. Production-pilot readiness still requires a chosen jurisdiction/currency, managed OIDC authorization-code-with-PKCE login, pilot backups/restore drills, and operational ownership.
+**Pilot status:** Phase 3–7 product, financial, visibility, security, recovery, and launch-quality controls are implemented locally and evidenced. Production-pilot readiness still requires a chosen jurisdiction/currency, managed OIDC authorization-code-with-PKCE login, a provider-backed PITR restore drill, and named operational ownership.
 
 ## Contents
 
@@ -18,6 +18,7 @@ LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical
 - [Data model](#data-model)
 - [Operations and recovery](#operations-and-recovery)
 - [Quick start](#quick-start)
+- [Developer and operator guides](#developer-and-operator-guides)
 - [Evidence, roadmap, and license](#evidence-roadmap-and-license)
 
 ---
@@ -427,7 +428,7 @@ Copy-Item .env.example .env
 docker compose -f deploy/compose/docker-compose.yml up --build
 
 # 3. Apply schema changes explicitly. API startup never mutates a financial schema.
-go run ./cmd/migrate
+docker compose -f deploy/compose/docker-compose.yml exec api migrate
 
 # 4. Run focused verification.
 $env:GOCACHE = "$PWD\.cache\go-build"
@@ -447,6 +448,20 @@ go run ./cmd/reconcile --rebuild-cache --tenant-id <tenant-uuid>
 ```
 
 This command does not create, change, or delete ledger entries.
+
+---
+
+## Developer and operator guides
+
+The repository deliberately separates browser usability from the financial
+authority. Read these guides before connecting a design partner or operating a
+pilot environment:
+
+- [Architecture and trust boundaries](docs/architecture.md)
+- [Private API integration and idempotent transfer contract](docs/api-guide.md)
+- [Operator console, incident response, and release ownership](docs/operations.md)
+- [Performance measurement protocol](docs/performance-baseline.md)
+- [Fault-injection scenarios](tests/fault/toxiproxy-scenarios.md)
 
 ---
 

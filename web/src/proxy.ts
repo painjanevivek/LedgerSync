@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { addSecurityHeaders } from "@/lib/security";
+import { addSecurityHeaders, contentSecurityPolicy } from "@/lib/security";
 
 export function proxy(_request: NextRequest) {
-	void _request;
-  return addSecurityHeaders(NextResponse.next());
+  const nonce = crypto.randomUUID().replaceAll("-", "");
+  const requestHeaders = new Headers(_request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicy(nonce));
+  return addSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }), nonce);
 }
 
 export const config = {

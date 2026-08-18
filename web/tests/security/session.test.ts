@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { addSecurityHeaders, hasValidCSRF } from "../../src/lib/security";
+import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF } from "../../src/lib/security";
 import { createSession, readSession, type Session } from "../../src/lib/session";
 import { readTransaction } from "../../src/lib/oidc";
 
@@ -32,6 +32,12 @@ test("security headers deny framing, objects, and unexpected browser permissions
   assert.equal(response.headers.get("X-Frame-Options"), "DENY");
   assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
   assert.equal(response.headers.get("Permissions-Policy"), "camera=(), geolocation=(), microphone=()");
+});
+
+test("the production CSP uses a per-request nonce instead of unsafe inline scripts", () => {
+  const csp = contentSecurityPolicy("test-nonce");
+  assert.match(csp, /script-src 'self' 'nonce-test-nonce'/);
+  assert.doesNotMatch(csp, /unsafe-inline/);
 });
 
 test("OIDC transaction cookies reject tampering and expired authorizations", () => {

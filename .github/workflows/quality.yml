@@ -1,0 +1,72 @@
+name: Quality gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  go-quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Enforce Go formatting
+        run: test -z "$(gofmt -l cmd internal tests)"
+      - name: Vet production and deterministic tests
+        run: go vet ./cmd/... ./internal/... ./tests/unit ./tests/contract
+      - name: Run static analysis
+        uses: golangci/golangci-lint-action@v7
+        with: { version: v2.1.0 }
+      - name: Race-test financial and contract paths
+        run: go test -race ./cmd/... ./internal/... ./tests/unit ./tests/contract
+      - name: Fuzz exact-money boundary
+        run: go test -run=^$ -fuzz=FuzzParseExactMoney -fuzztime=10s ./tests/unit
+      - name: Enforce coverage floor
+        run: |
+          go test -covermode=atomic -coverprofile=coverage.out ./cmd/... ./internal/... ./tests/unit ./tests/contract
+          go tool cover -func=coverage.out | tee coverage.txt
+          awk '/^total:/{ sub("%", "", $3); exit ($3 + 0 < 60) }' coverage.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: go-coverage, path: coverage.out }
+  live-dependencies:
+    runs-on: ubuntu-24.04
+    needs: go-quality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Start disposable PostgreSQL and Redis
+        run: |
+          docker run -d --rm --name ledgersync-quality-postgres -e POSTGRES_DB=ledgersync -e POSTGRES_USER=ledgersync -e POSTGRES_PASSWORD=quality -p 127.0.0.1:5432:5432 postgres:16-alpine
+          docker run -d --rm --name ledgersync-quality-redis -p 127.0.0.1:6379:6379 redis:7.4-alpine
+          until docker exec ledgersync-quality-postgres pg_isready -U ledgersync -d ledgersync; do sleep 1; done
+          until docker exec ledgersync-quality-redis redis-cli ping; do sleep 1; done
+      - name: Run Testcontainers-equivalent live database evidence serially
+        env:
+          LEDGERSYNC_TEST_DATABASE_URL: postgres://ledgersync:quality@localhost:5432/ledgersync?sslmode=disable
+          LEDGERSYNC_TEST_REDIS_ADDR: localhost:6379
+        run: |
+          go test ./tests/integration -count=1 -v
+          go test ./tests/fault -count=1 -v
+      - name: Remove disposable dependencies
+        if: always()
+        run: docker rm -f ledgersync-quality-postgres ledgersync-quality-redis || true
+  web-quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: web/package-lock.json }
+      - working-directory: web
+        run: npm ci
+      - working-directory: web
+        run: npm run lint && npm test && npm run build
+      - working-directory: web
+        run: npx playwright install --with-deps chromium
+      - working-directory: web
+        run: npm run test:e2e
