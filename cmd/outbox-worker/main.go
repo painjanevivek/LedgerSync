@@ -15,6 +15,7 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/events"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -53,7 +54,8 @@ func main() {
 		os.Exit(1)
 	}
 	hostname, _ := os.Hostname()
-	worker, err := outbox.NewWorker(store, streams, nil, nil, outbox.Config{WorkerID: fmt.Sprintf("%s-%d", hostname, os.Getpid())})
+	ryewMetrics := &observability.RYEWMetrics{}
+	worker, err := outbox.NewWorker(store, streams, ryewMetrics, nil, outbox.Config{WorkerID: fmt.Sprintf("%s-%d", hostname, os.Getpid())})
 	if err != nil {
 		slog.Error("outbox worker initialization failed", "error", err)
 		os.Exit(1)

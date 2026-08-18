@@ -45,6 +45,11 @@ type Cache interface {
 type Verifier interface {
 	Verify(string) (consistency.Requirement, error)
 }
+type Metrics interface {
+	ObserveCacheHit()
+	ObservePrimaryFallback()
+	ObserveUnsatisfiedRequirement()
+}
 
 type Reader struct {
 	primary      Repository
@@ -52,9 +57,13 @@ type Reader struct {
 	verifier     Verifier
 	maximumWait  time.Duration
 	pollInterval time.Duration
+	metrics      Metrics
 }
 
-type ReaderConfig struct{ MaximumWait, PollInterval time.Duration }
+type ReaderConfig struct {
+	MaximumWait, PollInterval time.Duration
+	Metrics                   Metrics
+}
 
 func NewReader(primary Repository, cache Cache, verifier Verifier, cfg ReaderConfig) (*Reader, error) {
 	if primary == nil || cache == nil {
@@ -66,7 +75,7 @@ func NewReader(primary Repository, cache Cache, verifier Verifier, cfg ReaderCon
 	if cfg.PollInterval <= 0 {
 		cfg.PollInterval = 15 * time.Millisecond
 	}
-	return &Reader{primary: primary, cache: cache, verifier: verifier, maximumWait: cfg.MaximumWait, pollInterval: cfg.PollInterval}, nil
+	return &Reader{primary: primary, cache: cache, verifier: verifier, maximumWait: cfg.MaximumWait, pollInterval: cfg.PollInterval, metrics: cfg.Metrics}, nil
 }
 
 func (r *Reader) Read(ctx context.Context, tenantID, actorID, accountID, rawRequirement string) (Result, error) {
@@ -78,6 +87,9 @@ func (r *Reader) Read(ctx context.Context, tenantID, actorID, accountID, rawRequ
 		return Result{}, err
 	}
 	if cached, err := r.cache.Get(ctx, tenantID, accountID); err == nil && cached.Version >= minimum {
+		if r.metrics != nil {
+			r.metrics.ObserveCacheHit()
+		}
 		return Result{Balance: cached, Source: SourceCache}, nil
 	}
 	if minimum > 0 {
@@ -93,17 +105,26 @@ func (r *Reader) Read(ctx context.Context, tenantID, actorID, accountID, rawRequ
 				goto fallback
 			case <-ticker.C:
 				if cached, err := r.cache.Get(ctx, tenantID, accountID); err == nil && cached.Version >= minimum {
+					if r.metrics != nil {
+						r.metrics.ObserveCacheHit()
+					}
 					return Result{Balance: cached, Source: SourceCache}, nil
 				}
 			}
 		}
 	}
 fallback:
+	if r.metrics != nil {
+		r.metrics.ObservePrimaryFallback()
+	}
 	balance, err := r.primary.ReadCurrent(ctx, tenantID, actorID, accountID)
 	if err != nil {
 		return Result{}, fmt.Errorf("%w: %v", ErrCurrentBalanceUnavailable, err)
 	}
 	if balance.Version < minimum {
+		if r.metrics != nil {
+			r.metrics.ObserveUnsatisfiedRequirement()
+		}
 		return Result{}, ErrCurrentBalanceUnavailable
 	}
 	// A primary read is authoritative and can opportunistically restore a

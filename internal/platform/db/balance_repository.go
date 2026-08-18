@@ -43,3 +43,28 @@ WHERE a.tenant_id = $1 AND a.id = $2 AND owner.subject_id = $3
 	balance.TenantID, balance.AccountID, balance.AsOf = tenantID, accountID, updatedAt.UTC()
 	return balance, nil
 }
+
+// ListCurrentForTenant is an operational-only projection read for the cache
+// rebuild command. It performs no financial write and must not be exposed via
+// a customer HTTP route.
+func (r *BalanceRepository) ListCurrentForTenant(ctx context.Context, tenantID string) ([]accounts.Balance, error) {
+	rows, err := r.database.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 ORDER BY a.id`, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("list current balances: %w", err)
+	}
+	defer rows.Close()
+	var balances []accounts.Balance
+	for rows.Next() {
+		var b accounts.Balance
+		if err := rows.Scan(&b.AccountID, &b.Currency, &b.AvailableMinor, &b.LedgerMinor, &b.Version, &b.AsOf); err != nil {
+			return nil, fmt.Errorf("scan current balance: %w", err)
+		}
+		b.TenantID = tenantID
+		b.AsOf = b.AsOf.UTC()
+		balances = append(balances, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate current balances: %w", err)
+	}
+	return balances, nil
+}

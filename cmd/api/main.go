@@ -73,7 +73,8 @@ func main() {
 				slog.Error("balance repository initialization failed", "error", err)
 				os.Exit(1)
 			}
-			balanceReader, err := accounts.NewReader(balanceRepository, cacheAdapter, issuer, accounts.ReaderConfig{})
+			ryewMetrics := &observability.RYEWMetrics{}
+			balanceReader, err := accounts.NewReader(balanceRepository, cacheAdapter, issuer, accounts.ReaderConfig{Metrics: ryewMetrics})
 			if err != nil {
 				slog.Error("balance reader initialization failed", "error", err)
 				os.Exit(1)

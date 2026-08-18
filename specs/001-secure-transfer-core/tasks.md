@@ -77,7 +77,7 @@
 - [X] T046 [US2] Implement signed consistency-requirement issue/verify/rotation interface in `internal/application/consistency/token.go`
 - [X] T047 [US2] Implement balance read use case with cache-version check, bounded wait, and primary fallback in `internal/application/accounts/balance.go`
 - [X] T048 [US2] Implement authorized balance API and BFF session requirement storage in `internal/transport/http/handlers/balances.go` and `web/src/app/api/accounts/[accountId]/balance/route.ts`
-- [ ] T049 [US2] Add outbox/cache/RYEW metrics and replay/rebuild command in `internal/platform/observability/ryew.go` and `cmd/reconcile/main.go`
+- [X] T049 [US2] Add outbox/cache/RYEW metrics and replay/rebuild command in `internal/platform/observability/ryew.go` and `cmd/reconcile/main.go`
 
 **Checkpoint**: US2 fault tests prove a requirement-bearing read returns the required version or a truthful availability error, never stale data as current.
 
