@@ -483,7 +483,7 @@ gantt
 |---|---|
 | exact internal same-currency ledger transfers | bank rails, card payments, FX, custody |
 | API, BFF foundation, authorization and RYEW | public self-serve onboarding and end-user wallet UI |
-| OIDC token validation and BFF boundary | selected IdP’s authorization-code-with-PKCE login wiring |
+| OIDC token validation, BFF boundary, and authorization-code-with-PKCE callback | provider-specific tenant/role/scope claim mapping approval |
 | outbox/cache recovery and reconciliation command | automated restore drills, full telemetry/SLO dashboards |
 
 ### License
