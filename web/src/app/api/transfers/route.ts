@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { createSession, sessionCookie, sessionCookieName, readSession } from "@/lib/session";
+import { createActorAssertion } from "@/lib/actor-assertion";
 import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { toPrivateTransferRequest, type CreateTransferInput } from "@/lib/api/transfers";
 
@@ -19,6 +20,8 @@ export async function POST(request: NextRequest) {
     return jsonError("temporary_unavailable", 503);
   }
 
+  let actorAssertion: string;
+  try { actorAssertion = createActorAssertion(session); } catch { return jsonError("temporary_unavailable", 503); }
   let body: ReturnType<typeof toPrivateTransferRequest>;
   try {
     body = toPrivateTransferRequest(await readBoundedJSON<CreateTransferInput>(request));
@@ -32,6 +35,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${privateAPIToken}`,
+        "X-LedgerSync-Actor-Assertion": actorAssertion,
         "Content-Type": "application/json",
         "Idempotency-Key": idempotencyKey,
         "X-Request-ID": request.headers.get("x-request-id") ?? crypto.randomUUID(),

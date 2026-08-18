@@ -13,6 +13,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks: [private]
+    security_opt: ["no-new-privileges:true"]
 
   redis:
     image: redis:7.4-alpine
@@ -25,6 +26,7 @@ services:
     volumes:
       - redis-data:/data
     networks: [private]
+    security_opt: ["no-new-privileges:true"]
 
   api:
     build:
@@ -44,6 +46,10 @@ services:
         condition: service_healthy
     ports: ["127.0.0.1:8080:8080"]
     networks: [private]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
   outbox-worker:
     build:
@@ -59,6 +65,10 @@ services:
       redis:
         condition: service_healthy
     networks: [private]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
   web:
     build:
@@ -72,12 +82,20 @@ services:
         condition: service_started
     ports: ["127.0.0.1:3000:3000"]
     networks: [edge, private]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
   legacy-simulation:
+    # This intentionally remains a diagnostics-only profile and never joins the
+    # edge network or publishes a port. It is excluded from pilot deployment.
     profiles: [diagnostic]
     image: python:3.11-slim
     command: ["sh", "-c", "echo 'Legacy simulation is deliberately excluded from the production runtime'; sleep infinity"]
     networks: [private]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
 networks:
   edge:

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { readSession, sessionCookieName } from "@/lib/session";
+import { createActorAssertion } from "@/lib/actor-assertion";
 import { jsonError } from "@/lib/security";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ accountId: string }> }) {
@@ -14,9 +15,11 @@ export async function GET(request: NextRequest, context: { params: Promise<{ acc
   const privateAPIToken = process.env.LEDGERSYNC_PRIVATE_API_TOKEN;
   if (!privateAPIURL || !privateAPIToken) return jsonError("temporary_unavailable", 503);
   const requirement = session.consistencyRequirements?.[normalizedAccountId];
+  let actorAssertion: string;
+  try { actorAssertion = createActorAssertion(session); } catch { return jsonError("temporary_unavailable", 503); }
   let upstream: Response;
   try {
-    upstream = await fetch(`${privateAPIURL.replace(/\/$/, "")}/api/accounts/${encodeURIComponent(normalizedAccountId)}/balance`, { method: "GET", headers: { Authorization: `Bearer ${privateAPIToken}`, ...(requirement ? { "X-LedgerSync-Consistency-Requirement": requirement } : {}), "X-Request-ID": request.headers.get("x-request-id") ?? crypto.randomUUID() }, cache: "no-store" });
+    upstream = await fetch(`${privateAPIURL.replace(/\/$/, "")}/api/accounts/${encodeURIComponent(normalizedAccountId)}/balance`, { method: "GET", headers: { Authorization: `Bearer ${privateAPIToken}`, "X-LedgerSync-Actor-Assertion": actorAssertion, ...(requirement ? { "X-LedgerSync-Consistency-Requirement": requirement } : {}), "X-Request-ID": request.headers.get("x-request-id") ?? crypto.randomUUID() }, cache: "no-store" });
   } catch { return jsonError("temporary_unavailable", 503); }
   const response = new NextResponse(await upstream.text(), { status: upstream.status, headers: { "Content-Type": upstream.headers.get("content-type") ?? "application/json", "Cache-Control": "no-store" } });
   const requestID = upstream.headers.get("x-request-id");

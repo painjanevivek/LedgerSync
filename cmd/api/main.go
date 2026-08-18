@@ -12,6 +12,7 @@ import (
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
@@ -42,7 +43,7 @@ func main() {
 		}
 		defer database.Close()
 		readiness = database.Ping
-		if configuration.Environment == "development" && configuration.DevelopmentSubjectID != "" && configuration.DevelopmentTenantID != "" {
+		if configuration.Environment != "development" || (configuration.DevelopmentSubjectID != "" && configuration.DevelopmentTenantID != "") {
 			if configuration.RedisAddress == "" || len(configuration.ConsistencySigningKey) < 32 {
 				slog.Error("balance consistency configuration is missing")
 				os.Exit(1)
@@ -90,12 +91,50 @@ func main() {
 				slog.Error("transfer service initialization failed", "error", err)
 				os.Exit(1)
 			}
-			provider := identity.DevelopmentProvider{
-				SubjectID: configuration.DevelopmentSubjectID,
-				TenantID:  configuration.DevelopmentTenantID,
+			var provider identity.Provider
+			if configuration.Environment == "development" {
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Scopes: []string{"accounts:read", "transactions:read", "transfers:write"}}
+			} else {
+				provider, err = identity.NewOIDCProvider(context.Background(), configuration.OIDCIssuerURL, configuration.OIDCAudience)
+				if err != nil {
+					slog.Error("OIDC provider initialization failed", "error", err)
+					os.Exit(1)
+				}
 			}
-			router.Handle("POST /api/transfers", handlers.NewTransferHandler(service, provider, issuer))
-			router.Handle("GET /api/accounts/{accountID}/balance", handlers.NewBalanceHandler(balanceReader, provider))
+			accountRepository, err := db.NewAccountRepository(database)
+			if err != nil {
+				slog.Error("account repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			accountService, err := accounts.NewService(accountRepository)
+			if err != nil {
+				slog.Error("account service initialization failed", "error", err)
+				os.Exit(1)
+			}
+			historyRepository, err := db.NewTransactionHistoryRepository(database)
+			if err != nil {
+				slog.Error("history repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			history, err := transactions.NewHistory(historyRepository)
+			if err != nil {
+				slog.Error("history service initialization failed", "error", err)
+				os.Exit(1)
+			}
+			transferHandler := handlers.NewTransferHandler(service, provider, issuer)
+			balanceHandler := handlers.NewBalanceHandler(balanceReader, provider)
+			accountsHandler := handlers.NewAccountsHandler(accountService, provider)
+			transactionsHandler := handlers.NewTransactionsHandler(history, provider)
+			if len(configuration.BFFAssertionSecret) >= 32 {
+				transferHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
+				balanceHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
+				accountsHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
+				transactionsHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
+			}
+			router.Handle("POST /api/transfers", transferHandler)
+			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)
+			router.Handle("GET /api/me/accounts", accountsHandler)
+			router.Handle("GET /api/accounts/{accountID}/transactions", transactionsHandler)
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))

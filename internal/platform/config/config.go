@@ -18,6 +18,7 @@ type Config struct {
 	SessionSecret           string
 	OIDCIssuerURL           string
 	OIDCAudience            string
+	BFFAssertionSecret      string
 	DevelopmentSubjectID    string
 	DevelopmentTenantID     string
 }
@@ -39,11 +40,12 @@ func Load() (Config, error) {
 		SessionSecret:           os.Getenv("LEDGERSYNC_SESSION_SECRET"),
 		OIDCIssuerURL:           os.Getenv("LEDGERSYNC_OIDC_ISSUER_URL"),
 		OIDCAudience:            valueOrDefault("LEDGERSYNC_OIDC_AUDIENCE", "ledgersync"),
+		BFFAssertionSecret:      os.Getenv("LEDGERSYNC_BFF_ASSERTION_SECRET"),
 		DevelopmentSubjectID:    os.Getenv("LEDGERSYNC_DEVELOPMENT_SUBJECT_ID"),
 		DevelopmentTenantID:     os.Getenv("LEDGERSYNC_DEVELOPMENT_TENANT_ID"),
 	}
-	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32) {
-		return Config{}, fmt.Errorf("database URL, redis address, session secret, and a 32-byte consistency signing key are required outside development")
+	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCAudience == "" || len(config.BFFAssertionSecret) < 32) {
+		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/audience, and 32-byte BFF assertion secret are required outside development")
 	}
 	return config, nil
 }

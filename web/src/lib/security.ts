@@ -14,6 +14,7 @@ export const securityHeaders: Record<string, string> = {
 
 export function addSecurityHeaders(response: NextResponse): NextResponse {
   for (const [name, value] of Object.entries(securityHeaders)) response.headers.set(name, value);
+  if (process.env.NODE_ENV === "production") response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   return response;
 }
 
@@ -25,7 +26,10 @@ export function hasSameOrigin(request: NextRequest): boolean {
 
 export function hasValidCSRF(request: NextRequest, session: Session): boolean {
   const token = request.headers.get("x-csrf-token");
-  return hasSameOrigin(request) && token !== null && token.length === session.csrfToken.length && token === session.csrfToken;
+  if (!hasSameOrigin(request) || token === null || token.length !== session.csrfToken.length) return false;
+  let difference = 0;
+  for (let index = 0; index < token.length; index += 1) difference |= token.charCodeAt(index) ^ session.csrfToken.charCodeAt(index);
+  return difference === 0;
 }
 
 export async function readBoundedJSON<T>(request: NextRequest, maximumBytes = 16_384): Promise<T> {

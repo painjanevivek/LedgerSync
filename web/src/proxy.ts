@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { addSecurityHeaders } from "@/lib/security";
 
-export function middleware(_request: NextRequest) {
+export function proxy(_request: NextRequest) {
 	void _request;
   return addSecurityHeaders(NextResponse.next());
 }

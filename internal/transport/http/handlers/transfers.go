@@ -22,9 +22,10 @@ import (
 const maxTransferBodyBytes = 64 * 1024
 
 type TransferHandler struct {
-	service  *transfers.Service
-	identity identity.Provider
-	issuer   *consistency.Issuer
+	service       *transfers.Service
+	identity      identity.Provider
+	authenticator *identity.RequestAuthenticator
+	issuer        *consistency.Issuer
 }
 
 func NewTransferHandler(service *transfers.Service, provider identity.Provider, issuers ...*consistency.Issuer) *TransferHandler {
@@ -33,6 +34,13 @@ func NewTransferHandler(service *transfers.Service, provider identity.Provider, 
 		issuer = issuers[0]
 	}
 	return &TransferHandler{service: service, identity: provider, issuer: issuer}
+}
+
+func (h *TransferHandler) WithBFFAssertionSecret(secret string) *TransferHandler {
+	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
+		h.authenticator = authenticator
+	}
+	return h
 }
 
 type createTransferRequest struct {
@@ -52,9 +60,13 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, errors.New("transfer handler is not configured"))
 		return
 	}
-	principal, err := h.identity.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")))
+	principal, err := h.authenticate(request)
 	if err != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		return
+	}
+	if identity.RequireScope(principal, "transfers:write") != nil {
+		httptransport.WriteError(writer, request, httptransport.ErrForbidden)
 		return
 	}
 	input, err := decodeTransferRequest(writer, request)
@@ -104,6 +116,17 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	}
 	writer.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(writer).Encode(submission.Result)
+}
+
+func (h *TransferHandler) authenticate(request *http.Request) (identity.Principal, error) {
+	assertion := request.Header.Get("X-LedgerSync-Actor-Assertion")
+	if h.authenticator != nil {
+		return h.authenticator.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")), assertion)
+	}
+	if assertion != "" {
+		return identity.Principal{}, identity.ErrUnauthenticated
+	}
+	return h.identity.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")))
 }
 
 func decodeTransferRequest(writer http.ResponseWriter, request *http.Request) (createTransferRequest, error) {

@@ -87,16 +87,16 @@
 
 **Independent Test**: modify account IDs, call admin routes as a normal user, and inspect logs/telemetry for sensitive-data leakage.
 
-- [ ] T050 [P] [US3] Write object-authorization negative tests in `tests/integration/account_authorization_test.go`
-- [ ] T051 [P] [US3] Write BFF CSRF, session, and security-header tests in `web/tests/security/session.test.ts`
-- [ ] T052 [P] [US3] Write administrative-route and log-redaction tests in `tests/integration/admin_authorization_test.go` and `tests/unit/redaction_test.go`
-- [ ] T053 [US3] Implement OIDC token validation and role/scope mapping in `internal/platform/identity/oidc.go`
-- [ ] T054 [US3] Implement account read/history authorization use cases in `internal/application/accounts/service.go` and `internal/application/transactions/history.go`
-- [ ] T055 [US3] Implement owned-account and history handlers in `internal/transport/http/handlers/accounts.go` and `internal/transport/http/handlers/transactions.go`
-- [ ] T056 [US3] Implement BFF account/history routes and deny-by-default admin routing in `web/src/app/api/me/accounts/route.ts`, `web/src/app/api/accounts/[accountId]/transactions/route.ts`, and `web/src/app/admin/`
-- [ ] T057 [US3] Implement audit-event persistence and sensitive-action audit policy in `internal/platform/db/audit_repository.go` and `docs/runbooks/audit-events.md`
-- [ ] T058 [US3] Move local secrets to configuration and document managed-secret/rotation requirements in `.env.example` and `docs/runbooks/secrets-rotation.md`
-- [ ] T059 [US3] Restrict Compose networking, container privileges, and diagnostic profile exposure in `deploy/compose/docker-compose.yml` and `deploy/docker/`
+- [X] T050 [P] [US3] Write object-authorization negative tests in `tests/integration/account_authorization_test.go`
+- [X] T051 [P] [US3] Write BFF CSRF, session, and security-header tests in `web/tests/security/session.test.ts`
+- [X] T052 [P] [US3] Write administrative-route and log-redaction tests in `tests/integration/admin_authorization_test.go` and `tests/unit/redaction_test.go`
+- [X] T053 [US3] Implement OIDC token validation and role/scope mapping in `internal/platform/identity/oidc.go`
+- [X] T054 [US3] Implement account read/history authorization use cases in `internal/application/accounts/service.go` and `internal/application/transactions/history.go`
+- [X] T055 [US3] Implement owned-account and history handlers in `internal/transport/http/handlers/accounts.go` and `internal/transport/http/handlers/transactions.go`
+- [X] T056 [US3] Implement BFF account/history routes and deny-by-default admin routing in `web/src/app/api/me/accounts/route.ts`, `web/src/app/api/accounts/[accountId]/transactions/route.ts`, and `web/src/app/admin/`
+- [X] T057 [US3] Implement audit-event persistence and sensitive-action audit policy in `internal/platform/db/audit_repository.go` and `docs/runbooks/audit-events.md`
+- [X] T058 [US3] Move local secrets to configuration and document managed-secret/rotation requirements in `.env.example` and `docs/runbooks/secrets-rotation.md`
+- [X] T059 [US3] Restrict Compose networking, container privileges, and diagnostic profile exposure in `deploy/compose/docker-compose.yml` and `deploy/docker/`
 
 **Checkpoint**: US3 denies cross-account and unauthorized admin access without disclosure, while operators retain sanitized audit evidence.
 
