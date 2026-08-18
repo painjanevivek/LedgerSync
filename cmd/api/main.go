@@ -8,8 +8,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
+	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
@@ -17,6 +21,7 @@ import (
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -38,6 +43,41 @@ func main() {
 		defer database.Close()
 		readiness = database.Ping
 		if configuration.Environment == "development" && configuration.DevelopmentSubjectID != "" && configuration.DevelopmentTenantID != "" {
+			if configuration.RedisAddress == "" || len(configuration.ConsistencySigningKey) < 32 {
+				slog.Error("balance consistency configuration is missing")
+				os.Exit(1)
+			}
+			redisClient := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
+			defer redisClient.Close()
+			if err := redisClient.Ping(context.Background()).Err(); err != nil {
+				slog.Error("redis initialization failed", "error", err)
+				os.Exit(1)
+			}
+			issuer, err := consistency.NewIssuer(consistency.Key{ID: configuration.ConsistencySigningKeyID, Secret: []byte(configuration.ConsistencySigningKey)}, nil, nil, 10*time.Minute)
+			if err != nil {
+				slog.Error("consistency issuer initialization failed", "error", err)
+				os.Exit(1)
+			}
+			balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute)
+			if err != nil {
+				slog.Error("balance cache initialization failed", "error", err)
+				os.Exit(1)
+			}
+			cacheAdapter, err := cacheplatform.NewAccountAdapter(balanceCache)
+			if err != nil {
+				slog.Error("balance cache adapter initialization failed", "error", err)
+				os.Exit(1)
+			}
+			balanceRepository, err := db.NewBalanceRepository(database)
+			if err != nil {
+				slog.Error("balance repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			balanceReader, err := accounts.NewReader(balanceRepository, cacheAdapter, issuer, accounts.ReaderConfig{})
+			if err != nil {
+				slog.Error("balance reader initialization failed", "error", err)
+				os.Exit(1)
+			}
 			repository, err := db.NewTransferRepository(database, nil)
 			if err != nil {
 				slog.Error("transfer repository initialization failed", "error", err)
@@ -49,10 +89,12 @@ func main() {
 				slog.Error("transfer service initialization failed", "error", err)
 				os.Exit(1)
 			}
-			router.Handle("POST /api/transfers", handlers.NewTransferHandler(service, identity.DevelopmentProvider{
+			provider := identity.DevelopmentProvider{
 				SubjectID: configuration.DevelopmentSubjectID,
 				TenantID:  configuration.DevelopmentTenantID,
-			}))
+			}
+			router.Handle("POST /api/transfers", handlers.NewTransferHandler(service, provider, issuer))
+			router.Handle("GET /api/accounts/{accountID}/balance", handlers.NewBalanceHandler(balanceReader, provider))
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))

@@ -7,6 +7,7 @@ export type Session = Readonly<{
   tenantId: string;
   csrfToken: string;
   expiresAt: number;
+  consistencyRequirements?: Readonly<Record<string, string>>;
 }>;
 
 type SignedSession = Session & { signature: string };
@@ -42,11 +43,14 @@ export function readSession(raw: string | undefined): Session | null {
     ) {
       return null;
     }
+    const requirements = parsed.consistencyRequirements;
+    if (requirements !== undefined && (typeof requirements !== "object" || requirements === null || Object.entries(requirements).length > 10 || Object.entries(requirements).some(([accountId, token]) => typeof accountId !== "string" || typeof token !== "string" || token.length > 2048))) return null;
     const payload: Session = {
       subjectId: parsed.subjectId,
       tenantId: parsed.tenantId,
       csrfToken: parsed.csrfToken,
       expiresAt: parsed.expiresAt,
+      consistencyRequirements: requirements as Readonly<Record<string, string>> | undefined,
     };
     const expected = Buffer.from(sign(payload));
     const supplied = Buffer.from(parsed.signature);

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/outbox"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/projection"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -50,11 +51,6 @@ func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) error {
 	return nil
 }
 
-type StreamMessage struct {
-	ID    string
-	Event outbox.Event
-}
-
 // EnsureConsumerGroup is idempotent. The group starts at zero so a newly
 // provisioned cache can rebuild from retained stream entries when available.
 func (p *RedisStreams) EnsureConsumerGroup(ctx context.Context, group string) error {
@@ -65,7 +61,7 @@ func (p *RedisStreams) EnsureConsumerGroup(ctx context.Context, group string) er
 	return nil
 }
 
-func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, count int64, block time.Duration) ([]StreamMessage, error) {
+func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, count int64, block time.Duration) ([]projection.Message, error) {
 	if group == "" || consumer == "" || count <= 0 {
 		return nil, errors.New("group, consumer, and count are required")
 	}
@@ -81,7 +77,7 @@ func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, co
 
 // RecoverPending claims messages idle longer than minIdle. This makes cache
 // projection recoverable when a consumer process stops after delivery.
-func (p *RedisStreams) RecoverPending(ctx context.Context, group, consumer string, minIdle time.Duration, count int64) ([]StreamMessage, error) {
+func (p *RedisStreams) RecoverPending(ctx context.Context, group, consumer string, minIdle time.Duration, count int64) ([]projection.Message, error) {
 	if group == "" || consumer == "" || count <= 0 {
 		return nil, errors.New("group, consumer, and count are required")
 	}
@@ -102,8 +98,8 @@ func (p *RedisStreams) Ack(ctx context.Context, group string, messageID string) 
 	return nil
 }
 
-func decodeEntries(streams []redis.XStream) ([]StreamMessage, error) {
-	var result []StreamMessage
+func decodeEntries(streams []redis.XStream) ([]projection.Message, error) {
+	var result []projection.Message
 	for _, stream := range streams {
 		decoded, err := decodeMessages(stream.Messages)
 		if err != nil {
@@ -114,14 +110,14 @@ func decodeEntries(streams []redis.XStream) ([]StreamMessage, error) {
 	return result, nil
 }
 
-func decodeMessages(messages []redis.XMessage) ([]StreamMessage, error) {
-	result := make([]StreamMessage, 0, len(messages))
+func decodeMessages(messages []redis.XMessage) ([]projection.Message, error) {
+	result := make([]projection.Message, 0, len(messages))
 	for _, message := range messages {
 		event, err := decodeEvent(message.Values)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, StreamMessage{ID: message.ID, Event: event})
+		result = append(result, projection.Message{ID: message.ID, Event: event})
 	}
 	return result, nil
 }

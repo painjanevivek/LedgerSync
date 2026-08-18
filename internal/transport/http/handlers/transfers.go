@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
@@ -23,10 +24,15 @@ const maxTransferBodyBytes = 64 * 1024
 type TransferHandler struct {
 	service  *transfers.Service
 	identity identity.Provider
+	issuer   *consistency.Issuer
 }
 
-func NewTransferHandler(service *transfers.Service, provider identity.Provider) *TransferHandler {
-	return &TransferHandler{service: service, identity: provider}
+func NewTransferHandler(service *transfers.Service, provider identity.Provider, issuers ...*consistency.Issuer) *TransferHandler {
+	var issuer *consistency.Issuer
+	if len(issuers) > 0 {
+		issuer = issuers[0]
+	}
+	return &TransferHandler{service: service, identity: provider, issuer: issuer}
 }
 
 type createTransferRequest struct {
@@ -78,6 +84,23 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	writer.Header().Set("Cache-Control", "no-store")
 	if submission.Replayed {
 		writer.Header().Set("Idempotent-Replay", "true")
+	}
+	if h.issuer != nil && submission.Result.Status == "posted" {
+		requirements := make(map[string]string, len(submission.Result.MinimumBalanceVersions))
+		for accountID, version := range submission.Result.MinimumBalanceVersions {
+			requirement, err := h.issuer.Issue(principal.TenantID, accountID, version)
+			if err != nil {
+				httptransport.WriteError(writer, request, err)
+				return
+			}
+			requirements[accountID] = requirement
+		}
+		encoded, err := json.Marshal(requirements)
+		if err != nil {
+			httptransport.WriteError(writer, request, err)
+			return
+		}
+		writer.Header().Set("X-LedgerSync-Consistency-Requirements", string(encoded))
 	}
 	writer.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(writer).Encode(submission.Result)

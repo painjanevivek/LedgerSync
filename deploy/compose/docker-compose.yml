@@ -36,6 +36,7 @@ services:
       LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
       LEDGERSYNC_REDIS_ADDR: redis:6379
       LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:-development-only-change-me}
+      LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:-development-only-change-me-change-before-shared-use}
     depends_on:
       postgres:
         condition: service_healthy

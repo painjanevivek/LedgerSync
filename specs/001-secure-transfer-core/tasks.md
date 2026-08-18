@@ -68,15 +68,15 @@
 
 **Independent Test**: delay projection, complete a transfer, read immediately, then repeat with duplicate events, stopped worker, and Redis loss.
 
-- [ ] T040 [P] [US2] Write RYEW delay/primary-fallback fault tests in `tests/fault/ryew_delay_test.go`
-- [ ] T041 [P] [US2] Write duplicate-event/version-order tests in `tests/integration/cache_projection_test.go`
-- [ ] T042 [P] [US2] Write Redis-loss cache-rebuild tests in `tests/fault/cache_recovery_test.go`
-- [ ] T043 [US2] Implement outbox claiming, publish acknowledgement, retry backoff, and dead-event metrics in `internal/application/outbox/worker.go`
-- [ ] T044 [US2] Implement Redis Streams publishing and consumer-group recovery in `internal/platform/events/redis_streams.go`
-- [ ] T045 [US2] Implement version-aware cache projection and expiry in `internal/platform/cache/balance_cache.go`
-- [ ] T046 [US2] Implement signed consistency-requirement issue/verify/rotation interface in `internal/application/consistency/token.go`
-- [ ] T047 [US2] Implement balance read use case with cache-version check, bounded wait, and primary fallback in `internal/application/accounts/balance.go`
-- [ ] T048 [US2] Implement authorized balance API and BFF session requirement storage in `internal/transport/http/handlers/balances.go` and `web/src/app/api/accounts/[accountId]/balance/route.ts`
+- [X] T040 [P] [US2] Write RYEW delay/primary-fallback fault tests in `tests/fault/ryew_delay_test.go`
+- [X] T041 [P] [US2] Write duplicate-event/version-order tests in `tests/integration/cache_projection_test.go`
+- [X] T042 [P] [US2] Write Redis-loss cache-rebuild tests in `tests/fault/cache_recovery_test.go`
+- [X] T043 [US2] Implement outbox claiming, publish acknowledgement, retry backoff, and dead-event metrics in `internal/application/outbox/worker.go`
+- [X] T044 [US2] Implement Redis Streams publishing and consumer-group recovery in `internal/platform/events/redis_streams.go`
+- [X] T045 [US2] Implement version-aware cache projection and expiry in `internal/platform/cache/balance_cache.go`
+- [X] T046 [US2] Implement signed consistency-requirement issue/verify/rotation interface in `internal/application/consistency/token.go`
+- [X] T047 [US2] Implement balance read use case with cache-version check, bounded wait, and primary fallback in `internal/application/accounts/balance.go`
+- [X] T048 [US2] Implement authorized balance API and BFF session requirement storage in `internal/transport/http/handlers/balances.go` and `web/src/app/api/accounts/[accountId]/balance/route.ts`
 - [ ] T049 [US2] Add outbox/cache/RYEW metrics and replay/rebuild command in `internal/platform/observability/ryew.go` and `cmd/reconcile/main.go`
 
 **Checkpoint**: US2 fault tests prove a requirement-bearing read returns the required version or a truthful availability error, never stale data as current.

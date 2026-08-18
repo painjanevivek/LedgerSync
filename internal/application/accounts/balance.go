@@ -40,6 +40,7 @@ type Repository interface {
 }
 type Cache interface {
 	Get(context.Context, string, string) (Balance, error)
+	Put(context.Context, Balance) (bool, error)
 }
 type Verifier interface {
 	Verify(string) (consistency.Requirement, error)
@@ -105,6 +106,9 @@ fallback:
 	if balance.Version < minimum {
 		return Result{}, ErrCurrentBalanceUnavailable
 	}
+	// A primary read is authoritative and can opportunistically restore a
+	// disposable cache after Redis loss. Cache failure never changes the answer.
+	_, _ = r.cache.Put(ctx, balance)
 	return Result{Balance: balance, Source: SourcePrimary}, nil
 }
 

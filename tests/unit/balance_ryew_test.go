@@ -105,6 +105,10 @@ func (m *memoryBalanceCache) set(value accounts.Balance) {
 	defer m.mu.Unlock()
 	m.balance = value
 }
+func (m *memoryBalanceCache) Put(_ context.Context, value accounts.Balance) (bool, error) {
+	m.set(value)
+	return true, nil
+}
 func balance(version int64) accounts.Balance {
 	return accounts.Balance{TenantID: "tenant", AccountID: "account", Currency: "USD", AvailableMinor: 100, LedgerMinor: 100, Version: version, AsOf: time.Date(2026, 8, 18, 10, 0, 0, 0, time.UTC)}
 }
