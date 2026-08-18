@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ledgersync
+      POSTGRES_USER: ledgersync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-only-change-me}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledgersync -d ledgersync"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [private]
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - redis-data:/data
+    networks: [private]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/api.Dockerfile
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_HTTP_ADDR: :8080
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_REDIS_ADDR: redis:6379
+      LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:-development-only-change-me}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports: ["127.0.0.1:8080:8080"]
+    networks: [private]
+
+  outbox-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/outbox-worker.Dockerfile
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_REDIS_ADDR: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [private]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/web.Dockerfile
+    environment:
+      NODE_ENV: production
+      LEDGERSYNC_API_URL: http://api:8080
+    depends_on:
+      api:
+        condition: service_started
+    ports: ["127.0.0.1:3000:3000"]
+    networks: [edge, private]
+
+  legacy-simulation:
+    profiles: [diagnostic]
+    image: python:3.11-slim
+    command: ["sh", "-c", "echo 'Legacy simulation is deliberately excluded from the production runtime'; sleep infinity"]
+    networks: [private]
+
+networks:
+  edge:
+  private:
+    internal: true
+
+volumes:
+  postgres-data:
+  redis-data:
