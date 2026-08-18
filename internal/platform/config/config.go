@@ -8,14 +8,16 @@ import (
 )
 
 type Config struct {
-	Environment     string
-	HTTPAddress     string
-	ShutdownTimeout time.Duration
-	DatabaseURL     string
-	RedisAddress    string
-	SessionSecret   string
-	OIDCIssuerURL   string
-	OIDCAudience    string
+	Environment          string
+	HTTPAddress          string
+	ShutdownTimeout      time.Duration
+	DatabaseURL          string
+	RedisAddress         string
+	SessionSecret        string
+	OIDCIssuerURL        string
+	OIDCAudience         string
+	DevelopmentSubjectID string
+	DevelopmentTenantID  string
 }
 
 func Load() (Config, error) {
@@ -25,14 +27,16 @@ func Load() (Config, error) {
 	}
 
 	config := Config{
-		Environment:     valueOrDefault("LEDGERSYNC_ENV", "development"),
-		HTTPAddress:     valueOrDefault("LEDGERSYNC_HTTP_ADDR", ":8080"),
-		ShutdownTimeout: timeout,
-		DatabaseURL:     os.Getenv("LEDGERSYNC_DATABASE_URL"),
-		RedisAddress:    os.Getenv("LEDGERSYNC_REDIS_ADDR"),
-		SessionSecret:   os.Getenv("LEDGERSYNC_SESSION_SECRET"),
-		OIDCIssuerURL:   os.Getenv("LEDGERSYNC_OIDC_ISSUER_URL"),
-		OIDCAudience:    valueOrDefault("LEDGERSYNC_OIDC_AUDIENCE", "ledgersync"),
+		Environment:          valueOrDefault("LEDGERSYNC_ENV", "development"),
+		HTTPAddress:          valueOrDefault("LEDGERSYNC_HTTP_ADDR", ":8080"),
+		ShutdownTimeout:      timeout,
+		DatabaseURL:          os.Getenv("LEDGERSYNC_DATABASE_URL"),
+		RedisAddress:         os.Getenv("LEDGERSYNC_REDIS_ADDR"),
+		SessionSecret:        os.Getenv("LEDGERSYNC_SESSION_SECRET"),
+		OIDCIssuerURL:        os.Getenv("LEDGERSYNC_OIDC_ISSUER_URL"),
+		OIDCAudience:         valueOrDefault("LEDGERSYNC_OIDC_AUDIENCE", "ledgersync"),
+		DevelopmentSubjectID: os.Getenv("LEDGERSYNC_DEVELOPMENT_SUBJECT_ID"),
+		DevelopmentTenantID:  os.Getenv("LEDGERSYNC_DEVELOPMENT_TENANT_ID"),
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.SessionSecret == "") {
 		return Config{}, fmt.Errorf("database URL and session secret are required outside development")

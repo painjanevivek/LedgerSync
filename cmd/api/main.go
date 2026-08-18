@@ -9,9 +9,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
@@ -23,7 +27,36 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler := middleware.Correlation(httptransport.NewHealthHandler(nil))
+	var readiness httptransport.DependencyCheck
+	router := http.NewServeMux()
+	if configuration.DatabaseURL != "" {
+		database, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+		if err != nil {
+			slog.Error("database initialization failed", "error", err)
+			os.Exit(1)
+		}
+		defer database.Close()
+		readiness = database.Ping
+		if configuration.Environment == "development" && configuration.DevelopmentSubjectID != "" && configuration.DevelopmentTenantID != "" {
+			repository, err := db.NewTransferRepository(database, nil)
+			if err != nil {
+				slog.Error("transfer repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			metrics := &observability.TransferMetrics{}
+			service, err := transfers.NewService(repository, nil, metrics)
+			if err != nil {
+				slog.Error("transfer service initialization failed", "error", err)
+				os.Exit(1)
+			}
+			router.Handle("POST /api/transfers", handlers.NewTransferHandler(service, identity.DevelopmentProvider{
+				SubjectID: configuration.DevelopmentSubjectID,
+				TenantID:  configuration.DevelopmentTenantID,
+			}))
+		}
+	}
+	router.Handle("/", httptransport.NewHealthHandler(readiness))
+	handler := middleware.Correlation(router)
 	server := &http.Server{Addr: configuration.HTTPAddress, Handler: handler}
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)

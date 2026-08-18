@@ -46,19 +46,19 @@
 
 **Independent Test**: submit a transfer, repeat it with the same idempotency key, run competing debits, and reconcile the affected accounts.
 
-- [ ] T027 [P] [US1] Write transfer-contract success/validation tests in `tests/contract/transfers_contract_test.go`
-- [ ] T028 [P] [US1] Write duplicate-key, mismatch-key, and lost-response integration tests in `tests/integration/idempotency_test.go`
-- [ ] T029 [P] [US1] Write concurrent-debit/no-overdraft integration tests in `tests/integration/concurrent_transfers_test.go`
-- [ ] T030 [P] [US1] Write ledger/projection reconciliation tests in `tests/integration/reconciliation_test.go`
+- [X] T027 [P] [US1] Write transfer-contract success/validation tests in `tests/contract/transfers_contract_test.go`
+- [X] T028 [P] [US1] Write duplicate-key, mismatch-key, and lost-response integration tests in `tests/integration/idempotency_test.go`
+- [X] T029 [P] [US1] Write concurrent-debit/no-overdraft integration tests in `tests/integration/concurrent_transfers_test.go`
+- [X] T030 [P] [US1] Write ledger/projection reconciliation tests in `tests/integration/reconciliation_test.go`
 - [X] T031 [US1] Implement account ownership lookup and debit authorization in `internal/application/transfers/authorize.go`
 - [X] T032 [US1] Implement idempotency reservation, fingerprint comparison, and response replay in `internal/application/transfers/idempotency.go`
-- [ ] T033 [US1] Implement deterministic account-projection locking and funds checks in `internal/platform/db/transfer_repository.go`
-- [ ] T034 [US1] Implement atomic journal, posting, balance-version, transfer-outcome, and outbox persistence in `internal/application/transfers/service.go`
-- [ ] T035 [US1] Implement the `POST /api/transfers` private API handler in `internal/transport/http/handlers/transfers.go`
-- [ ] T036 [US1] Implement the BFF transfer route and idempotency-header forwarding in `web/src/app/api/transfers/route.ts`
-- [ ] T037 [US1] Implement transfer request/result client types in `web/src/lib/api/transfers.ts`
-- [ ] T038 [US1] Add safe transfer audit records and metrics in `internal/application/transfers/audit.go` and `internal/platform/observability/transfers.go`
-- [ ] T039 [US1] Add transaction compatibility and retry tests for deadlock/serialization cases in `tests/integration/transfer_retry_test.go`
+- [X] T033 [US1] Implement deterministic account-projection locking and funds checks in `internal/platform/db/transfer_repository.go`
+- [X] T034 [US1] Implement atomic journal, posting, balance-version, transfer-outcome, and outbox persistence in `internal/application/transfers/service.go`
+- [X] T035 [US1] Implement the `POST /api/transfers` private API handler in `internal/transport/http/handlers/transfers.go`
+- [X] T036 [US1] Implement the BFF transfer route and idempotency-header forwarding in `web/src/app/api/transfers/route.ts`
+- [X] T037 [US1] Implement transfer request/result client types in `web/src/lib/api/transfers.ts`
+- [X] T038 [US1] Add safe transfer audit records and metrics in `internal/application/transfers/audit.go` and `internal/platform/observability/transfers.go`
+- [X] T039 [US1] Add transaction compatibility and retry tests for deadlock/serialization cases in `tests/unit/transaction_retry_test.go`
 
 **Checkpoint**: US1 is demoable independently: no duplicate movement, no overdraft, and every posted transfer reconciles.
 

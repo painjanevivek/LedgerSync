@@ -33,6 +33,7 @@ Thumbs.db
 data/
 .codebase-memory/
 .tools/
+.cache/
 
 # Local Codex/agent instructions are machine-local and must never be committed.
 .agents/
