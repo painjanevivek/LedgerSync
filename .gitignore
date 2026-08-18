@@ -1,0 +1,39 @@
+# Local configuration and credentials
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Go
+*.exe
+*.test
+*.out
+coverage.out
+vendor/
+
+# Node.js
+node_modules/
+.next/
+dist/
+build/
+*.log
+
+# Python legacy/demo artifacts
+__pycache__/
+*.py[cod]
+.venv/
+
+# Local/editor/runtime state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.tmp
+*.swp
+data/
+.codebase-memory/
+.tools/
+
+# Local Codex/agent instructions are machine-local and must never be committed.
+.agents/
+**/SKILL.md
