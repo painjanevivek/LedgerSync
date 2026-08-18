@@ -1,0 +1,54 @@
+name: Supply-chain and security gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+
+jobs:
+  secrets-dependencies-and-iac:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Scan Go dependencies
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: web/package-lock.json }
+      - working-directory: web
+        run: npm ci && npm audit --omit=dev --audit-level=high
+      - name: Scan compose and infrastructure configuration
+        uses: aquasecurity/trivy-action@0.33.1
+        with: { scan-type: config, scan-ref: deploy, severity: HIGH,CRITICAL, exit-code: 1 }
+  containers-and-provenance:
+    runs-on: ubuntu-24.04
+    needs: secrets-dependencies-and-iac
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build immutable scan targets
+        run: |
+          docker build -f deploy/docker/api.Dockerfile -t ledgersync-api:${{ github.sha }} .
+          docker build -f deploy/docker/outbox-worker.Dockerfile -t ledgersync-worker:${{ github.sha }} .
+          docker build -f deploy/docker/web.Dockerfile -t ledgersync-web:${{ github.sha }} .
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.33.1
+        with: { image-ref: ledgersync-api:${{ github.sha }}, severity: HIGH,CRITICAL, exit-code: 1 }
+      - name: Scan worker image
+        uses: aquasecurity/trivy-action@0.33.1
+        with: { image-ref: ledgersync-worker:${{ github.sha }}, severity: HIGH,CRITICAL, exit-code: 1 }
+      - name: Scan web image
+        uses: aquasecurity/trivy-action@0.33.1
+        with: { image-ref: ledgersync-web:${{ github.sha }}, severity: HIGH,CRITICAL, exit-code: 1 }
+      - uses: anchore/sbom-action@v0
+        with: { artifact-name: ledgersync-sbom, output-file: sbom.spdx.json }
+      - uses: actions/attest-build-provenance@v2
+        with: { subject-path: sbom.spdx.json }

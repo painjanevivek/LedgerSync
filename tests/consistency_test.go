@@ -1,3 +1,9 @@
+//go:build legacy
+// +build legacy
+
+// The original prototype scenario is retained for reference only. It depends
+// on the retired services and is deliberately excluded from the production Go
+// module unless an operator explicitly runs it with `-tags=legacy`.
 package tests
 
 import (

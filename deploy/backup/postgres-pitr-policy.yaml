@@ -1,0 +1,21 @@
+version: 1
+service: ledgersync-postgresql
+classification: financial-system-of-record
+provider_requirements:
+  managed_postgresql: true
+  encryption_at_rest: provider_kms_key_required
+  encryption_in_transit: required
+  continuous_wal_archiving: required
+  backup_isolation: separate_backup_project_or_account_required
+recovery_objectives:
+  max_rpo_minutes: 5
+  max_rto_minutes: 60
+retention:
+  point_in_time_days: 35
+  monthly_snapshots: 12
+operational_controls:
+  backup_age_alert_minutes: 15
+  restore_drill_cadence_days: 30
+  restore_target: isolated_network_with_no_production_credentials
+  required_post_restore_check: tenant_scoped_reconciliation
+implementation_status: template_only_do_not_claim_enabled_until_provider_evidence_is_attached

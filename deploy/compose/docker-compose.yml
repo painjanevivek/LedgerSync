@@ -1,0 +1,110 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ledgersync
+      POSTGRES_USER: ledgersync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-only-change-me}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledgersync -d ledgersync"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # Loopback-only so the documented local migration command can reach the
+    # disposable development database; never publish this in a shared tenant.
+    ports: ["127.0.0.1:5432:5432"]
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    volumes:
+      - redis-data:/data
+    networks: [private]
+    security_opt: ["no-new-privileges:true"]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/api.Dockerfile
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_HTTP_ADDR: :8080
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_REDIS_ADDR: redis:6379
+      LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:-development-only-change-me}
+      LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:-development-only-change-me-change-before-shared-use}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports: ["127.0.0.1:8080:8080"]
+    networks: [private]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  outbox-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/outbox-worker.Dockerfile
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_REDIS_ADDR: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [private]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/web.Dockerfile
+    environment:
+      NODE_ENV: production
+      LEDGERSYNC_API_URL: http://api:8080
+    depends_on:
+      api:
+        condition: service_started
+    ports: ["127.0.0.1:3000:3000"]
+    networks: [edge, private]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  legacy-simulation:
+    # This intentionally remains a diagnostics-only profile and never joins the
+    # edge network or publishes a port. It is excluded from pilot deployment.
+    profiles: [diagnostic]
+    image: python:3.11-slim
+    command: ["sh", "-c", "echo 'Legacy simulation is deliberately excluded from the production runtime'; sleep infinity"]
+    networks: [private]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+networks:
+  edge:
+  private:
+    internal: true
+
+volumes:
+  postgres-data:
+  redis-data:
