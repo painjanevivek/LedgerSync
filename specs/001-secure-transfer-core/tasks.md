@@ -106,14 +106,14 @@
 
 **Independent Test**: stop Redis/worker, age an outbox event, simulate a restore, and verify dashboards/runbooks/reconciliation evidence.
 
-- [ ] T060 [P] [US4] Write dependency-loss, outbox-recovery, and reconciliation-alert fault tests in `tests/fault/dependency_recovery_test.go`
-- [ ] T061 [P] [US4] Write migration-forward/backward compatibility tests in `tests/integration/migration_compatibility_test.go`
-- [ ] T062 [US4] Implement OpenTelemetry traces/metrics for API, worker, DB, cache, and event boundaries in `internal/platform/observability/telemetry.go`
-- [ ] T063 [US4] Define Prometheus alerts and Grafana dashboards in `deploy/observability/alerts.yml` and `deploy/observability/dashboards/`
-- [ ] T064 [US4] Implement reconciliation command/result persistence in `cmd/reconcile/main.go` and `internal/application/reconciliation/service.go`
-- [ ] T065 [US4] Create encrypted-backup/PITR configuration and isolated restore procedure in `deploy/backup/` and `docs/runbooks/restore.md`
-- [ ] T066 [US4] Create database, Redis, outbox, consistency, idempotency, secret-compromise, and restore runbooks in `docs/runbooks/`
-- [ ] T067 [US4] Add backup-age, restore-result, outbox-age, and zero-RYEW-violation release checks in `.github/workflows/release-evidence.yml`
+- [X] T060 [P] [US4] Write dependency-loss, outbox-recovery, and reconciliation-alert fault tests in `tests/fault/dependency_recovery_test.go`
+- [X] T061 [P] [US4] Write migration-forward/backward compatibility tests in `tests/integration/migration_compatibility_test.go`
+- [X] T062 [US4] Implement OpenTelemetry traces/metrics for API, worker, DB, cache, and event boundaries in `internal/platform/observability/telemetry.go`
+- [X] T063 [US4] Define Prometheus alerts and Grafana dashboards in `deploy/observability/alerts.yml` and `deploy/observability/dashboards/`
+- [X] T064 [US4] Implement reconciliation command/result persistence in `cmd/reconcile/main.go` and `internal/application/reconciliation/service.go`
+- [X] T065 [US4] Create encrypted-backup/PITR configuration and isolated restore procedure in `deploy/backup/` and `docs/runbooks/restore.md`
+- [X] T066 [US4] Create database, Redis, outbox, consistency, idempotency, secret-compromise, and restore runbooks in `docs/runbooks/`
+- [X] T067 [US4] Add backup-age, restore-result, outbox-age, and zero-RYEW-violation release checks in `.github/workflows/release-evidence.yml`
 
 **Checkpoint**: US4 proves dependency behavior, runbook-guided recovery, reconciliation, and restore evidence before shared deployment.
 

@@ -17,6 +17,8 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	transferdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/transfer"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -35,21 +37,25 @@ const (
 // in Submit happen inside one serializable transaction and no external call is
 // made before the commit succeeds.
 type TransferRepository struct {
-	database *sql.DB
-	clock    func() time.Time
+	database  *sql.DB
+	clock     func() time.Time
+	telemetry *observability.Telemetry
 }
 
-func NewTransferRepository(database *sql.DB, clock func() time.Time) (*TransferRepository, error) {
+func NewTransferRepository(database *sql.DB, clock func() time.Time, telemetry ...*observability.Telemetry) (*TransferRepository, error) {
 	if database == nil {
 		return nil, errors.New("transfer database is required")
 	}
 	if clock == nil {
 		clock = time.Now
 	}
-	return &TransferRepository{database: database, clock: clock}, nil
+	return &TransferRepository{database: database, clock: clock, telemetry: firstTelemetry(telemetry)}, nil
 }
 
 func (r *TransferRepository) Submit(ctx context.Context, command transfers.Command, fingerprint [sha256.Size]byte) (submission transfers.Submission, err error) {
+	started := time.Now()
+	ctx, span := r.start(ctx, "db.transfer.submit")
+	defer func() { span.End(); r.observe(ctx, "transfer_submit", started, err) }()
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = r.clock().UTC()
 	}
@@ -74,6 +80,19 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 		return nil
 	})
 	return submission, err
+}
+
+func (r *TransferRepository) start(ctx context.Context, name string) (context.Context, trace.Span) {
+	if r.telemetry == nil {
+		return ctx, trace.SpanFromContext(ctx)
+	}
+	return r.telemetry.Start(ctx, name)
+}
+
+func (r *TransferRepository) observe(ctx context.Context, operation string, started time.Time, err error) {
+	if r.telemetry != nil {
+		r.telemetry.ObserveBoundary(ctx, "postgres", operation, started, err)
+	}
 }
 
 func reserveOrReplay(ctx context.Context, tx *sql.Tx, command transfers.Command, fingerprint [sha256.Size]byte) (transfers.Result, bool, error) {

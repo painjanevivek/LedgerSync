@@ -32,6 +32,12 @@ func main() {
 		slog.Error("configuration invalid", "error", err)
 		os.Exit(1)
 	}
+	telemetry, err := observability.NewTelemetry(context.Background(), observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint})
+	if err != nil {
+		slog.Error("telemetry initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = telemetry.Shutdown(context.Background()) }()
 
 	var readiness httptransport.DependencyCheck
 	router := http.NewServeMux()
@@ -59,7 +65,7 @@ func main() {
 				slog.Error("consistency issuer initialization failed", "error", err)
 				os.Exit(1)
 			}
-			balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute)
+			balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute, telemetry)
 			if err != nil {
 				slog.Error("balance cache initialization failed", "error", err)
 				os.Exit(1)
@@ -74,18 +80,18 @@ func main() {
 				slog.Error("balance repository initialization failed", "error", err)
 				os.Exit(1)
 			}
-			ryewMetrics := &observability.RYEWMetrics{}
+			ryewMetrics := observability.NewRYEWMetrics(telemetry)
 			balanceReader, err := accounts.NewReader(balanceRepository, cacheAdapter, issuer, accounts.ReaderConfig{Metrics: ryewMetrics})
 			if err != nil {
 				slog.Error("balance reader initialization failed", "error", err)
 				os.Exit(1)
 			}
-			repository, err := db.NewTransferRepository(database, nil)
+			repository, err := db.NewTransferRepository(database, nil, telemetry)
 			if err != nil {
 				slog.Error("transfer repository initialization failed", "error", err)
 				os.Exit(1)
 			}
-			metrics := &observability.TransferMetrics{}
+			metrics := observability.NewTransferMetrics(telemetry)
 			service, err := transfers.NewService(repository, nil, metrics)
 			if err != nil {
 				slog.Error("transfer service initialization failed", "error", err)
@@ -138,7 +144,7 @@ func main() {
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
-	handler := middleware.Correlation(router)
+	handler := middleware.Correlation(telemetry.HTTP(router))
 	server := &http.Server{Addr: configuration.HTTPAddress, Handler: handler}
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)

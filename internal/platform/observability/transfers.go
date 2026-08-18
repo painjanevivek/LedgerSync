@@ -1,6 +1,7 @@
 package observability
 
 import (
+	"context"
 	"sync/atomic"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
@@ -14,6 +15,7 @@ type TransferMetrics struct {
 	rejected         atomic.Uint64
 	idempotentReplay atomic.Uint64
 	failures         atomic.Uint64
+	telemetry        *Telemetry
 }
 
 type TransferMetricSnapshot struct {
@@ -23,12 +25,17 @@ type TransferMetricSnapshot struct {
 	Failures         uint64
 }
 
+func NewTransferMetrics(telemetry *Telemetry) *TransferMetrics {
+	return &TransferMetrics{telemetry: telemetry}
+}
+
 func (m *TransferMetrics) ObserveSubmission(result transfers.Result, replayed bool) {
 	if m == nil {
 		return
 	}
 	if replayed {
 		m.idempotentReplay.Add(1)
+		m.observe(result.Status, true)
 		return
 	}
 	switch result.Status {
@@ -36,6 +43,13 @@ func (m *TransferMetrics) ObserveSubmission(result transfers.Result, replayed bo
 		m.posted.Add(1)
 	case "rejected":
 		m.rejected.Add(1)
+	}
+	m.observe(result.Status, false)
+}
+
+func (m *TransferMetrics) observe(status string, replayed bool) {
+	if m.telemetry != nil {
+		m.telemetry.ObserveTransfer(context.Background(), status, replayed)
 	}
 }
 

@@ -41,7 +41,11 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{SubjectID: "operator-1", TenantID: "00000000-0000-0000-0000-000000000001"})
+	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{
+		SubjectID: "operator-1",
+		TenantID:  "00000000-0000-0000-0000-000000000001",
+		Scopes:    []string{"transfers:write"},
+	})
 	request := httptest.NewRequest(http.MethodPost, "/api/transfers", strings.NewReader(`{
 "source_account_id":"00000000-0000-0000-0000-000000000010",
 "destination_account_id":"00000000-0000-0000-0000-000000000020",
@@ -76,7 +80,11 @@ func TestCreateTransferContractRejectsMalformedInputWithoutCallingService(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{SubjectID: "operator-1", TenantID: "tenant-1"})
+	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{
+		SubjectID: "operator-1",
+		TenantID:  "tenant-1",
+		Scopes:    []string{"transfers:write"},
+	})
 	request := httptest.NewRequest(http.MethodPost, "/api/transfers", strings.NewReader(`{"source_account_id":"a","destination_account_id":"b","amount":"1.999","currency":"USD"}`))
 	request.Header.Set("Authorization", "Bearer development-local-only")
 	request.Header.Set("Idempotency-Key", "transfer-contract-key-002")

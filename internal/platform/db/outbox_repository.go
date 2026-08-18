@@ -8,23 +8,25 @@ import (
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/outbox"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 )
 
 // OutboxRepository is the PostgreSQL delivery-state adapter. It never changes
 // financial records; it only coordinates already-committed outbox rows.
 type OutboxRepository struct {
-	database *sql.DB
-	clock    func() time.Time
+	database  *sql.DB
+	clock     func() time.Time
+	telemetry *observability.Telemetry
 }
 
-func NewOutboxRepository(database *sql.DB, clock func() time.Time) (*OutboxRepository, error) {
+func NewOutboxRepository(database *sql.DB, clock func() time.Time, telemetry ...*observability.Telemetry) (*OutboxRepository, error) {
 	if database == nil {
 		return nil, errors.New("outbox database is required")
 	}
 	if clock == nil {
 		clock = time.Now
 	}
-	return &OutboxRepository{database: database, clock: clock}, nil
+	return &OutboxRepository{database: database, clock: clock, telemetry: firstTelemetry(telemetry)}, nil
 }
 
 func (r *OutboxRepository) Claim(ctx context.Context, workerID string, limit int, lease time.Duration) ([]outbox.Event, error) {
@@ -61,6 +63,9 @@ RETURNING event.id, event.tenant_id, event.transfer_id, event.account_id, event.
 		var event outbox.Event
 		if err := rows.Scan(&event.ID, &event.TenantID, &event.TransferID, &event.AccountID, &event.EventType, &event.AggregateVersion, &event.Payload, &event.OccurredAt, &event.AttemptCount); err != nil {
 			return nil, fmt.Errorf("scan claimed outbox event: %w", err)
+		}
+		if r.telemetry != nil && now.After(event.OccurredAt) {
+			r.telemetry.ObserveOutboxAge(ctx, now.Sub(event.OccurredAt))
 		}
 		events = append(events, event)
 	}

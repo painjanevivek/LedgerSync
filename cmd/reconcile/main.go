@@ -11,13 +11,14 @@ import (
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	"github.com/redis/go-redis/v9"
 )
 
 func main() {
 	rebuildCache := flag.Bool("rebuild-cache", false, "rebuild disposable balance cache from PostgreSQL projections")
 	runReconciliation := flag.Bool("run", false, "persist a projection-versus-latest-event reconciliation result")
-	tenantID := flag.String("tenant-id", "", "tenant UUID required with --rebuild-cache")
+	tenantID := flag.String("tenant-id", "", "tenant UUID required with --run or --rebuild-cache")
 	flag.Parse()
 	if *tenantID == "" || (!*rebuildCache && !*runReconciliation) {
 		slog.Error("usage: reconcile --run --tenant-id <uuid> [--rebuild-cache]")
@@ -28,12 +29,22 @@ func main() {
 		slog.Error("configuration invalid", "error", err)
 		os.Exit(1)
 	}
-	if configuration.DatabaseURL == "" || configuration.RedisAddress == "" {
-		slog.Error("cache rebuild requires database and redis configuration")
+	if configuration.DatabaseURL == "" {
+		slog.Error("reconciliation requires database configuration")
+		os.Exit(1)
+	}
+	if *rebuildCache && configuration.RedisAddress == "" {
+		slog.Error("cache rebuild requires redis configuration")
 		os.Exit(1)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	telemetry, err := observability.NewTelemetry(ctx, observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint})
+	if err != nil {
+		slog.Error("telemetry initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = telemetry.Shutdown(context.Background()) }()
 	database, err := db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
 	if err != nil {
 		slog.Error("database initialization failed", "error", err)
@@ -41,7 +52,7 @@ func main() {
 	}
 	defer database.Close()
 	if *runReconciliation {
-		repository, err := db.NewReconciliationRepository(database)
+		repository, err := db.NewReconciliationRepository(database, telemetry)
 		if err != nil {
 			slog.Error("reconciliation repository initialization failed", "error", err)
 			os.Exit(1)
@@ -57,6 +68,7 @@ func main() {
 			os.Exit(1)
 		}
 		slog.Info("reconciliation completed", "tenant_id", result.TenantID, "status", result.Status, "checked_accounts", result.CheckedAccountCount, "mismatch_count", result.MismatchCount, "run_id", result.ID)
+		telemetry.ObserveReconciliation(ctx, string(result.Status))
 		if result.Status == reconciliation.StatusMismatch {
 			os.Exit(3)
 		}
@@ -80,7 +92,7 @@ func main() {
 		slog.Error("redis initialization failed", "error", err)
 		os.Exit(1)
 	}
-	cache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute)
+	cache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute, telemetry)
 	if err != nil {
 		slog.Error("balance cache initialization failed", "error", err)
 		os.Exit(1)

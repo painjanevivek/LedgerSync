@@ -5,16 +5,16 @@ import (
 	"testing"
 )
 
-func TestMigrationsAreForwardCompatibleAndRepeatable(t *testing.T) {
+func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	var versions int
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 5 {
-		t.Fatalf("migration versions=%d, want 5", versions)
+	if versions != 6 {
+		t.Fatalf("migration versions=%d, want 6", versions)
 	}
-	for _, table := range []string{"accounts", "ledger_postings", "outbox_events", "reconciliation_runs"} {
+	for _, table := range []string{"accounts", "ledger_postings", "outbox_events", "reconciliation_runs", "account_opening_balances"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -22,5 +22,22 @@ func TestMigrationsAreForwardCompatibleAndRepeatable(t *testing.T) {
 		if !exists {
 			t.Fatalf("required table %s is missing after migration", table)
 		}
+	}
+	var columns int
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*)
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND (table_name, column_name) IN (
+    ('accounts', 'tenant_id'),
+    ('account_balance_projections', 'available_minor'),
+    ('account_balance_projections', 'ledger_minor'),
+    ('ledger_postings', 'direction'),
+    ('outbox_events', 'aggregate_version')
+  )`).Scan(&columns); err != nil {
+		t.Fatal(err)
+	}
+	if columns != 5 {
+		t.Fatalf("legacy financial read contract columns=%d, want 5", columns)
 	}
 }

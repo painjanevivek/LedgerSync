@@ -25,6 +25,12 @@ func main() {
 		slog.Error("configuration invalid", "error", err)
 		os.Exit(1)
 	}
+	telemetry, err := observability.NewTelemetry(context.Background(), observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint})
+	if err != nil {
+		slog.Error("telemetry initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = telemetry.Shutdown(context.Background()) }()
 	if configuration.DatabaseURL == "" || configuration.RedisAddress == "" {
 		slog.Error("outbox worker requires database and redis configuration")
 		os.Exit(1)
@@ -43,24 +49,24 @@ func main() {
 		slog.Error("redis initialization failed", "error", err)
 		os.Exit(1)
 	}
-	store, err := db.NewOutboxRepository(database, nil)
+	store, err := db.NewOutboxRepository(database, nil, telemetry)
 	if err != nil {
 		slog.Error("outbox repository initialization failed", "error", err)
 		os.Exit(1)
 	}
-	streams, err := events.NewRedisStreams(redisClient, "")
+	streams, err := events.NewRedisStreams(redisClient, "", telemetry)
 	if err != nil {
 		slog.Error("redis streams initialization failed", "error", err)
 		os.Exit(1)
 	}
 	hostname, _ := os.Hostname()
-	ryewMetrics := &observability.RYEWMetrics{}
+	ryewMetrics := observability.NewRYEWMetrics(telemetry)
 	worker, err := outbox.NewWorker(store, streams, ryewMetrics, nil, outbox.Config{WorkerID: fmt.Sprintf("%s-%d", hostname, os.Getpid())})
 	if err != nil {
 		slog.Error("outbox worker initialization failed", "error", err)
 		os.Exit(1)
 	}
-	balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute)
+	balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute, telemetry)
 	if err != nil {
 		slog.Error("balance cache initialization failed", "error", err)
 		os.Exit(1)
@@ -78,11 +84,21 @@ func main() {
 	poll := time.NewTicker(200 * time.Millisecond)
 	defer poll.Stop()
 	for {
-		if _, err := worker.RunOnce(ctx); err != nil && ctx.Err() == nil {
-			slog.Error("outbox publish iteration failed", "error", err)
+		iterationStarted := time.Now()
+		iterationCtx, span := telemetry.Start(ctx, "outbox.worker.publish")
+		_, publishErr := worker.RunOnce(iterationCtx)
+		span.End()
+		telemetry.ObserveBoundary(iterationCtx, "worker", "publish", iterationStarted, publishErr)
+		if publishErr != nil && ctx.Err() == nil {
+			slog.Error("outbox publish iteration failed", "error", publishErr)
 		}
-		if _, err := projector.RunOnce(ctx); err != nil && ctx.Err() == nil {
-			slog.Error("balance projection iteration failed", "error", err)
+		iterationStarted = time.Now()
+		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.project")
+		_, projectErr := projector.RunOnce(iterationCtx)
+		span.End()
+		telemetry.ObserveBoundary(iterationCtx, "worker", "project", iterationStarted, projectErr)
+		if projectErr != nil && ctx.Err() == nil {
+			slog.Error("balance projection iteration failed", "error", projectErr)
 		}
 		select {
 		case <-ctx.Done():

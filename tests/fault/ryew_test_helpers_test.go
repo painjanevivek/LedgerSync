@@ -57,6 +57,9 @@ func requireFaultDependencies(t *testing.T, sourceBalance int64) (*transfers.Ser
 	if _, err := database.ExecContext(ctx, `INSERT INTO account_balance_projections (account_id, available_minor, ledger_minor, balance_version) VALUES ($1, $3, $3, 0), ($2, 2000, 2000, 0)`, faultSourceID, faultDestinationID, sourceBalance); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO account_opening_balances (account_id, opening_ledger_minor) VALUES ($1, $3), ($2, 2000)`, faultSourceID, faultDestinationID, sourceBalance); err != nil {
+		t.Fatal(err)
+	}
 	repository, err := db.NewTransferRepository(database, nil)
 	if err != nil {
 		t.Fatal(err)

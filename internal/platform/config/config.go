@@ -21,6 +21,9 @@ type Config struct {
 	BFFAssertionSecret      string
 	DevelopmentSubjectID    string
 	DevelopmentTenantID     string
+	TelemetryEnabled        bool
+	TelemetryServiceName    string
+	OTLPHTTPEndpoint        string
 }
 
 func Load() (Config, error) {
@@ -29,6 +32,10 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("LEDGERSYNC_SHUTDOWN_TIMEOUT must be a positive duration")
 	}
 
+	telemetryEnabled, err := parseBool("LEDGERSYNC_TELEMETRY_ENABLED", false)
+	if err != nil {
+		return Config{}, err
+	}
 	config := Config{
 		Environment:             valueOrDefault("LEDGERSYNC_ENV", "development"),
 		HTTPAddress:             valueOrDefault("LEDGERSYNC_HTTP_ADDR", ":8080"),
@@ -43,11 +50,31 @@ func Load() (Config, error) {
 		BFFAssertionSecret:      os.Getenv("LEDGERSYNC_BFF_ASSERTION_SECRET"),
 		DevelopmentSubjectID:    os.Getenv("LEDGERSYNC_DEVELOPMENT_SUBJECT_ID"),
 		DevelopmentTenantID:     os.Getenv("LEDGERSYNC_DEVELOPMENT_TENANT_ID"),
+		TelemetryEnabled:        telemetryEnabled,
+		TelemetryServiceName:    valueOrDefault("LEDGERSYNC_TELEMETRY_SERVICE_NAME", "ledgersync-api"),
+		OTLPHTTPEndpoint:        os.Getenv("LEDGERSYNC_OTLP_HTTP_ENDPOINT"),
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCAudience == "" || len(config.BFFAssertionSecret) < 32) {
 		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/audience, and 32-byte BFF assertion secret are required outside development")
 	}
+	if config.Environment != "development" && (!config.TelemetryEnabled || config.OTLPHTTPEndpoint == "") {
+		return Config{}, fmt.Errorf("enabled telemetry and a private OTLP HTTP endpoint are required outside development")
+	}
 	return config, nil
+}
+
+func parseBool(key string, fallback bool) (bool, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+	if value == "true" {
+		return true, nil
+	}
+	if value == "false" {
+		return false, nil
+	}
+	return false, fmt.Errorf("%s must be true or false", key)
 }
 
 func valueOrDefault(key, fallback string) string {
