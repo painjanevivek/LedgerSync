@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
@@ -15,10 +16,11 @@ import (
 
 func main() {
 	rebuildCache := flag.Bool("rebuild-cache", false, "rebuild disposable balance cache from PostgreSQL projections")
+	runReconciliation := flag.Bool("run", false, "persist a projection-versus-latest-event reconciliation result")
 	tenantID := flag.String("tenant-id", "", "tenant UUID required with --rebuild-cache")
 	flag.Parse()
-	if !*rebuildCache || *tenantID == "" {
-		slog.Error("usage: reconcile --rebuild-cache --tenant-id <uuid>")
+	if *tenantID == "" || (!*rebuildCache && !*runReconciliation) {
+		slog.Error("usage: reconcile --run --tenant-id <uuid> [--rebuild-cache]")
 		os.Exit(2)
 	}
 	configuration, err := config.Load()
@@ -38,6 +40,30 @@ func main() {
 		os.Exit(1)
 	}
 	defer database.Close()
+	if *runReconciliation {
+		repository, err := db.NewReconciliationRepository(database)
+		if err != nil {
+			slog.Error("reconciliation repository initialization failed", "error", err)
+			os.Exit(1)
+		}
+		service, err := reconciliation.NewService(repository, nil)
+		if err != nil {
+			slog.Error("reconciliation service initialization failed", "error", err)
+			os.Exit(1)
+		}
+		result, err := service.Run(ctx, *tenantID)
+		if err != nil {
+			slog.Error("reconciliation failed", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("reconciliation completed", "tenant_id", result.TenantID, "status", result.Status, "checked_accounts", result.CheckedAccountCount, "mismatch_count", result.MismatchCount, "run_id", result.ID)
+		if result.Status == reconciliation.StatusMismatch {
+			os.Exit(3)
+		}
+	}
+	if !*rebuildCache {
+		return
+	}
 	repository, err := db.NewBalanceRepository(database)
 	if err != nil {
 		slog.Error("balance repository initialization failed", "error", err)
