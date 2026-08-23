@@ -1,0 +1,55 @@
+{
+  "revision": "PENDING_IMMUTABLE_REVISION",
+  "environment": "production",
+  "oidc": {
+    "issuer_url": "https://PENDING_IDP_ISSUER",
+    "redirect_url": "https://PENDING_WEB_ORIGIN/api/auth/callback",
+    "tenant_claim": "tenant_id",
+    "role_claim": "roles",
+    "session_expiry_minutes": 30,
+    "rotation_evidence_ref": "PENDING",
+    "expired_session_test_ref": "PENDING",
+    "cross_tenant_denial_ref": "PENDING"
+  },
+  "secrets": {
+    "manager": "PENDING_MANAGED_SECRET_STORE",
+    "workload_identity": false,
+    "rotation_evidence_ref": "PENDING",
+    "break_glass_evidence_ref": "PENDING"
+  },
+  "network": {
+    "public_services": ["web"],
+    "api_private": false,
+    "worker_private": false,
+    "database_private": false,
+    "redis_private": false,
+    "evidence_ref": "PENDING"
+  },
+  "backup": {
+    "encrypted": false,
+    "continuous_archiving": false,
+    "retention_days": 35,
+    "max_backup_age_minutes": 15,
+    "separate_trust_boundary": false,
+    "evidence_ref": "PENDING"
+  },
+  "restore": {
+    "isolated": false,
+    "reconciled": false,
+    "mismatch_count": -1,
+    "redis_rebuilt": false,
+    "rpo_seconds": -1,
+    "rto_seconds": -1,
+    "evidence_ref": "PENDING"
+  },
+  "observability": {
+    "alert_routes_tested": false,
+    "redaction_verified": false,
+    "evidence_ref": "PENDING"
+  },
+  "security": {
+    "open_critical": -1,
+    "open_high": -1,
+    "evidence_ref": "PENDING"
+  }
+}
