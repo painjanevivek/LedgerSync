@@ -96,7 +96,7 @@ jobs:
       - name: Build and start the real BFF, API, PostgreSQL, Redis, worker path
         run: |
           docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml up -d --build --wait
-          for attempt in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
+          for _ in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
           curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null
       - name: Prove retry safety through the actual browser-facing runtime boundary
         env:
@@ -118,7 +118,7 @@ jobs:
           LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-after-service-restart-000001
         run: |
           docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart web api outbox-worker redis
-          for attempt in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
+          for _ in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
           curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null
           go test ./tests/system -run TestRealBFFAPIAndPostgreSQLRetryPath -count=1 -v
       - name: Prove PostgreSQL restart, migration idempotency, and reconciliation
@@ -127,9 +127,9 @@ jobs:
           LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-after-database-restart-000001
         run: |
           docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart postgres
-          for attempt in $(seq 1 60); do docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres pg_isready -U ledgersync -d ledgersync && break; sleep 2; done
+          for _ in $(seq 1 60); do docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres pg_isready -U ledgersync -d ledgersync && break; sleep 2; done
           docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm migrate
-          for attempt in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
+          for _ in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
           go test ./tests/system -run TestRealBFFAPIAndPostgreSQLRetryPath -count=1 -v
           docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm --entrypoint /usr/local/bin/reconcile migrate --run --tenant-id 00000000-0000-4000-8000-000000000001
           go test ./tests/system -run TestRealBFFReconciliationEvidence -count=1 -v
