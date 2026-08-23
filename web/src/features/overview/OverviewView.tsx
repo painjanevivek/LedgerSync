@@ -1,0 +1,17 @@
+"use client";
+
+import { ShieldCheck } from "@phosphor-icons/react";
+import Link from "next/link";
+
+import type { Account, ReconciliationRun, TransferSummary } from "@/features/accounts/types";
+import { PageHeader, RecordLink, StatePanel } from "@/features/console/components";
+import { utcDateTime } from "@/features/console/format";
+import { TransferList } from "@/features/transfers/TransferViews";
+import { formatMinorUnits } from "@/lib/money";
+import { approvedUSDGroups, isAuthoritativelyReconciled } from "@/lib/financial-ui";
+
+export function OverviewView({ accounts, transfers, reconciliation, error, online, onRefresh }: Readonly<{ accounts:Account[];transfers:TransferSummary[];reconciliation:ReconciliationRun|null;error:string|null;online:boolean;onRefresh:()=>void }>) {
+  const { operatingMinor: operating, customerFundsMinor: customerFunds }=approvedUSDGroups(accounts);
+  const asOf=accounts.map((account)=>account.as_of).filter(Boolean).sort().at(0);
+  return <><PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description="Fresh financial evidence and exceptions for the current tenant."><button className="button secondary" type="button" onClick={onRefresh} disabled={!online}>Refresh evidence</button></PageHeader>{error&&<StatePanel kind="error" title="Account evidence unavailable" message={error}/>} {!error&&accounts.length===0&&<StatePanel title="No authorized accounts" message="An administrator must grant account access before balances can be inspected."/>}{accounts.length>0&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of {utcDateTime(asOf)}</span></div><strong className="hero-amount">{formatMinorUnits("USD",operating)}</strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account evidence →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount">{formatMinorUnits("USD",customerFunds)}</strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}{reconciliation?<section className={`evidence-strip ${isAuthoritativelyReconciled(reconciliation)?"":"caution"}`}><ShieldCheck weight="fill" aria-hidden="true"/><div><strong>{isAuthoritativelyReconciled(reconciliation)?"Latest reconciliation passed":"Reconciliation requires attention"}</strong><span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · {utcDateTime(reconciliation.completed_at)}</span></div><RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open evidence"/></section>:<StatePanel kind="unknown" title="Reconciliation evidence unavailable" message="No passing result is inferred. Open Reconciliation for the authoritative evidence status." action={<Link className="text-link" href="/reconciliation">Inspect evidence</Link>}/>}<TransferList transfers={transfers.slice(0,5)} onMore={()=>{}}/></>;
+}

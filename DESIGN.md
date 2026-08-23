@@ -27,9 +27,26 @@ The UI must make the permanent record prominent, make state unmistakable, and ke
 
 ---
 
-## 0.1 Selected visual target — high-fidelity transfer detail
+## 0.1 Canonical visual target — operator overview
 
-The selected visual target is the high-fidelity transfer-detail direction. It is the implementation reference for the first production-quality console screen; low- and mid-fidelity wireframes remain useful for layout and component evolution, but they do not override this direction.
+The selected overview direction is now the canonical implementation reference for **every application page and subpage**. Its shell, spacing, typography, document surfaces, status treatments, table density, and responsive transformations must remain consistent across Overview, Accounts, Account detail, Transfers, Transfer detail, and Reconciliation.
+
+![Canonical LedgerSync operator overview](docs/design/reference/ledgersync-overview-canonical.png)
+
+### Decisions locked by the canonical overview
+
+1. **Persistent deep-navy operator rail:** 280 px on desktop, with tenant/environment context above a four-item investigation navigation and verified operator context at the bottom.
+2. **Financial-document canvas:** a pale cool canvas supports crisp white documents, hairline dividers, square 3 px corners, and essentially no elevation. Components group evidence; they do not float as decorative cards.
+3. **Editorial hierarchy:** page titles use a restrained old-style serif; statement balances use a bold tabular sans; navigation and explanations use a compact sans; identifiers, timestamps, versions, and aligned table amounts use mono.
+4. **Navy structure, evidence green:** navy anchors navigation and the main information hierarchy; green is reserved for the `Sync` brand accent and verified/posted evidence. Amber remains attention, red remains confirmed rejection/error, and every state includes text and iconography.
+5. **Exact-money alignment:** prominent totals and table amounts use tabular numerals, stable currency formatting, and right alignment. Every live amount includes an authoritative timestamp or an unavailable state.
+6. **One shared status grammar:** `Posted`, `Delivery delayed`, `Rejected`, `Unavailable`, and `Pending evidence` use the same chip, icon, wording, and color rules everywhere.
+7. **Responsive continuity:** the rail becomes a compact labelled top navigation on small screens; evidence keeps document order; tables scroll within their region; no financial context is hidden merely to fit the viewport.
+8. **Preview truthfulness:** local unauthenticated mode may demonstrate the selected visual with fictional data only when the page and operator context explicitly identify it as preview data. Authenticated mode never invents balances, reconciliation results, or transfer outcomes.
+
+## 0.2 Supporting visual target — high-fidelity transfer detail
+
+The earlier transfer-detail direction remains a supporting evidence-layout reference. It does not override the canonical overview shell or tokens above.
 
 ![Selected LedgerSync high-fidelity transfer-detail wireframe](docs/design/wireframes/ledgersync-transfer-detail-high-fidelity.png)
 
@@ -139,30 +156,29 @@ The operator console needs no decorative photography or hero illustration. Data,
 
 ## 3.1 Color system
 
-The palette is built around deep ink, quiet paper, and one strong cobalt action color. The ink blue reads as trustworthy and technical without relying on the overused bright-fintech cyan. The green is intentionally deep rather than celebratory: a posted transfer is a verified record, not confetti. All semantic colors must meet WCAG AA contrast for their intended text usage.
+The selected palette is built around deep navy, quiet paper, cobalt actions, and one evidence green. This matches the chosen reference and makes the product feel like a controlled financial record rather than a generic SaaS dashboard. All semantic colors must meet WCAG AA contrast for their intended text usage.
 
 | Token | Hex | Usage | Rationale |
 |---|---:|---|---|
-| `ink-950` | `#0B1628` | Main text, dark header/nav, highest-emphasis icons | Nearly black navy is calmer and more product-specific than pure black; it carries authority without harshness. |
-| `ink-800` | `#1D2A3D` | Secondary headings, active navigation | Keeps hierarchy within one disciplined family. |
-| `ink-600` | `#4B5A6D` | Secondary body text, metadata labels | Quiet enough for supporting information while remaining readable. |
-| `ink-400` | `#8090A3` | Disabled text, non-essential metadata only | Never use as normal body text because contrast is intentionally lower. |
-| `canvas` | `#F4F6F8` | App background | Neutral cool-gray creates separation without the glare of all-white dashboards. |
+| `ink-950` | `#0B1E3C` | Main text and highest-emphasis icons | Near-black navy carries authority without pure-black harshness. |
+| `ink-800` | `#253652` | Secondary headings and strong supporting text | Maintains a disciplined blue-gray hierarchy. |
+| `ink-600` | `#5B6B86` | Body metadata and explanatory copy | Quiet supporting text that remains legible on the pale canvas. |
+| `ink-400` | `#65728A` | Disabled and non-essential metadata only | Remains readable at small sizes on the selected canvas. |
+| `canvas` | `#F7F8FA` | Application background | A cool paper tone matches the selected reference without glare. |
 | `surface` | `#FFFFFF` | Page panels, tables, dialogs | Gives financial evidence a clean “document” surface. |
-| `surface-subtle` | `#F8FAFC` | Table headers, selected list background, form well | Provides grouping without over-carding. |
-| `border-subtle` | `#D9E1EA` | Default borders and dividers | Visible enough to organize dense data but not decorative. |
-| `border-strong` | `#AEBCCC` | Focus-adjacent outlines, active grouping | Used sparingly for clear structure. |
-| `action-700` | `#0B57D0` | Primary buttons, links, active controls | High-contrast cobalt signals a deliberate operational action, not a consumer-brand flourish. White text meets AA. |
-| `action-800` | `#0846A8` | Hover/pressed primary button | Gives a clear physical response without changing semantic meaning. |
-| `action-50` | `#EAF2FF` | Selected rows, low-emphasis action backgrounds | Keeps selection calm and legible. |
-| `success-700` | `#087443` | Posted/success text and icons on light backgrounds | Deep green supports trust and contrast; never used as a large celebration surface. |
-| `success-50` | `#EAF8F0` | Posted badge/panel background | Quiet confirmation background. |
-| `warning-800` | `#8A4B00` | Attention/retry-needed text and icons | Dark amber maintains readable contrast and avoids a false sense of danger. |
-| `warning-50` | `#FFF5E5` | Delayed/attention background | Used for recoverable operational attention. |
-| `danger-700` | `#B42318` | Rejected/error text, destructive action | Strong enough for verified errors; supports clear accessibility contrast. |
-| `danger-50` | `#FFF1F0` | Error/rejection background | Keeps error regions readable rather than visually aggressive. |
-| `info-700` | `#155EEF` | Informational notices and system guidance | Separate from primary action blue through use and lighter context. |
-| `focus-ring` | `#175CD3` | 3 px keyboard focus ring | Deliberately high visibility against white and canvas surfaces. |
+| `surface-subtle` | `#F2F5F1` | Selected rows, disabled form fields, grouped evidence | Provides grouping without over-carding. |
+| `border-subtle` | `#D8DFDA` | Default dividers | Visible enough to structure dense records without adding weight. |
+| `border-strong` | `#B9C4BD` | Document outlines and active grouping | Used sparingly for important structural edges. |
+| `rail` | `#071A36` | Persistent desktop navigation | The darkest navy brand surface anchors tenant and operator context. |
+| `action-700` | `#155EC5` | Primary buttons, links, active controls | Cobalt keeps interactive affordances distinct from financial success. |
+| `action-50` | `#EAF2FF` | Selected rows and low-emphasis action backgrounds | Keeps selection quiet and legible. |
+| `success-700` | `#087443` | Posted/success text and icons | Deep green supports proof without celebration. |
+| `success-50` | `#EAF8F0` | Posted badge/evidence background | Quiet confirmation background. |
+| `warning-800` | `#9B6418` | Attention and response-unknown text/icons | Dark amber clearly means attention, not financial failure. |
+| `warning-50` | `#FBF2DF` | Delayed/attention background | Used for recoverable operational attention. |
+| `danger-700` | `#A1463B` | Rejected/error text and destructive action | A restrained brick red reserved for confirmed negative outcomes. |
+| `danger-50` | `#F7E9E7` | Error/rejection background | Keeps error evidence readable rather than visually aggressive. |
+| `focus-ring` | `#E1A529` | 3 px keyboard focus ring | Gold remains highly visible on both the navy rail and white documents. |
 
 ### Semantic usage rules
 
@@ -177,9 +193,10 @@ The palette is built around deep ink, quiet paper, and one strong cobalt action 
 
 ### Font choices
 
-- **Primary UI font: IBM Plex Sans.** It was designed for high-density technical information, has excellent numerals and punctuation, and feels measured rather than trendy. Its slightly human character keeps a serious operator console from feeling cold or bureaucratic.
-- **Evidence/identifier font: IBM Plex Mono.** Use only for transfer IDs, account IDs, idempotency keys (masked by default), event IDs, timestamps in technical detail, and aligned monetary amounts in tables. Its stable character width makes immutable evidence easier to scan and copy.
-- **Fallback stack:** `IBM Plex Sans, Inter, ui-sans-serif, system-ui, sans-serif`; `IBM Plex Mono, ui-monospace, SFMono-Regular, Consolas, monospace`.
+- **Display font: Iowan Old Style / Palatino fallback stack.** Use for page titles and major balances only. The editorial form makes balances feel like controlled statement facts, not animated consumer metrics.
+- **Primary UI font: Inter/system sans stack.** Its compact shapes and clear numerals suit the selected rail, tables, and dense operational explanations without requiring a network font dependency.
+- **Evidence/identifier font: SFMono/Consolas fallback stack.** Use only for transfer IDs, account IDs, event IDs, timestamps, versions, and aligned monetary amounts in tables.
+- **Fallback stacks:** `Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`; `"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif`; `SFMono-Regular, Consolas, "Liberation Mono", monospace`.
 
 Do not use monospace for whole paragraphs or page titles. It is an evidence accent, not the product’s voice.
 
@@ -218,25 +235,25 @@ Use a 4 px base unit. The scale is deliberately compact enough for data work but
 | `space-10` | 40 px | Page title-to-content space |
 | `space-12` | 48 px | Large desktop page separation |
 
-**Grid:** desktop uses a 12-column fluid grid within a maximum content width of 1440 px, 32 px desktop page gutters, and 24 px column gap. Detail pages use a 8/4 split for main evidence and contextual side panel. Investigation tables may span full width. Mobile uses a single column with 16 px side gutters.
+**Grid:** desktop uses a persistent 280 px rail and a 1080 px maximum evidence column with fluid outer gutters. Detail pages use an approximately 8/4 main-evidence/context split. Investigation tables may span the full evidence width. Mobile uses a single column with 14–20 px side gutters and a labelled horizontal navigation bar.
 
 ## 3.4 Radius, borders, and shadows
 
 | Token | Value | Usage |
 |---|---:|---|
-| `radius-sm` | 4 px | Tags, compact inputs, small utility controls |
-| `radius-md` | 8 px | Buttons, inputs, standard panels, dialogs |
-| `radius-lg` | 12 px | Major drawers/modals only |
+| `radius-sm` | 3 px | Buttons, inputs, compact controls and document surfaces |
+| `radius-md` | 3 px | Standard panels; do not visually distinguish from small surfaces |
+| `radius-lg` | 6 px | Major modal or popover only |
 | `radius-pill` | 999 px | Status badges only; never for primary buttons |
 | `border-default` | 1 px `border-subtle` | Tables, panels, form controls |
-| `shadow-1` | `0 1px 2px rgba(11,22,40,.06)` | Raised menu/popover |
-| `shadow-2` | `0 8px 24px rgba(11,22,40,.12)` | Modal/dialog only |
+| `shadow-1` | none | Standard application surfaces rely on borders and spacing |
+| `shadow-2` | `0 8px 24px rgba(18,46,43,.12)` | Modal/dialog only |
 
 LedgerSync should rely on borders and spacing before shadows. Heavy shadows make operational data feel like a marketing-card collage.
 
 ## 3.5 Iconography and motion
 
-- Use one neutral, stroke-based icon set with 20 px default size and 1.75–2 px stroke. Icons support labels; they do not replace them.
+- Use Phosphor icons with 16–20 px default size. Regular weight supports navigation and actions; fill weight marks selected navigation and confirmed state. Icons support labels; they do not replace them.
 - Use check-in-circle for posted, x-in-circle for rejected, triangle/exclamation for attention, clock for pending delivery, shield for access/audit, and copy icon for IDs.
 - Motion is functional only: 120–180 ms opacity/transform transitions for menus, drawers, button state; skeleton shimmer only if it does not distract. Respect `prefers-reduced-motion` by removing shimmer and nonessential movement.
 - No animated counters, confetti, spinning money symbols, or persistent pulsing alerts. A new critical reconciliation issue may use a single attention animation on arrival, then remain still.
