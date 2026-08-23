@@ -13,13 +13,14 @@ type Status string
 const (
 	StatusMatched  Status = "matched"
 	StatusMismatch Status = "mismatch"
+	StatusFailed   Status = "failed"
 )
 
 type Result struct {
-	ID, TenantID                       string
-	Status                             Status
-	CheckedAccountCount, MismatchCount int
-	StartedAt, CompletedAt             time.Time
+	ID, TenantID, Scope, LedgerWatermark, ApplicationVersion, SchemaVersion string
+	Status                                                                  Status
+	CheckedAccountCount, PostingCount, MismatchCount                        int
+	StartedAt, CompletedAt                                                  time.Time
 }
 type Repository interface {
 	Reconcile(context.Context, string, time.Time) (Result, error)

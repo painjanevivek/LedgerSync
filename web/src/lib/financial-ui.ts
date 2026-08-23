@@ -1,7 +1,7 @@
 import type { Account, ReconciliationRun, TransferSummary } from "@/features/accounts/types";
 
 export function isAuthoritativelyReconciled(run: ReconciliationRun | null | undefined) {
-  return Boolean(run && run.status === "matched" && run.mismatch_count === 0 && run.run_id && run.completed_at);
+  return Boolean(run && run.status === "matched" && run.mismatch_count === "0" && run.run_id && run.completed_at && run.ledger_watermark);
 }
 
 export function approvedUSDGroups(accounts: readonly Account[]) {

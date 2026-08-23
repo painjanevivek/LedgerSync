@@ -36,4 +36,7 @@ services:
 
 networks:
   fault-private:
-    internal: true
+    # PostgreSQL and Redis have no published ports; only Toxiproxy exposes
+    # loopback-bound test endpoints. Keeping this bridge non-internal is
+    # required by Docker Desktop for those published ports to reach the host.
+    driver: bridge

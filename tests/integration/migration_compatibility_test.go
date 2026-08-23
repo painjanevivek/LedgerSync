@@ -11,10 +11,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 6 {
-		t.Fatalf("migration versions=%d, want 6", versions)
+	if versions != 8 {
+		t.Fatalf("migration versions=%d, want 8", versions)
 	}
-	for _, table := range []string{"accounts", "ledger_postings", "outbox_events", "reconciliation_runs", "account_opening_balances"} {
+	for _, table := range []string{"accounts", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "delivery_attempts", "account_opening_balances"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)

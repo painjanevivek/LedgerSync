@@ -146,9 +146,9 @@
 
 ### Phase 0B — Reconciliation and delivery truth
 
-- [ ] T101 [REMED-005] Rebuild reconciliation around a complete tenant scope and consistent PostgreSQL snapshot/watermark; detect missing/orphan projections, missing/unbalanced postings, empty unintended scope, and concurrent changes
-- [ ] T102 [REMED-006] Persist cursor-addressable reconciliation mismatch records with exact expected/observed evidence, provenance, audit correlation, and restart-safe list/detail contracts
-- [ ] T103 [REMED-007] Model actual downstream delivery attempts separately from financial and outbox/cache-publication state; derive UI/API delivery status only from durable attempt evidence
+- [X] T101 [REMED-005] Rebuild reconciliation around a complete tenant scope and consistent PostgreSQL snapshot/watermark; detect missing/orphan projections, missing/unbalanced postings, empty unintended scope, and concurrent changes
+- [X] T102 [REMED-006] Persist cursor-addressable reconciliation mismatch records with exact expected/observed evidence, provenance, audit correlation, and restart-safe list/detail contracts
+- [X] T103 [REMED-007] Model actual downstream delivery attempts separately from financial and outbox/cache-publication state; derive UI/API delivery status only from durable attempt evidence
 
 ### Phase 0C — Enforced platform controls and complete contract
 

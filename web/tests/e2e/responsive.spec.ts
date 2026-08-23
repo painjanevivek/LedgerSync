@@ -13,7 +13,7 @@ for(const viewport of viewports){
     await page.getByRole("link",{name:"Accounts"}).click();
     if(viewport.width<761) await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible(); else await expect(page.locator("strong").filter({hasText:"Operating Reserve"}).first()).toBeVisible();
     await page.goto(`/accounts/${sourceAccount.account_id}`); await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible();
-    await page.goto(`/transfers/${transfer.transfer_id}`); await expect(page.getByText("Money is posted; delivery is delayed")).toBeVisible();
+    await page.goto(`/transfers/${transfer.transfer_id}`); await expect(page.getByText("Money is posted; delivery is retrying")).toBeVisible();
     await page.goto(`/reconciliation/${run.run_id}`); await expect(page.getByText(run.run_id,{exact:true}).first()).toBeVisible();
   });
 }

@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -68,7 +69,7 @@ func TestBalanceProjectionIsIdempotentAndNeverRegressesVersion(t *testing.T) {
 
 func balanceChangedEvent(t *testing.T, eventID string, version, availableMinor int64) outbox.Event {
 	t.Helper()
-	payload, err := json.Marshal(map[string]any{"event_id": eventID, "event_type": "account.balance.changed.v1", "account_id": testSourceID, "transfer_id": "00000000-0000-0000-0000-000000000555", "currency": "USD", "available_minor": availableMinor, "balance_version": version, "occurred_at": time.Now().UTC().Format(time.RFC3339Nano)})
+	payload, err := json.Marshal(map[string]any{"event_id": eventID, "event_type": "account.balance.changed.v1", "account_id": testSourceID, "transfer_id": "00000000-0000-0000-0000-000000000555", "currency": "USD", "available_minor": fmt.Sprintf("%d", availableMinor), "balance_version": fmt.Sprintf("%d", version), "occurred_at": time.Now().UTC().Format(time.RFC3339Nano)})
 	if err != nil {
 		t.Fatal(err)
 	}

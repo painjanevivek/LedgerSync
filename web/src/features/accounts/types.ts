@@ -27,7 +27,7 @@ export type TransferSummary = Readonly<{
   amount_minor: string;
   currency: string;
   financial_status: "posted" | "rejected" | "pending";
-  delivery_status: "delivered" | "delayed";
+  delivery_status: "not_applicable" | "pending" | "retrying" | "delivered" | "dead";
   created_at: string;
   completed_at: string;
   journal_transaction_id?: string;
@@ -45,11 +45,15 @@ export type ReconciliationRun = Readonly<{
   scope: string;
   ledger_watermark: string;
   application_version: string;
-  checked_account_count: number;
-  posting_count: number;
-  mismatch_count: number;
+  schema_version: string;
+  checked_account_count: string;
+  posting_count: string;
+  mismatch_count: string;
   started_at: string;
   completed_at: string;
+  mismatches?: ReconciliationMismatch[];
 }>;
+
+export type ReconciliationMismatch = Readonly<{ mismatch_id: string; account_id?: string; classification: string; currency?: string; expected_minor?: string; observed_minor?: string; observed_available_minor?: string; balance_version?: string; created_at: string }>;
 
 export type ConsoleSession = Readonly<{ subject_id: string; tenant_id: string; csrf_token: string; scopes: string[]; environment?: "demo" | "production"; operator_label?: string; tenant_label?: string }>;
