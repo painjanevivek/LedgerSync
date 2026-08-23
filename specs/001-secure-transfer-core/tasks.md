@@ -131,6 +131,44 @@
 - [X] T077 Add public architecture, API, operations, and developer onboarding documentation in `README.md` and `docs/`
 - [X] T078 Run every scenario in `quickstart.md` and attach release evidence in `docs/release-evidence/secure-transfer-core.md`
 
+## Phase 0A–0D Amendment: Architecture-audit remediation — mandatory before unfinished UI/pilot work
+
+**Source of truth**: `docs/plans/ledgersync-implementation-plan.md`, architecture amendment dated 2026-08-24.
+
+**Execution rule**: T097–T114 are stop-ship work. Complete them in order before T081 and T092–T096. Each task includes test-first evidence, implementation, contract/runbook updates, and a focused phase commit. Existing checked tasks remain historical evidence and are not silently treated as proof for these new cross-boundary controls.
+
+### Phase 0A — Cross-boundary identity and exact money
+
+- [ ] T097 [REMED-001] Normalize the production TypeScript BFF actor assertion and Go verifier to one Unix-second, issuer/audience/key/unique-ID/scope/replay contract in `web/src/lib/actor-assertion.ts`, `internal/platform/identity/bff_assertion.go`, and cross-runtime tests
+- [ ] T098 [REMED-002] Add renewable least-privilege private-API workload credentials, rotation/expiry handling, complete scope allowlisting, and production refusal of static local credentials in `web/src/lib/`, `internal/platform/identity/`, configuration, and runbooks
+- [ ] T099 [REMED-003] Convert every unsafe financial JSON amount and version to canonical decimal strings across Go DTOs, OpenAPI, BFF/TypeScript types, formatters, fixtures, and UI without renaming public routes
+- [ ] T100 [REMED-004] Add unmocked TypeScript-producer/decoder-to-Go-verifier/API contract tests covering assertion failures and signed-64-bit exact-money boundaries
+
+### Phase 0B — Reconciliation and delivery truth
+
+- [ ] T101 [REMED-005] Rebuild reconciliation around a complete tenant scope and consistent PostgreSQL snapshot/watermark; detect missing/orphan projections, missing/unbalanced postings, empty unintended scope, and concurrent changes
+- [ ] T102 [REMED-006] Persist cursor-addressable reconciliation mismatch records with exact expected/observed evidence, provenance, audit correlation, and restart-safe list/detail contracts
+- [ ] T103 [REMED-007] Model actual downstream delivery attempts separately from financial and outbox/cache-publication state; derive UI/API delivery status only from durable attempt evidence
+
+### Phase 0C — Enforced platform controls and complete contract
+
+- [ ] T104 [REMED-008] Wire bounded Go HTTP and BFF upstream timeouts, header/body/request limits, tenant/principal/route rate limits, stable `429`/`Retry-After`, metrics, and safe unknown-outcome retry behavior
+- [ ] T105 [REMED-009] Enforce server-side transfer amount, rolling velocity, account status, tenant/role policy, and destination-credit authorization transactionally under concurrency
+- [ ] T106 [REMED-010] Separate migration, API, worker, reconciliation, support/read-only, and break-glass PostgreSQL roles; deny runtime mutation of immutable financial/audit/evidence records
+- [ ] T107 [REMED-011] Invoke append-only redacted audit coverage for transfers, auth decisions, reconciliation/mismatches, replay, privileged configuration, credential lifecycle, and recovery evidence
+- [ ] T108 [REMED-012] Enforce one configured pilot currency across startup, provisioning, account/transfer validation, aggregation, reconciliation, fixtures, and UI formatting
+- [ ] T109 [REMED-013] Complete OpenAPI for every supported MVP route and align string money/version fields, cursors, errors, auth, `429`, and Apache-2.0 metadata; block runtime/schema drift in CI
+
+### Phase 0D — Lifecycle, recovery operations, and real evidence
+
+- [ ] T110 [REMED-014] Implement approved bounded Redis stream and PostgreSQL retention/partition/cleanup controls with dry-run, batching, metrics, restore compatibility, and immutable/unresolved-record protection
+- [ ] T111 [REMED-015] Add authorized inspect/approve/replay operations for dead outbox/delivery work with deduplication, audit, alerting, restart safety, and surfaced persistence errors
+- [ ] T112 [REMED-016] Preserve truthful independent history loading/error/empty states and re-enable complete contrast, keyboard, screen-reader, zoom, reflow, and responsive checks
+- [ ] T113 [REMED-017] Align history indexes with stable query ordering and split oversized operator/account/transfer/style modules behind existing tests without public API renames or new dependencies
+- [ ] T114 [REMED-018] Implement a narrow audited internal partner-provisioning workflow for tenant, subject mapping, accounts, currency, limits, roles, credentials, validation, and rollback without public self-service
+
+**Checkpoint**: the real BFF/API path authenticates; every financial JSON integer is lossless; reconciliation and delivery claims have positive persisted evidence; platform controls are enforced; growth and dead work are operable; critical integration evidence uses the actual runtimes.
+
 ## Phase 8: Functional operator UI and responsive release completion
 
 **Goal**: replace the visual-only preview with truthful, working operator journeys that remain usable and financially unambiguous on mobile, tablet, laptop, desktop, zoomed, keyboard-only, and degraded-network environments.
@@ -167,7 +205,8 @@
 - **US3** requires Phase 2; it can be developed in parallel with US2 after US1's transfer contract and identity foundations are stable.
 - **US4** requires Phases 1–4 because it measures/recover their behavior; T060/T061 can start before observability implementation.
 - **Phase 7** dashboard work depends on US1–US3 contracts; final evidence T078 depends on all desired stories.
-- **Phase 8** corrects the visual-only prototype and depends on the real BFF/API contracts. T079/T085/T089 can begin immediately; T081–T084 must land before T091/T096; T086–T088 precede visual baselines; real-device evidence T094 and final evidence T096 are last.
+- **Architecture amendment** T097–T114 depends on the frozen existing baseline and executes sequentially in Phase 0A → 0B → 0C → 0D order. It is mandatory before unfinished T081/T092–T096 and before any pilot-readiness claim.
+- **Phase 8** corrects the visual-only prototype and depends on the remediated real BFF/API contracts. Historical T079/T082–T091 remain checked evidence but must be rerun where T097–T114 changes their contracts. T081 follows T109/T113; T092/T093 follow T112/T113; real-device T094, finance approval T095, and final evidence T096 remain last.
 
 ## Parallel subagent assignments
 
