@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-go@v5
@@ -34,7 +34,7 @@ jobs:
       - working-directory: web
         run: npm ci && npm audit --omit=dev --audit-level=high
       - name: Scan compose and infrastructure configuration
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: config
           scan-ref: deploy
@@ -51,27 +51,27 @@ jobs:
           docker build -f deploy/docker/outbox-worker.Dockerfile -t ledgersync-worker:${{ github.sha }} .
           docker build -f deploy/docker/web.Dockerfile -t ledgersync-web:${{ github.sha }} .
       - name: Scan API image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: ledgersync-api:${{ github.sha }}
           severity: HIGH,CRITICAL
           exit-code: 1
       - name: Scan worker image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: ledgersync-worker:${{ github.sha }}
           severity: HIGH,CRITICAL
           exit-code: 1
       - name: Scan web image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: ledgersync-web:${{ github.sha }}
           severity: HIGH,CRITICAL
           exit-code: 1
-      - uses: anchore/sbom-action@v0
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           artifact-name: ledgersync-sbom
           output-file: sbom.spdx.json
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
         with:
           subject-path: sbom.spdx.json
