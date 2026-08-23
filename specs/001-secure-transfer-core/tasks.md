@@ -139,10 +139,10 @@
 
 ### Phase 0A — Cross-boundary identity and exact money
 
-- [ ] T097 [REMED-001] Normalize the production TypeScript BFF actor assertion and Go verifier to one Unix-second, issuer/audience/key/unique-ID/scope/replay contract in `web/src/lib/actor-assertion.ts`, `internal/platform/identity/bff_assertion.go`, and cross-runtime tests
-- [ ] T098 [REMED-002] Add renewable least-privilege private-API workload credentials, rotation/expiry handling, complete scope allowlisting, and production refusal of static local credentials in `web/src/lib/`, `internal/platform/identity/`, configuration, and runbooks
-- [ ] T099 [REMED-003] Convert every unsafe financial JSON amount and version to canonical decimal strings across Go DTOs, OpenAPI, BFF/TypeScript types, formatters, fixtures, and UI without renaming public routes
-- [ ] T100 [REMED-004] Add unmocked TypeScript-producer/decoder-to-Go-verifier/API contract tests covering assertion failures and signed-64-bit exact-money boundaries
+- [X] T097 [REMED-001] Normalize the production TypeScript BFF actor assertion and Go verifier to one Unix-second, issuer/audience/key/unique-ID/scope/replay contract in `web/src/lib/actor-assertion.ts`, `internal/platform/identity/bff_assertion.go`, and cross-runtime tests
+- [X] T098 [REMED-002] Add renewable least-privilege private-API workload credentials, rotation/expiry handling, complete scope allowlisting, and production refusal of static local credentials in `web/src/lib/`, `internal/platform/identity/`, configuration, and runbooks
+- [X] T099 [REMED-003] Convert every unsafe financial JSON amount and version to canonical decimal strings across Go DTOs, OpenAPI, BFF/TypeScript types, formatters, fixtures, and UI without renaming public routes
+- [X] T100 [REMED-004] Add unmocked TypeScript-producer/decoder-to-Go-verifier/API contract tests covering assertion failures and signed-64-bit exact-money boundaries
 
 ### Phase 0B — Reconciliation and delivery truth
 

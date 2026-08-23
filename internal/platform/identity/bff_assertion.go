@@ -6,27 +6,72 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
+	"sync"
 	"time"
 )
 
-const BFFActorScope = "bff:act-as-user"
+const (
+	BFFActorScope                 = "bff:act-as-user"
+	DefaultActorAssertionIssuer   = "ledgersync-bff"
+	DefaultActorAssertionAudience = "ledgersync-private-api"
+	DefaultActorAssertionKeyID    = "current"
+)
 
-// RequestAuthenticator only accepts a BFF actor assertion after the caller has
-// authenticated as the dedicated BFF workload identity with bff:act-as-user.
-// This lets the private API make object-authorization decisions on the same
-// OIDC-authenticated user represented by the HttpOnly BFF session.
+type ActorAssertionKey struct {
+	ID     string
+	Secret []byte
+}
+
+type ReplayGuard interface {
+	Use(context.Context, string, time.Time) error
+}
+
+type ActorAssertionConfig struct {
+	Issuer      string
+	Audience    string
+	CurrentKey  ActorAssertionKey
+	PreviousKey *ActorAssertionKey
+	MaxLifetime time.Duration
+	ClockSkew   time.Duration
+	ReplayGuard ReplayGuard
+}
+
+// RequestAuthenticator accepts delegated user context only after the caller
+// authenticates as the dedicated BFF workload identity. The assertion has its
+// own issuer/audience/key/lifetime contract and cannot grant unknown scopes.
 type RequestAuthenticator struct {
-	provider     Provider
-	assertionKey []byte
-	now          func() time.Time
+	provider Provider
+	config   ActorAssertionConfig
+	now      func() time.Time
 }
 
 func NewRequestAuthenticator(provider Provider, assertionSecret string) (*RequestAuthenticator, error) {
-	if provider == nil || len(assertionSecret) < 32 {
+	return NewRequestAuthenticatorWithConfig(provider, ActorAssertionConfig{
+		Issuer:      DefaultActorAssertionIssuer,
+		Audience:    DefaultActorAssertionAudience,
+		CurrentKey:  ActorAssertionKey{ID: DefaultActorAssertionKeyID, Secret: []byte(assertionSecret)},
+		MaxLifetime: time.Minute,
+		ClockSkew:   5 * time.Second,
+		ReplayGuard: NewMemoryReplayGuard(10_000),
+	})
+}
+
+func NewRequestAuthenticatorWithConfig(provider Provider, config ActorAssertionConfig) (*RequestAuthenticator, error) {
+	config.Issuer = strings.TrimSpace(config.Issuer)
+	config.Audience = strings.TrimSpace(config.Audience)
+	config.CurrentKey.ID = strings.TrimSpace(config.CurrentKey.ID)
+	if provider == nil || config.Issuer == "" || config.Audience == "" || config.CurrentKey.ID == "" || len(config.CurrentKey.Secret) < 32 {
 		return nil, ErrUnauthenticated
 	}
-	return &RequestAuthenticator{provider: provider, assertionKey: []byte(assertionSecret), now: time.Now}, nil
+	if config.PreviousKey != nil && (strings.TrimSpace(config.PreviousKey.ID) == "" || len(config.PreviousKey.Secret) < 32 || config.PreviousKey.ID == config.CurrentKey.ID) {
+		return nil, ErrUnauthenticated
+	}
+	if config.MaxLifetime <= 0 || config.MaxLifetime > 2*time.Minute || config.ClockSkew < 0 || config.ClockSkew > 30*time.Second || config.ReplayGuard == nil {
+		return nil, ErrUnauthenticated
+	}
+	return &RequestAuthenticator{provider: provider, config: config, now: time.Now}, nil
 }
 
 func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, assertion string) (Principal, error) {
@@ -40,28 +85,44 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 	if !principal.HasScope(BFFActorScope) {
 		return Principal{}, ErrUnauthenticated
 	}
-	payload, err := verifyActorAssertion(assertion, a.assertionKey, a.now())
-	if err != nil {
+	payload, err := verifyActorAssertion(assertion, a.config, a.now())
+	if err != nil || !allAllowed(payload.Roles, allowedRoles) || !allAllowed(payload.Scopes, allowedScopes) {
+		return Principal{}, ErrUnauthenticated
+	}
+	if err := a.config.ReplayGuard.Use(ctx, payload.AssertionID, time.Unix(payload.ExpiresAt, 0)); err != nil {
 		return Principal{}, ErrUnauthenticated
 	}
 	return Principal{SubjectID: payload.SubjectID, TenantID: payload.TenantID, Roles: allowedSet(payload.Roles, allowedRoles), Scopes: allowedSet(payload.Scopes, allowedScopes)}, nil
 }
 
 type actorAssertionPayload struct {
-	SubjectID string   `json:"sub"`
-	TenantID  string   `json:"tenant_id"`
-	Roles     []string `json:"roles,omitempty"`
-	Scopes    []string `json:"scopes,omitempty"`
-	ExpiresAt int64    `json:"exp"`
+	Issuer      string   `json:"iss"`
+	Audience    string   `json:"aud"`
+	KeyID       string   `json:"kid"`
+	AssertionID string   `json:"jti"`
+	SubjectID   string   `json:"sub"`
+	TenantID    string   `json:"tenant_id"`
+	Roles       []string `json:"roles,omitempty"`
+	Scopes      []string `json:"scopes,omitempty"`
+	IssuedAt    int64    `json:"iat"`
+	ExpiresAt   int64    `json:"exp"`
 }
 
-func verifyActorAssertion(raw string, key []byte, now time.Time) (actorAssertionPayload, error) {
+func verifyActorAssertion(raw string, config ActorAssertionConfig, now time.Time) (actorAssertionPayload, error) {
 	parts := strings.Split(raw, ".")
-	if len(parts) != 2 {
+	if len(parts) != 2 || len(parts[0]) > 8*1024 || len(parts[1]) > 1024 {
 		return actorAssertionPayload{}, ErrUnauthenticated
 	}
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
+		return actorAssertionPayload{}, ErrUnauthenticated
+	}
+	var payload actorAssertionPayload
+	if json.Unmarshal(payloadBytes, &payload) != nil {
+		return actorAssertionPayload{}, ErrUnauthenticated
+	}
+	key, ok := assertionKey(config, payload.KeyID)
+	if !ok {
 		return actorAssertionPayload{}, ErrUnauthenticated
 	}
 	signature, err := base64.RawURLEncoding.DecodeString(parts[1])
@@ -73,9 +134,68 @@ func verifyActorAssertion(raw string, key []byte, now time.Time) (actorAssertion
 	if !hmac.Equal(signature, mac.Sum(nil)) {
 		return actorAssertionPayload{}, ErrUnauthenticated
 	}
-	var payload actorAssertionPayload
-	if json.Unmarshal(payloadBytes, &payload) != nil || strings.TrimSpace(payload.SubjectID) == "" || strings.TrimSpace(payload.TenantID) == "" || payload.ExpiresAt <= now.Unix() || payload.ExpiresAt > now.Add(2*time.Minute).Unix() {
+	nowUnix := now.Unix()
+	if strings.TrimSpace(payload.SubjectID) == "" || strings.TrimSpace(payload.TenantID) == "" || strings.TrimSpace(payload.AssertionID) == "" || len(payload.AssertionID) > 128 ||
+		payload.Issuer != config.Issuer || payload.Audience != config.Audience || payload.IssuedAt > nowUnix+int64(config.ClockSkew.Seconds()) ||
+		payload.ExpiresAt <= nowUnix-int64(config.ClockSkew.Seconds()) || payload.ExpiresAt <= payload.IssuedAt ||
+		time.Duration(payload.ExpiresAt-payload.IssuedAt)*time.Second > config.MaxLifetime || len(payload.Roles) > 16 || len(payload.Scopes) > 16 {
 		return actorAssertionPayload{}, ErrUnauthenticated
 	}
 	return payload, nil
+}
+
+func assertionKey(config ActorAssertionConfig, keyID string) ([]byte, bool) {
+	if keyID == config.CurrentKey.ID {
+		return config.CurrentKey.Secret, true
+	}
+	if config.PreviousKey != nil && keyID == config.PreviousKey.ID {
+		return config.PreviousKey.Secret, true
+	}
+	return nil, false
+}
+
+func allAllowed(values []string, allowed map[string]struct{}) bool {
+	for _, value := range values {
+		if value == "" {
+			return false
+		}
+		if _, ok := allowed[value]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+var errAssertionReplay = errors.New("actor assertion replayed")
+
+type MemoryReplayGuard struct {
+	mu      sync.Mutex
+	entries map[string]time.Time
+	limit   int
+}
+
+func NewMemoryReplayGuard(limit int) *MemoryReplayGuard {
+	if limit < 1 {
+		limit = 10_000
+	}
+	return &MemoryReplayGuard{entries: make(map[string]time.Time), limit: limit}
+}
+
+func (g *MemoryReplayGuard) Use(_ context.Context, assertionID string, expiresAt time.Time) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if _, exists := g.entries[assertionID]; exists {
+		return errAssertionReplay
+	}
+	now := time.Now()
+	for key, expiry := range g.entries {
+		if !expiry.After(now) {
+			delete(g.entries, key)
+		}
+	}
+	if len(g.entries) >= g.limit {
+		return errAssertionReplay
+	}
+	g.entries[assertionID] = expiresAt
+	return nil
 }

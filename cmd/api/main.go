@@ -99,7 +99,7 @@ func main() {
 			}
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Scopes: []string{"accounts:read", "transactions:read", "transfers:write"}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Scopes: []string{"accounts:read", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), configuration.OIDCIssuerURL, configuration.OIDCAudience)
 				if err != nil {
@@ -138,11 +138,20 @@ func main() {
 			}
 			investigationHandler := handlers.NewInvestigationHandler(investigationRepository, provider)
 			if len(configuration.BFFAssertionSecret) >= 32 {
-				transferHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
-				balanceHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
-				accountsHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
-				transactionsHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
-				investigationHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
+				assertionConfig := identity.ActorAssertionConfig{Issuer: configuration.BFFAssertionIssuer, Audience: configuration.BFFAssertionAudience, CurrentKey: identity.ActorAssertionKey{ID: configuration.BFFAssertionKeyID, Secret: []byte(configuration.BFFAssertionSecret)}, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: identity.NewMemoryReplayGuard(100_000)}
+				if configuration.BFFAssertionPreviousSecret != "" {
+					assertionConfig.PreviousKey = &identity.ActorAssertionKey{ID: configuration.BFFAssertionPreviousKeyID, Secret: []byte(configuration.BFFAssertionPreviousSecret)}
+				}
+				authenticator, err := identity.NewRequestAuthenticatorWithConfig(provider, assertionConfig)
+				if err != nil {
+					slog.Error("BFF actor assertion configuration is invalid")
+					os.Exit(1)
+				}
+				transferHandler.WithRequestAuthenticator(authenticator)
+				balanceHandler.WithRequestAuthenticator(authenticator)
+				accountsHandler.WithRequestAuthenticator(authenticator)
+				transactionsHandler.WithRequestAuthenticator(authenticator)
+				investigationHandler.WithRequestAuthenticator(authenticator)
 			}
 			router.Handle("POST /api/transfers", transferHandler)
 			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)

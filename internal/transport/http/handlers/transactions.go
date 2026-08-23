@@ -25,6 +25,11 @@ func (h *TransactionsHandler) WithBFFAssertionSecret(secret string) *Transaction
 	return h
 }
 
+func (h *TransactionsHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransactionsHandler {
+	h.authenticator = authenticator
+	return h
+}
+
 func NewTransactionsHandler(history *transactions.History, provider identity.Provider) *TransactionsHandler {
 	return &TransactionsHandler{history: history, identity: provider}
 }

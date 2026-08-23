@@ -2,10 +2,9 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { createSession, sessionCookie, sessionCookieName, readSession } from "@/lib/session";
-import { createActorAssertion } from "@/lib/actor-assertion";
 import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { toPrivateTransferRequest, type CreateTransferInput } from "@/lib/api/transfers";
-import { proxyPrivateGET } from "@/lib/private-api";
+import { privateAPIContext, proxyPrivateGET } from "@/lib/private-api";
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
@@ -19,16 +18,6 @@ export async function POST(request: NextRequest) {
   if (!hasValidCSRF(request, session)) return jsonError("csrf_failed", 403);
   const idempotencyKey = request.headers.get("idempotency-key")?.trim();
   if (!idempotencyKey) return jsonError("idempotency_key_required", 400);
-  const privateAPIURL = process.env.LEDGERSYNC_PRIVATE_API_URL;
-  const privateAPIToken = process.env.LEDGERSYNC_PRIVATE_API_TOKEN;
-  if (!privateAPIURL || !privateAPIToken) {
-    // The BFF is safe-by-default: it cannot silently fall back to a browser
-    // request or manufacture an outcome when its private API is unavailable.
-    return jsonError("temporary_unavailable", 503);
-  }
-
-  let actorAssertion: string;
-  try { actorAssertion = createActorAssertion(session); } catch { return jsonError("temporary_unavailable", 503); }
   let body: ReturnType<typeof toPrivateTransferRequest>;
   try {
     body = toPrivateTransferRequest(await readBoundedJSON<CreateTransferInput>(request));
@@ -38,17 +27,17 @@ export async function POST(request: NextRequest) {
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${privateAPIURL.replace(/\/$/, "")}/api/transfers`, {
+    const connection = await privateAPIContext(session, request.headers.get("x-request-id") ?? undefined);
+    upstream = await fetch(`${connection.apiURL}/api/transfers`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${privateAPIToken}`,
-        "X-LedgerSync-Actor-Assertion": actorAssertion,
+        ...connection.headers,
         "Content-Type": "application/json",
         "Idempotency-Key": idempotencyKey,
-        "X-Request-ID": request.headers.get("x-request-id") ?? crypto.randomUUID(),
       },
       body: JSON.stringify(body),
       cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
     });
   } catch {
     return jsonError("temporary_unavailable", 503);

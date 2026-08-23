@@ -6,8 +6,10 @@ package transfers
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -51,6 +53,90 @@ type Result struct {
 	MinimumBalanceVersions map[string]int64   `json:"minimum_balance_versions"`
 	Balances               map[string]Balance `json:"balances,omitempty"`
 	RejectionCode          string             `json:"rejection_code,omitempty"`
+}
+
+type resultJSON struct {
+	TransferID             string                 `json:"transfer_id"`
+	Status                 string                 `json:"status"`
+	Currency               string                 `json:"currency"`
+	AmountMinor            string                 `json:"amount_minor"`
+	OccurredAt             string                 `json:"occurred_at"`
+	MinimumBalanceVersions map[string]string      `json:"minimum_balance_versions"`
+	Balances               map[string]balanceJSON `json:"balances,omitempty"`
+	RejectionCode          string                 `json:"rejection_code,omitempty"`
+}
+
+type balanceJSON struct {
+	AccountID   string `json:"account_id"`
+	Currency    string `json:"currency"`
+	PostedMinor string `json:"posted_minor"`
+	Version     string `json:"version"`
+	AsOf        string `json:"as_of"`
+}
+
+// MarshalJSON preserves signed-64-bit financial values across JavaScript by
+// encoding them as canonical base-10 strings. Internal arithmetic stays int64.
+func (r Result) MarshalJSON() ([]byte, error) {
+	versions := make(map[string]string, len(r.MinimumBalanceVersions))
+	for accountID, version := range r.MinimumBalanceVersions {
+		versions[accountID] = strconv.FormatInt(version, 10)
+	}
+	balances := make(map[string]balanceJSON, len(r.Balances))
+	for accountID, balance := range r.Balances {
+		balances[accountID] = balanceJSON{AccountID: balance.AccountID, Currency: balance.Currency, PostedMinor: strconv.FormatInt(balance.PostedMinor, 10), Version: strconv.FormatInt(balance.Version, 10), AsOf: balance.AsOf}
+	}
+	return json.Marshal(resultJSON{TransferID: r.TransferID, Status: r.Status, Currency: r.Currency, AmountMinor: strconv.FormatInt(r.AmountMinor, 10), OccurredAt: r.OccurredAt, MinimumBalanceVersions: versions, Balances: balances, RejectionCode: r.RejectionCode})
+}
+
+// UnmarshalJSON accepts only the lossless string contract used by persisted
+// idempotency outcomes and API responses; numeric JSON is deliberately rejected.
+func (r *Result) UnmarshalJSON(data []byte) error {
+	var encoded resultJSON
+	if err := json.Unmarshal(data, &encoded); err != nil {
+		return err
+	}
+	amount, err := parseFinancialInt(encoded.AmountMinor, false)
+	if err != nil {
+		return fmt.Errorf("decode amount_minor: %w", err)
+	}
+	versions := make(map[string]int64, len(encoded.MinimumBalanceVersions))
+	for accountID, value := range encoded.MinimumBalanceVersions {
+		version, err := parseFinancialInt(value, true)
+		if err != nil {
+			return fmt.Errorf("decode minimum balance version: %w", err)
+		}
+		versions[accountID] = version
+	}
+	balances := make(map[string]Balance, len(encoded.Balances))
+	for accountID, value := range encoded.Balances {
+		posted, err := parseFinancialInt(value.PostedMinor, true)
+		if err != nil {
+			return fmt.Errorf("decode posted_minor: %w", err)
+		}
+		version, err := parseFinancialInt(value.Version, true)
+		if err != nil {
+			return fmt.Errorf("decode balance version: %w", err)
+		}
+		balances[accountID] = Balance{AccountID: value.AccountID, Currency: value.Currency, PostedMinor: posted, Version: version, AsOf: value.AsOf}
+	}
+	*r = Result{TransferID: encoded.TransferID, Status: encoded.Status, Currency: encoded.Currency, AmountMinor: amount, OccurredAt: encoded.OccurredAt, MinimumBalanceVersions: versions, Balances: balances, RejectionCode: encoded.RejectionCode}
+	return nil
+}
+
+func parseFinancialInt(value string, allowZero bool) (int64, error) {
+	if value == "" || (len(value) > 1 && value[0] == '0') || strings.TrimSpace(value) != value {
+		return 0, errors.New("non-canonical integer string")
+	}
+	for _, digit := range value {
+		if digit < '0' || digit > '9' {
+			return 0, errors.New("non-canonical integer string")
+		}
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed < 0 || (!allowZero && parsed == 0) {
+		return 0, errors.New("integer string is outside the permitted range")
+	}
+	return parsed, nil
 }
 
 // Submission distinguishes a completed original request from a stable

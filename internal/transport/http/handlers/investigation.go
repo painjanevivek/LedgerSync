@@ -29,6 +29,11 @@ func (h *InvestigationHandler) WithBFFAssertionSecret(secret string) *Investigat
 	}
 	return h
 }
+
+func (h *InvestigationHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *InvestigationHandler {
+	h.authenticator = authenticator
+	return h
+}
 func (h *InvestigationHandler) authenticate(request *http.Request) (identity.Principal, error) {
 	assertion := request.Header.Get("X-LedgerSync-Actor-Assertion")
 	if h.authenticator != nil {

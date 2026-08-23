@@ -43,6 +43,11 @@ func (h *TransferHandler) WithBFFAssertionSecret(secret string) *TransferHandler
 	return h
 }
 
+func (h *TransferHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransferHandler {
+	h.authenticator = authenticator
+	return h
+}
+
 type createTransferRequest struct {
 	SourceAccountID      string `json:"source_account_id"`
 	DestinationAccountID string `json:"destination_account_id"`

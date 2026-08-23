@@ -13,9 +13,9 @@ export type TransferResult = Readonly<{
   transfer_id: string;
   status: "posted" | "rejected";
   currency: string;
-  amount_minor: number;
+  amount_minor: string;
   occurred_at: string;
-  minimum_balance_versions: Record<string, number>;
+  minimum_balance_versions: Record<string, string>;
   rejection_code?: string;
 }>;
 

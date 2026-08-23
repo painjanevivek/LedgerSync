@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,7 +31,7 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 		TransferID:  "6b093f93-24a5-44c8-bb16-4d8b8ff6f0ad",
 		Status:      "posted",
 		Currency:    "USD",
-		AmountMinor: 12550,
+		AmountMinor: math.MaxInt64,
 		OccurredAt:  "2026-08-18T09:15:00Z",
 		MinimumBalanceVersions: map[string]int64{
 			"00000000-0000-0000-0000-000000000010": 42,
@@ -59,6 +60,9 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
+	if !strings.Contains(recorder.Body.String(), `"amount_minor":"9223372036854775807"`) {
+		t.Fatalf("financial amount was not encoded as an exact JSON string: %s", recorder.Body.String())
+	}
 	if repository.command.Amount.Minor() != 12550 || repository.command.Amount.Currency().Code != "USD" {
 		t.Fatalf("handler did not parse exact money: %#v", repository.command.Amount)
 	}
@@ -69,7 +73,7 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 	if err := json.NewDecoder(recorder.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body.TransferID != repository.result.Result.TransferID || body.Status != "posted" || body.AmountMinor != 12550 {
+	if body.TransferID != repository.result.Result.TransferID || body.Status != "posted" || body.AmountMinor != math.MaxInt64 {
 		t.Fatalf("unexpected transfer result: %#v", body)
 	}
 }

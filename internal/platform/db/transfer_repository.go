@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -410,8 +411,8 @@ func enqueueBalanceEvent(ctx context.Context, tx *sql.Tx, command transfers.Comm
 		"account_id":      balance.ID,
 		"transfer_id":     transferID,
 		"currency":        command.Amount.Currency().Code,
-		"available_minor": balance.AvailableMinor,
-		"balance_version": balance.BalanceVersion,
+		"available_minor": strconv.FormatInt(balance.AvailableMinor, 10),
+		"balance_version": strconv.FormatInt(balance.BalanceVersion, 10),
 		"occurred_at":     now.Format(time.RFC3339Nano),
 	})
 	if err != nil {

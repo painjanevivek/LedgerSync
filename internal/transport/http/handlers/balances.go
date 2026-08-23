@@ -29,6 +29,11 @@ func (h *BalanceHandler) WithBFFAssertionSecret(secret string) *BalanceHandler {
 	return h
 }
 
+func (h *BalanceHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *BalanceHandler {
+	h.authenticator = authenticator
+	return h
+}
+
 func NewBalanceHandler(reader *accounts.Reader, provider identity.Provider) *BalanceHandler {
 	return &BalanceHandler{reader: reader, identity: provider}
 }

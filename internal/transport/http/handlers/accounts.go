@@ -24,6 +24,11 @@ func (h *AccountsHandler) WithBFFAssertionSecret(secret string) *AccountsHandler
 	return h
 }
 
+func (h *AccountsHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *AccountsHandler {
+	h.authenticator = authenticator
+	return h
+}
+
 func NewAccountsHandler(service *accounts.Service, provider identity.Provider) *AccountsHandler {
 	return &AccountsHandler{service: service, identity: provider}
 }

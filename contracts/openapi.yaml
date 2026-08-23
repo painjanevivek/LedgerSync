@@ -8,8 +8,8 @@ info:
     is a final idempotent transfer outcome; inspect `status` for `posted` or
     `rejected`.
   license:
-    name: Proprietary
-    identifier: LicenseRef-Proprietary
+    name: Apache License 2.0
+    identifier: Apache-2.0
 servers:
   - url: /api
 security:
@@ -81,14 +81,13 @@ components:
         status: { type: string, enum: [posted, rejected] }
         currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
         amount_minor:
-          type: integer
-          format: int64
-          minimum: 1
-          description: Exact minor-unit amount. JavaScript clients should treat this as a string if integer precision is not guaranteed.
+          type: string
+          pattern: '^[1-9][0-9]*$'
+          description: Canonical exact minor-unit integer encoded as a JSON string.
         occurred_at: { type: string, format: date-time }
         minimum_balance_versions:
           type: object
-          additionalProperties: { type: integer, format: int64, minimum: 0 }
+          additionalProperties: { type: string, pattern: '^(0|[1-9][0-9]*)$' }
         rejection_code:
           type: string
           description: Present only when status is rejected; no ledger postings were created.

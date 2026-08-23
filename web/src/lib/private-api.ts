@@ -5,11 +5,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { createActorAssertion } from "@/lib/actor-assertion";
 import type { Session } from "@/lib/session";
 import { jsonError } from "@/lib/security";
+import { getPrivateAPIWorkloadCredential } from "@/lib/workload-credential";
+
+export async function privateAPIContext(session: Session, requestID?: string) {
+  const apiURL = process.env.LEDGERSYNC_PRIVATE_API_URL?.trim();
+  if (!apiURL) throw new Error("private API URL is unavailable");
+  return {
+    apiURL: apiURL.replace(/\/$/, ""),
+    headers: {
+      Authorization: `Bearer ${await getPrivateAPIWorkloadCredential()}`,
+      "X-LedgerSync-Actor-Assertion": createActorAssertion(session),
+      "X-Request-ID": requestID ?? crypto.randomUUID(),
+    },
+  };
+}
 
 export async function proxyPrivateGET(request: NextRequest, session: Session, path: string, allowedQuery: readonly string[] = []) {
-  const apiURL = process.env.LEDGERSYNC_PRIVATE_API_URL;
-  const token = process.env.LEDGERSYNC_PRIVATE_API_TOKEN;
-  if (!apiURL || !token) return jsonError("temporary_unavailable", 503);
   const query = new URLSearchParams();
   for (const key of allowedQuery) {
     const value = request.nextUrl.searchParams.get(key)?.trim();
@@ -18,12 +29,11 @@ export async function proxyPrivateGET(request: NextRequest, session: Session, pa
       query.set(key, value);
     }
   }
-  let assertion: string;
-  try { assertion = createActorAssertion(session); } catch { return jsonError("temporary_unavailable", 503); }
   try {
+    const connection = await privateAPIContext(session, request.headers.get("x-request-id") ?? undefined);
     const suffix = query.size ? `?${query}` : "";
-    const upstream = await fetch(`${apiURL.replace(/\/$/, "")}${path}${suffix}`, {
-      headers: { Authorization: `Bearer ${token}`, "X-LedgerSync-Actor-Assertion": assertion, "X-Request-ID": request.headers.get("x-request-id") ?? crypto.randomUUID() },
+    const upstream = await fetch(`${connection.apiURL}${path}${suffix}`, {
+      headers: connection.headers,
       cache: "no-store",
       signal: AbortSignal.timeout(8_000),
     });
