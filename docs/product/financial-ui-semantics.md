@@ -2,6 +2,20 @@
 
 Status: engineering baseline approved for the isolated pilot demo; finance owner approval remains required before external production traffic.
 
+## Approval register
+
+| Decision | Engineering proposal | Accountable approval | Status |
+|---|---|---|---|
+| Pilot currency and exponent | One configured ISO currency; formatting exponent follows the approved currency metadata | Finance + product | Pending |
+| `Available balance` definition | Authoritative PostgreSQL projection at the shown version/time; never a stale fallback labelled current | Finance | Pending |
+| Operating-controlled membership | `operating`, `payroll`, `payables`, `expenses`, `reserve`; customer funds excluded | Finance + legal/custody owner | Pending per partner |
+| Posted/rejected/unknown language | Use the definitions below without collapsing outcomes | Finance + support | Pending |
+| Reconciliation pass claim | Persisted completed `matched` run with zero mismatches and evidence identifiers | Finance + operations | Pending |
+| Timestamp policy | Render UTC explicitly; do not imply a local accounting date | Finance + support | Pending |
+
+No pending row may be converted to “approved” without a named reviewer, UTC
+date, decision-ticket/evidence reference, and any partner-specific exception.
+
 ## Balance presentation
 
 - `Available balance` is the authoritative PostgreSQL projection returned with currency, balance version, and `as_of` time.

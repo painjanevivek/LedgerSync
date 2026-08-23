@@ -33,6 +33,14 @@ func TestProvisioningConfigRequiresExactMoneyKnownSubjectsAndExternalCredentials
 	}
 }
 
+func TestProvisioningConfigSupportsTheAccountHistoryScopeUsedByTheOperator(t *testing.T) {
+	configuration := validProvisioningConfig()
+	configuration.Credentials[0].Scopes = []string{"accounts:read", "transactions:read", "transfers:read"}
+	if _, err := configuration.Validate("USD"); err != nil {
+		t.Fatalf("operator history scope must be provisionable: %v", err)
+	}
+}
+
 func validProvisioningConfig() provisioning.Config {
 	return provisioning.Config{
 		TenantID: "00000000-0000-0000-0000-000000000101", ExternalReference: "partner-101", Currency: "USD",

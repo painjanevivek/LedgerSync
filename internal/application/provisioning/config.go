@@ -104,7 +104,7 @@ func (c Config) Validate(pilotCurrency string) ([sha256.Size]byte, error) {
 			return empty, fmt.Errorf("credential %q must have a future RFC3339 expiry", credential.Reference)
 		}
 		for _, scope := range credential.Scopes {
-			if !slices.Contains([]string{"accounts:read", "reconciliation:read", "transfers:read", "transfers:write"}, scope) {
+			if !slices.Contains([]string{"accounts:read", "transactions:read", "reconciliation:read", "transfers:read", "transfers:write"}, scope) {
 				return empty, fmt.Errorf("credential %q uses unsupported scope %q", credential.Reference, scope)
 			}
 		}
