@@ -5,6 +5,13 @@ import { createSession, sessionCookie, sessionCookieName, readSession } from "@/
 import { createActorAssertion } from "@/lib/actor-assertion";
 import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { toPrivateTransferRequest, type CreateTransferInput } from "@/lib/api/transfers";
+import { proxyPrivateGET } from "@/lib/private-api";
+
+export async function GET(request: NextRequest) {
+  const session = readSession((await cookies()).get(sessionCookieName)?.value);
+  if (!session) return jsonError("unauthorized", 401);
+  return proxyPrivateGET(request, session, "/api/transfers", ["cursor", "limit", "accountId", "status", "q", "from", "to"]);
+}
 
 export async function POST(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);

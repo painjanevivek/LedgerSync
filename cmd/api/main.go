@@ -131,16 +131,27 @@ func main() {
 			balanceHandler := handlers.NewBalanceHandler(balanceReader, provider)
 			accountsHandler := handlers.NewAccountsHandler(accountService, provider)
 			transactionsHandler := handlers.NewTransactionsHandler(history, provider)
+			investigationRepository, err := db.NewInvestigationRepository(database)
+			if err != nil {
+				slog.Error("investigation repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			investigationHandler := handlers.NewInvestigationHandler(investigationRepository, provider)
 			if len(configuration.BFFAssertionSecret) >= 32 {
 				transferHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
 				balanceHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
 				accountsHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
 				transactionsHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
+				investigationHandler.WithBFFAssertionSecret(configuration.BFFAssertionSecret)
 			}
 			router.Handle("POST /api/transfers", transferHandler)
 			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)
 			router.Handle("GET /api/me/accounts", accountsHandler)
 			router.Handle("GET /api/accounts/{accountID}/transactions", transactionsHandler)
+			router.HandleFunc("GET /api/transfers", investigationHandler.Transfers)
+			router.HandleFunc("GET /api/transfers/{transferID}", investigationHandler.Transfer)
+			router.HandleFunc("GET /api/reconciliation/runs", investigationHandler.ReconciliationRuns)
+			router.HandleFunc("GET /api/reconciliation/runs/{runID}", investigationHandler.ReconciliationRun)
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
