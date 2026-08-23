@@ -131,6 +131,33 @@
 - [X] T077 Add public architecture, API, operations, and developer onboarding documentation in `README.md` and `docs/`
 - [X] T078 Run every scenario in `quickstart.md` and attach release evidence in `docs/release-evidence/secure-transfer-core.md`
 
+## Phase 8: Functional operator UI and responsive release completion
+
+**Goal**: replace the visual-only preview with truthful, working operator journeys that remain usable and financially unambiguous on mobile, tablet, laptop, desktop, zoomed, keyboard-only, and degraded-network environments.
+
+**Independent Test**: start the isolated local demo, complete account investigation and retry-safe transfer journeys at 390 × 844, 768 × 1024, 1024 × 768, 1366 × 768, 1440 × 900, and 1920 × 1080, then repeat critical checks with keyboard navigation, 200% zoom, 400% reflow, offline mode, and an unknown transfer outcome.
+
+- [ ] T079 [P] Remove invented financial evidence and false affordances from `web/src/features/console/PreviewConsole.tsx` and `web/src/features/console/ConsoleShell.tsx`; every enabled link, button, row, copy icon, menu indicator, and refresh control must have an observable outcome
+- [ ] T080 Implement a server-gated, production-blocked demo session and deterministic PostgreSQL seed workflow through the real BFF/API contracts in `web/src/app/api/session/`, `deploy/compose/`, and `docs/pilot/`; add tests proving demo mode cannot start in production
+- [ ] T081 Implement truthful account list/search/filter/pagination and object-specific account detail routes in `web/src/app/accounts/`, preserving balance version, as-of time, currency, status, postings, audit context, and back/filter state
+- [ ] T082 Implement transfer list/search/filter/pagination and immutable transfer detail BFF/routes in `web/src/app/transfers/`, separating ledger posting status from webhook/notification delivery status
+- [ ] T083 Implement prepare → review → confirm → final-outcome transfer interaction with safe retry-key retention, focus management, confirmation summary, and updated balance in `web/src/features/transfers/`
+- [ ] T084 Implement tenant-authorized reconciliation evidence BFF/list/detail routes and evidence-unavailable behavior in `web/src/app/api/reconciliation/` and `web/src/app/reconciliation/`; never infer a passing result
+- [ ] T085 [P] Implement reusable accessible copy, status, record-link, filter, pagination, empty, loading, error, offline, permission-denied, and unknown-outcome components in `web/src/features/console/`
+- [ ] T086 Build the responsive shell from one semantic component tree: shared breakpoint/layout tokens, CSS Grid/Flexbox and component-query adaptation, mobile top bar/drawer, tablet compact rail/top menu, desktop rail, safe-area/dynamic-viewport handling, focus restoration, Escape behavior, and persistent tenant/environment context in `web/src/features/console/ConsoleShell.tsx`; avoid hydration-sensitive JavaScript layout branching
+- [ ] T087 Build responsive accounts, transfers, ledger, audit, and reconciliation data patterns: compact evidence cards where appropriate and labeled keyboard-scrollable tables where comparison is essential; prohibit page-level horizontal overflow and verify long names, full identifiers, large exact amounts, timestamps, error copy, and increased text spacing remain available and copyable
+- [ ] T088 Build responsive transfer and detail layouts that preserve source, destination, exact amount/currency, status, identifiers, timestamps, and confirmation controls across rotation, breakpoint changes, and the mobile virtual keyboard
+- [ ] T089 [P] Add semantic-content tests for approved balance aggregation, separation of financial/delivery states, truthful reconciliation language, and prohibition of production placeholder/demo claims in `web/tests/`
+- [ ] T090 [P] Add keyboard, focus, screen-reader announcement, forced-colors, reduced-motion, 200% zoom, and 400% reflow checks across compact/tablet/desktop layouts in `web/tests/e2e/accessibility.spec.ts`
+- [ ] T091 [P] Add Playwright viewport journeys at 390 × 844, 768 × 1024, 1024 × 768, 1366 × 768, 1440 × 900, and 1920 × 1080 for navigation, account detail, record deep links, filters, copy, transfer review/post/retry, updated balance, and reconciliation evidence in `web/tests/e2e/responsive.spec.ts`
+- [ ] T092 Add visual-regression coverage for shared shell and every MVP screen in populated, loading, empty, error, offline, permission-denied, unknown-outcome, and mismatch states; store reviewed baselines in `docs/design/qa/responsive/`
+- [ ] T093 Add frontend performance budgets and throttled compact-device checks for JavaScript, route chunks, fonts/icons, LCP, INP, CLS, progressive rendering, and large-history behavior in `.github/workflows/quality.yml` and `docs/performance-baseline.md`
+- [ ] T094 Perform and record smoke tests on real iOS, Android, tablet, and desktop/laptop devices, including safe areas, touch targets, virtual keyboard, rotation, slow network, and offline recovery in `docs/release-evidence/ui-device-matrix.md`
+- [ ] T095 Conduct finance/operations content review for aggregate balances, account ownership categories, status terminology, evidence provenance, and UTC presentation; record approved definitions in `docs/product/financial-ui-semantics.md`
+- [ ] T096 Run the complete functional/responsive release suite and attach screenshots, interaction traces, accessibility output, performance results, demo-isolation proof, and known limitations to `docs/release-evidence/operator-ui.md`
+
+**Checkpoint**: no placeholder behavior or invented evidence remains in the supported operator journey; every visible control works or explains why it cannot; mobile, tablet, laptop, and desktop evidence meets the same financial-trust contract.
+
 ## Dependencies and execution order
 
 - **Phase 1** has no dependencies; T002–T005 can run in parallel, then T006–T012.
@@ -140,6 +167,7 @@
 - **US3** requires Phase 2; it can be developed in parallel with US2 after US1's transfer contract and identity foundations are stable.
 - **US4** requires Phases 1–4 because it measures/recover their behavior; T060/T061 can start before observability implementation.
 - **Phase 7** dashboard work depends on US1–US3 contracts; final evidence T078 depends on all desired stories.
+- **Phase 8** corrects the visual-only prototype and depends on the real BFF/API contracts. T079/T085/T089 can begin immediately; T081–T084 must land before T091/T096; T086–T088 precede visual baselines; real-device evidence T094 and final evidence T096 are last.
 
 ## Parallel subagent assignments
 
@@ -152,6 +180,7 @@ Only start tasks whose prerequisites are complete. Avoid concurrent edits to the
 | Consistency/reliability engineer | T040–T049, T060–T067 | US1 completed; US4 after US2 | Outbox, versioned cache, RYEW, telemetry, recovery and runbooks. |
 | Web/security engineer | T050–T059, T068–T072 | Phase 2; UI after contracts stabilize | OIDC/BFF, authorization, admin isolation, accessible dashboard. |
 | Release-quality engineer | T073–T078 | Core contracts and tests exist | Supply-chain gates, fault/load tests, documentation and release evidence. |
+| Product UI/accessibility engineer | T079–T096 | Real BFF contracts available; demo isolation agreed | Truthful functional operator journeys and responsive evidence across supported devices. |
 
 ## MVP strategy
 

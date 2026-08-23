@@ -120,6 +120,14 @@ Operations staff can detect transfer-processing degradation, recover financial r
 - **FR-030**: The delivery process MUST verify formatting, static checks, automated unit and integration tests, end-to-end transfer behavior, dependency and image security checks, and build reproducibility before release.
 - **FR-031**: The automated test suite MUST cover exact currency handling, concurrency, duplicate requests, authorization, failed or delayed notifications, repeated notification delivery, unavailable fast reads, and consistency under induced delay.
 - **FR-032**: The project MUST document and review its decisions for money representation, consistency capability behavior, reliable notification delivery, and public API boundary before production release.
+- **FR-033**: Every enabled operator-interface control MUST perform its stated authorized action, navigate to the selected object, or provide an explicit unavailable reason; fictional financial evidence and visual-only core controls MUST NOT appear in a production-capable environment.
+- **FR-034**: Any local demonstration identity or seeded data mode MUST be server-controlled, visibly labeled, use the same BFF/API contracts as the real product, and fail closed when production configuration is active.
+- **FR-035**: The operator interface MUST preserve tenant context, financial status, exact amount and currency, immutable identifiers, UTC timestamps, evidence provenance, and required actions across compact mobile, tablet/small-laptop, standard desktop, wide-desktop, zoom, and orientation layouts.
+- **FR-036**: The interface MUST NOT claim that balances reconcile, controls passed, or zero mismatches exist unless an authorized reconciliation-evidence response supports that claim.
+- **FR-037**: Financial posting state and downstream webhook/notification delivery state MUST be modeled and displayed as separate dimensions.
+- **FR-038**: Account and transfer list actions MUST open stable, object-specific, tenant-authorized detail routes and preserve useful navigation/filter context.
+- **FR-039**: A dashboard transfer, when enabled for an authorized pilot role, MUST use prepare, review, explicit confirmation, and final-outcome steps; an unknown outcome MUST retain the original idempotency key for safe retry.
+- **FR-040**: Responsive implementation MUST use shared semantic components and domain/view-model logic rather than independent mobile and desktop financial interfaces that can drift.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -130,6 +138,8 @@ Operations staff can detect transfer-processing degradation, recover financial r
 - **Notification Record**: A durable record that a completed financial change must be communicated to downstream consumers; includes event identifier, affected account, resulting balance version, and delivery state.
 - **Consistency Capability**: A short-lived, tamper-resistant proof that a particular authorized user must receive at least a stated balance version for a permitted account.
 - **Audit Event**: A security or operational record of a sensitive action, access decision, or significant failure, excluding secrets and sensitive financial payloads.
+- **Reconciliation Run**: Immutable evidence that a defined ledger/projection scope was checked; records version/watermark, posting and account counts, mismatch count, timestamps, result, and audit reference.
+- **Reconciliation Mismatch**: A preserved discrepancy discovered by a reconciliation run; records affected account/scope, expected and observed values or sanitized difference, investigation state, owner, and linked compensating correction where applicable.
 
 ## Success Criteria *(mandatory)*
 
@@ -143,6 +153,9 @@ Operations staff can detect transfer-processing degradation, recover financial r
 - **SC-006**: At least 95% of account holders can complete the primary transfer journey, including confirmation and refreshed balance, on their first attempt in usability testing.
 - **SC-007**: Every release candidate passes the defined automated quality gates, including security checks and fault-injection scenarios for transfer correctness and post-transfer reads.
 - **SC-008**: Scheduled restore exercises meet the agreed recovery objective and produce reconciliation evidence with no unexplained financial-record differences.
+- **SC-009**: One hundred percent of enabled controls in the supported operator journeys produce the named observable result in automated interaction tests; no production-mode test can render fictional passing evidence or activate demo authentication.
+- **SC-010**: The primary account-investigation and transfer-review journeys pass at 390×844, 768×1024, 1024×768, 1366×768, 1440×900, and 1920×1080, at 200% zoom and 400% reflow, without page-level horizontal overflow or loss of required financial context.
+- **SC-011**: Keyboard-only and screen-reader smoke tests complete the core journeys at compact, tablet, and desktop layouts with visible focus, correct announcements, and no keyboard trap.
 
 ## Assumptions
 
