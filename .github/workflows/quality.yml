@@ -77,6 +77,15 @@ jobs:
       - name: Run browser journeys and fail on unreviewed visual drift
         working-directory: web
         run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: operator-browser-evidence-${{ github.sha }}
+          path: |
+            web/playwright-report
+            web/test-results
+          if-no-files-found: warn
+          retention-days: 30
   real-stack:
     runs-on: ubuntu-24.04
     needs: [go-quality, web-quality]

@@ -11,3 +11,23 @@ This procedure proves recovery; it must never target production or a network tha
 7. Run safe idempotency replay and RYEW fault checks against the restored environment. No new posting may be created by a replay.
 8. Record backup age, restore start/end, RPO, RTO, tool/output versions, reconciliation run IDs, lifecycle dry-run ID, and operator approvals in release evidence.
 9. Destroy the isolated restored environment and revoke its temporary credentials/KMS grants.
+
+## Local procedure validation
+
+From an active disposable Compose stack, run:
+
+```powershell
+./scripts/local-restore-drill.ps1 -ComposeProject ledgersync-system
+```
+
+The script creates uniquely named internal Docker network, PostgreSQL, Redis,
+and volume resources; takes a logical dump; restores into the isolated database;
+runs the current migration binary; rebuilds Redis only from PostgreSQL; persists
+a tenant reconciliation run; emits bounded counts/run IDs/timing; and removes
+only the exact resources it created. It refuses to reuse an existing local
+temporary directory.
+
+This local logical exercise validates the procedure and compatibility. It does
+not validate managed continuous WAL archiving, backup age, an achieved recovery
+point, provider KMS isolation, or production RPO/RTO. Those remain mandatory
+provider-backed Phase 7 evidence.

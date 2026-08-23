@@ -193,6 +193,8 @@ func publicTransferError(err error) error {
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "idempotency_conflict", Message: "This idempotency key belongs to a different request."}
 	case errors.Is(err, transfers.ErrRequestInProgress):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "request_in_progress", Message: "A matching request is still being completed. Retry with the same idempotency key."}
+	case db.IsRetryableTransactionError(err):
+		return &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "transaction_conflict_retryable", Message: "The transfer could not acquire a safe commit window. Retry the identical request with the same idempotency key."}
 	default:
 		return err
 	}

@@ -74,7 +74,7 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = r.clock().UTC()
 	}
-	err = WithSerializableRetry(ctx, r.database, 3, func(tx *sql.Tx) error {
+	err = WithSerializableRetry(ctx, r.database, 5, func(tx *sql.Tx) error {
 		resolved, replay, err := reserveOrReplay(ctx, tx, command, fingerprint)
 		if err != nil {
 			return err

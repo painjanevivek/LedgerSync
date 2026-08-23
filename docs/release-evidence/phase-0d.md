@@ -16,7 +16,7 @@ Phase 0D closes the operational gap between a correct ledger transaction and a p
 Run these from the repository root after starting the fault-test dependencies described in `tests/fault/README.md`:
 
 ```powershell
-$env:LEDGERSYNC_TEST_DATABASE_URL='postgres://ledgersync:ledgersync@127.0.0.1:15432/ledgersync?sslmode=disable'
+$env:LEDGERSYNC_TEST_DATABASE_URL='postgres://ledgersync:fault-test-only@127.0.0.1:15432/ledgersync?sslmode=disable'
 $env:LEDGERSYNC_TEST_REDIS_ADDR='127.0.0.1:16379'
 go test -p 1 ./... -count=1
 go vet ./...

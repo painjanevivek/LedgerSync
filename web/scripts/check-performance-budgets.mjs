@@ -1,11 +1,41 @@
 import { readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
-const root = join(process.cwd(), ".next", "static", "chunks");
-const limits = { largestChunkBytes: 350_000, totalChunkBytes: 2_000_000 };
-const files = [];
-async function walk(directory) { for (const name of await readdir(directory)) { const path=join(directory,name); const info=await stat(path); if(info.isDirectory()) await walk(path); else if(name.endsWith(".js")) files.push({path,bytes:info.size}); } }
-await walk(root);
-const total=files.reduce((sum,file)=>sum+file.bytes,0); const largest=files.sort((a,b)=>b.bytes-a.bytes)[0];
-console.log(JSON.stringify({javascript_chunks:files.length,total_bytes:total,largest_chunk_bytes:largest?.bytes??0,largest_chunk:largest?.path,limits},null,2));
-if(total>limits.totalChunkBytes||((largest?.bytes??0)>limits.largestChunkBytes)){console.error("Frontend JavaScript performance budget exceeded");process.exitCode=1;}
+const staticRoot = join(process.cwd(), ".next", "static");
+const limits = {
+  largestJavaScriptChunkBytes: 350_000,
+  totalJavaScriptBytes: 2_000_000,
+  largestFontBytes: 160_000,
+  totalFontBytes: 320_000,
+};
+const assets = [];
+
+async function walk(directory) {
+  for (const name of await readdir(directory)) {
+    const path = join(directory, name);
+    const info = await stat(path);
+    if (info.isDirectory()) await walk(path);
+    else assets.push({ path: relative(process.cwd(), path), bytes: info.size, extension: name.split(".").at(-1)?.toLowerCase() ?? "" });
+  }
+}
+
+await walk(staticRoot);
+const javascript = assets.filter((asset) => asset.extension === "js").sort((a, b) => b.bytes - a.bytes);
+const fonts = assets.filter((asset) => ["woff", "woff2", "ttf", "otf"].includes(asset.extension)).sort((a, b) => b.bytes - a.bytes);
+const total = (items) => items.reduce((sum, item) => sum + item.bytes, 0);
+const result = {
+  javascript: { chunks: javascript.length, total_bytes: total(javascript), largest: javascript[0] ?? null },
+  fonts: { files: fonts.length, total_bytes: total(fonts), largest: fonts[0] ?? null },
+  limits,
+};
+
+console.log(JSON.stringify(result, null, 2));
+if (
+  result.javascript.total_bytes > limits.totalJavaScriptBytes ||
+  (result.javascript.largest?.bytes ?? 0) > limits.largestJavaScriptChunkBytes ||
+  result.fonts.total_bytes > limits.totalFontBytes ||
+  (result.fonts.largest?.bytes ?? 0) > limits.largestFontBytes
+) {
+  console.error("Frontend asset performance budget exceeded");
+  process.exitCode = 1;
+}

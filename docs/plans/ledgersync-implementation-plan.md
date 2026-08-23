@@ -1348,7 +1348,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 2 and Visual 3.
   - Risks: local environment variance or stale volumes; use explicit disposable project resources and non-destructive cleanup.
 
-- [ ] `TASK-010` — Refresh transfer-safety regression suite
+- [x] `TASK-010` — Refresh transfer-safety regression suite
   - Purpose: preserve exact, idempotent, no-overdraft behavior after UI/account changes.
   - Dependencies: TASK-009.
   - Expected output: unit/contract/integration/race/fuzz results.
@@ -1357,7 +1357,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 2.
   - Risks: environmental tests producing false confidence; assert database outcomes.
 
-- [ ] `TASK-011` — Refresh dependency-fault suite
+- [x] `TASK-011` — Refresh dependency-fault suite
   - Purpose: verify worker, Redis, projection, database, and delivery failure semantics.
   - Dependencies: TASK-009.
   - Expected output: fault traces and reconciliation evidence.

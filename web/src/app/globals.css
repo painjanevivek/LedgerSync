@@ -30,6 +30,8 @@
 .icon-button svg { width: 16px; height: 16px; }
 
 .console-main { min-width: 0; padding: 58px clamp(30px, 3vw, 44px) 22px; }
+.console-main.section-overview, .console-main:has(.session-loading) { min-height: 100dvh; }
+.session-loading { min-height: calc(100dvh - 112px); }
 .preview-banner, .offline-banner { display: flex; align-items: center; gap: 9px; max-width: 1080px; margin: -20px 0 30px; border-bottom: 1px solid var(--line); padding: 0 0 12px; color: var(--muted); font-size: 11px; }
 .preview-banner svg, .offline-banner svg { flex: 0 0 auto; width: 15px; height: 15px; color: var(--green); }
 .offline-banner { color: var(--amber); }
@@ -105,7 +107,7 @@ h2 { margin: 5px 0 0; font-family: var(--font-display); font-size: 25px; font-we
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; border-bottom: 1px solid var(--line-strong); padding-bottom: 12px; }
 .section-heading p:not(.eyebrow) { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
 .ledger-list { border-bottom: 1px solid var(--line); }
-.ledger-row { display: grid; grid-template-columns: 28px minmax(260px, 1fr) 140px 124px 26px; align-items: center; gap: 12px; min-height: 69px; border-top: 1px solid var(--line); padding: 10px 5px; }
+.ledger-row { display: grid; grid-template-columns: 28px minmax(260px, 1fr) 140px 124px 26px; align-items: center; gap: 12px; min-height: 69px; border-top: 1px solid var(--line); padding: 10px 5px; content-visibility: auto; contain-intrinsic-size: auto 69px; }
 .ledger-row:first-child { border-top: 0; }
 .status-icon { display: grid; width: 22px; height: 22px; place-items: center; }
 .status-icon svg { width: 17px; height: 17px; }

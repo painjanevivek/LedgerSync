@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"strings"
 	"time"
 )
@@ -66,7 +67,11 @@ func WithSerializableRetry(ctx context.Context, database *sql.DB, attempts int, 
 		if !IsRetryableTransactionError(err) || attempt == attempts-1 {
 			break
 		}
-		wait := time.Duration(1<<attempt) * 25 * time.Millisecond
+		// Jitter prevents concurrent transfers on the same accounts from
+		// repeatedly colliding in lockstep. The bound keeps five attempts well
+		// inside the BFF's two-second unknown-outcome timeout.
+		base := time.Duration(1<<attempt) * 10 * time.Millisecond
+		wait := base + time.Duration(rand.Int64N(int64(base)))
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

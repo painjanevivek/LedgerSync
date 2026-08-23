@@ -8,7 +8,7 @@ import { AccountsView, type AccountFilters } from "@/features/accounts/AccountVi
 import type { ConsoleSession, ReconciliationRun, TransferDetail, TransferSummary } from "@/features/accounts/types";
 import { emptyAccountFilters, useAccountWorkspace } from "@/features/accounts/useAccountWorkspace";
 import { ConsoleFooter, ConsoleShell, type ConsoleSection } from "@/features/console/ConsoleShell";
-import { StatePanel } from "@/features/console/components";
+import { PageHeader, StatePanel } from "@/features/console/components";
 import { OverviewView } from "@/features/overview/OverviewView";
 import { ReconciliationView } from "@/features/reconciliation/ReconciliationViews";
 import { TransfersView } from "@/features/transfers/TransferViews";
@@ -129,7 +129,16 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
     router.refresh();
   }
 
-  if (loading) return <main className="boot-screen" aria-busy="true"><p className="eyebrow">LedgerSync operator workspace</p><h1>Verifying the ledger session…</h1><div className="loading-rule" aria-hidden="true" /></main>;
+  if (loading) {
+    const title = initialSection === "accounts" ? "Accounts" : initialSection === "transfers" ? "Transfers" : initialSection === "reconciliation" ? "Reconciliation" : "Overview";
+    return <ConsoleShell section={initialSection} tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending">
+      <div className="session-loading" aria-busy="true">
+        <PageHeader eyebrow={`${title} · LedgerSync operator workspace`} title="Verifying access" description="Verifying the authorized tenant scope before financial evidence is displayed." />
+        <StatePanel title="Loading verified evidence" message="Balances, transfer history, and reconciliation evidence are loading from their authoritative sources." />
+      </div>
+      <ConsoleFooter />
+    </ConsoleShell>;
+  }
   if (!session) return <main className="boot-screen"><p className="eyebrow">Authentication required</p><h1>Operator workspace unavailable</h1><StatePanel kind="denied" title="No authorized session" message="Configure the approved OIDC provider, or explicitly enable the isolated local demo environment. No financial data is displayed." /></main>;
 
   return <ConsoleShell section={initialSection} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "demo" ? "Non-production data" : "Authorized operator"} preview={session.environment === "demo"} onSignOut={() => void signOut()}>

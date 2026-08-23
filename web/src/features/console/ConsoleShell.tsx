@@ -92,7 +92,7 @@ export function ConsoleShell({
         </div>
       </div>
     </aside>
-    <main id="main-content" className="console-main">{children}</main>
+    <main id="main-content" className={`console-main section-${section}`}>{children}</main>
   </div>;
 }
 
