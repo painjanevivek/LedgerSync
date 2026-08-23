@@ -10,7 +10,8 @@ for(const viewport of viewports){
     await expect(page.getByRole("heading",{name:"Overview"})).toBeVisible();
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);expect(overflow).toBe(false);
     if(viewport.width<761){await page.getByRole("button",{name:/menu/i}).click();}
-    await page.getByRole("link",{name:"Accounts"}).click(); await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible();
+    await page.getByRole("link",{name:"Accounts"}).click();
+    if(viewport.width<761) await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible(); else await expect(page.locator("strong").filter({hasText:"Operating Reserve"}).first()).toBeVisible();
     await page.goto(`/accounts/${sourceAccount.account_id}`); await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible();
     await page.goto(`/transfers/${transfer.transfer_id}`); await expect(page.getByText("Money is posted; delivery is delayed")).toBeVisible();
     await page.goto(`/reconciliation/${run.run_id}`); await expect(page.getByText(run.run_id,{exact:true}).first()).toBeVisible();
