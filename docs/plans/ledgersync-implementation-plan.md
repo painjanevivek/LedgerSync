@@ -1330,7 +1330,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 1.
   - Risks: brittle snapshots or blind baseline updates.
 
-- [ ] `TASK-008` — Finish accessible interaction evidence
+- [x] `TASK-008` — Finish accessible interaction evidence
   - Purpose: validate keyboard, screen reader, zoom, reflow, touch, reduced motion, and unknown-outcome guidance.
   - Dependencies: TASK-005–007.
   - Expected output: automated report and manual checklist.
