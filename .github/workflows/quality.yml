@@ -20,8 +20,9 @@ jobs:
       - name: Vet production and deterministic tests
         run: go vet ./cmd/... ./internal/... ./tests/unit ./tests/contract
       - name: Run static analysis
-        uses: golangci/golangci-lint-action@v7
-        with: { version: v2.1.0 }
+        uses: golangci/golangci-lint-action@d583c34f0599d37dbac4a198b9c83201be380893 # v9.3.0
+        with:
+          version: v2.13.1
       - name: Race-test financial and contract paths
         run: go test -race ./cmd/... ./internal/... ./tests/unit ./tests/contract
       - name: Fuzz exact-money boundary
