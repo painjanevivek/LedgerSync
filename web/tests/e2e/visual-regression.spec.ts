@@ -1,0 +1,145 @@
+import { expect, test, type Page, type Route } from "@playwright/test";
+
+import { destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
+
+const compact = { width: 390, height: 844 };
+const tablet = { width: 768, height: 1024 };
+const desktop = { width: 1440, height: 900 };
+
+function json(route: Route, body: unknown, status = 200) {
+  return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+}
+
+async function capture(page: Page, name: string, viewport = desktop) {
+  await page.setViewportSize(viewport);
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+    animations: "disabled",
+    caret: "hide",
+    fullPage: true,
+    maxDiffPixelRatio: 0.002,
+  });
+}
+
+const populatedRoutes = [
+  { name: "overview-populated", path: "/", heading: "Overview" },
+  { name: "accounts-populated", path: "/accounts", heading: "Accounts" },
+  { name: "account-detail-populated", path: `/accounts/${sourceAccount.account_id}`, heading: sourceAccount.display_name },
+  { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
+  { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
+  { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
+  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation detail" },
+] as const;
+
+for (const route of populatedRoutes) {
+  test(`${route.name} has a reviewed desktop baseline`, async ({ page }) => {
+    await mockOperatorConsole(page);
+    await page.goto(route.path);
+    await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
+    await capture(page, route.name);
+  });
+}
+
+test("compact account directory preserves the selected information hierarchy", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/accounts");
+  await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
+  await capture(page, "accounts-populated-compact", compact);
+});
+
+test("loading state does not imply empty account evidence", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/me/accounts?*", () => new Promise(() => undefined));
+  await page.goto("/accounts");
+  await expect(page.getByText("Loading authorized accounts")).toBeVisible();
+  await capture(page, "accounts-loading", tablet);
+});
+
+test("empty account scope is explicit", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [], next_cursor: "" }));
+  await page.goto("/accounts");
+  await expect(page.getByText("No matching accounts")).toBeVisible();
+  await capture(page, "accounts-empty", compact);
+});
+
+test("account dependency failure does not render stale balances", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/me/accounts?*", (route) => json(route, { error: { code: "temporary_unavailable" } }, 503));
+  await page.goto("/accounts");
+  await expect(page.getByText("Accounts unavailable")).toBeVisible();
+  await capture(page, "accounts-error", tablet);
+});
+
+test("permission denial remains distinct from an empty directory", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/me/accounts?*", (route) => json(route, { error: { code: "forbidden" } }, 403));
+  await page.goto("/accounts");
+  await expect(page.getByText("Accounts unavailable")).toBeVisible();
+  await capture(page, "accounts-permission-denied", compact);
+});
+
+test("offline state preserves already verified evidence and disables writes", async ({ page, context }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/accounts");
+  await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
+  await context.setOffline(true);
+  await expect(page.getByText("You are offline.")).toBeVisible();
+  await capture(page, "accounts-offline", compact);
+  await context.setOffline(false);
+});
+
+test("account detail separates balance failure from history permission", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/accounts/*/balance", (route) => json(route, { error: { code: "temporary_unavailable" } }, 503));
+  await page.route("**/api/accounts/*/transactions?*", (route) => json(route, { error: { code: "forbidden" } }, 403));
+  await page.goto(`/accounts/${sourceAccount.account_id}`);
+  await expect(page.getByText("Temporarily unavailable")).toBeVisible();
+  await expect(page.getByText("Your role is not authorized to view ledger history.")).toBeVisible();
+  await capture(page, "account-detail-independent-failures", desktop);
+});
+
+test("unknown transfer outcome keeps the exact intent and safe retry action", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
+  await page.route("**/api/transfers", (route) => route.request().method() === "POST" ? json(route, { error: { code: "transfer_outcome_unknown" } }, 504) : route.fallback());
+  await page.goto("/transfers");
+  await expect(page.getByRole("heading", { name: "Internal transfer" })).toBeVisible();
+  await page.getByLabel("Exact amount").fill("12.50");
+  await page.getByRole("button", { name: "Review transfer" }).click();
+  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await expect(page.getByText("Result not yet confirmed")).toBeVisible();
+  await capture(page, "transfer-unknown-outcome", compact);
+});
+
+test("reconciliation mismatch is visually stop-ship", async ({ page }) => {
+  const mismatch = { ...run, status: "mismatch", mismatch_count: "2" };
+  await mockOperatorConsole(page);
+  await page.route("**/api/reconciliation/runs?*", (route) => json(route, { runs: [mismatch], next_cursor: "" }));
+  await page.goto("/reconciliation");
+  await expect(page.getByText("Mismatch detected", { exact: true }).first()).toBeVisible();
+  await capture(page, "reconciliation-mismatch", compact);
+});
+
+test("missing session renders no financial evidence", async ({ page }) => {
+  await page.route("**/api/session", (route) => json(route, { error: { code: "unauthorized" } }, 401));
+  await page.goto("/");
+  await expect(page.getByText("No authorized session")).toBeVisible();
+  await capture(page, "shell-permission-denied", tablet);
+});
+
+test("read-only transfer role explains why posting is disabled", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: [], environment: "demo", tenant_label: "Meridian Labs · Test", operator_label: "Read-only auditor" }));
+  await page.goto("/transfers");
+  await expect(page.getByText("Read-only role: transfer posting is not permitted.")).toBeVisible();
+  await capture(page, "transfers-read-only", desktop);
+});
+
+test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, { ...destinationAccount, currency: "EUR" }], next_cursor: "" }));
+  await page.goto("/");
+  await expect(page.getByText("Mixed-currency pilot data blocked")).toBeVisible();
+  await capture(page, "overview-mixed-currency-error", desktop);
+});

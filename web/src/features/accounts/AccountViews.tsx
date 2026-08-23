@@ -15,6 +15,7 @@ export type AccountFilters = Readonly<{ query: string; status: string; category:
 type Props = Readonly<{
   accounts: Account[];
   selected: Account | null;
+  detailRequested: boolean;
   balance: Account | null;
   transactions: Transaction[];
   balanceLoading: boolean;
@@ -53,7 +54,7 @@ function accountDetailHref(accountID: string, filters: AccountFilters): string {
   return `/accounts/${accountID}?return_to=${encodeURIComponent(accountDirectoryHref(filters, accountID))}`;
 }
 
-export function AccountsView({ accounts, selected, balance, transactions, balanceLoading, historyLoading, directoryLoading, balanceError, historyError, error, online, filters, nextCursor, historyNextCursor, focusAccountId, onRefresh, onApplyFilters, onNext, onHistoryNext }: Props) {
+export function AccountsView({ accounts, selected, detailRequested, balance, transactions, balanceLoading, historyLoading, directoryLoading, balanceError, historyError, error, online, filters, nextCursor, historyNextCursor, focusAccountId, onRefresh, onApplyFilters, onNext, onHistoryNext }: Props) {
   const [query, setQuery] = useState(filters.query);
   const [status, setStatus] = useState(filters.status);
   const [category, setCategory] = useState(filters.category);
@@ -68,11 +69,12 @@ export function AccountsView({ accounts, selected, balance, transactions, balanc
   }
 
   return <>
-    <PageHeader eyebrow="Ledger / Account directory" title={selected ? accountLabel(selected) : "Accounts"} description={selected ? "Authoritative balance, account identity, and immutable posting history." : "Search only the accounts authorized for this operator."}>
+    <PageHeader eyebrow="Ledger / Account directory" title={selected ? accountLabel(selected) : detailRequested ? "Account detail" : "Accounts"} description={selected ? "Authoritative balance, account identity, and immutable posting history." : detailRequested ? "Loading only the requested authorized account evidence." : "Search only the accounts authorized for this operator."}>
       <button className="button secondary" type="button" onClick={onRefresh} disabled={!online || directoryLoading}>Refresh evidence</button>
     </PageHeader>
     {error && <StatePanel kind="error" title="Accounts unavailable" message={error} />}
-    {!selected && !error && <>
+    {detailRequested && !selected && !error && <StatePanel title="Loading account evidence" message="Balance and immutable history are verified independently before they are presented as current." />}
+    {!detailRequested && !selected && !error && <>
       <form className="filter-bar" role="search" onSubmit={submit}>
         <label>Search accounts<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name/reference prefix or exact ID" maxLength={128} /></label>
         <label>Status<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option><option value="active">Active</option><option value="frozen">Frozen</option><option value="closed">Closed</option></select></label>

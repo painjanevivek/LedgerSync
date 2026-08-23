@@ -74,7 +74,8 @@ jobs:
         run: npm run test:performance
       - working-directory: web
         run: npx playwright install --with-deps chromium
-      - working-directory: web
+      - name: Run browser journeys and fail on unreviewed visual drift
+        working-directory: web
         run: npm run test:e2e
   real-stack:
     runs-on: ubuntu-24.04

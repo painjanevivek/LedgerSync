@@ -1312,7 +1312,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 1.
   - Risks: tests only checking screenshots rather than outcomes.
 
-- [ ] `TASK-006` — Build the complete MVP state inventory
+- [x] `TASK-006` — Build the complete MVP state inventory
   - Purpose: define which states apply to each route and prevent omissions.
   - Dependencies: current screen inventory and `DESIGN.md`.
   - Expected output: route × state × viewport matrix.
@@ -1321,7 +1321,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 1.
   - Risks: combinatorial test growth; mitigate with shared fixtures and representative boundaries.
 
-- [ ] `TASK-007` — Capture and approve visual baselines
+- [x] `TASK-007` — Capture and approve visual baselines
   - Purpose: protect the selected design system and truthful financial hierarchy.
   - Dependencies: TASK-005–006.
   - Expected output: reviewed baseline images and CI comparison.
