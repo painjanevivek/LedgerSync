@@ -26,11 +26,18 @@ test("forced colors and reduced motion preserve operable financial evidence", as
   const results=await new AxeBuilder({page}).analyze(); expect(results.violations).toEqual([]);
 });
 
-test("minimum-width reflow and browser zoom keep evidence available", async ({ page }) => {
+test("320 CSS-pixel reflow, equivalent to 400% desktop zoom, keeps evidence available", async ({ page }) => {
   await page.setViewportSize({width:320,height:640}); await mockOperatorConsole(page); await page.goto("/transfers");
-  await page.keyboard.press("Control++"); await page.keyboard.press("Control++"); await page.keyboard.press("Control++");
   await expect(page.getByRole("heading",{name:"Transfers",exact:true})).toBeVisible();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)).toBe(false);
+  const reflow = await page.evaluate(() => {
+    const root = document.documentElement;
+    const offenders = [...document.querySelectorAll<HTMLElement>("body *")]
+      .filter((element) => element.getBoundingClientRect().right > root.clientWidth + 1)
+      .map((element) => `${element.tagName.toLowerCase()}.${element.className}:${Math.round(element.getBoundingClientRect().right)}`)
+      .slice(0, 8);
+    return { horizontalOverflow: root.scrollWidth > root.clientWidth, overflowPixels: root.scrollWidth - root.clientWidth, offenders };
+  });
+  expect(reflow).toEqual({ horizontalOverflow: false, overflowPixels: 0, offenders: [] });
 });
 
 test("copy controls announce completion without hiding the full identifier", async ({page})=>{

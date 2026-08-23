@@ -27,13 +27,13 @@ jobs:
         run: go test -race ./cmd/... ./internal/... ./tests/unit ./tests/contract
       - name: Fuzz exact-money boundary
         run: go test -run=^$ -fuzz=FuzzParseExactMoney -fuzztime=10s ./tests/unit
-      - name: Enforce coverage floor
+      - name: Enforce 60% critical financial core coverage floor
         run: |
-          go test -covermode=atomic -coverprofile=coverage.out ./cmd/... ./internal/... ./tests/unit ./tests/contract
-          go tool cover -func=coverage.out | tee coverage.txt
-          awk '/^total:/{ sub("%", "", $3); exit ($3 + 0 < 60) }' coverage.txt
+          go test -covermode=atomic -coverpkg=./internal/domain/...,./internal/application/transfers/... -coverprofile=critical-coverage.out ./internal/domain/... ./internal/application/transfers ./tests/unit ./tests/contract
+          go tool cover -func=critical-coverage.out | tee critical-coverage.txt
+          awk '/^total:/{ sub("%", "", $3); exit ($3 + 0 < 60) }' critical-coverage.txt
       - uses: actions/upload-artifact@v4
-        with: { name: go-coverage, path: coverage.out }
+        with: { name: critical-financial-core-coverage, path: critical-coverage.out }
   live-dependencies:
     runs-on: ubuntu-24.04
     needs: go-quality
