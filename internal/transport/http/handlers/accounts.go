@@ -15,6 +15,9 @@ type AccountsHandler struct {
 	service       *accounts.Service
 	identity      identity.Provider
 	authenticator *identity.RequestAuthenticator
+	rateLimiter   RateLimiter
+	rateLimit     int
+	audit         AuditRecorder
 }
 
 func (h *AccountsHandler) WithBFFAssertionSecret(secret string) *AccountsHandler {
@@ -26,6 +29,15 @@ func (h *AccountsHandler) WithBFFAssertionSecret(secret string) *AccountsHandler
 
 func (h *AccountsHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *AccountsHandler {
 	h.authenticator = authenticator
+	return h
+}
+
+func (h *AccountsHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *AccountsHandler {
+	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+func (h *AccountsHandler) WithAuditRecorder(audit AuditRecorder) *AccountsHandler {
+	h.audit = audit
 	return h
 }
 
@@ -49,7 +61,10 @@ func (h *AccountsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		return
 	}
 	if identity.RequireScope(principal, "accounts:read") != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrForbidden)
+		writeScopeDenial(writer, request, h.audit, principal, "accounts:read")
+		return
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "accounts:list", h.rateLimit, false) {
 		return
 	}
 	items, err := h.service.ListOwned(request.Context(), principal.TenantID, principal.SubjectID)

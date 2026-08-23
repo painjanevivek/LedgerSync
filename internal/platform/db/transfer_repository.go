@@ -23,10 +23,18 @@ import (
 )
 
 var (
-	ErrAccountNotFound   = errors.New("transfer account not found")
-	ErrNotAuthorized     = errors.New("transfer source account is not authorized")
-	ErrAccountInactive   = errors.New("transfer account is not active")
-	ErrInsufficientFunds = errors.New("insufficient funds")
+	ErrAccountNotFound          = errors.New("transfer account not found")
+	ErrNotAuthorized            = errors.New("transfer source account is not authorized")
+	ErrAccountInactive          = errors.New("transfer account is not active")
+	ErrInsufficientFunds        = errors.New("insufficient funds")
+	ErrDestinationNotAuthorized = errors.New("transfer destination account is not authorized")
+	ErrTenantPolicyMissing      = errors.New("tenant transfer policy is missing")
+	ErrTransferBelowMinimum     = errors.New("transfer amount is below tenant minimum")
+	ErrTransferAboveMaximum     = errors.New("transfer amount exceeds tenant maximum")
+	ErrActorVelocityExceeded    = errors.New("actor rolling transfer limit exceeded")
+	ErrSourceVelocityExceeded   = errors.New("source account rolling transfer limit exceeded")
+	ErrTenantVelocityExceeded   = errors.New("tenant rolling transfer limit exceeded")
+	ErrUnsupportedPilotCurrency = errors.New("transfer currency is outside the configured pilot")
 )
 
 const (
@@ -38,9 +46,10 @@ const (
 // in Submit happen inside one serializable transaction and no external call is
 // made before the commit succeeds.
 type TransferRepository struct {
-	database  *sql.DB
-	clock     func() time.Time
-	telemetry *observability.Telemetry
+	database      *sql.DB
+	clock         func() time.Time
+	telemetry     *observability.Telemetry
+	pilotCurrency string
 }
 
 func NewTransferRepository(database *sql.DB, clock func() time.Time, telemetry ...*observability.Telemetry) (*TransferRepository, error) {
@@ -50,7 +59,12 @@ func NewTransferRepository(database *sql.DB, clock func() time.Time, telemetry .
 	if clock == nil {
 		clock = time.Now
 	}
-	return &TransferRepository{database: database, clock: clock, telemetry: firstTelemetry(telemetry)}, nil
+	return &TransferRepository{database: database, clock: clock, telemetry: firstTelemetry(telemetry), pilotCurrency: "USD"}, nil
+}
+
+func (r *TransferRepository) WithPilotCurrency(currency string) *TransferRepository {
+	r.pilotCurrency = strings.ToUpper(strings.TrimSpace(currency))
+	return r
 }
 
 func (r *TransferRepository) Submit(ctx context.Context, command transfers.Command, fingerprint [sha256.Size]byte) (submission transfers.Submission, err error) {
@@ -80,6 +94,13 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 		submission = transfers.Submission{Result: result}
 		return nil
 	})
+	if err != nil {
+		if code := policyDenialCode(err); code != "" {
+			if auditErr := r.recordDeniedAudit(ctx, command, code); auditErr != nil {
+				return transfers.Submission{}, fmt.Errorf("persist required transfer denial audit: %w", auditErr)
+			}
+		}
+	}
 	return submission, err
 }
 
@@ -168,6 +189,9 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	source := accounts[command.DebitAccountID]
 	destination := accounts[command.CreditAccountID]
 	if err := validateAccounts(ctx, tx, command, source, destination); err != nil {
+		return transfers.Result{}, err
+	}
+	if err := r.validateTransferPolicy(ctx, tx, command); err != nil {
 		return transfers.Result{}, err
 	}
 
@@ -309,7 +333,103 @@ WHERE tenant_id = $1 AND account_id = $2 AND subject_id = $3`
 	if permission != string(account.PermissionDebit) {
 		return ErrNotAuthorized
 	}
+	var destinationAllowed bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM account_credit_permissions WHERE tenant_id=$1 AND account_id=$2 AND subject_id=$3)`, command.TenantID, destination.ID, command.ActorSubjectID).Scan(&destinationAllowed); err != nil {
+		return fmt.Errorf("read destination authorization: %w", err)
+	}
+	if !destinationAllowed {
+		return ErrDestinationNotAuthorized
+	}
 	return nil
+}
+
+func (r *TransferRepository) validateTransferPolicy(ctx context.Context, tx *sql.Tx, command transfers.Command) error {
+	if command.Amount.Currency().Code != r.pilotCurrency {
+		return ErrUnsupportedPilotCurrency
+	}
+	// Serialize velocity decisions even when no prior transfer row exists.
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, command.TenantID+"|"+command.ActorSubjectID); err != nil {
+		return fmt.Errorf("lock actor transfer policy: %w", err)
+	}
+	var currency string
+	var minimum, maximum, actorLimit, sourceLimit, tenantLimit int64
+	err := tx.QueryRowContext(ctx, `SELECT currency,minimum_transfer_minor,maximum_transfer_minor,actor_rolling_24h_minor,source_account_rolling_24h_minor,tenant_rolling_24h_minor FROM tenant_transfer_policies WHERE tenant_id=$1 FOR UPDATE`, command.TenantID).Scan(&currency, &minimum, &maximum, &actorLimit, &sourceLimit, &tenantLimit)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrTenantPolicyMissing
+	}
+	if err != nil {
+		return fmt.Errorf("load tenant transfer policy: %w", err)
+	}
+	if currency != r.pilotCurrency || currency != command.Amount.Currency().Code {
+		return ErrUnsupportedPilotCurrency
+	}
+	minor := command.Amount.Minor()
+	if minor < minimum {
+		return ErrTransferBelowMinimum
+	}
+	if minor > maximum {
+		return ErrTransferAboveMaximum
+	}
+	windowStart := command.OccurredAt.UTC().Add(-24 * time.Hour)
+	var actorTotal, sourceTotal, tenantTotal int64
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(SUM(amount_minor) FILTER (WHERE actor_subject_id=$2),0),COALESCE(SUM(amount_minor) FILTER (WHERE debit_account_id=$3),0),COALESCE(SUM(amount_minor),0) FROM transfers WHERE tenant_id=$1 AND status='posted' AND completed_at>$4`, command.TenantID, command.ActorSubjectID, command.DebitAccountID, windowStart).Scan(&actorTotal, &sourceTotal, &tenantTotal); err != nil {
+		return fmt.Errorf("read rolling transfer velocity: %w", err)
+	}
+	if actorTotal > actorLimit-minor {
+		return ErrActorVelocityExceeded
+	}
+	if sourceTotal > sourceLimit-minor {
+		return ErrSourceVelocityExceeded
+	}
+	if tenantTotal > tenantLimit-minor {
+		return ErrTenantVelocityExceeded
+	}
+	return nil
+}
+
+func policyDenialCode(err error) string {
+	switch {
+	case errors.Is(err, ErrNotAuthorized):
+		return "source_not_authorized"
+	case errors.Is(err, ErrDestinationNotAuthorized):
+		return "destination_not_authorized"
+	case errors.Is(err, ErrTenantPolicyMissing):
+		return "tenant_policy_missing"
+	case errors.Is(err, ErrTransferBelowMinimum):
+		return "amount_below_minimum"
+	case errors.Is(err, ErrTransferAboveMaximum):
+		return "amount_above_maximum"
+	case errors.Is(err, ErrActorVelocityExceeded):
+		return "actor_velocity_exceeded"
+	case errors.Is(err, ErrSourceVelocityExceeded):
+		return "source_velocity_exceeded"
+	case errors.Is(err, ErrTenantVelocityExceeded):
+		return "tenant_velocity_exceeded"
+	case errors.Is(err, ErrUnsupportedPilotCurrency):
+		return "unsupported_pilot_currency"
+	default:
+		return ""
+	}
+}
+
+func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command transfers.Command, code string) error {
+	id, err := newUUID()
+	if err != nil {
+		return err
+	}
+	correlationID := command.CorrelationID
+	if correlationID == "" {
+		correlationID, err = newUUID()
+		if err != nil {
+			return err
+		}
+	}
+	metadata, err := json.Marshal(map[string]string{"denial_code": code, "source_account_id": command.DebitAccountID, "destination_account_id": command.CreditAccountID})
+	if err != nil {
+		return err
+	}
+	_, err = r.database.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'transfer.policy_denied','transfer_request','failed',$4,$5,$6)`, id, command.TenantID, command.ActorSubjectID, correlationID, metadata, command.OccurredAt.UTC())
+	return err
 }
 
 func createTransfer(ctx context.Context, tx *sql.Tx, entry transferdomain.Transfer) error {

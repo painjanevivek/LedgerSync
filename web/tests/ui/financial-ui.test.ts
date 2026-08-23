@@ -1,14 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { approvedUSDGroups, isAuthoritativelyReconciled, transferOutcomeLabels } from "../../src/lib/financial-ui";
+import { approvedCurrencyGroups, isAuthoritativelyReconciled, transferOutcomeLabels } from "../../src/lib/financial-ui";
 
 test("customer funds are not silently aggregated into operating balances", () => {
   const accounts = [
     { account_id:"a",currency:"USD",status:"active" as const,available_minor:"100",ledger_minor:"100",version:"1",as_of:"2026-01-01T00:00:00Z",category:"operating" as const },
     { account_id:"b",currency:"USD",status:"active" as const,available_minor:"250",ledger_minor:"250",version:"1",as_of:"2026-01-01T00:00:00Z",category:"customer_funds" as const },
   ];
-  assert.deepEqual(approvedUSDGroups(accounts), { operatingMinor:"100", customerFundsMinor:"250" });
+  assert.deepEqual(approvedCurrencyGroups(accounts), { currency:"USD", mixedCurrency:false, operatingMinor:"100", customerFundsMinor:"250" });
+});
+
+test("mixed currencies are blocked instead of silently merged", () => {
+  const accounts = [
+    { account_id:"a",currency:"USD",status:"active" as const,available_minor:"100",ledger_minor:"100",version:"1",as_of:"2026-01-01T00:00:00Z",category:"operating" as const },
+    { account_id:"b",currency:"EUR",status:"active" as const,available_minor:"250",ledger_minor:"250",version:"1",as_of:"2026-01-01T00:00:00Z",category:"customer_funds" as const },
+  ];
+  assert.deepEqual(approvedCurrencyGroups(accounts), { currency:undefined, mixedCurrency:true, operatingMinor:"0", customerFundsMinor:"0" });
 });
 
 test("passed is permitted only for completed zero-mismatch matched evidence", () => {

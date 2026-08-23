@@ -49,6 +49,12 @@ func main() {
 		}
 		defer database.Close()
 		readiness = database.Ping
+		if configuration.Environment != "development" {
+			if err := db.ValidatePilotCurrency(context.Background(), database, configuration.PilotCurrency); err != nil {
+				slog.Error("pilot currency validation failed", "error", err)
+				os.Exit(1)
+			}
+		}
 		if configuration.Environment != "development" || (configuration.DevelopmentSubjectID != "" && configuration.DevelopmentTenantID != "") {
 			if configuration.RedisAddress == "" || len(configuration.ConsistencySigningKey) < 32 {
 				slog.Error("balance consistency configuration is missing")
@@ -97,6 +103,7 @@ func main() {
 				slog.Error("transfer service initialization failed", "error", err)
 				os.Exit(1)
 			}
+			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
 				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Scopes: []string{"accounts:read", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", identity.BFFActorScope}}
@@ -137,6 +144,26 @@ func main() {
 				os.Exit(1)
 			}
 			investigationHandler := handlers.NewInvestigationHandler(investigationRepository, provider)
+			rateLimiter, err := db.NewRateLimitRepository(database, nil)
+			if err != nil {
+				slog.Error("rate limiter initialization failed", "error", err)
+				os.Exit(1)
+			}
+			transferHandler.WithRateLimiter(rateLimiter, configuration.WriteRateLimitPerMinute)
+			balanceHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			accountsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			transactionsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			investigationHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			auditRepository, err := db.NewAuditRepository(database)
+			if err != nil {
+				slog.Error("audit repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			transferHandler.WithAuditRecorder(auditRepository)
+			balanceHandler.WithAuditRecorder(auditRepository)
+			accountsHandler.WithAuditRecorder(auditRepository)
+			transactionsHandler.WithAuditRecorder(auditRepository)
+			investigationHandler.WithAuditRecorder(auditRepository)
 			if len(configuration.BFFAssertionSecret) >= 32 {
 				assertionConfig := identity.ActorAssertionConfig{Issuer: configuration.BFFAssertionIssuer, Audience: configuration.BFFAssertionAudience, CurrentKey: identity.ActorAssertionKey{ID: configuration.BFFAssertionKeyID, Secret: []byte(configuration.BFFAssertionSecret)}, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: identity.NewMemoryReplayGuard(100_000)}
 				if configuration.BFFAssertionPreviousSecret != "" {
@@ -165,7 +192,14 @@ func main() {
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
 	handler := middleware.Correlation(telemetry.HTTP(router))
-	server := &http.Server{Addr: configuration.HTTPAddress, Handler: handler}
+	server := &http.Server{
+		Addr: configuration.HTTPAddress, Handler: handler,
+		ReadHeaderTimeout: configuration.HTTPReadHeaderTimeout,
+		ReadTimeout:       configuration.HTTPReadTimeout,
+		WriteTimeout:      configuration.HTTPWriteTimeout,
+		IdleTimeout:       configuration.HTTPIdleTimeout,
+		MaxHeaderBytes:    configuration.HTTPMaxHeaderBytes,
+	}
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	go func() {

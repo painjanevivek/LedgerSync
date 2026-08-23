@@ -16,6 +16,9 @@ type TransactionsHandler struct {
 	history       *transactions.History
 	identity      identity.Provider
 	authenticator *identity.RequestAuthenticator
+	rateLimiter   RateLimiter
+	rateLimit     int
+	audit         AuditRecorder
 }
 
 func (h *TransactionsHandler) WithBFFAssertionSecret(secret string) *TransactionsHandler {
@@ -27,6 +30,15 @@ func (h *TransactionsHandler) WithBFFAssertionSecret(secret string) *Transaction
 
 func (h *TransactionsHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransactionsHandler {
 	h.authenticator = authenticator
+	return h
+}
+
+func (h *TransactionsHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *TransactionsHandler {
+	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+func (h *TransactionsHandler) WithAuditRecorder(audit AuditRecorder) *TransactionsHandler {
+	h.audit = audit
 	return h
 }
 
@@ -55,7 +67,10 @@ func (h *TransactionsHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 		return
 	}
 	if identity.RequireScope(principal, "transactions:read") != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrForbidden)
+		writeScopeDenial(writer, request, h.audit, principal, "transactions:read")
+		return
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "transactions:list", h.rateLimit, false) {
 		return
 	}
 	limit := 50

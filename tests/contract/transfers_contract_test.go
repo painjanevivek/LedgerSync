@@ -103,3 +103,23 @@ func TestCreateTransferContractRejectsMalformedInputWithoutCallingService(t *tes
 		t.Fatalf("service received invalid request: %#v", repository.command)
 	}
 }
+
+func TestCreateTransferContractRejectsOversizedBodyWithoutCallingService(t *testing.T) {
+	repository := &contractRepository{}
+	service, err := transfers.NewService(repository, time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{SubjectID: "operator-1", TenantID: "tenant-1", Scopes: []string{"transfers:write"}})
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers", strings.NewReader(`{"source_account_id":"`+strings.Repeat("a", 70*1024)+`"}`))
+	request.Header.Set("Authorization", "Bearer development-local-only")
+	request.Header.Set("Idempotency-Key", "transfer-contract-key-oversized")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if repository.command.TenantID != "" {
+		t.Fatal("oversized request reached transfer service")
+	}
+}

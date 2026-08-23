@@ -50,7 +50,10 @@ jobs:
         env:
           LEDGERSYNC_TEST_DATABASE_URL: postgres://ledgersync:quality@localhost:5432/ledgersync?sslmode=disable
           LEDGERSYNC_TEST_REDIS_ADDR: localhost:6379
+          LEDGERSYNC_DATABASE_URL: postgres://ledgersync:quality@localhost:5432/ledgersync?sslmode=disable
         run: |
+          go run ./cmd/migrate
+          docker exec -i ledgersync-quality-postgres psql -U ledgersync -d ledgersync < deploy/postgres/roles.sql
           go test ./tests/integration -count=1 -v
           go test ./tests/fault -count=1 -v
       - name: Remove disposable dependencies

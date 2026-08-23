@@ -20,6 +20,9 @@ type BalanceHandler struct {
 	reader        *accounts.Reader
 	identity      identity.Provider
 	authenticator *identity.RequestAuthenticator
+	rateLimiter   RateLimiter
+	rateLimit     int
+	audit         AuditRecorder
 }
 
 func (h *BalanceHandler) WithBFFAssertionSecret(secret string) *BalanceHandler {
@@ -31,6 +34,15 @@ func (h *BalanceHandler) WithBFFAssertionSecret(secret string) *BalanceHandler {
 
 func (h *BalanceHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *BalanceHandler {
 	h.authenticator = authenticator
+	return h
+}
+
+func (h *BalanceHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *BalanceHandler {
+	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+func (h *BalanceHandler) WithAuditRecorder(audit AuditRecorder) *BalanceHandler {
+	h.audit = audit
 	return h
 }
 
@@ -59,7 +71,10 @@ func (h *BalanceHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 	if identity.RequireScope(principal, "accounts:read") != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrForbidden)
+		writeScopeDenial(writer, request, h.audit, principal, "accounts:read")
+		return
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "accounts:balance", h.rateLimit, false) {
 		return
 	}
 	result, err := h.reader.Read(request.Context(), principal.TenantID, principal.SubjectID, accountID, request.Header.Get(consistencyRequirementHeader))

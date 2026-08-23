@@ -4,14 +4,16 @@ export function isAuthoritativelyReconciled(run: ReconciliationRun | null | unde
   return Boolean(run && run.status === "matched" && run.mismatch_count === "0" && run.run_id && run.completed_at && run.ledger_watermark);
 }
 
-export function approvedUSDGroups(accounts: readonly Account[]) {
+export function approvedCurrencyGroups(accounts: readonly Account[]) {
   let operating = 0n; let customerFunds = 0n;
+  const currencies = new Set(accounts.map((account) => account.currency));
+  const currency = currencies.size === 1 ? [...currencies][0] : undefined;
   for (const account of accounts) {
-    if (account.currency !== "USD") continue;
+    if (!currency || account.currency !== currency) continue;
     if (account.category === "customer_funds") customerFunds += BigInt(account.available_minor);
     else operating += BigInt(account.available_minor);
   }
-  return { operatingMinor: operating.toString(), customerFundsMinor: customerFunds.toString() };
+  return { currency, mixedCurrency: currencies.size > 1, operatingMinor: operating.toString(), customerFundsMinor: customerFunds.toString() };
 }
 
 export function transferOutcomeLabels(transfer: Pick<TransferSummary, "financial_status" | "delivery_status">) {

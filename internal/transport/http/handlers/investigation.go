@@ -18,6 +18,9 @@ type InvestigationHandler struct {
 	repository    investigation.Repository
 	identity      identity.Provider
 	authenticator *identity.RequestAuthenticator
+	rateLimiter   RateLimiter
+	rateLimit     int
+	audit         AuditRecorder
 }
 
 func NewInvestigationHandler(repository investigation.Repository, provider identity.Provider) *InvestigationHandler {
@@ -32,6 +35,14 @@ func (h *InvestigationHandler) WithBFFAssertionSecret(secret string) *Investigat
 
 func (h *InvestigationHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *InvestigationHandler {
 	h.authenticator = authenticator
+	return h
+}
+func (h *InvestigationHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *InvestigationHandler {
+	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+func (h *InvestigationHandler) WithAuditRecorder(audit AuditRecorder) *InvestigationHandler {
+	h.audit = audit
 	return h
 }
 func (h *InvestigationHandler) authenticate(request *http.Request) (identity.Principal, error) {
@@ -142,7 +153,10 @@ func (h *InvestigationHandler) authorize(writer http.ResponseWriter, request *ht
 		return identity.Principal{}, false
 	}
 	if identity.RequireScope(principal, scope) != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrForbidden)
+		writeScopeDenial(writer, request, h.audit, principal, scope)
+		return identity.Principal{}, false
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, scope, h.rateLimit, false) {
 		return identity.Principal{}, false
 	}
 	return principal, true

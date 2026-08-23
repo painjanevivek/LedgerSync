@@ -21,7 +21,7 @@ The browser calls only same-origin HTTPS BFF routes. The BFF validates session/C
 }
 ```
 
-Success includes `transferId`, final status, exact amount, affected account IDs/balance versions and correlation ID. Errors are stable safe codes: `validation_failed`, `unauthorized_account`, `insufficient_funds`, `idempotency_conflict`, `request_in_progress`, `temporary_unavailable`.
+Success includes `transfer_id`, final status, exact amount, affected account IDs/balance versions and correlation context. Stable safe errors include `validation_failed`, `insufficient_funds`, `idempotency_conflict`, `request_in_progress`, `transfer_policy_denied`, `unsupported_pilot_policy`, `rate_limited`, and `temporary_unavailable`. A timed-out transfer returns `transfer_outcome_unknown`; the browser retries the identical payload with the same idempotency key.
 
 Internal balance-change event fields: `eventId`, `eventType`, `accountId`, `transferId`, `currency`, `availableMinor`, `balanceVersion`, `occurredAt`. Events are at-least-once; a cache never accepts an older version over a newer value.
 

@@ -5,6 +5,7 @@ import { createSession, sessionCookie, sessionCookieName, readSession } from "@/
 import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { toPrivateTransferRequest, type CreateTransferInput } from "@/lib/api/transfers";
 import { privateAPIContext, proxyPrivateGET } from "@/lib/private-api";
+import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
@@ -37,10 +38,13 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify(body),
       cache: "no-store",
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(privateWriteTimeoutMilliseconds),
     });
-  } catch {
-    return jsonError("temporary_unavailable", 503);
+  } catch (error) {
+    // Once a transfer request leaves the BFF, a timeout is an unknown outcome,
+    // never a confirmed failure. Clients must retry the identical payload with
+    // the same idempotency key to learn the committed result safely.
+    return jsonError(isPrivateAPITimeout(error) ? "transfer_outcome_unknown" : "temporary_unavailable", isPrivateAPITimeout(error) ? 504 : 503);
   }
 
   const payload = await upstream.text();
@@ -55,6 +59,8 @@ export async function POST(request: NextRequest) {
   if (replay) response.headers.set("Idempotent-Replay", replay);
   const requestID = upstream.headers.get("x-request-id");
   if (requestID) response.headers.set("X-Request-ID", requestID);
+  const retryAfter = upstream.headers.get("retry-after");
+  if (retryAfter) response.headers.set("Retry-After", retryAfter);
   const serializedRequirements = upstream.headers.get("x-ledgersync-consistency-requirements");
   if (serializedRequirements && upstream.ok) {
     try {

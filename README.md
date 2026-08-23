@@ -412,6 +412,8 @@ Runbooks: [audit events](docs/runbooks/audit-events.md) · [secret rotation](doc
 
 ## Quick start
 
+The repository-root `docker-compose.yml` is the canonical local entry point and delegates to the supported topology in `deploy/compose/docker-compose.yml`. The archived `docker-compose.legacy-demo.yml` is retained only for historical reference; it is not a supported development, test, or production path.
+
 | Dependency | Minimum |
 |---|---:|
 | Go | 1.22 |
@@ -424,11 +426,11 @@ Runbooks: [audit events](docs/runbooks/audit-events.md) · [secret rotation](doc
 # 1. Create local-only configuration; never commit real values.
 Copy-Item .env.example .env
 
-# 2. Start local services.
-docker compose -f deploy/compose/docker-compose.yml up --build
+# 2. Start the supported local topology.
+docker compose up --build
 
 # 3. Apply schema changes explicitly. API startup never mutates a financial schema.
-docker compose -f deploy/compose/docker-compose.yml exec api migrate
+docker compose exec api migrate
 
 # 4. Run focused verification.
 $env:GOCACHE = "$PWD\.cache\go-build"
@@ -438,7 +440,7 @@ npm --prefix web run lint
 npm --prefix web run build
 
 # 5. Stop services.
-docker compose -f deploy/compose/docker-compose.yml down
+docker compose down
 ```
 
 To rebuild the disposable cache from PostgreSQL projections:

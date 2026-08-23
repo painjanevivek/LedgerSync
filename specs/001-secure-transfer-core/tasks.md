@@ -152,12 +152,12 @@
 
 ### Phase 0C — Enforced platform controls and complete contract
 
-- [ ] T104 [REMED-008] Wire bounded Go HTTP and BFF upstream timeouts, header/body/request limits, tenant/principal/route rate limits, stable `429`/`Retry-After`, metrics, and safe unknown-outcome retry behavior
-- [ ] T105 [REMED-009] Enforce server-side transfer amount, rolling velocity, account status, tenant/role policy, and destination-credit authorization transactionally under concurrency
-- [ ] T106 [REMED-010] Separate migration, API, worker, reconciliation, support/read-only, and break-glass PostgreSQL roles; deny runtime mutation of immutable financial/audit/evidence records
-- [ ] T107 [REMED-011] Invoke append-only redacted audit coverage for transfers, auth decisions, reconciliation/mismatches, replay, privileged configuration, credential lifecycle, and recovery evidence
-- [ ] T108 [REMED-012] Enforce one configured pilot currency across startup, provisioning, account/transfer validation, aggregation, reconciliation, fixtures, and UI formatting
-- [ ] T109 [REMED-013] Complete OpenAPI for every supported MVP route and align string money/version fields, cursors, errors, auth, `429`, and Apache-2.0 metadata; block runtime/schema drift in CI
+- [X] T104 [REMED-008] Wire bounded Go HTTP and BFF upstream timeouts, header/body/request limits, tenant/principal/route rate limits, stable `429`/`Retry-After`, metrics, and safe unknown-outcome retry behavior
+- [X] T105 [REMED-009] Enforce server-side transfer amount, rolling velocity, account status, tenant/role policy, and destination-credit authorization transactionally under concurrency
+- [X] T106 [REMED-010] Separate migration, API, worker, reconciliation, support/read-only, and break-glass PostgreSQL roles; deny runtime mutation of immutable financial/audit/evidence records
+- [X] T107 [REMED-011] Invoke append-only redacted audit coverage for transfers, auth decisions, reconciliation/mismatches, replay, privileged configuration, credential lifecycle, and recovery evidence
+- [X] T108 [REMED-012] Enforce one configured pilot currency across startup, provisioning, account/transfer validation, aggregation, reconciliation, fixtures, and UI formatting
+- [X] T109 [REMED-013] Complete OpenAPI for every supported MVP route and align string money/version fields, cursors, errors, auth, `429`, and Apache-2.0 metadata; block runtime/schema drift in CI
 
 ### Phase 0D — Lifecycle, recovery operations, and real evidence
 

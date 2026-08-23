@@ -26,6 +26,9 @@ type TransferHandler struct {
 	identity      identity.Provider
 	authenticator *identity.RequestAuthenticator
 	issuer        *consistency.Issuer
+	rateLimiter   RateLimiter
+	rateLimit     int
+	audit         AuditRecorder
 }
 
 func NewTransferHandler(service *transfers.Service, provider identity.Provider, issuers ...*consistency.Issuer) *TransferHandler {
@@ -45,6 +48,15 @@ func (h *TransferHandler) WithBFFAssertionSecret(secret string) *TransferHandler
 
 func (h *TransferHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransferHandler {
 	h.authenticator = authenticator
+	return h
+}
+
+func (h *TransferHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *TransferHandler {
+	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+func (h *TransferHandler) WithAuditRecorder(audit AuditRecorder) *TransferHandler {
+	h.audit = audit
 	return h
 }
 
@@ -71,7 +83,10 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		return
 	}
 	if identity.RequireScope(principal, "transfers:write") != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrForbidden)
+		writeScopeDenial(writer, request, h.audit, principal, "transfers:write")
+		return
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "transfers:create", h.rateLimit, true) {
 		return
 	}
 	input, err := decodeTransferRequest(writer, request)
@@ -163,13 +178,17 @@ func publicTransferError(err error) error {
 	switch {
 	case errors.Is(err, transfers.ErrInvalidCommand), errors.Is(err, transfers.ErrInvalidIdempotencyKey), errors.Is(err, money.ErrInvalidAmount), errors.Is(err, money.ErrUnsupportedCurrency), errors.Is(err, money.ErrCurrencyMismatch):
 		return httptransport.ErrBadRequest
-	case errors.Is(err, db.ErrAccountNotFound), errors.Is(err, db.ErrNotAuthorized):
+	case errors.Is(err, db.ErrAccountNotFound), errors.Is(err, db.ErrNotAuthorized), errors.Is(err, db.ErrDestinationNotAuthorized):
 		// Return a safe denial/no-disclosure response for inaccessible accounts.
 		return httptransport.ErrForbidden
 	case errors.Is(err, db.ErrAccountInactive):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "account_inactive", Message: "An account is not active for this transfer."}
 	case errors.Is(err, db.ErrInsufficientFunds):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "insufficient_funds", Message: "The source account has insufficient posted balance."}
+	case errors.Is(err, db.ErrTransferBelowMinimum), errors.Is(err, db.ErrTransferAboveMaximum), errors.Is(err, db.ErrActorVelocityExceeded), errors.Is(err, db.ErrSourceVelocityExceeded), errors.Is(err, db.ErrTenantVelocityExceeded):
+		return &httptransport.PublicError{Status: http.StatusUnprocessableEntity, Code: "transfer_policy_denied", Message: "The transfer is outside the tenant's approved amount or rolling limits."}
+	case errors.Is(err, db.ErrTenantPolicyMissing), errors.Is(err, db.ErrUnsupportedPilotCurrency):
+		return &httptransport.PublicError{Status: http.StatusUnprocessableEntity, Code: "unsupported_pilot_policy", Message: "The transfer is outside the configured pilot currency or tenant policy."}
 	case errors.Is(err, transfers.ErrIdempotencyConflict):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "idempotency_conflict", Message: "This idempotency key belongs to a different request."}
 	case errors.Is(err, transfers.ErrRequestInProgress):

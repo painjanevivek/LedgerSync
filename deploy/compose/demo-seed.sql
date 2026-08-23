@@ -2,6 +2,10 @@
 
 INSERT INTO tenants (id, external_reference) VALUES ('00000000-0000-4000-8000-000000000001', 'ledgersync-local-demo') ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO tenant_transfer_policies (tenant_id,currency,minimum_transfer_minor,maximum_transfer_minor,actor_rolling_24h_minor,source_account_rolling_24h_minor,tenant_rolling_24h_minor)
+VALUES ('00000000-0000-4000-8000-000000000001','USD',1,1000000000,5000000000,5000000000,10000000000)
+ON CONFLICT (tenant_id) DO UPDATE SET currency=EXCLUDED.currency,minimum_transfer_minor=EXCLUDED.minimum_transfer_minor,maximum_transfer_minor=EXCLUDED.maximum_transfer_minor,actor_rolling_24h_minor=EXCLUDED.actor_rolling_24h_minor,source_account_rolling_24h_minor=EXCLUDED.source_account_rolling_24h_minor,tenant_rolling_24h_minor=EXCLUDED.tenant_rolling_24h_minor,updated_at=now();
+
 INSERT INTO accounts (id, tenant_id, currency, status, display_name, category, external_reference, created_at) VALUES
   ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','USD','active','Operating Reserve','operating','OPS-RESERVE','2026-08-20T09:00:00Z'),
   ('10000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001','USD','active','Customer Funds','customer_funds','CUSTOMER-FUNDS','2026-08-20T09:01:00Z'),
@@ -14,6 +18,10 @@ ON CONFLICT (id) DO UPDATE SET display_name=EXCLUDED.display_name, category=EXCL
 INSERT INTO account_owners (tenant_id, account_id, subject_id, permission)
 SELECT '00000000-0000-4000-8000-000000000001', id, 'demo-operator', CASE WHEN status='active' THEN 'debit' ELSE 'read' END FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001'
 ON CONFLICT (account_id, subject_id) DO NOTHING;
+
+INSERT INTO account_credit_permissions (tenant_id,account_id,subject_id)
+SELECT '00000000-0000-4000-8000-000000000001',id,'demo-operator' FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND status='active'
+ON CONFLICT (account_id,subject_id) DO NOTHING;
 
 INSERT INTO account_balance_projections (account_id, available_minor, ledger_minor, balance_version, updated_at) VALUES
  ('10000000-0000-4000-8000-000000000001',142006419,142006419,8241193,'2026-08-20T12:00:00Z'),

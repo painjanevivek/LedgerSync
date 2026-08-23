@@ -10,12 +10,12 @@ import (
 var ErrHistoryNotFound = errors.New("history account not found or not authorized")
 
 type Entry struct {
-	TransferID string
-	Direction  string
-	Amount     string
-	Currency   string
-	Status     string
-	OccurredAt time.Time
+	TransferID string    `json:"transfer_id"`
+	Direction  string    `json:"direction"`
+	Amount     string    `json:"amount"`
+	Currency   string    `json:"currency"`
+	Status     string    `json:"status"`
+	OccurredAt time.Time `json:"occurred_at"`
 }
 
 type HistoryRepository interface {
