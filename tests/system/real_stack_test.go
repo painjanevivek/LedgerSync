@@ -142,7 +142,7 @@ func getJSON(t *testing.T, client *http.Client, url string, target any) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	decodeResponse(t, response, target)
 }
 
@@ -160,7 +160,7 @@ func postTransfer(t *testing.T, client *http.Client, baseURL, csrfToken, key str
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	replayed := response.Header.Get("Idempotent-Replay") == "true"
 	t.Logf("transfer response status=%d replay=%t session_updated=%t", response.StatusCode, replayed, len(response.Cookies()) > 0)
 	var payload transferPayload

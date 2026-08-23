@@ -26,7 +26,7 @@ ORDER BY p.account_id`
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var accountID string
 		var projection, recomputed int64

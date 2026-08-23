@@ -293,7 +293,7 @@ FOR UPDATE OF a, b`
 	if err != nil {
 		return nil, fmt.Errorf("lock account projections: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	accounts := make(map[string]lockedAccount, 2)
 	for rows.Next() {
 		var item lockedAccount

@@ -74,7 +74,7 @@ ORDER BY a.created_at ASC, a.id ASC LIMIT $8`, tenantID, actorID, query.Status, 
 	if err != nil {
 		return accounts.Page{}, fmt.Errorf("list owned accounts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	type row struct {
 		Summary   accounts.Summary
 		CreatedAt time.Time
@@ -92,6 +92,9 @@ ORDER BY a.created_at ASC, a.id ASC LIMIT $8`, tenantID, actorID, query.Status, 
 	}
 	if err := rows.Err(); err != nil {
 		return accounts.Page{}, fmt.Errorf("iterate owned accounts: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return accounts.Page{}, fmt.Errorf("close owned account rows: %w", err)
 	}
 	page := accounts.Page{Accounts: make([]accounts.Summary, 0, query.Limit)}
 	if len(result) > query.Limit {
@@ -125,7 +128,7 @@ WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN
 	if err != nil {
 		return item, fmt.Errorf("get account audit context: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	item.AuditContext = []accounts.AuditEvent{}
 	for rows.Next() {
 		var event accounts.AuditEvent
@@ -137,6 +140,9 @@ WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN
 	}
 	if err := rows.Err(); err != nil {
 		return item, fmt.Errorf("iterate account audit context: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return item, fmt.Errorf("close account audit rows: %w", err)
 	}
 	return item, nil
 }

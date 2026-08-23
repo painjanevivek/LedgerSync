@@ -50,7 +50,11 @@ func main() {
 		slog.Error("database initialization failed", "error", err)
 		os.Exit(1)
 	}
-	defer database.Close()
+	defer func() {
+		if closeErr := database.Close(); closeErr != nil {
+			slog.Warn("database close failed", "error", closeErr)
+		}
+	}()
 	if *runReconciliation {
 		repository, err := db.NewReconciliationRepository(database, telemetry)
 		if err != nil {
@@ -87,7 +91,11 @@ func main() {
 		os.Exit(1)
 	}
 	redisClient := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
-	defer redisClient.Close()
+	defer func() {
+		if closeErr := redisClient.Close(); closeErr != nil {
+			slog.Warn("redis close failed", "error", closeErr)
+		}
+	}()
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		slog.Error("redis initialization failed", "error", err)
 		os.Exit(1)

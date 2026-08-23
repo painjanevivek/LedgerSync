@@ -15,7 +15,7 @@ func TestTelemetryIsNoopLocallyAndRejectsIncompleteSharedConfiguration(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer telemetry.Shutdown(context.Background())
+	defer func() { _ = telemetry.Shutdown(context.Background()) }()
 	handler := telemetry.HTTP(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		writer.WriteHeader(http.StatusNoContent)
 	}))

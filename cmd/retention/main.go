@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	repository, err := db.NewRetentionRepository(database, nil)
 	if err != nil {
 		fail(err)

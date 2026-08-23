@@ -49,7 +49,7 @@ func (r *ReconciliationRepository) Reconcile(ctx context.Context, tenantID strin
 	if err != nil {
 		return reconciliation.Result{}, fmt.Errorf("begin reconciliation snapshot: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	var watermark, schemaVersion string
 	if err := tx.QueryRowContext(ctx, `SELECT txid_current_snapshot()::text, COALESCE((SELECT max(version) FROM schema_migrations), 'unknown')`).Scan(&watermark, &schemaVersion); err != nil {
@@ -88,13 +88,13 @@ ORDER BY a.id`, tenantID)
 		var available, ledger, version, opening sql.NullString
 		var accountPostings int64
 		if err := rows.Scan(&accountID, &currency, &available, &ledger, &version, &opening, &postedDelta, &accountPostings); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return reconciliation.Result{}, fmt.Errorf("scan reconciliation account: %w", err)
 		}
 		postingCount += int(accountPostings)
 		accountMismatches, err := compareAccount(accountID, currency, available, ledger, version, opening, postedDelta)
 		if err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return reconciliation.Result{}, err
 		}
 		mismatches = append(mismatches, accountMismatches...)
@@ -202,7 +202,7 @@ HAVING count(p.id)<2 OR COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amoun
 	if err != nil {
 		return nil, fmt.Errorf("check posted transfer evidence: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var result []reconciliationMismatch
 	for rows.Next() {
 		var transferID, journalID, signedTotal string

@@ -69,7 +69,7 @@ ORDER BY completed_at DESC, id DESC LIMIT $5`, tenantID, accountID, nullableTime
 	if err != nil {
 		return nil, "", fmt.Errorf("list history: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var entries []transactions.Entry
 	for rows.Next() {
 		var item transactions.Entry

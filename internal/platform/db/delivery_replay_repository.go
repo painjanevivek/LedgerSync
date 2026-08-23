@@ -46,7 +46,7 @@ func (r *DeliveryReplayRepository) Approve(ctx context.Context, approval recover
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var exists bool
 	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM delivery_attempts WHERE tenant_id=$1 AND id=$2 AND status='dead')`, approval.TenantID, approval.AttemptID).Scan(&exists); err != nil {
 		return err
@@ -92,7 +92,7 @@ func (r *DeliveryReplayRepository) Replay(ctx context.Context, command recovery.
 	if err != nil {
 		return "", err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var approver, reason string
 	err = tx.QueryRowContext(ctx, `SELECT actor_subject_id,reason_code FROM delivery_replay_actions WHERE tenant_id=$1 AND attempt_id=$2 AND action='approved' AND correlation_id=$3 ORDER BY created_at DESC LIMIT 1 FOR UPDATE`, command.TenantID, command.AttemptID, command.CorrelationID).Scan(&approver, &reason)
 	if errors.Is(err, sql.ErrNoRows) {

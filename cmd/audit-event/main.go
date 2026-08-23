@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	repository, err := db.NewAuditRepository(database)
 	if err != nil {
 		fail(err)

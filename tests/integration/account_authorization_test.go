@@ -107,7 +107,7 @@ SELECT id,$1,'USD',CASE WHEN g%10=0 THEN 'frozen' ELSE 'active' END,'2026-01-01T
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var plan strings.Builder
 	for rows.Next() {
 		var line string

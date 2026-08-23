@@ -57,7 +57,7 @@ RETURNING event.id, event.tenant_id, event.transfer_id, event.account_id, event.
 	if err != nil {
 		return nil, fmt.Errorf("claim outbox events: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var events []outbox.Event
 	for rows.Next() {
 		var event outbox.Event

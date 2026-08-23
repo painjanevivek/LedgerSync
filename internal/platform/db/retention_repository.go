@@ -39,7 +39,7 @@ func (r *RetentionRepository) Run(ctx context.Context, policy retention.Policy, 
 	if err != nil {
 		return retention.Result{}, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	result := retention.Result{Mode: mode, CorrelationID: correlationID, StartedAt: now}
 	if apply {
 		result.PublishedOutbox, err = deleteBatch(ctx, tx, `DELETE FROM outbox_events WHERE id IN (SELECT o.id FROM outbox_events o WHERE o.tenant_id=$1 AND o.published_at<$2 AND o.dead_at IS NULL AND NOT EXISTS(SELECT 1 FROM delivery_attempts d WHERE d.outbox_event_id=o.id) AND NOT EXISTS(SELECT 1 FROM outbox_replay_actions a WHERE a.event_id=o.id) ORDER BY o.published_at,o.id LIMIT $3 FOR UPDATE SKIP LOCKED)`, policy.TenantID, now.Add(-policy.PublishedOutboxAfter), policy.BatchSize)

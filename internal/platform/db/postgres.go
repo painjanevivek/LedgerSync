@@ -35,8 +35,11 @@ func OpenPool(ctx context.Context, cfg PoolConfig) (*sql.DB, error) {
 	pingCtx, cancel := context.WithTimeout(ctx, nonZero(cfg.PingTimeout, 3*time.Second))
 	defer cancel()
 	if err := database.PingContext(pingCtx); err != nil {
-		database.Close()
-		return nil, fmt.Errorf("ping database: %w", err)
+		pingErr := fmt.Errorf("ping database: %w", err)
+		if closeErr := database.Close(); closeErr != nil {
+			return nil, errors.Join(pingErr, fmt.Errorf("close failed database pool: %w", closeErr))
+		}
+		return nil, pingErr
 	}
 	return database, nil
 }

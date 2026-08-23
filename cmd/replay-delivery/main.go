@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	repository, err := db.NewDeliveryReplayRepository(database, nil)
 	if err != nil {
 		fail(err)

@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 const instrumentationName = "ledgersync/platform"
@@ -48,7 +49,7 @@ type Telemetry struct {
 }
 
 func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) {
-	telemetry := &Telemetry{tracer: trace.NewNoopTracerProvider().Tracer(instrumentationName), shutdown: func(context.Context) error { return nil }}
+	telemetry := &Telemetry{tracer: noop.NewTracerProvider().Tracer(instrumentationName), shutdown: func(context.Context) error { return nil }}
 	if !cfg.Enabled {
 		return telemetry, nil
 	}

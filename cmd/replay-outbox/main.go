@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log/slog"
+	"os"
+	"time"
+
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/recovery"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
-	"os"
-	"time"
 )
 
 func main() {
@@ -31,7 +33,11 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	defer database.Close()
+	defer func() {
+		if closeErr := database.Close(); closeErr != nil {
+			slog.Warn("database close failed", "error", closeErr)
+		}
+	}()
 	repository, err := db.NewOutboxReplayRepository(database, nil)
 	if err != nil {
 		fail(err)

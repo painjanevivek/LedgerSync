@@ -59,14 +59,15 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	repository, err := db.NewProvisioningRepository(database, nil)
 	if err != nil {
 		fail(err)
 	}
-	if *action == "apply" {
+	switch *action {
+	case "apply":
 		err = repository.Apply(ctx, configuration, *pilot, *actor, *correlation)
-	} else if *action == "rollback" {
+	case "rollback":
 		err = repository.Rollback(ctx, *tenant, *actor, *correlation)
 	}
 	if err != nil {

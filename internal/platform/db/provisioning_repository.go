@@ -39,7 +39,7 @@ func (r *ProvisioningRepository) Apply(ctx context.Context, configuration provis
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var existing []byte
 	err = tx.QueryRowContext(ctx, `SELECT configuration_fingerprint FROM partner_provisioning_requests WHERE correlation_id=$1 AND status='applied'`, correlation).Scan(&existing)
 	if err == nil {
@@ -134,7 +134,7 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var alreadyRolledBack bool
 	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM partner_provisioning_requests WHERE tenant_id=$1 AND correlation_id=$2 AND status='rolled_back')`, tenantID, correlation).Scan(&alreadyRolledBack); err != nil {
 		return err
@@ -171,11 +171,11 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 		var credential credentialReference
 		var scopesJSON string
 		if err = credentialRows.Scan(&credential.reference, &credential.audience, &scopesJSON, &credential.expiresAt); err != nil {
-			credentialRows.Close()
+			_ = credentialRows.Close()
 			return err
 		}
 		if err = json.Unmarshal([]byte(scopesJSON), &credential.scopes); err != nil {
-			credentialRows.Close()
+			_ = credentialRows.Close()
 			return fmt.Errorf("decode credential scopes: %w", err)
 		}
 		credentials = append(credentials, credential)

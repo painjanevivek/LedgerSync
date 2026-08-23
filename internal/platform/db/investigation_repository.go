@@ -71,7 +71,7 @@ ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT $9`, tenantI
 	if err != nil {
 		return nil, "", fmt.Errorf("list transfers: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]investigation.TransferSummary, 0, filter.Limit)
 	for rows.Next() {
 		var item investigation.TransferSummary
@@ -109,7 +109,7 @@ func (r *InvestigationRepository) GetTransfer(ctx context.Context, tenantID, tra
 	if err != nil {
 		return item, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	item.Postings = []investigation.Posting{}
 	for rows.Next() {
 		var p investigation.Posting
@@ -132,7 +132,7 @@ func (r *InvestigationRepository) ListReconciliationRuns(ctx context.Context, te
 	if err != nil {
 		return nil, "", err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]investigation.ReconciliationRun, 0, limit)
 	for rows.Next() {
 		item, err := scanReconciliation(rows)
@@ -178,7 +178,7 @@ func (r *InvestigationRepository) GetReconciliationRun(ctx context.Context, tena
 	if err != nil {
 		return item, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	item.Mismatches = []investigation.ReconciliationMismatch{}
 	for rows.Next() {
 		var mismatch investigation.ReconciliationMismatch
