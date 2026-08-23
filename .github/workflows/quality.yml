@@ -62,10 +62,11 @@ jobs:
         run: docker rm -f ledgersync-quality-postgres ledgersync-quality-redis || true
   web-quality:
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e # v1.62.1-noble
+      options: --ipc=host
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
       - working-directory: web
         run: npm ci
       - working-directory: web
@@ -73,8 +74,6 @@ jobs:
       - name: Enforce frontend JavaScript budgets
         working-directory: web
         run: npm run test:performance
-      - working-directory: web
-        run: npx playwright install --with-deps chromium
       - name: Run browser journeys and fail on unreviewed visual drift
         working-directory: web
         run: npm run test:e2e
