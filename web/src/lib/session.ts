@@ -69,12 +69,15 @@ function validStringList(value: unknown): value is string[] {
 }
 
 export function sessionCookie(value: string) {
+  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  const production = deploymentEnvironment === "production" || deploymentEnvironment === "prod";
+  const explicitlyInsecureLocal = process.env.LEDGERSYNC_COOKIE_SECURE === "false" && !production;
   return {
     name: sessionCookieName,
     value,
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: !explicitlyInsecureLocal,
     path: "/",
     maxAge: 60 * 30,
   };

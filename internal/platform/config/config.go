@@ -21,6 +21,7 @@ type Config struct {
 	PilotCurrency              string
 	ReadRateLimitPerMinute     int
 	WriteRateLimitPerMinute    int
+	RedisStreamMaxLength       int64
 	DatabaseURL                string
 	RedisAddress               string
 	ConsistencySigningKey      string
@@ -83,6 +84,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	streamMaxLength, err := positiveInt("LEDGERSYNC_REDIS_STREAM_MAX_LENGTH", 5_000_000)
+	if err != nil {
+		return Config{}, err
+	}
 	telemetryEnabled, err := parseBool("LEDGERSYNC_TELEMETRY_ENABLED", false)
 	if err != nil {
 		return Config{}, err
@@ -99,6 +104,7 @@ func Load() (Config, error) {
 		PilotCurrency:              pilotCurrency,
 		ReadRateLimitPerMinute:     readRate,
 		WriteRateLimitPerMinute:    writeRate,
+		RedisStreamMaxLength:       int64(streamMaxLength),
 		DatabaseURL:                os.Getenv("LEDGERSYNC_DATABASE_URL"),
 		RedisAddress:               os.Getenv("LEDGERSYNC_REDIS_ADDR"),
 		ConsistencySigningKey:      os.Getenv("LEDGERSYNC_CONSISTENCY_SIGNING_KEY"),

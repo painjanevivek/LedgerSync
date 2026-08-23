@@ -76,3 +76,44 @@ jobs:
         run: npx playwright install --with-deps chromium
       - working-directory: web
         run: npm run test:e2e
+  real-stack:
+    runs-on: ubuntu-24.04
+    needs: [go-quality, web-quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Build and start the real BFF, API, PostgreSQL, Redis, worker path
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml up -d --build --wait
+          for attempt in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
+          curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null
+      - name: Prove retry safety through the actual browser-facing runtime boundary
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+        run: go test ./tests/system -count=1 -v
+      - name: Capture failed real-stack logs
+        if: failure()
+        run: docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml logs --no-color > real-stack.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: real-stack-failure-log, path: real-stack.log }
+      - name: Remove disposable real stack
+        if: always()
+        run: docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml down -v
+  release-evidence:
+    runs-on: ubuntu-24.04
+    needs: [go-quality, live-dependencies, web-quality, real-stack]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Generate commit-bound machine-readable release manifest
+        env:
+          LEDGERSYNC_EVIDENCE_COMMIT: ${{ github.sha }}
+        run: go run ./cmd/evidence-manifest > phase-0d-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase-0d-release-evidence-${{ github.sha }}
+          path: phase-0d-manifest.json
+          retention-days: 90

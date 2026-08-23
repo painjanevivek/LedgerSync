@@ -25,6 +25,36 @@ type RedisStreams struct {
 	client    redis.UniversalClient
 	stream    string
 	telemetry *observability.Telemetry
+	maxLength int64
+}
+
+func (p *RedisStreams) WithMaxLength(maxLength int64) *RedisStreams {
+	if maxLength > 0 {
+		p.maxLength = maxLength
+	}
+	return p
+}
+
+func (p *RedisStreams) ObserveHealth(ctx context.Context, group string) error {
+	depth, err := p.client.XLen(ctx, p.stream).Result()
+	if err != nil {
+		return fmt.Errorf("read redis stream depth: %w", err)
+	}
+	groups, err := p.client.XInfoGroups(ctx, p.stream).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return fmt.Errorf("read redis consumer lag: %w", err)
+	}
+	var lag int64
+	for _, current := range groups {
+		if current.Name == group {
+			lag = current.Lag
+			break
+		}
+	}
+	if p.telemetry != nil {
+		p.telemetry.ObserveRedisStream(ctx, depth, lag)
+	}
+	return nil
 }
 
 func NewRedisStreams(client redis.UniversalClient, stream string, telemetry ...*observability.Telemetry) (*RedisStreams, error) {
@@ -41,7 +71,7 @@ func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) (err err
 	started := time.Now()
 	ctx, span := p.start(ctx, "event.redis.publish")
 	defer func() { span.End(); p.observe(ctx, "publish", started, err) }()
-	_, err = p.client.XAdd(ctx, &redis.XAddArgs{Stream: p.stream, Values: map[string]any{
+	_, err = p.client.XAdd(ctx, &redis.XAddArgs{Stream: p.stream, MaxLen: p.maxLength, Approx: p.maxLength > 0, Values: map[string]any{
 		"event_id":          event.ID,
 		"event_type":        event.EventType,
 		"tenant_id":         event.TenantID,

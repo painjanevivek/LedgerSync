@@ -161,11 +161,11 @@
 
 ### Phase 0D — Lifecycle, recovery operations, and real evidence
 
-- [ ] T110 [REMED-014] Implement approved bounded Redis stream and PostgreSQL retention/partition/cleanup controls with dry-run, batching, metrics, restore compatibility, and immutable/unresolved-record protection
-- [ ] T111 [REMED-015] Add authorized inspect/approve/replay operations for dead outbox/delivery work with deduplication, audit, alerting, restart safety, and surfaced persistence errors
-- [ ] T112 [REMED-016] Preserve truthful independent history loading/error/empty states and re-enable complete contrast, keyboard, screen-reader, zoom, reflow, and responsive checks
-- [ ] T113 [REMED-017] Align history indexes with stable query ordering and split oversized operator/account/transfer/style modules behind existing tests without public API renames or new dependencies
-- [ ] T114 [REMED-018] Implement a narrow audited internal partner-provisioning workflow for tenant, subject mapping, accounts, currency, limits, roles, credentials, validation, and rollback without public self-service
+- [X] T110 [REMED-014] Implement approved bounded Redis stream and PostgreSQL retention/partition/cleanup controls with dry-run, batching, metrics, restore compatibility, and immutable/unresolved-record protection
+- [X] T111 [REMED-015] Add authorized inspect/approve/replay operations for dead outbox/delivery work with deduplication, audit, alerting, restart safety, and surfaced persistence errors
+- [X] T112 [REMED-016] Preserve truthful independent history loading/error/empty states and re-enable complete contrast, keyboard, screen-reader, zoom, reflow, and responsive checks
+- [X] T113 [REMED-017] Align history indexes with stable query ordering and split oversized operator/account/transfer/style modules behind existing tests without public API renames or new dependencies
+- [X] T114 [REMED-018] Implement a narrow audited internal partner-provisioning workflow for tenant, subject mapping, accounts, currency, limits, roles, credentials, validation, and rollback without public self-service
 
 **Checkpoint**: the real BFF/API path authenticates; every financial JSON integer is lossless; reconciliation and delivery claims have positive persisted evidence; platform controls are enforced; growth and dead work are operable; critical integration evidence uses the actual runtimes.
 

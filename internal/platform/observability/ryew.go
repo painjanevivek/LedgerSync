@@ -31,6 +31,9 @@ func (m *RYEWMetrics) ObserveRetry(outbox.Event, error) {
 func (m *RYEWMetrics) ObserveDead(outbox.Event, error) {
 	if m != nil {
 		m.dead.Add(1)
+		if m.telemetry != nil {
+			m.telemetry.ObserveDeadWork(context.Background(), "outbox")
+		}
 	}
 }
 func (m *RYEWMetrics) ObserveCacheHit() {

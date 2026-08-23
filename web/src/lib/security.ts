@@ -20,14 +20,26 @@ export function contentSecurityPolicy(nonce?: string): string {
 export function addSecurityHeaders(response: NextResponse, nonce?: string): NextResponse {
   response.headers.set("Content-Security-Policy", contentSecurityPolicy(nonce));
   for (const [name, value] of Object.entries(securityHeaders)) response.headers.set(name, value);
-  if (process.env.NODE_ENV === "production") response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? "development").trim().toLowerCase();
+  if (deploymentEnvironment === "production" || deploymentEnvironment === "prod") {
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
   return response;
 }
 
 // Cookie-authenticated mutations must originate from this same public origin.
 export function hasSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
-  return origin !== null && origin === request.nextUrl.origin;
+  if (origin === null) return false;
+  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? "development").trim().toLowerCase();
+  const configuredOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN?.trim();
+  if ((deploymentEnvironment === "production" || deploymentEnvironment === "prod") && !configuredOrigin) return false;
+  if (!configuredOrigin) return origin === request.nextUrl.origin;
+  try {
+    return origin === new URL(configuredOrigin).origin;
+  } catch {
+    return false;
+  }
 }
 
 export function hasValidCSRF(request: NextRequest, session: Session): boolean {

@@ -34,9 +34,18 @@ func TestOutboxWorkerMarksExhaustedEventDead(t *testing.T) {
 	}
 }
 
+func TestOutboxWorkerSurfacesRetryPersistenceFailure(t *testing.T) {
+	store := &fakeOutboxStore{events: []outbox.Event{{ID: "event", TenantID: "tenant", AccountID: "account", EventType: "account.balance.changed.v1", AggregateVersion: 1, Payload: []byte(`{"ok":true}`), AttemptCount: 1}}, persistErr: errors.New("postgres unavailable")}
+	worker, _ := outbox.NewWorker(store, failingPublisher{}, nil, time.Now, outbox.Config{WorkerID: "worker", MaxAttempts: 2})
+	if _, err := worker.RunOnce(context.Background()); err == nil {
+		t.Fatal("retry persistence failure was swallowed")
+	}
+}
+
 type fakeOutboxStore struct {
 	events                       []outbox.Event
 	published, rescheduled, dead string
+	persistErr                   error
 }
 
 func (f *fakeOutboxStore) Claim(context.Context, string, int, time.Duration) ([]outbox.Event, error) {
@@ -48,11 +57,11 @@ func (f *fakeOutboxStore) MarkPublished(_ context.Context, _ string, eventID str
 }
 func (f *fakeOutboxStore) Reschedule(_ context.Context, _ string, eventID string, _ time.Time, _ string) error {
 	f.rescheduled = eventID
-	return nil
+	return f.persistErr
 }
 func (f *fakeOutboxStore) MarkDead(_ context.Context, _ string, eventID string, _ time.Time, _ string) error {
 	f.dead = eventID
-	return nil
+	return f.persistErr
 }
 
 type failingPublisher struct{}

@@ -6,18 +6,17 @@ import Link from "next/link";
 import type { Account } from "@/features/accounts/types";
 import { StatePanel } from "@/features/console/components";
 import { accountLabel } from "@/features/console/format";
+import { type PreparedTransfer, useTransferSubmission } from "@/features/transfers/useTransferSubmission";
 import { formatMinorUnits, minorUnitsFromDecimal } from "@/lib/money";
 
 type Props = Readonly<{ accounts: Account[]; tenantId: string; csrfToken: string; disabled?: boolean; onPosted: () => Promise<void> }>;
-type Outcome = { kind: "success" | "error" | "unknown"; message: string; transferId?: string; amountMinor?: string; currency?: string; source?: string; destination?: string } | null;
-type Prepared = Readonly<{ source: Account; destination: Account; amountMinor: string }>;
-function storageKey(tenant: string) { return `ledgersync.transfer.idempotency.${tenant}`; }
 
 export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted }: Props) {
   const transferable = useMemo(() => accounts.filter((account) => account.status === "active"), [accounts]);
   const [source, setSource] = useState(transferable[0]?.account_id ?? ""); const [destination, setDestination] = useState(transferable[1]?.account_id ?? ""); const [amount, setAmount] = useState("");
-  const [prepared, setPrepared] = useState<Prepared | null>(null); const [pending, setPending] = useState(false); const [outcome, setOutcome] = useState<Outcome>(null); const [validation, setValidation] = useState<string | null>(null);
-  const idempotencyKey = useRef<string | null>(null); const reviewHeading = useRef<HTMLHeadingElement>(null); const outcomeHeading = useRef<HTMLHeadingElement>(null);
+  const [prepared, setPrepared] = useState<PreparedTransfer | null>(null); const [validation, setValidation] = useState<string | null>(null);
+  const { outcome, pending, setOutcome, submit: postPrepared } = useTransferSubmission(tenantId, csrfToken, onPosted);
+  const reviewHeading = useRef<HTMLHeadingElement>(null); const outcomeHeading = useRef<HTMLHeadingElement>(null);
   const sourceAccount = transferable.find((account) => account.account_id === source); const destinations = transferable.filter((account) => account.account_id !== source && account.currency === sourceAccount?.currency);
   useEffect(() => { if (prepared) reviewHeading.current?.focus(); }, [prepared]); useEffect(() => { if (outcome) outcomeHeading.current?.focus(); }, [outcome]);
 
@@ -30,17 +29,8 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted
   }
 
   async function submit() {
-    if (!prepared || pending) return; setPending(true); setOutcome(null);
-    try {
-      const stored = sessionStorage.getItem(storageKey(tenantId)); const requestKey = idempotencyKey.current ?? stored ?? crypto.randomUUID(); idempotencyKey.current = requestKey; if (!stored) sessionStorage.setItem(storageKey(tenantId), requestKey);
-      const response = await fetch("/api/transfers", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken, "Idempotency-Key": requestKey }, body: JSON.stringify({ sourceAccountId: prepared.source.account_id, destinationAccountId: prepared.destination.account_id, amount: { currency: prepared.source.currency, minorUnits: prepared.amountMinor } }) });
-      const payload = await response.json().catch(() => ({})) as { transfer_id?: string; error?: { code?: string } };
-      if (response.ok && payload.transfer_id) { sessionStorage.removeItem(storageKey(tenantId)); idempotencyKey.current=null; setOutcome({ kind:"success", message:"The ledger posting committed exactly once. Affected balances were refreshed.", transferId:payload.transfer_id, amountMinor:prepared.amountMinor, currency:prepared.source.currency, source:prepared.source.account_id, destination:prepared.destination.account_id }); setPrepared(null); setAmount(""); await onPosted(); }
-      else if (response.status===409 && payload.error?.code==="insufficient_funds") setOutcome({kind:"error",message:"Transfer rejected — insufficient posted balance. No money moved."});
-      else if (response.status===409 && payload.error?.code==="idempotency_conflict") { sessionStorage.removeItem(storageKey(tenantId)); idempotencyKey.current=null; setOutcome({kind:"error",message:"This retry key belongs to a different transfer request. Return to edit to create a genuinely new intent."}); }
-      else setOutcome({kind:"unknown",message:"The result is not confirmed. Retry this same transfer; LedgerSync will reuse the existing idempotency key."});
-    } catch { setOutcome({kind:"unknown",message:"The result is not confirmed. Retry this same transfer; LedgerSync will reuse the existing idempotency key."}); }
-    finally { setPending(false); }
+    if (!prepared || pending) return;
+    if (await postPrepared(prepared)) { setPrepared(null); setAmount(""); }
   }
 
   if (transferable.length < 2 || destinations.length === 0) return <StatePanel kind="denied" title="Transfer unavailable" message="Two active, authorized accounts in the same currency are required." />;

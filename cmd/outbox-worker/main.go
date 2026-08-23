@@ -59,6 +59,7 @@ func main() {
 		slog.Error("redis streams initialization failed", "error", err)
 		os.Exit(1)
 	}
+	streams.WithMaxLength(configuration.RedisStreamMaxLength)
 	hostname, _ := os.Hostname()
 	ryewMetrics := observability.NewRYEWMetrics(telemetry)
 	worker, err := outbox.NewWorker(store, streams, ryewMetrics, nil, outbox.Config{WorkerID: fmt.Sprintf("%s-%d", hostname, os.Getpid())})
@@ -83,6 +84,8 @@ func main() {
 	}
 	poll := time.NewTicker(200 * time.Millisecond)
 	defer poll.Stop()
+	healthPoll := time.NewTicker(15 * time.Second)
+	defer healthPoll.Stop()
 	for {
 		iterationStarted := time.Now()
 		iterationCtx, span := telemetry.Start(ctx, "outbox.worker.publish")
@@ -103,6 +106,10 @@ func main() {
 		select {
 		case <-ctx.Done():
 			goto stopped
+		case <-healthPoll.C:
+			if healthErr := streams.ObserveHealth(ctx, "balance-cache-v1"); healthErr != nil {
+				slog.Warn("redis stream health observation failed", "error", healthErr)
+			}
 		case <-poll.C:
 		}
 	}

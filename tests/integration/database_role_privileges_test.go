@@ -8,7 +8,7 @@ import (
 func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	var rolesExist bool
-	if err := database.QueryRowContext(context.Background(), `SELECT to_regrole('ledgersync_api') IS NOT NULL AND to_regrole('ledgersync_support_readonly') IS NOT NULL AND to_regrole('ledgersync_break_glass') IS NOT NULL`).Scan(&rolesExist); err != nil {
+	if err := database.QueryRowContext(context.Background(), `SELECT to_regrole('ledgersync_api') IS NOT NULL AND to_regrole('ledgersync_provisioning') IS NOT NULL AND to_regrole('ledgersync_support_readonly') IS NOT NULL AND to_regrole('ledgersync_break_glass') IS NOT NULL`).Scan(&rolesExist); err != nil {
 		t.Fatal(err)
 	}
 	if !rolesExist {
@@ -26,6 +26,9 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		{"ledgersync_api", "ledger_postings", "DELETE", false},
 		{"ledgersync_worker", "ledger_postings", "INSERT", false},
 		{"ledgersync_reconciliation", "reconciliation_runs", "INSERT", true},
+		{"ledgersync_provisioning", "partner_provisioning_requests", "INSERT", true},
+		{"ledgersync_provisioning", "ledger_postings", "INSERT", false},
+		{"ledgersync_api", "partner_credential_events", "INSERT", false},
 		{"ledgersync_support_readonly", "audit_events", "SELECT", true},
 		{"ledgersync_support_readonly", "audit_events", "UPDATE", false},
 		{"ledgersync_break_glass", "transfers", "SELECT", false},

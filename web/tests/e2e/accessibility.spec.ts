@@ -19,7 +19,11 @@ test("compact navigation opens, closes with Escape, and restores focus", async (
 test("forced colors and reduced motion preserve operable financial evidence", async ({ page }) => {
   await page.emulateMedia({ colorScheme:"light", reducedMotion:"reduce", forcedColors:"active" }); await mockOperatorConsole(page); await page.goto("/reconciliation");
   await expect(page.getByRole("heading",{name:"Reconciliation",exact:true})).toBeVisible(); await expect(page.getByText("Passed",{exact:true}).first()).toBeVisible();
-  const results=await new AxeBuilder({page}).disableRules(["color-contrast"]).analyze(); expect(results.violations).toEqual([]);
+  // Chromium exposes forced system colors incompletely to axe. Preserve the
+  // forced-color interaction check above, then run the complete contrast rule
+  // set in the deterministic authored-color mode rather than disabling it.
+  await page.emulateMedia({ colorScheme:"light", reducedMotion:"reduce", forcedColors:"none" });
+  const results=await new AxeBuilder({page}).analyze(); expect(results.violations).toEqual([]);
 });
 
 test("minimum-width reflow and browser zoom keep evidence available", async ({ page }) => {
@@ -32,4 +36,14 @@ test("minimum-width reflow and browser zoom keep evidence available", async ({ p
 test("copy controls announce completion without hiding the full identifier", async ({page})=>{
   await page.context().grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page); await page.goto("/reconciliation");
   await page.getByRole("button",{name:"Copy identifier"}).first().click(); await expect(page.getByText("Copied",{exact:true}).first()).toBeAttached();
+});
+
+test("account balance and ledger history report independent truth states", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/accounts/*/transactions?*");
+  await page.route("**/api/accounts/*/transactions?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "history_unavailable" } }) }));
+  await page.goto(`/accounts/11111111-1111-4111-8111-111111111111`);
+  await expect(page.getByText("USD 1250.00")).toBeVisible();
+  await expect(page.getByText("Ledger history unavailable", { exact: true })).toBeVisible();
+  await expect(page.getByText("No ledger entries")).toHaveCount(0);
 });

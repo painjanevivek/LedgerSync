@@ -31,14 +31,20 @@ type Telemetry struct {
 	enabled bool
 	tracer  trace.Tracer
 
-	requests          metric.Int64Counter
-	boundaryCalls     metric.Int64Counter
-	boundaryDuration  metric.Float64Histogram
-	transferOutcomes  metric.Int64Counter
-	outboxAge         metric.Float64Histogram
-	ryewViolations    metric.Int64Counter
-	reconciliationRun metric.Int64Counter
-	shutdown          func(context.Context) error
+	requests           metric.Int64Counter
+	boundaryCalls      metric.Int64Counter
+	boundaryDuration   metric.Float64Histogram
+	transferOutcomes   metric.Int64Counter
+	outboxAge          metric.Float64Histogram
+	ryewViolations     metric.Int64Counter
+	reconciliationRun  metric.Int64Counter
+	recoveryOperations metric.Int64Counter
+	deadWork           metric.Int64Counter
+	retentionRuns      metric.Int64Counter
+	retentionDeleted   metric.Int64Counter
+	redisStreamDepth   metric.Int64Gauge
+	redisConsumerLag   metric.Int64Gauge
+	shutdown           func(context.Context) error
 }
 
 func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) {
@@ -92,10 +98,36 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	if err != nil {
 		return nil, err
 	}
+	recoveryOperations, err := meter.Int64Counter("ledgersync.recovery.operations")
+	if err != nil {
+		return nil, err
+	}
+	deadWork, err := meter.Int64Counter("ledgersync.recovery.dead_work")
+	if err != nil {
+		return nil, err
+	}
+	retentionRuns, err := meter.Int64Counter("ledgersync.retention.runs")
+	if err != nil {
+		return nil, err
+	}
+	retentionDeleted, err := meter.Int64Counter("ledgersync.retention.deleted_rows")
+	if err != nil {
+		return nil, err
+	}
+	redisStreamDepth, err := meter.Int64Gauge("ledgersync.redis.stream_depth")
+	if err != nil {
+		return nil, err
+	}
+	redisConsumerLag, err := meter.Int64Gauge("ledgersync.redis.consumer_lag")
+	if err != nil {
+		return nil, err
+	}
 	telemetry.enabled, telemetry.tracer = true, tracerProvider.Tracer(instrumentationName)
 	telemetry.requests, telemetry.boundaryCalls, telemetry.boundaryDuration = requests, boundaryCalls, boundaryDuration
 	telemetry.transferOutcomes, telemetry.outboxAge = transferOutcomes, outboxAge
 	telemetry.ryewViolations, telemetry.reconciliationRun = ryewViolations, reconciliationRuns
+	telemetry.recoveryOperations, telemetry.deadWork, telemetry.retentionRuns, telemetry.retentionDeleted = recoveryOperations, deadWork, retentionRuns, retentionDeleted
+	telemetry.redisStreamDepth, telemetry.redisConsumerLag = redisStreamDepth, redisConsumerLag
 	telemetry.shutdown = func(shutdownCtx context.Context) error {
 		return errors.Join(meterProvider.Shutdown(shutdownCtx), tracerProvider.Shutdown(shutdownCtx))
 	}
@@ -152,6 +184,38 @@ func (t *Telemetry) ObserveOutboxAge(ctx context.Context, age time.Duration) {
 func (t *Telemetry) ObserveReconciliation(ctx context.Context, status string) {
 	if t != nil && t.enabled {
 		t.reconciliationRun.Add(ctx, 1, metric.WithAttributes(attribute.String("status", status)))
+	}
+}
+
+func (t *Telemetry) ObserveRecovery(ctx context.Context, kind, action string, err error) {
+	if t == nil || !t.enabled {
+		return
+	}
+	outcome := "ok"
+	if err != nil {
+		outcome = "error"
+	}
+	t.recoveryOperations.Add(ctx, 1, metric.WithAttributes(attribute.String("kind", kind), attribute.String("action", action), attribute.String("outcome", outcome)))
+}
+
+func (t *Telemetry) ObserveDeadWork(ctx context.Context, kind string) {
+	if t != nil && t.enabled {
+		t.deadWork.Add(ctx, 1, metric.WithAttributes(attribute.String("kind", kind)))
+	}
+}
+
+func (t *Telemetry) ObserveRetention(ctx context.Context, mode string, deleted int64) {
+	if t != nil && t.enabled {
+		attributes := metric.WithAttributes(attribute.String("mode", mode))
+		t.retentionRuns.Add(ctx, 1, attributes)
+		t.retentionDeleted.Add(ctx, deleted, attributes)
+	}
+}
+
+func (t *Telemetry) ObserveRedisStream(ctx context.Context, depth, lag int64) {
+	if t != nil && t.enabled {
+		t.redisStreamDepth.Record(ctx, depth)
+		t.redisConsumerLag.Record(ctx, lag)
 	}
 }
 

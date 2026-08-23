@@ -22,7 +22,7 @@ export function createDemoSession(configuration: DemoConfiguration, now = Date.n
     tenantId: configuration.tenantId,
     csrfToken: crypto.randomUUID(),
     expiresAt: now + 30 * 60 * 1000,
-    roles: ["finance_operator"],
+    roles: ["tenant:operator"],
     scopes: ["accounts:read", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read"],
   };
 }
