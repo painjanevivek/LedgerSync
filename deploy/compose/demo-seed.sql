@@ -30,13 +30,16 @@ INSERT INTO account_balance_projections (account_id, available_minor, ledger_min
  ('10000000-0000-4000-8000-000000000004',12500000,12500000,8241196,'2026-08-20T12:00:00Z'),
  ('10000000-0000-4000-8000-000000000005',385000,385000,8241197,'2026-08-20T12:00:00Z'),
  ('10000000-0000-4000-8000-000000000006',0,0,0,'2026-08-20T12:00:00Z')
-ON CONFLICT (account_id) DO UPDATE SET available_minor=EXCLUDED.available_minor, ledger_minor=EXCLUDED.ledger_minor, balance_version=EXCLUDED.balance_version, updated_at=EXCLUDED.updated_at;
+-- Seed reruns may add missing demo rows, but must never rewind balances or
+-- versions after real transfers have committed.
+ON CONFLICT (account_id) DO NOTHING;
 
 INSERT INTO account_opening_balances (account_id, opening_ledger_minor) VALUES
  ('10000000-0000-4000-8000-000000000001',129506419),('10000000-0000-4000-8000-000000000002',109200000),
  ('10000000-0000-4000-8000-000000000003',21600000),('10000000-0000-4000-8000-000000000004',0),
  ('10000000-0000-4000-8000-000000000005',385000),('10000000-0000-4000-8000-000000000006',0)
-ON CONFLICT (account_id) DO UPDATE SET opening_ledger_minor=EXCLUDED.opening_ledger_minor;
+-- Opening balances are financial evidence and become immutable once created.
+ON CONFLICT (account_id) DO NOTHING;
 
 BEGIN;
 SET CONSTRAINTS transfers_journal_transaction_fk DEFERRED;

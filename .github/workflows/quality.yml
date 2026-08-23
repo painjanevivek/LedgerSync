@@ -92,7 +92,46 @@ jobs:
       - name: Prove retry safety through the actual browser-facing runtime boundary
         env:
           LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-before-restart-000001
         run: go test ./tests/system -count=1 -v
+      - name: Prove demo seed reruns cannot rewind financial state
+        run: |
+          before="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT available_minor || ':' || ledger_minor || ':' || balance_version FROM account_balance_projections WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          opening_before="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT opening_ledger_minor FROM account_opening_balances WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm demo-seed
+          after="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT available_minor || ':' || ledger_minor || ':' || balance_version FROM account_balance_projections WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          opening_after="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT opening_ledger_minor FROM account_opening_balances WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          test "$before" = "$after"
+          test "$opening_before" = "$opening_after"
+      - name: Prove stateless service and Redis restart recovery
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-after-service-restart-000001
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart web api outbox-worker redis
+          for attempt in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
+          curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null
+          go test ./tests/system -run TestRealBFFAPIAndPostgreSQLRetryPath -count=1 -v
+      - name: Prove PostgreSQL restart, migration idempotency, and reconciliation
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-after-database-restart-000001
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart postgres
+          for attempt in $(seq 1 60); do docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres pg_isready -U ledgersync -d ledgersync && break; sleep 2; done
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm migrate
+          for attempt in $(seq 1 60); do curl --fail --silent http://127.0.0.1:3000/api/session >/dev/null && break; sleep 2; done
+          go test ./tests/system -run TestRealBFFAPIAndPostgreSQLRetryPath -count=1 -v
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm --entrypoint /usr/local/bin/reconcile migrate --run --tenant-id 00000000-0000-4000-8000-000000000001
+          go test ./tests/system -run TestRealBFFReconciliationEvidence -count=1 -v
+      - name: Verify non-root read-only workloads and private bindings
+        run: |
+          test "$(docker inspect -f '{{.Config.User}}' "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml ps -q api)")" = ledgersync
+          test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml ps -q api)")" = true
+          test "$(docker inspect -f '{{.Config.User}}' "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml ps -q web)")" = ledgersync
+          test -z "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml port redis 6379)"
+          test -z "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml port postgres 5432)"
+          test -z "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml port api 8080)"
       - name: Capture failed real-stack logs
         if: failure()
         run: docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml logs --no-color > real-stack.log

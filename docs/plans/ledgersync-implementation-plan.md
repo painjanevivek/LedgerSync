@@ -1339,7 +1339,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 1.
   - Risks: automated tools missing experiential barriers.
 
-- [ ] `TASK-009` — Run clean Docker full-stack smoke
+- [x] `TASK-009` — Run clean Docker full-stack smoke
   - Purpose: verify actual runtime assembly and restart behavior.
   - Dependencies: Docker engine and Phase 1 completion.
   - Expected output: build/start/migrate/seed/health/transfer/reconcile evidence.
