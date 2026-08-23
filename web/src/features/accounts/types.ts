@@ -9,7 +9,10 @@ export type Account = Readonly<{
   display_name?: string;
   category?: "operating" | "customer_funds" | "payroll" | "payables" | "expenses" | "reserve";
   external_reference?: string;
+  audit_context?: AccountAuditEvent[];
 }>;
+
+export type AccountAuditEvent = Readonly<{ event_id: string; event_type: string; actor_subject_id: string; outcome: string; correlation_id: string; occurred_at: string }>;
 
 export type Transaction = Readonly<{
   transfer_id: string;

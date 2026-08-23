@@ -177,7 +177,7 @@
 
 - [X] T079 [P] Remove invented financial evidence and false affordances from `web/src/features/console/PreviewConsole.tsx` and `web/src/features/console/ConsoleShell.tsx`; every enabled link, button, row, copy icon, menu indicator, and refresh control must have an observable outcome
 - [X] T080 Implement a server-gated, production-blocked demo session and deterministic PostgreSQL seed workflow through the real BFF/API contracts in `web/src/app/api/session/`, `deploy/compose/`, and `docs/pilot/`; add tests proving demo mode cannot start in production
-- [ ] T081 Implement truthful account list/search/filter/pagination and object-specific account detail routes in `web/src/app/accounts/`, preserving balance version, as-of time, currency, status, postings, audit context, and back/filter state
+- [X] T081 Implement truthful account list/search/filter/pagination and object-specific account detail routes in `web/src/app/accounts/`, preserving balance version, as-of time, currency, status, postings, audit context, and back/filter state
 - [X] T082 Implement transfer list/search/filter/pagination and immutable transfer detail BFF/routes in `web/src/app/transfers/`, separating ledger posting status from webhook/notification delivery status
 - [X] T083 Implement prepare → review → confirm → final-outcome transfer interaction with safe retry-key retention, focus management, confirmation summary, and updated balance in `web/src/features/transfers/`
 - [X] T084 Implement tenant-authorized reconciliation evidence BFF/list/detail routes and evidence-unavailable behavior in `web/src/app/api/reconciliation/` and `web/src/app/reconciliation/`; never infer a passing result

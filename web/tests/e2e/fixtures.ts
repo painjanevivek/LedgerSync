@@ -11,7 +11,11 @@ function json(route: Route, body: unknown, status = 200) {
 
 export async function mockOperatorConsole(page: Page) {
   await page.route("**/api/session", (route) => json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["transfers:write"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" }));
-  await page.route("**/api/me/accounts", (route) => json(route, { accounts: [sourceAccount, destinationAccount] }));
+  await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
+  await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
+    const account = route.request().url().includes(sourceAccount.account_id) ? sourceAccount : destinationAccount;
+    return json(route, account);
+  });
   await page.route("**/api/accounts/*/balance", (route) => {
     const account = route.request().url().includes(sourceAccount.account_id) ? sourceAccount : destinationAccount;
     return json(route, account);

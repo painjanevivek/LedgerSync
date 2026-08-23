@@ -18,7 +18,7 @@ func TestOpenAPIContainsEveryRegisteredMVPRouteAndLosslessBoundaries(t *testing.
 		t.Fatal(err)
 	}
 	contract := string(content)
-	for _, route := range []string{"/me/accounts:", "/accounts/{accountId}/balance:", "/accounts/{accountId}/transactions:", "/transfers:", "/transfers/{transferId}:", "/reconciliation/runs:", "/reconciliation/runs/{runId}:"} {
+	for _, route := range []string{"/me/accounts:", "/accounts/{accountId}:", "/accounts/{accountId}/balance:", "/accounts/{accountId}/transactions:", "/transfers:", "/transfers/{transferId}:", "/reconciliation/runs:", "/reconciliation/runs/{runId}:"} {
 		if !strings.Contains(contract, route) {
 			t.Errorf("OpenAPI missing runtime route %s", route)
 		}

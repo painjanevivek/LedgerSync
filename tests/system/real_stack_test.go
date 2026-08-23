@@ -38,11 +38,21 @@ func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 		t.Fatal("real BFF did not establish the server-gated demo session")
 	}
 	var accounts struct {
-		Accounts []json.RawMessage `json:"accounts"`
+		Accounts []struct {
+			AccountID string `json:"account_id"`
+		} `json:"accounts"`
+		NextCursor string `json:"next_cursor"`
 	}
-	getJSON(t, client, baseURL+"/api/me/accounts", &accounts)
+	getJSON(t, client, baseURL+"/api/me/accounts?limit=100&status=active", &accounts)
 	if len(accounts.Accounts) < 2 {
 		t.Fatalf("real API returned %d authorized accounts, want at least 2", len(accounts.Accounts))
+	}
+	var accountDetail struct {
+		AccountID string `json:"account_id"`
+	}
+	getJSON(t, client, baseURL+"/api/accounts/"+accounts.Accounts[0].AccountID, &accountDetail)
+	if accountDetail.AccountID != accounts.Accounts[0].AccountID {
+		t.Fatalf("object-specific account detail mismatch: %+v", accountDetail)
 	}
 
 	body := []byte(`{"sourceAccountId":"10000000-0000-4000-8000-000000000001","destinationAccountId":"10000000-0000-4000-8000-000000000004","amount":{"currency":"USD","minorUnits":"1"}}`)

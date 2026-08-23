@@ -1276,7 +1276,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 3.
   - Risks: stale documentation or accidental overclaiming.
 
-- [ ] `TASK-002` — Finalize account list/detail contract behavior
+- [x] `TASK-002` — Finalize account list/detail contract behavior
   - Purpose: remove the final functional account-directory gap without renaming public APIs.
   - Dependencies: existing account authorization and OpenAPI contract.
   - Expected output: stable cursor responses, allowed filters, complete detail model.
@@ -1285,7 +1285,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 1.
   - Risks: pagination contract drift or authorization leakage.
 
-- [ ] `TASK-003` — Add indexed 10,000-account queries
+- [x] `TASK-003` — Add indexed 10,000-account queries
   - Purpose: make the pilot account target operationally usable.
   - Dependencies: TASK-002.
   - Expected output: bounded queries, indexes, query-plan evidence, deterministic fixture.
@@ -1294,7 +1294,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 3.
   - Risks: nonselective filters, index write overhead, unstable cursors.
 
-- [ ] `TASK-004` — Preserve list/filter/back/focus context
+- [x] `TASK-004` — Preserve list/filter/back/focus context
   - Purpose: make large-directory investigation efficient across desktop and compact devices.
   - Dependencies: TASK-002.
   - Expected output: URL/search-state and focus restoration behavior.
@@ -1303,7 +1303,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 1.
   - Risks: stale cursors or inaccessible history navigation.
 
-- [ ] `TASK-005` — Complete account state and responsive tests
+- [x] `TASK-005` — Complete account state and responsive tests
   - Purpose: prove exact values and evidence survive every screen state.
   - Dependencies: TASK-002–004.
   - Expected output: unit/E2E/accessibility/responsive cases.

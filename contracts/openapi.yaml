@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.1.0
+  version: 1.2.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -15,12 +15,30 @@ paths:
     get:
       operationId: listOwnedAccounts
       summary: List accounts visible to the authenticated subject.
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { in: query, name: q, description: 'Case-insensitive display-name or external-reference prefix, or an exact account UUID.', schema: { type: string, maxLength: 128 } }
+        - { in: query, name: status, schema: { type: string, enum: [active, frozen, closed] } }
+        - { in: query, name: category, schema: { type: string, enum: [operating, customer_funds, payroll, payables, expenses, reserve] } }
       responses:
         '200': { description: Owned accounts and balances., content: { application/json: { schema: { $ref: '#/components/schemas/AccountList' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '500': { $ref: '#/components/responses/InternalError' }
+  /accounts/{accountId}:
+    get:
+      operationId: getOwnedAccount
+      summary: Read one account visible to the authenticated subject without disclosing inaccessible records.
+      parameters: [{ $ref: '#/components/parameters/AccountID' }]
+      responses:
+        '200': { description: 'Authorized account identity, current balance, and permitted account-targeted audit context.', content: { application/json: { schema: { $ref: '#/components/schemas/AccountDetail' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
   /accounts/{accountId}/balance:
     get:
       operationId: getAccountBalance
@@ -160,7 +178,29 @@ components:
             display_name: { type: string }
             category: { type: string }
             external_reference: { type: string }
-    AccountList: { type: object, required: [accounts], properties: { accounts: { type: array, items: { $ref: '#/components/schemas/Account' } } } }
+    AccountAuditEvent:
+      type: object
+      required: [event_id, event_type, actor_subject_id, outcome, correlation_id, occurred_at]
+      properties:
+        event_id: { type: string, format: uuid }
+        event_type: { type: string }
+        actor_subject_id: { type: string }
+        outcome: { type: string }
+        correlation_id: { type: string, format: uuid }
+        occurred_at: { type: string, format: date-time }
+    AccountDetail:
+      allOf:
+        - { $ref: '#/components/schemas/Account' }
+        - type: object
+          required: [audit_context]
+          properties:
+            audit_context: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/AccountAuditEvent' } }
+    AccountList:
+      type: object
+      required: [accounts, next_cursor]
+      properties:
+        accounts: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/Account' } }
+        next_cursor: { type: string, maxLength: 512 }
     CreateTransferRequest:
       type: object
       required: [source_account_id, destination_account_id, amount, currency]

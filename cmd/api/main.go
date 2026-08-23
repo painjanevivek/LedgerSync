@@ -183,6 +183,7 @@ func main() {
 			router.Handle("POST /api/transfers", transferHandler)
 			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)
 			router.Handle("GET /api/me/accounts", accountsHandler)
+			router.Handle("GET /api/accounts/{accountID}", accountsHandler)
 			router.Handle("GET /api/accounts/{accountID}/transactions", transactionsHandler)
 			router.HandleFunc("GET /api/transfers", investigationHandler.Transfers)
 			router.HandleFunc("GET /api/transfers/{transferID}", investigationHandler.Transfer)
