@@ -7,6 +7,10 @@ test("demo mode is rejected in production", () => {
   assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEMO_MODE: "true", LEDGERSYNC_DEPLOYMENT_ENV: "production" }), /forbidden/);
 });
 
+test("production rejects demo identity configuration even when the mode flag is absent", () => {
+  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEPLOYMENT_ENV:"prod", LEDGERSYNC_DEMO_SUBJECT_ID:"demo" }), /forbidden/);
+});
+
 test("demo mode creates a narrow, expiring operator session in development", () => {
   const configuration = readDemoConfiguration({ LEDGERSYNC_DEMO_MODE: "true", LEDGERSYNC_DEPLOYMENT_ENV: "development" });
   const session = createDemoSession(configuration, 1_000);

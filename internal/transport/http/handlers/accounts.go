@@ -53,17 +53,20 @@ func (h *AccountsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		return
 	}
 	type accountResponse struct {
-		AccountID      string `json:"account_id"`
-		Currency       string `json:"currency"`
-		Status         string `json:"status"`
-		AvailableMinor string `json:"available_minor"`
-		LedgerMinor    string `json:"ledger_minor"`
-		Version        string `json:"version"`
-		AsOf           string `json:"as_of"`
+		AccountID         string `json:"account_id"`
+		Currency          string `json:"currency"`
+		Status            string `json:"status"`
+		AvailableMinor    string `json:"available_minor"`
+		LedgerMinor       string `json:"ledger_minor"`
+		Version           string `json:"version"`
+		AsOf              string `json:"as_of"`
+		DisplayName       string `json:"display_name,omitempty"`
+		Category          string `json:"category,omitempty"`
+		ExternalReference string `json:"external_reference,omitempty"`
 	}
 	response := make([]accountResponse, 0, len(items))
 	for _, item := range items {
-		response = append(response, accountResponse{item.AccountID, item.Currency, item.Status, strconv.FormatInt(item.Balance.AvailableMinor, 10), strconv.FormatInt(item.Balance.LedgerMinor, 10), strconv.FormatInt(item.Balance.Version, 10), item.Balance.AsOf.Format("2006-01-02T15:04:05.999999999Z07:00")})
+		response = append(response, accountResponse{AccountID: item.AccountID, Currency: item.Currency, Status: item.Status, AvailableMinor: strconv.FormatInt(item.Balance.AvailableMinor, 10), LedgerMinor: strconv.FormatInt(item.Balance.LedgerMinor, 10), Version: strconv.FormatInt(item.Balance.Version, 10), AsOf: item.Balance.AsOf.Format("2006-01-02T15:04:05.999999999Z07:00"), DisplayName: item.DisplayName, Category: item.Category, ExternalReference: item.ExternalReference})
 	}
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")

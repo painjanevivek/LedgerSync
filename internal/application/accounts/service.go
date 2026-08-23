@@ -8,10 +8,13 @@ import (
 var ErrAccountNotFound = errors.New("account not found or not authorized")
 
 type Summary struct {
-	AccountID string
-	Currency  string
-	Status    string
-	Balance   Balance
+	AccountID         string
+	Currency          string
+	Status            string
+	DisplayName       string
+	Category          string
+	ExternalReference string
+	Balance           Balance
 }
 
 type OwnedAccountRepository interface {

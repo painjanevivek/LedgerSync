@@ -20,7 +20,7 @@ func NewAccountRepository(database *sql.DB) (*AccountRepository, error) {
 
 func (r *AccountRepository) ListOwned(ctx context.Context, tenantID, actorID string) ([]accounts.Summary, error) {
 	rows, err := r.database.QueryContext(ctx, `
-SELECT a.id, a.currency, a.status, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at
+SELECT a.id, a.currency, a.status, COALESCE(a.display_name, ''), COALESCE(a.category, 'operating'), COALESCE(a.external_reference, ''), b.available_minor, b.ledger_minor, b.balance_version, b.updated_at
 FROM accounts a
 JOIN account_owners owner ON owner.tenant_id = a.tenant_id AND owner.account_id = a.id
 JOIN account_balance_projections b ON b.account_id = a.id
@@ -33,7 +33,7 @@ ORDER BY a.created_at ASC, a.id ASC`, tenantID, actorID)
 	var result []accounts.Summary
 	for rows.Next() {
 		var item accounts.Summary
-		if err := rows.Scan(&item.AccountID, &item.Currency, &item.Status, &item.Balance.AvailableMinor, &item.Balance.LedgerMinor, &item.Balance.Version, &item.Balance.AsOf); err != nil {
+		if err := rows.Scan(&item.AccountID, &item.Currency, &item.Status, &item.DisplayName, &item.Category, &item.ExternalReference, &item.Balance.AvailableMinor, &item.Balance.LedgerMinor, &item.Balance.Version, &item.Balance.AsOf); err != nil {
 			return nil, fmt.Errorf("scan owned account: %w", err)
 		}
 		item.Balance.TenantID, item.Balance.AccountID, item.Balance.Currency = tenantID, item.AccountID, item.Currency

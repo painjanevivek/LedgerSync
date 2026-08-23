@@ -42,9 +42,12 @@ services:
       LEDGERSYNC_REDIS_ADDR: redis:6379
       LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:-development-only-change-me}
       LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:-development-only-change-me-change-before-shared-use}
+      LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:-development-bff-assertion-secret-change-me}
+      LEDGERSYNC_DEVELOPMENT_SUBJECT_ID: demo-operator
+      LEDGERSYNC_DEVELOPMENT_TENANT_ID: 00000000-0000-4000-8000-000000000001
     depends_on:
-      postgres:
-        condition: service_healthy
+      demo-seed:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     ports: ["127.0.0.1:8080:8080"]
@@ -79,7 +82,14 @@ services:
       dockerfile: deploy/docker/web.Dockerfile
     environment:
       NODE_ENV: production
-      LEDGERSYNC_API_URL: http://api:8080
+      LEDGERSYNC_PRIVATE_API_URL: http://api:8080
+      LEDGERSYNC_PRIVATE_API_TOKEN: development-local-only
+      LEDGERSYNC_WEB_SESSION_SECRET: ${LEDGERSYNC_WEB_SESSION_SECRET:-development-web-session-secret-change-me}
+      LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:-development-bff-assertion-secret-change-me}
+      LEDGERSYNC_DEPLOYMENT_ENV: development
+      LEDGERSYNC_DEMO_MODE: "true"
+      LEDGERSYNC_DEMO_SUBJECT_ID: demo-operator
+      LEDGERSYNC_DEMO_TENANT_ID: 00000000-0000-4000-8000-000000000001
     depends_on:
       api:
         condition: service_started
@@ -89,6 +99,33 @@ services:
     tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/api.Dockerfile
+    entrypoint: ["/usr/local/bin/migrate"]
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [private]
+    restart: "no"
+
+  demo-seed:
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-development-only-change-me}
+    command: ["psql", "-h", "postgres", "-U", "ledgersync", "-d", "ledgersync", "-f", "/seed/demo-seed.sql"]
+    volumes:
+      - ./demo-seed.sql:/seed/demo-seed.sql:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [private]
+    restart: "no"
 
   legacy-simulation:
     # This intentionally remains a diagnostics-only profile and never joins the
