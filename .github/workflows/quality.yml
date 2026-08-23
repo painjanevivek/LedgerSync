@@ -66,6 +66,9 @@ jobs:
         run: npm ci
       - working-directory: web
         run: npm run lint && npm test && npm run build
+      - name: Enforce frontend JavaScript budgets
+        working-directory: web
+        run: npm run test:performance
       - working-directory: web
         run: npx playwright install --with-deps chromium
       - working-directory: web

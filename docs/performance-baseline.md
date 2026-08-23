@@ -12,6 +12,13 @@ pilot tenant without written approval and isolated load-test accounts.
 | Authorized balance read | p95 under 200 ms | BFF or private API response, including cache/primary decision |
 | Error rate | below 0.1% | Expected idempotent replays and intentional rejects reported separately |
 | Financial mismatch | 0 | Reconciliation after every run |
+| Largest compressed-independent route chunk | ≤350 KB raw JavaScript | `npm run test:performance` after `next build` |
+| Total emitted route chunks | ≤2 MB raw JavaScript | `npm run test:performance` after `next build` |
+| LCP | ≤2.5 s | throttled compact-device browser trace |
+| INP | ≤200 ms | healthy-client interaction trace |
+| CLS | ≤0.1 | browser performance trace across progressive loading |
+
+The static JavaScript gate is enforced in CI. LCP, INP, and CLS remain measured release evidence because synthetic values depend on the agreed device/network profile; a missing trace is not treated as a pass.
 
 ## Runbook
 
