@@ -7,11 +7,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 )
+
+func DecodeConfig(reader io.Reader) (Config, error) {
+	var configuration Config
+	decoder := json.NewDecoder(reader)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&configuration); err != nil {
+		return Config{}, fmt.Errorf("decode provisioning config: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return Config{}, errors.New("provisioning config must contain exactly one JSON object")
+	}
+	return configuration, nil
+}
 
 var supportedAccountCategories = []string{
 	"customer_funds", "expenses", "operating", "payables", "payroll", "reserve",

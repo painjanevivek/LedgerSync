@@ -1,6 +1,7 @@
 package unit_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/provisioning"
@@ -30,6 +31,17 @@ func TestProvisioningConfigRequiresExactMoneyKnownSubjectsAndExternalCredentials
 	configuration.Credentials[0].Scopes = []string{"admin:*"}
 	if _, err = configuration.Validate("USD"); err == nil {
 		t.Fatal("unsupported workload scope must be rejected")
+	}
+}
+
+func TestProvisioningConfigDecoderRejectsIgnoredOrTrailingInstructions(t *testing.T) {
+	for _, raw := range []string{
+		`{"tenant_id":"tenant","unknown_limit":"100"}`,
+		`{} {}`,
+	} {
+		if _, err := provisioning.DecodeConfig(strings.NewReader(raw)); err == nil {
+			t.Fatalf("unsafe provisioning JSON accepted: %s", raw)
+		}
 	}
 }
 

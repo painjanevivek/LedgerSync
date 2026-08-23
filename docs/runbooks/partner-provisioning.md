@@ -19,6 +19,13 @@ go run ./cmd/provision-partner -action apply -config docs/pilot/provisioning-exa
 
 Archive the printed configuration fingerprint with the reviewed request. A retry with the same correlation ID and identical fingerprint is safe; the same correlation with changed content is rejected.
 
+The decoder rejects unknown fields and trailing JSON. This is intentional: a
+reviewer must never approve a limit or permission that the apply workflow would
+silently ignore. The supported operator read scopes include `accounts:read`,
+`transactions:read`, `transfers:read`, and `reconciliation:read`; write access is
+separately gated by `transfers:write` plus account relationships and tenant
+policy.
+
 Verify tenant policy, accounts, exact opening balances, owner/credit permissions, subject roles, external credential events, and `partner.provisioned` audit evidence before enabling traffic.
 
 ## Rollback before financial activity only

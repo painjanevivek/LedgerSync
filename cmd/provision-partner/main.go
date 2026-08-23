@@ -1,15 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
+	"slices"
+	"time"
+
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/provisioning"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
-	"os"
-	"time"
 )
 
 func main() {
@@ -20,13 +22,26 @@ func main() {
 	correlation := flag.String("correlation-id", "", "change UUID")
 	tenant := flag.String("tenant-id", "", "tenant UUID for rollback")
 	flag.Parse()
+	if !slices.Contains([]string{"validate", "apply", "rollback"}, *action) {
+		fail(fmt.Errorf("unsupported action %q", *action))
+	}
+	if *action == "rollback" {
+		if *tenant == "" || *actor == "" || *correlation == "" {
+			fail(fmt.Errorf("rollback requires tenant ID, trusted actor, and correlation ID"))
+		}
+	} else if *file == "" || *pilot == "" {
+		fail(fmt.Errorf("validate/apply require a reviewed config and selected pilot currency"))
+	} else if *action == "apply" && (*actor == "" || *correlation == "") {
+		fail(fmt.Errorf("apply requires a trusted actor and correlation ID"))
+	}
 	var configuration provisioning.Config
 	if *action != "rollback" {
 		content, err := os.ReadFile(*file)
 		if err != nil {
 			fail(err)
 		}
-		if err = json.Unmarshal(content, &configuration); err != nil {
+		configuration, err = provisioning.DecodeConfig(bytes.NewReader(content))
+		if err != nil {
 			fail(err)
 		}
 		fingerprint, err := configuration.Validate(*pilot)
@@ -53,8 +68,6 @@ func main() {
 		err = repository.Apply(ctx, configuration, *pilot, *actor, *correlation)
 	} else if *action == "rollback" {
 		err = repository.Rollback(ctx, *tenant, *actor, *correlation)
-	} else {
-		err = fmt.Errorf("unsupported action %q", *action)
 	}
 	if err != nil {
 		fail(err)

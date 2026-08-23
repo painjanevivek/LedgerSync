@@ -4,7 +4,7 @@
 **Owner:** product owner assigns the named accountable people before any shared pilot.  
 **Scope:** same-currency, closed-loop transfers between LedgerSync accounts only.
 
-This document is the Phase 7 operating checklist. It deliberately separates
+This document is the Phase 8 operating checklist. It deliberately separates
 facts proven by the repository from business decisions that a deployment cannot
 make for itself. A successful local build is not permission to move real money.
 
@@ -127,6 +127,9 @@ balancing, audit recording, reconciliation, or authoritative primary fallback.
 - Support hours, escalation route, incident communication contact, and status
   update cadence.
 - Written confirmation of the intentionally excluded money-movement features.
+
+Use `partner-evidence-template.md` as the per-partner system of record. Do not
+enable a partner based on a shared spreadsheet row or verbal approval alone.
 
 ## Phase completion boundary
 
