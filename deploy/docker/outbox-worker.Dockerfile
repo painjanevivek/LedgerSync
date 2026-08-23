@@ -5,7 +5,7 @@ COPY cmd ./cmd
 COPY internal ./internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/outbox-worker ./cmd/outbox-worker
 
-FROM alpine:3.20
+FROM alpine:3.24
 RUN addgroup -S ledgersync && adduser -S ledgersync -G ledgersync && apk add --no-cache ca-certificates
 USER ledgersync
 COPY --from=builder /out/outbox-worker /usr/local/bin/outbox-worker
