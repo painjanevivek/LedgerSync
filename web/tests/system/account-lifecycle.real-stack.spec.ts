@@ -18,6 +18,11 @@ type TransferProof = Readonly<{
   destinationAccountID: string;
 }>;
 
+type ReconciliationProof = Readonly<{
+  runID: string;
+  idempotencyKey: string;
+}>;
+
 async function postTransfer(page: Page, sourceAccountID: string, destinationAccountID: string): Promise<TransferProof> {
   await page.getByLabel("From account").selectOption(sourceAccountID);
   await page.getByLabel("To account").selectOption(destinationAccountID);
@@ -156,6 +161,35 @@ async function expectPublicDurableReads(page: Page, run: RealStackRun, accountID
   }
 }
 
+async function runAuthoritativeReconciliation(page: Page, run: RealStackRun): Promise<ReconciliationProof> {
+  await page.goto("/reconciliation");
+  await page.getByRole("button", { name: "Run reconciliation", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Review authoritative reconciliation scope" })).toBeFocused();
+
+  const request = await waitForMutationRequest(page, /^\/api\/reconciliation\/runs$/, async () => {
+    await page.getByRole("button", { name: "Start reconciliation" }).click();
+  });
+  await expect(page.getByRole("heading", { name: "Reconciliation passed" })).toBeFocused();
+
+  const replay = await replayCapturedMutation(page, request);
+  expect(replay.status()).toBe(201);
+  expect(replay.headers()["idempotent-replay"]).toBe("true");
+  const replayResult = await replay.json() as { run_id?: unknown; status?: unknown; mismatch_count?: unknown };
+  expect(replayResult).toMatchObject({ status: "matched", mismatch_count: "0" });
+  expect(replayResult.run_id).toMatch(/^[0-9a-f-]{36}$/i);
+  const runID = replayResult.run_id as string;
+  await expect(page.getByText(runID, { exact: true }).first()).toBeVisible();
+
+  const detailResponse = await page.request.get(`${run.baseURL}/api/reconciliation/runs/${runID}`);
+  expect(detailResponse.status()).toBe(200);
+  expect(detailResponse.headers()["cache-control"]).toContain("no-store");
+  expect(await detailResponse.json()).toMatchObject({ run_id: runID, status: "matched", mismatch_count: "0" });
+
+  const idempotencyKey = request.headers()["idempotency-key"];
+  expect(idempotencyKey).toMatch(/^[\x21-\x7e]{16,255}$/);
+  return { runID, idempotencyKey };
+}
+
 test.describe("@real-stack account product lifecycle", () => {
   test("creates, replays, funds, freezes, reactivates, returns to zero, and closes through normal commands", async ({ page }) => {
     const run = requireIsolatedRealStack();
@@ -227,6 +261,7 @@ test.describe("@real-stack account product lifecycle", () => {
     await expect(page.getByText(returnTransfer.transferID, { exact: true }).first()).toBeVisible();
 
     await expectPublicDurableReads(page, run, createdAccountID, [fundingTransfer, returnTransfer]);
+    const reconciliation = await runAuthoritativeReconciliation(page, run);
     expect(readComposeDurableEvidence(run, {
       accountID: createdAccountID,
       externalReference,
@@ -236,6 +271,8 @@ test.describe("@real-stack account product lifecycle", () => {
       fundingIdempotencyKey: fundingTransfer.idempotencyKey,
       returnTransferID: returnTransfer.transferID,
       returnIdempotencyKey: returnTransfer.idempotencyKey,
+      reconciliationRunID: reconciliation.runID,
+      reconciliationIdempotencyKey: reconciliation.idempotencyKey,
     })).toEqual({
       account_count: 1,
       owner_count: 1,
@@ -251,6 +288,11 @@ test.describe("@real-stack account product lifecycle", () => {
       transfer_outbox_count: 4,
       posting_count: 4,
       balanced_transfer_count: 2,
+      reconciliation_count: 1,
+      reconciliation_idempotency_count: 1,
+      reconciliation_request_audit_count: 1,
+      reconciliation_completed_audit_count: 1,
+      active_reconciliation_command_count: 0,
     });
 
     console.log([
@@ -259,6 +301,7 @@ test.describe("@real-stack account product lifecycle", () => {
       `account=${createdAccountID}`,
       `funding_transfer=${fundingTransfer.transferID}`,
       `return_transfer=${returnTransfer.transferID}`,
+      `reconciliation_run=${reconciliation.runID}`,
     ].join(" "));
   });
 });

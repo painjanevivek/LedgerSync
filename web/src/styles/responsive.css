@@ -68,8 +68,15 @@
   .account-control-row .button { width: 100%; }
   .confirmation-dialog { width: 100%; max-width: none; max-height: 100dvh; height: 100dvh; border-inline: 0; border-bottom: 0; border-radius: 0; }
   .confirmation-dialog form { min-height: 100%; align-content: start; padding: 24px 20px max(20px, env(safe-area-inset-bottom)); }
+  .reconciliation-control-heading { align-items: stretch; flex-direction: column; }
+  .reconciliation-control-heading .button { width: 100%; }
+  .reconciliation-command-document, .reconciliation-command-result { width: 100%; padding: 22px; }
+  .reconciliation-boundary-proof { grid-template-columns: 1fr; }
+  .reconciliation-boundary-proof > div, .reconciliation-boundary-proof > p { border-right: 0; border-bottom: 1px solid var(--line); }
+  .reconciliation-boundary-proof > :nth-last-child(-n + 2) { border-bottom: 1px solid var(--line); }
+  .reconciliation-boundary-proof > :last-child { border-bottom: 0; }
 }
 
 @media (max-width: 520px) {
-  .account-create-document, .account-command-result { padding: 20px 16px; }
+  .account-create-document, .account-command-result, .reconciliation-command-document, .reconciliation-command-result { padding: 20px 16px; }
 }

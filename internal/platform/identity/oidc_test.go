@@ -15,8 +15,8 @@ func TestAllowedSetDropsUnknownRolesAndScopes(t *testing.T) {
 	if len(roles) != 1 || !contains(roles, "tenant:admin") {
 		t.Fatalf("unexpected roles: %#v", roles)
 	}
-	scopes := allowedSet([]string{"accounts:read", "accounts:write", "accounts:all"}, allowedScopes)
-	if len(scopes) != 2 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") {
+	scopes := allowedSet([]string{"accounts:read", "accounts:write", "reconciliation:write", "accounts:all"}, allowedScopes)
+	if len(scopes) != 3 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") || !contains(scopes, "reconciliation:write") {
 		t.Fatalf("unexpected scopes: %#v", scopes)
 	}
 }
@@ -26,13 +26,13 @@ func TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping(t *test
 		ClientID: "partner-client",
 		TokenUse: "access",
 		Audience: []string{"https://api.ledgersync.example"},
-		Scope:    "accounts:read accounts:write transfers:write unknown:scope",
+		Scope:    "accounts:read accounts:write transfers:write reconciliation:write unknown:scope",
 	}
 	principal, err := principalFromAccessTokenClaims(valid, "https://api.ledgersync.example", map[string]string{"partner-client": "tenant-a"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if principal.SubjectID != "oauth-client:partner-client" || principal.TenantID != "tenant-a" || !principal.HasScope("accounts:read") || !principal.HasScope("accounts:write") || !principal.HasScope("transfers:write") || principal.HasScope("unknown:scope") {
+	if principal.SubjectID != "oauth-client:partner-client" || principal.TenantID != "tenant-a" || !principal.HasScope("accounts:read") || !principal.HasScope("accounts:write") || !principal.HasScope("transfers:write") || !principal.HasScope("reconciliation:write") || principal.HasScope("unknown:scope") {
 		t.Fatalf("unexpected workload principal: %#v", principal)
 	}
 

@@ -176,3 +176,27 @@ test("account lifecycle guard has a Windows local-console baseline", async ({ pa
   await page.evaluate(() => document.fonts.ready);
   await expect(page).toHaveScreenshot("account-freeze-confirmation-compact-390x844.png", { animations: "disabled", caret: "hide", fullPage: false, maxDiffPixelRatio: 0.002 });
 });
+
+test("reconciliation command review has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  await mockOperatorConsole(page);
+  await page.goto("/reconciliation");
+  await page.getByRole("button", { name: "Run reconciliation", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Review authoritative reconciliation scope" })).toBeVisible();
+  await capture(page, "reconciliation-command-review", desktop);
+  await capture(page, "reconciliation-command-review-compact", compact);
+});
+
+test("reconciliation running control has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  const running = { ...run, run_id: "77777777-7777-4777-8777-777777777777", status: "running", ledger_watermark: "", application_version: "", schema_version: "", checked_account_count: "0", posting_count: "0", mismatch_count: "0", completed_at: "" };
+  await mockOperatorConsole(page);
+  await page.route("**/api/reconciliation/runs", (route) => json(route, running, 202));
+  await page.route(`**/api/reconciliation/runs/${running.run_id}`, (route) => json(route, running));
+  await page.goto("/reconciliation");
+  await page.getByRole("button", { name: "Run reconciliation", exact: true }).click();
+  await page.getByRole("button", { name: "Start reconciliation" }).click();
+  await expect(page.getByRole("heading", { name: "Reconciliation running" })).toBeVisible();
+  await capture(page, "reconciliation-command-running", desktop);
+  await capture(page, "reconciliation-command-running-compact", compact);
+});

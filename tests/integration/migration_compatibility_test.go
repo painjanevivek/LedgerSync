@@ -15,6 +15,7 @@ import (
 	"time"
 
 	accountapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	reconciliationapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
@@ -24,10 +25,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 13 {
-		t.Fatalf("migration versions=%d, want 13", versions)
+	if versions != 14 {
+		t.Fatalf("migration versions=%d, want 14", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -95,7 +96,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
@@ -223,6 +224,21 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 	if err != nil {
 		_ = limitedDatabase.Close()
 		t.Fatalf("account command with migrated API grants: %v", err)
+	}
+	reconciliationRepository, err := db.NewReconciliationRepository(limitedDatabase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reconciliationService, err := reconciliationapp.NewCommandService(reconciliationRepository, func() time.Time { return createdAt.Add(2 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	reconciled, err := reconciliationService.Run(context.Background(), reconciliationapp.RunCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", CorrelationID: "00000000-0000-0000-0000-000000000898", IdempotencyKey: "upgrade-role-reconciliation-run",
+	})
+	if err != nil || reconciled.Result.ID == "" {
+		_ = limitedDatabase.Close()
+		t.Fatalf("reconciliation command with migrated API grants: result=%#v error=%v", reconciled, err)
 	}
 	if err := limitedDatabase.Close(); err != nil {
 		t.Fatal(err)

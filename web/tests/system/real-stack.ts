@@ -21,6 +21,8 @@ export type DurableEvidenceExpectation = Readonly<{
   fundingIdempotencyKey: string;
   returnTransferID: string;
   returnIdempotencyKey: string;
+  reconciliationRunID: string;
+  reconciliationIdempotencyKey: string;
 }>;
 
 export type DurableEvidence = Readonly<Record<
@@ -37,7 +39,12 @@ export type DurableEvidence = Readonly<Record<
   | "transfer_audit_count"
   | "transfer_outbox_count"
   | "posting_count"
-  | "balanced_transfer_count",
+  | "balanced_transfer_count"
+  | "reconciliation_count"
+  | "reconciliation_idempotency_count"
+  | "reconciliation_request_audit_count"
+  | "reconciliation_completed_audit_count"
+  | "active_reconciliation_command_count",
   number
 >>;
 
@@ -84,10 +91,10 @@ export function requireIsolatedRealStack(): RealStackRun {
 }
 
 export function readComposeDurableEvidence(run: RealStackRun, expected: DurableEvidenceExpectation): DurableEvidence {
-  for (const id of [expected.accountID, expected.fundingTransferID, expected.returnTransferID]) {
+  for (const id of [expected.accountID, expected.fundingTransferID, expected.returnTransferID, expected.reconciliationRunID]) {
     if (!uuid.test(id)) throw new Error("durable evidence identifiers must be UUIDs");
   }
-  for (const key of [expected.createIdempotencyKey, expected.deniedCloseIdempotencyKey, expected.fundingIdempotencyKey, expected.returnIdempotencyKey]) {
+  for (const key of [expected.createIdempotencyKey, expected.deniedCloseIdempotencyKey, expected.fundingIdempotencyKey, expected.returnIdempotencyKey, expected.reconciliationIdempotencyKey]) {
     if (!/^[\x21-\x7e]{16,255}$/.test(key)) throw new Error("durable evidence idempotency keys must be bounded visible ASCII");
   }
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(expected.externalReference)) {
@@ -120,7 +127,12 @@ SELECT json_build_object(
   'transfer_audit_count', (SELECT count(*) FROM audit_events WHERE target_id IN (SELECT id::text FROM selected_transfers) AND event_type='transfer.posted' AND outcome='succeeded'),
   'transfer_outbox_count', (SELECT count(*) FROM outbox_events WHERE transfer_id IN (SELECT id FROM selected_transfers) AND event_type='account.balance.changed.v1'),
   'posting_count', (SELECT COALESCE(sum(posting_count),0) FROM posting_totals),
-  'balanced_transfer_count', (SELECT count(*) FROM posting_totals WHERE posting_count=2 AND account_count=2 AND debit_minor=credit_minor AND debit_minor=100)
+  'balanced_transfer_count', (SELECT count(*) FROM posting_totals WHERE posting_count=2 AND account_count=2 AND debit_minor=credit_minor AND debit_minor=100),
+  'reconciliation_count', (SELECT count(*) FROM reconciliation_runs WHERE id=:'reconciliation_run_id'::uuid AND status='matched' AND mismatch_count=0),
+  'reconciliation_idempotency_count', (SELECT count(*) FROM idempotency_requests WHERE operation='reconciliation.run.v1' AND idempotency_key=:'reconciliation_key' AND state='completed' AND response_status=201 AND response_body->>'ID'=:'reconciliation_run_id'),
+  'reconciliation_request_audit_count', (SELECT count(*) FROM audit_events WHERE target_id=:'reconciliation_run_id' AND event_type='reconciliation.requested' AND outcome='allowed'),
+  'reconciliation_completed_audit_count', (SELECT count(*) FROM audit_events WHERE target_id=:'reconciliation_run_id' AND event_type='reconciliation.completed' AND outcome='succeeded'),
+  'active_reconciliation_command_count', (SELECT count(*) FROM reconciliation_run_commands)
 )::text;`;
   const variableArguments = [
     ["account_id", expected.accountID],
@@ -131,6 +143,8 @@ SELECT json_build_object(
     ["return_transfer_id", expected.returnTransferID],
     ["funding_key", expected.fundingIdempotencyKey],
     ["return_key", expected.returnIdempotencyKey],
+    ["reconciliation_run_id", expected.reconciliationRunID],
+    ["reconciliation_key", expected.reconciliationIdempotencyKey],
   ].flatMap(([name, value]) => ["-v", `${name}=${value}`]);
   const output = dockerOutput([
     "exec", "-i", run.postgresContainerID,

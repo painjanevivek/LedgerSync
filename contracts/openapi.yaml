@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.3.0
+  version: 1.4.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -176,6 +176,30 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      operationId: runReconciliation
+      summary: Run one tenant-wide reconciliation under transaction-safe single-run exclusion.
+      description: >-
+        Requires reconciliation:write. The request has no body and requires an
+        Idempotency-Key. Matched and mismatch are both durable completed run
+        outcomes; already_running is a stable, idempotently replayable denial.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, maxProperties: 0, additionalProperties: false } } }
+      responses:
+        '201':
+          description: Original or safely replayed matched/mismatch reconciliation result.
+          headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReconciliationRun' } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/ReconciliationConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ReconciliationUnavailable' }
+        '504': { $ref: '#/components/responses/ReconciliationResponseUnknown' }
   /reconciliation/runs/{runId}:
     get:
       operationId: getReconciliationRun
@@ -432,6 +456,8 @@ components:
     AccountNotZero: { value: { error: { code: account_not_zero, message: The account must have exact zero available and ledger balances before closing., request_id: 00000000-0000-4000-8000-000000000099 } } }
     ReadOnlyDenial: { value: { error: { code: forbidden, message: You cannot perform this action., request_id: 00000000-0000-4000-8000-000000000099 } } }
     AccountResponseUnknown: { value: { error: { code: temporary_unavailable, message: The account command outcome is unavailable. Retry the identical request with the same idempotency key., request_id: 00000000-0000-4000-8000-000000000099 } } }
+    ReconciliationAlreadyRunning: { value: { error: { code: reconciliation_already_running, message: A reconciliation run is already active for this tenant., request_id: 00000000-0000-4000-8000-000000000099 }, run_id: 00000000-0000-4000-8000-000000000077 } }
+    ReconciliationResponseUnknown: { value: { error: { code: response_unknown, message: The reconciliation outcome is unknown. Retry with the identical idempotency key., request_id: 00000000-0000-4000-8000-000000000099 } } }
   responses:
     InvalidRequest: { description: Validation failed without a financial change., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     UnsupportedMediaType: { description: Content-Type must be application/json; media-type parameters such as charset are allowed., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { error: { code: unsupported_media_type, message: Content-Type must be application/json., request_id: 00000000-0000-4000-8000-000000000099 } } } } }
@@ -454,6 +480,9 @@ components:
     AccountCommandUnavailable:
       description: The outcome is unavailable or a safe close predicate could not be proven; retry the identical intent and key.
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { responseUnknown: { $ref: '#/components/examples/AccountResponseUnknown' } } } }
+    ReconciliationConflict: { description: A run is already active, the key belongs to another intent, or the same request is still completing. already_running includes the active run_id when one remains active., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Error' }, { type: object, properties: { run_id: { type: string, format: uuid } } }] }, examples: { alreadyRunning: { $ref: '#/components/examples/ReconciliationAlreadyRunning' } } } } }
+    ReconciliationUnavailable: { description: Reconciliation could not start safely; retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ReconciliationResponseUnknown: { description: The caller timed out after submission and must retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { responseUnknown: { $ref: '#/components/examples/ReconciliationResponseUnknown' } } } } }
     PolicyDenied: { description: "Tenant amount, velocity, destination, or currency policy denied the transfer.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     RateLimited:
       description: Principal/tenant/route limit exceeded.
