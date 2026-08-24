@@ -170,16 +170,22 @@ VALUES($1,$2,$3,$4,'account',NULLIF($5,''),$6,$7,$8,$9)`, id, envelope.TenantID,
 	return nil
 }
 
-func insertAccountOutbox(ctx context.Context, tx *sql.Tx, envelope commandEnvelope, aggregate accountdomain.Account, eventType string) error {
+func insertAccountOutbox(ctx context.Context, tx *sql.Tx, envelope commandEnvelope, aggregate accountdomain.Account, eventType string, summary ...map[string]string) error {
 	id, err := newUUID()
 	if err != nil {
 		return err
 	}
-	payload, err := json.Marshal(map[string]string{
+	payloadValues := map[string]string{
 		"event_id": id, "event_type": eventType, "aggregate_type": "account", "aggregate_id": aggregate.ID,
 		"account_id": aggregate.ID, "currency": aggregate.Currency.Code, "status": string(aggregate.Status),
 		"version": strconv.FormatInt(aggregate.Version, 10), "occurred_at": envelope.OccurredAt.Format(time.RFC3339Nano),
-	})
+	}
+	if len(summary) > 0 {
+		for key, value := range sanitizeAuditMetadata(summary[0]) {
+			payloadValues[key] = value
+		}
+	}
+	payload, err := json.Marshal(payloadValues)
 	if err != nil {
 		return fmt.Errorf("marshal account outbox event: %w", err)
 	}

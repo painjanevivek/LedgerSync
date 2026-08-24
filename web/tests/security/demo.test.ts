@@ -33,6 +33,7 @@ test("demo mode creates a narrow, expiring operator session in development", () 
   assert.equal(session.tenantId, "00000000-0000-4000-8000-000000000001");
   assert.equal(session.expiresAt, 1_801_000);
   assert.ok(session.scopes?.includes("transfers:write"));
+  assert.ok(session.scopes?.includes("accounts:write"));
 });
 
 test("demo mode is off unless explicitly enabled", () => {

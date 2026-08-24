@@ -3,6 +3,7 @@ package accounts
 import (
 	"context"
 	"crypto/sha256"
+	"strings"
 	"testing"
 	"time"
 )
@@ -12,6 +13,7 @@ type capturingCommandRepository struct {
 	updateFingerprint [sha256.Size]byte
 	statusFingerprint [sha256.Size]byte
 	createCommand     CreateAccountCommand
+	statusCommand     ChangeAccountStatusCommand
 }
 
 func (r *capturingCommandRepository) Create(_ context.Context, command CreateAccountCommand, fingerprint [sha256.Size]byte) (CommandSubmission, error) {
@@ -22,7 +24,9 @@ func (r *capturingCommandRepository) UpdateMetadata(_ context.Context, _ UpdateA
 	r.updateFingerprint = fingerprint
 	return CommandSubmission{}, nil
 }
-func (r *capturingCommandRepository) ChangeStatus(_ context.Context, _ ChangeAccountStatusCommand, fingerprint [sha256.Size]byte) (CommandSubmission, error) {
+
+func (r *capturingCommandRepository) ChangeStatus(_ context.Context, command ChangeAccountStatusCommand, fingerprint [sha256.Size]byte) (CommandSubmission, error) {
+	r.statusCommand = command
 	r.statusFingerprint = fingerprint
 	return CommandSubmission{}, nil
 }
@@ -65,7 +69,7 @@ func TestAccountCommandFingerprintsConflictOnChangedIntent(t *testing.T) {
 	if original == repository.updateFingerprint {
 		t.Fatal("changed metadata did not change the fingerprint")
 	}
-	status := ChangeAccountStatusCommand{TenantID: "tenant", ActorSubjectID: "actor", CorrelationID: "correlation", IdempotencyKey: "0123456789abcdef", AccountID: "account", ExpectedVersion: 2, TargetStatus: "frozen"}
+	status := ChangeAccountStatusCommand{TenantID: "tenant", ActorSubjectID: "actor", CorrelationID: "correlation", IdempotencyKey: "0123456789abcdef", AccountID: "account", ExpectedVersion: 2, TargetStatus: "frozen", Reason: "Routine operations review"}
 	if _, err := service.ChangeStatus(context.Background(), status); err != nil {
 		t.Fatal(err)
 	}
@@ -76,5 +80,40 @@ func TestAccountCommandFingerprintsConflictOnChangedIntent(t *testing.T) {
 	}
 	if frozen == repository.statusFingerprint {
 		t.Fatal("changed lifecycle target did not change the fingerprint")
+	}
+	closed := repository.statusFingerprint
+	status.Reason = "Different operator intent"
+	if _, err := service.ChangeStatus(context.Background(), status); err != nil {
+		t.Fatal(err)
+	}
+	if closed == repository.statusFingerprint {
+		t.Fatal("changed lifecycle reason did not change the fingerprint")
+	}
+}
+
+func TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode(t *testing.T) {
+	for name, testCase := range map[string]struct {
+		reason    string
+		wantError bool
+	}{
+		"unicode":  {reason: "  नियमित संचालन समीक्षा  "},
+		"missing":  {wantError: true},
+		"control":  {reason: "freeze\nnow", wantError: true},
+		"too long": {reason: strings.Repeat("界", MaxLifecycleReasonRunes+1), wantError: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			repository := &capturingCommandRepository{}
+			service, _ := NewCommandService(repository, time.Now)
+			_, err := service.ChangeStatus(context.Background(), ChangeAccountStatusCommand{
+				TenantID: "tenant", ActorSubjectID: "actor", CorrelationID: "correlation", IdempotencyKey: "0123456789abcdef",
+				AccountID: "account", ExpectedVersion: 1, TargetStatus: "frozen", Reason: testCase.reason,
+			})
+			if (err != nil) != testCase.wantError {
+				t.Fatalf("error=%v wantError=%v", err, testCase.wantError)
+			}
+			if !testCase.wantError && repository.statusCommand.Reason != "नियमित संचालन समीक्षा" {
+				t.Fatalf("normalized reason=%q", repository.statusCommand.Reason)
+			}
+		})
 	}
 }

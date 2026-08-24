@@ -8,8 +8,8 @@ import {
   transferIntentStorageKey,
 } from "../../src/features/transfers/transferIntent";
 
-const source = { account_id: "source", currency: "INR", status: "active" as const, available_minor: "1000", ledger_minor: "1000", version: "1", as_of: "2026-08-24T00:00:00Z" };
-const destination = { account_id: "destination", currency: "INR", status: "active" as const, available_minor: "0", ledger_minor: "0", version: "1", as_of: "2026-08-24T00:00:00Z" };
+const source = { account_id: "source", currency: "INR", status: "active" as const, available_minor: "1000", ledger_minor: "1000", account_version: "2", version: "1", as_of: "2026-08-24T00:00:00Z" };
+const destination = { account_id: "destination", currency: "INR", status: "active" as const, available_minor: "0", ledger_minor: "0", account_version: "3", version: "1", as_of: "2026-08-24T00:00:00Z" };
 const prepared = { source, destination, amountMinor: "1250" };
 
 test("a stored retry key is bound to the complete canonical transfer intent", () => {

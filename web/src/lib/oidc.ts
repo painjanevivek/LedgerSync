@@ -13,7 +13,7 @@ export type VerifiedIdentity = Readonly<{ subjectId: string; tenantId: string; r
 type OperatorAuthorization = Readonly<{ tenantId: string; roles: string[]; scopes: string[] }>;
 
 const allowedRoles = new Set(["tenant:operator", "tenant:admin"]);
-const allowedScopes = new Set(["accounts:read", "transfers:read", "transfers:write", "transactions:read", "reconciliation:read", "audit:read"]);
+const allowedScopes = new Set(["accounts:read", "accounts:write", "transfers:read", "transfers:write", "transactions:read", "reconciliation:read", "audit:read"]);
 
 export function resolveOperatorAuthorization(subjectId: string): OperatorAuthorization {
   const raw = process.env.LEDGERSYNC_OIDC_SUBJECT_PERMISSIONS;

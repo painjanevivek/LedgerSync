@@ -3,8 +3,12 @@ package integration_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -14,6 +18,9 @@ import (
 	accountdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
 var accountCommandTime = time.Date(2026, 8, 24, 12, 0, 0, 0, time.UTC)
@@ -90,11 +97,125 @@ func TestAccountCreateIsAtomicZeroAndRetrySafe(t *testing.T) {
 	}
 }
 
+func TestAccountCreateHTTPRetryAfterLostResponseUsesRealServiceAndDatabaseControls(t *testing.T) {
+	service, database := requireAccountCommandService(t)
+	rateLimiter, err := db.NewRateLimitRepository(database, func() time.Time { return accountCommandTime })
+	if err != nil {
+		t.Fatal(err)
+	}
+	commandHandler := handlers.NewAccountCommandHandler(service, identity.DevelopmentProvider{
+		SubjectID: testActorID, TenantID: testTenantID, Scopes: []string{"accounts:write"},
+	}).WithRateLimiter(rateLimiter, 100).WithCapacityLimit(rateLimiter, 100)
+	router := http.NewServeMux()
+	router.HandleFunc("POST /api/accounts", commandHandler.Create)
+	handler := middleware.Correlation(router)
+	body := `{"display_name":"HTTP Operations","external_reference":"http-operations","category":"operating","currency":"INR"}`
+
+	// Treat this committed response as lost at the caller boundary.
+	original := executeAccountHTTPCreate(handler, body, "account-http-lost-001")
+	if original.Code != http.StatusCreated || original.Header().Get("Idempotent-Replay") != "" {
+		t.Fatalf("original status=%d headers=%v body=%s", original.Code, original.Header(), original.Body.String())
+	}
+	replayed := executeAccountHTTPCreate(handler, body, "account-http-lost-001")
+	if replayed.Code != http.StatusCreated || replayed.Header().Get("Idempotent-Replay") != "true" || replayed.Body.String() != original.Body.String() {
+		t.Fatalf("replay status=%d headers=%v body=%s original=%s", replayed.Code, replayed.Header(), replayed.Body.String(), original.Body.String())
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND external_reference='http-operations'`, testTenantID); got != 1 {
+		t.Fatalf("created account rows=%d, want one", got)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM audit_events WHERE event_type='account.created' AND sanitized_metadata->>'external_reference' IS NULL`); got != 1 {
+		t.Fatalf("sanitized create audit rows=%d, want one", got)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM outbox_events WHERE event_type='account.created.v1' AND aggregate_type='account'`); got != 1 {
+		t.Fatalf("account outbox rows=%d, want one", got)
+	}
+}
+
+func TestAuthorizedAccountReadsExposeConfigurationAndBalanceVersionsSeparately(t *testing.T) {
+	commandService, database := requireAccountCommandService(t)
+	created, err := commandService.Create(context.Background(), createAccountCommand("account-version-read-01", "version-read"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = commandService.UpdateMetadata(context.Background(), accounts.UpdateAccountMetadataCommand{
+		TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099",
+		IdempotencyKey: "account-version-update-01", AccountID: created.Result.AccountID, ExpectedVersion: 1,
+		DisplayName: "Versioned account", Reference: "version-read", Category: "operating",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	readRepository, err := db.NewAccountRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readService, err := accounts.NewService(readRepository)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readHandler := handlers.NewAccountsHandler(readService, identity.DevelopmentProvider{SubjectID: testActorID, TenantID: testTenantID, Scopes: []string{"accounts:read"}})
+	router := http.NewServeMux()
+	router.Handle("GET /api/me/accounts", readHandler)
+	router.Handle("GET /api/accounts/{accountID}", readHandler)
+	handler := middleware.Correlation(router)
+
+	detailRequest := httptest.NewRequest(http.MethodGet, "/api/accounts/"+created.Result.AccountID, nil)
+	detailRequest.Header.Set("Authorization", "Bearer development-local-only")
+	detailResponse := httptest.NewRecorder()
+	handler.ServeHTTP(detailResponse, detailRequest)
+	if detailResponse.Code != http.StatusOK {
+		t.Fatalf("detail status=%d body=%s", detailResponse.Code, detailResponse.Body.String())
+	}
+	var detail map[string]any
+	if err := json.NewDecoder(detailResponse.Body).Decode(&detail); err != nil {
+		t.Fatal(err)
+	}
+	if detail["account_version"] != "2" || detail["version"] != "0" {
+		t.Fatalf("detail versions=%#v, want account_version=2 and balance version=0", detail)
+	}
+
+	listRequest := httptest.NewRequest(http.MethodGet, "/api/me/accounts", nil)
+	listRequest.Header.Set("Authorization", "Bearer development-local-only")
+	listResponse := httptest.NewRecorder()
+	handler.ServeHTTP(listResponse, listRequest)
+	if listResponse.Code != http.StatusOK {
+		t.Fatalf("list status=%d body=%s", listResponse.Code, listResponse.Body.String())
+	}
+	var list struct {
+		Accounts []map[string]any `json:"accounts"`
+	}
+	if err := json.NewDecoder(listResponse.Body).Decode(&list); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, item := range list.Accounts {
+		if item["account_id"] == created.Result.AccountID {
+			found = true
+			if item["account_version"] != "2" || item["version"] != "0" {
+				t.Fatalf("list versions=%#v, want account_version=2 and balance version=0", item)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("created account %s absent from authorized list", created.Result.AccountID)
+	}
+}
+
+func executeAccountHTTPCreate(handler http.Handler, body, key string) *httptest.ResponseRecorder {
+	request := httptest.NewRequest(http.MethodPost, "/api/accounts", strings.NewReader(body))
+	request.Header.Set("Authorization", "Bearer development-local-only")
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", key)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	return response
+}
+
 func TestStableAccountDenialIsRecordedAndReplayedOnce(t *testing.T) {
 	service, database := requireAccountCommandService(t)
 	command := accounts.ChangeAccountStatusCommand{
 		TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099",
-		IdempotencyKey: "stable-denial-001", AccountID: testSourceID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed,
+		IdempotencyKey: "stable-denial-001", AccountID: testSourceID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed, Reason: "Quarter-end closure review",
 	}
 	original, err := service.ChangeStatus(context.Background(), command)
 	if !errors.Is(err, accounts.ErrNonZeroClose) || original.Replayed {
@@ -112,6 +233,11 @@ func TestStableAccountDenialIsRecordedAndReplayedOnce(t *testing.T) {
 	changed.TargetStatus = accountdomain.StatusFrozen
 	if _, err := service.ChangeStatus(context.Background(), changed); !errors.Is(err, accounts.ErrIdempotencyConflict) {
 		t.Fatalf("changed intent error=%v, want idempotency conflict", err)
+	}
+	changed = command
+	changed.Reason = "Different closure intent"
+	if _, err := service.ChangeStatus(context.Background(), changed); !errors.Is(err, accounts.ErrIdempotencyConflict) {
+		t.Fatalf("changed reason error=%v, want idempotency conflict", err)
 	}
 	assertStableDenialEvidence(t, database, command.IdempotencyKey, testSourceID)
 }
@@ -165,7 +291,7 @@ func assertStableDenialEvidence(t *testing.T, database *sql.DB, key, accountID s
 	if got := countRows(t, database, `SELECT count(*) FROM idempotency_requests WHERE operation='accounts.update.v1' AND idempotency_key=$1 AND state='failed' AND response_status=422 AND response_body->>'error_code'='non_zero_balance'`, key); got != 1 {
 		t.Fatalf("failed idempotency outcomes=%d, want one", got)
 	}
-	if got := countRows(t, database, `SELECT count(*) FROM audit_events WHERE target_id=$1 AND event_type='account.command_denied' AND outcome='denied' AND sanitized_metadata->>'denial_code'='non_zero_balance'`, accountID); got != 1 {
+	if got := countRows(t, database, `SELECT count(*) FROM audit_events WHERE target_id=$1 AND event_type='account.command_denied' AND outcome='denied' AND sanitized_metadata->>'denial_code'='non_zero_balance' AND sanitized_metadata->>'reason'='Quarter-end closure review'`, accountID); got != 1 {
 		t.Fatalf("non-zero denial audit rows=%d, want exactly one", got)
 	}
 }
@@ -176,13 +302,19 @@ func TestAccountLifecycleCloseRulesVersionAndTenantBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	closeCommand := accounts.ChangeAccountStatusCommand{TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099", IdempotencyKey: "account-close-00001", AccountID: created.Result.AccountID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed}
+	closeCommand := accounts.ChangeAccountStatusCommand{TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099", IdempotencyKey: "account-close-00001", AccountID: created.Result.AccountID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed, Reason: "Account no longer required"}
 	closed, err := service.ChangeStatus(context.Background(), closeCommand)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if closed.Result.Status != "closed" || closed.Result.Version != "2" {
 		t.Fatalf("closed result=%#v", closed.Result)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM audit_events WHERE target_id=$1 AND event_type='account.status_changed' AND sanitized_metadata->>'reason'='Account no longer required'`, created.Result.AccountID); got != 1 {
+		t.Fatalf("lifecycle reason audit rows=%d, want one", got)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM outbox_events WHERE aggregate_id=$1 AND event_type='account.status.changed.v1' AND payload->>'reason'='Account no longer required'`, created.Result.AccountID); got != 1 {
+		t.Fatalf("lifecycle reason outbox rows=%d, want one", got)
 	}
 	reactivate := closeCommand
 	reactivate.IdempotencyKey = "account-active-0001"
@@ -271,7 +403,7 @@ func TestConcurrentCloseAndTransferSerializeOnAccountProjectionLocks(t *testing.
 	}
 	amount, _ := money.New("INR", 1)
 	transfer := transfers.Command{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: testSourceID, CreditAccountID: created.Result.AccountID, Amount: amount, IdempotencyKey: "account-race-xfer1", CorrelationID: "00000000-0000-0000-0000-000000000099"}
-	closeCommand := accounts.ChangeAccountStatusCommand{TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099", IdempotencyKey: "account-race-close", AccountID: created.Result.AccountID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed}
+	closeCommand := accounts.ChangeAccountStatusCommand{TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099", IdempotencyKey: "account-race-close", AccountID: created.Result.AccountID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed, Reason: "Concurrent close safety test"}
 
 	start := make(chan struct{})
 	var wait sync.WaitGroup

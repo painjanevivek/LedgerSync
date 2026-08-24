@@ -4,6 +4,7 @@ export type Account = Readonly<{
   status: "active" | "frozen" | "closed";
   available_minor: string;
   ledger_minor: string;
+  account_version: string;
   version: string;
   as_of: string;
   display_name?: string;

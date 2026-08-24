@@ -135,7 +135,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Scopes: []string{"accounts:read", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -198,12 +198,13 @@ func main() {
 			accountsHandler.WithAuditRecorder(auditRepository)
 			transactionsHandler.WithAuditRecorder(auditRepository)
 			investigationHandler.WithAuditRecorder(auditRepository)
+			var authenticator *identity.RequestAuthenticator
 			if len(configuration.BFFAssertionSecret) >= 32 {
 				assertionConfig := identity.ActorAssertionConfig{Issuer: configuration.BFFAssertionIssuer, Audience: configuration.BFFAssertionAudience, CurrentKey: identity.ActorAssertionKey{ID: configuration.BFFAssertionKeyID, Secret: []byte(configuration.BFFAssertionSecret)}, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: identity.NewMemoryReplayGuard(100_000)}
 				if configuration.BFFAssertionPreviousSecret != "" {
 					assertionConfig.PreviousKey = &identity.ActorAssertionKey{ID: configuration.BFFAssertionPreviousKeyID, Secret: []byte(configuration.BFFAssertionPreviousSecret)}
 				}
-				authenticator, err := identity.NewRequestAuthenticatorWithConfig(provider, assertionConfig)
+				authenticator, err = identity.NewRequestAuthenticatorWithConfig(provider, assertionConfig)
 				if err != nil {
 					slog.Error("BFF actor assertion configuration is invalid")
 					os.Exit(1)
@@ -213,6 +214,13 @@ func main() {
 				accountsHandler.WithRequestAuthenticator(authenticator)
 				transactionsHandler.WithRequestAuthenticator(authenticator)
 				investigationHandler.WithRequestAuthenticator(authenticator)
+			}
+			if err := registerAccountCommandRoutes(router, accountCommandRouteConfig{
+				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
+				RateLimitPerMinute: configuration.WriteRateLimitPerMinute, CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
+			}); err != nil {
+				slog.Error("account command route initialization failed", "error", err)
+				os.Exit(1)
 			}
 			router.Handle("POST /api/transfers", transferHandler)
 			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)

@@ -110,6 +110,7 @@ var allowedRoles = map[string]struct{}{
 
 var allowedScopes = map[string]struct{}{
 	"accounts:read":       {},
+	"accounts:write":      {},
 	"transfers:read":      {},
 	"transfers:write":     {},
 	"transactions:read":   {},

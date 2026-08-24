@@ -153,7 +153,7 @@ func (r *AccountCommandRepository) ChangeStatus(ctx context.Context, command acc
 		}
 		aggregate, available, ledger, err := lockOwnedAccount(ctx, tx, command.TenantID, command.ActorSubjectID, command.AccountID)
 		if err != nil {
-			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial)
+			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial, map[string]string{"reason": command.Reason})
 		}
 		switch command.TargetStatus {
 		case accountdomain.StatusFrozen:
@@ -163,23 +163,23 @@ func (r *AccountCommandRepository) ChangeStatus(ctx context.Context, command acc
 		case accountdomain.StatusClosed:
 			state, stateErr := authoritativeCloseState(ctx, tx, aggregate.ID, available, ledger)
 			if stateErr != nil {
-				return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, stateErr, &committedDenial)
+				return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, stateErr, &committedDenial, map[string]string{"reason": command.Reason})
 			}
 			err = aggregate.Close(command.ExpectedVersion, state, envelope.OccurredAt)
 		default:
 			err = fmt.Errorf("%w: unsupported target status", accountdomain.ErrInvalidTransition)
 		}
 		if err != nil {
-			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial)
+			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial, map[string]string{"reason": command.Reason})
 		}
 		if err := updateAccountRow(ctx, tx, aggregate, command.ExpectedVersion); err != nil {
-			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial)
+			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial, map[string]string{"reason": command.Reason})
 		}
 		result = accountCommandResult(aggregate, available, ledger)
-		if err := insertAccountAudit(ctx, tx, envelope, aggregate.ID, "account.status_changed", "succeeded", map[string]string{"status": string(aggregate.Status)}); err != nil {
+		if err := insertAccountAudit(ctx, tx, envelope, aggregate.ID, "account.status_changed", "succeeded", map[string]string{"status": string(aggregate.Status), "reason": command.Reason}); err != nil {
 			return err
 		}
-		if err := insertAccountOutbox(ctx, tx, envelope, aggregate, "account.status.changed.v1"); err != nil {
+		if err := insertAccountOutbox(ctx, tx, envelope, aggregate, "account.status.changed.v1", map[string]string{"reason": command.Reason}); err != nil {
 			return err
 		}
 		if err := storeAccountOutcome(ctx, tx, envelope, result, 200); err != nil {
@@ -189,7 +189,7 @@ func (r *AccountCommandRepository) ChangeStatus(ctx context.Context, command acc
 		return nil
 	})
 	if err != nil {
-		return submission, r.classifyUncommittedError(ctx, envelope, "account_status_change", command.AccountID, err)
+		return submission, r.classifyUncommittedError(ctx, envelope, "account_status_change", command.AccountID, err, map[string]string{"reason": command.Reason})
 	}
 	return submission, committedDenial
 }

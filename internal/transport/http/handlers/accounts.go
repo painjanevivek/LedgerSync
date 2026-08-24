@@ -122,6 +122,7 @@ func publicAccountError(err error) error {
 
 type accountResponse struct {
 	AccountID         string `json:"account_id"`
+	AccountVersion    string `json:"account_version"`
 	Currency          string `json:"currency"`
 	Status            string `json:"status"`
 	AvailableMinor    string `json:"available_minor"`
@@ -134,7 +135,7 @@ type accountResponse struct {
 }
 
 func mapAccountResponse(item accounts.Summary) accountResponse {
-	return accountResponse{AccountID: item.AccountID, Currency: item.Currency, Status: item.Status, AvailableMinor: strconv.FormatInt(item.Balance.AvailableMinor, 10), LedgerMinor: strconv.FormatInt(item.Balance.LedgerMinor, 10), Version: strconv.FormatInt(item.Balance.Version, 10), AsOf: item.Balance.AsOf.Format(time.RFC3339Nano), DisplayName: item.DisplayName, Category: item.Category, ExternalReference: item.ExternalReference}
+	return accountResponse{AccountID: item.AccountID, AccountVersion: strconv.FormatInt(item.AccountVersion, 10), Currency: item.Currency, Status: item.Status, AvailableMinor: strconv.FormatInt(item.Balance.AvailableMinor, 10), LedgerMinor: strconv.FormatInt(item.Balance.LedgerMinor, 10), Version: strconv.FormatInt(item.Balance.Version, 10), AsOf: item.Balance.AsOf.Format(time.RFC3339Nano), DisplayName: item.DisplayName, Category: item.Category, ExternalReference: item.ExternalReference}
 }
 
 func writeAccountResponse(writer http.ResponseWriter, item accounts.Summary) {

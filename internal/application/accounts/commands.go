@@ -8,14 +8,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/idempotency"
 	accountdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
 )
 
 const (
-	CreateOperation = "accounts.create.v1"
-	UpdateOperation = "accounts.update.v1"
+	CreateOperation         = "accounts.create.v1"
+	UpdateOperation         = "accounts.update.v1"
+	MaxLifecycleReasonRunes = 256
 )
 
 var (
@@ -64,6 +67,7 @@ type ChangeAccountStatusCommand struct {
 	AccountID       string
 	ExpectedVersion int64
 	TargetStatus    accountdomain.Status
+	Reason          string
 	OccurredAt      time.Time
 }
 
@@ -156,12 +160,15 @@ func (s *CommandService) ChangeStatus(ctx context.Context, command ChangeAccount
 	if command.AccountID == "" || command.ExpectedVersion < 1 || command.TargetStatus != accountdomain.StatusActive && command.TargetStatus != accountdomain.StatusFrozen && command.TargetStatus != accountdomain.StatusClosed {
 		return CommandSubmission{}, fmt.Errorf("%w: account ID, positive expected version, and valid target status are required", ErrInvalidCommand)
 	}
+	if err := validateLifecycleReason(command.Reason); err != nil {
+		return CommandSubmission{}, err
+	}
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = s.clock().UTC()
 	} else {
 		command.OccurredAt = command.OccurredAt.UTC()
 	}
-	fingerprint := idempotency.Fingerprint(command.TenantID, command.ActorSubjectID, UpdateOperation, "status", command.AccountID, strconv.FormatInt(command.ExpectedVersion, 10), string(command.TargetStatus))
+	fingerprint := idempotency.Fingerprint(command.TenantID, command.ActorSubjectID, UpdateOperation, "status", command.AccountID, strconv.FormatInt(command.ExpectedVersion, 10), string(command.TargetStatus), command.Reason)
 	return s.repository.ChangeStatus(ctx, command, fingerprint)
 }
 
@@ -211,5 +218,18 @@ func normalizeStatusChange(command ChangeAccountStatusCommand) ChangeAccountStat
 	command.IdempotencyKey = strings.TrimSpace(command.IdempotencyKey)
 	command.AccountID = strings.TrimSpace(command.AccountID)
 	command.TargetStatus = accountdomain.Status(strings.ToLower(strings.TrimSpace(string(command.TargetStatus))))
+	command.Reason = strings.TrimSpace(command.Reason)
 	return command
+}
+
+func validateLifecycleReason(reason string) error {
+	if !utf8.ValidString(reason) || utf8.RuneCountInString(reason) < 1 || utf8.RuneCountInString(reason) > MaxLifecycleReasonRunes {
+		return fmt.Errorf("%w: lifecycle reason must contain 1-%d Unicode characters", ErrInvalidCommand, MaxLifecycleReasonRunes)
+	}
+	for _, character := range reason {
+		if unicode.IsControl(character) {
+			return fmt.Errorf("%w: lifecycle reason contains a control character", ErrInvalidCommand)
+		}
+	}
+	return nil
 }

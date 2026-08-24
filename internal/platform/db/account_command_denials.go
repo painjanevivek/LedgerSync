@@ -11,7 +11,7 @@ import (
 	accountdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
 )
 
-func persistAccountDenial(ctx context.Context, tx *sql.Tx, envelope commandEnvelope, operation, accountID string, commandErr error, committedDenial *error) error {
+func persistAccountDenial(ctx context.Context, tx *sql.Tx, envelope commandEnvelope, operation, accountID string, commandErr error, committedDenial *error, extraMetadata ...map[string]string) error {
 	code, safe := accountDenialCode(commandErr)
 	if !safe {
 		return commandErr
@@ -20,7 +20,9 @@ func persistAccountDenial(ctx context.Context, tx *sql.Tx, envelope commandEnvel
 	if denial == nil {
 		return commandErr
 	}
-	if err := insertAccountAudit(ctx, tx, envelope, accountID, "account.command_denied", "denied", map[string]string{"operation": operation, "denial_code": code}); err != nil {
+	metadata := map[string]string{"operation": operation, "denial_code": code}
+	mergeAccountCommandMetadata(metadata, extraMetadata)
+	if err := insertAccountAudit(ctx, tx, envelope, accountID, "account.command_denied", "denied", metadata); err != nil {
 		return err
 	}
 	if err := storeAccountFailure(ctx, tx, envelope, code, accountDenialStatus(code)); err != nil {
@@ -30,7 +32,7 @@ func persistAccountDenial(ctx context.Context, tx *sql.Tx, envelope commandEnvel
 	return nil
 }
 
-func (r *AccountCommandRepository) classifyUncommittedError(ctx context.Context, envelope commandEnvelope, operation, accountID string, err error) error {
+func (r *AccountCommandRepository) classifyUncommittedError(ctx context.Context, envelope commandEnvelope, operation, accountID string, err error, extraMetadata ...map[string]string) error {
 	if err == nil {
 		return nil
 	}
@@ -49,7 +51,9 @@ func (r *AccountCommandRepository) classifyUncommittedError(ctx context.Context,
 			if queryErr := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenants WHERE id=$1)`, envelope.TenantID).Scan(&tenantExists); queryErr != nil || !tenantExists {
 				return queryErr
 			}
-			if insertErr := insertAccountAudit(ctx, tx, envelope, accountID, "account.command_denied", "denied", map[string]string{"operation": operation, "denial_code": code}); insertErr != nil {
+			metadata := map[string]string{"operation": operation, "denial_code": code}
+			mergeAccountCommandMetadata(metadata, extraMetadata)
+			if insertErr := insertAccountAudit(ctx, tx, envelope, accountID, "account.command_denied", "denied", metadata); insertErr != nil {
 				return insertErr
 			}
 			return tx.Commit()
@@ -60,6 +64,15 @@ func (r *AccountCommandRepository) classifyUncommittedError(ctx context.Context,
 		return err
 	}
 	return fmt.Errorf("%w: %v", accounts.ErrCommandUnavailable, err)
+}
+
+func mergeAccountCommandMetadata(destination map[string]string, sources []map[string]string) {
+	if len(sources) == 0 {
+		return
+	}
+	for key, value := range sanitizeAuditMetadata(sources[0]) {
+		destination[key] = value
+	}
 }
 
 func accountDenialCode(err error) (string, bool) {

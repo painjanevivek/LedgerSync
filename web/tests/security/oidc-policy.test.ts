@@ -8,14 +8,14 @@ test("operator tenant, roles, and scopes come from server-owned pilot mapping", 
     "operator-subject": {
       tenantId: "00000000-0000-4000-8000-000000000001",
       roles: ["tenant:operator", "platform:root"],
-      scopes: ["accounts:read", "reconciliation:read", "unknown:scope"],
+      scopes: ["accounts:read", "accounts:write", "reconciliation:read", "unknown:scope"],
     },
   });
 
   assert.deepEqual(resolveOperatorAuthorization("operator-subject"), {
     tenantId: "00000000-0000-4000-8000-000000000001",
     roles: ["tenant:operator"],
-    scopes: ["accounts:read", "reconciliation:read"],
+    scopes: ["accounts:read", "accounts:write", "reconciliation:read"],
   });
   assert.throws(() => resolveOperatorAuthorization("uninvited-subject"), /not invited/);
 });
