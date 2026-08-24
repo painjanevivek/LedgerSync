@@ -26,7 +26,7 @@ No partially passing state is allowed. A failed financial invariant blocks the l
 |---|---|---|---|
 | L-010 | One safe command recovers the complete stack and preserves existing ledger data | [Phase 1 runtime evidence](../release-evidence/local-mvp-phase-1-runtime.md) | `PASSED` |
 | L-020 | Every visible overview, account, transfer, and reconciliation control uses the real local API | [Phase 2 operator-workspace evidence](../release-evidence/local-mvp-phase-2-operator-workspace.md) | `PASSED` |
-| L-030 | Exact money, idempotency, immutable double entry, authorization, read-your-writes, and reconciliation remain correct | Go invariant, contract, fault, and real-stack suites | `READY` |
+| L-030 | Exact money, idempotency, immutable double entry, authorization, read-your-writes, and reconciliation remain correct | [Phase 3 transfer-safety evidence](../release-evidence/local-mvp-phase-3-transfer-safety.md) | `PASSED` |
 | L-040 | The local operator can back up, restore, rebuild disposable cache state, and explain recovery | Isolated restore drill and recovery runbook evidence | `READY` |
 | L-050 | The workspace is usable and understandable on desktop, tablet, and mobile viewports | Browser E2E, keyboard, accessibility, responsive, and visual evidence | `READY` |
 | L-060 | Loopback exposure, demo identity, secret handling, and browser/API boundaries are truthful and fail safely | Boundary inspection, dependency/security checks, negative-path tests | `READY` |

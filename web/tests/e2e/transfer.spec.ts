@@ -140,9 +140,13 @@ test("a malformed exact-money amount is rejected before it reaches the API", asy
   await page.route("**/api/transfers", async (route) => { calls += 1; await route.fulfill({ status: 500, body: "{}" }); });
 
   await page.goto("/transfers");
-  await page.getByLabel("Amount").fill("1.999");
+  const amount = page.getByLabel("Amount");
+  await amount.fill("1.999");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await expect(page.getByText("INR supports at most 2 decimal places.")).toBeVisible();
+  await amount.fill("92233720368547758.08");
+  await page.getByRole("button", { name: "Review transfer" }).click();
+  await expect(page.getByText("Amount exceeds the supported exact minor-unit range.")).toBeVisible();
   expect(calls).toBe(0);
 });
 

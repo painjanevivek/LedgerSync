@@ -122,6 +122,14 @@ func (r *TransferRepository) observe(ctx context.Context, operation string, star
 }
 
 func reserveOrReplay(ctx context.Context, tx *sql.Tx, command transfers.Command, fingerprint [sha256.Size]byte) (transfers.Result, bool, error) {
+	var tenantExists bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenants WHERE id=$1)`, command.TenantID).Scan(&tenantExists); err != nil {
+		return transfers.Result{}, false, fmt.Errorf("verify transfer tenant boundary: %w", err)
+	}
+	if !tenantExists {
+		return transfers.Result{}, false, ErrAccountNotFound
+	}
+
 	const reserve = `
 INSERT INTO idempotency_requests (
     tenant_id, actor_subject_id, operation, idempotency_key, request_fingerprint, state, expires_at

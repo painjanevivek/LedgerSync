@@ -209,9 +209,12 @@ func TestFinalFinancialAndEvidenceRowsRejectMutation(t *testing.T) {
 	}
 	statements := []string{
 		`UPDATE transfers SET rejection_code='tamper' WHERE id='` + submission.Result.TransferID + `'`,
+		`DELETE FROM transfers WHERE id='` + submission.Result.TransferID + `'`,
 		`UPDATE idempotency_requests SET response_status=500 WHERE transfer_id='` + submission.Result.TransferID + `'`,
 		`DELETE FROM audit_events WHERE target_id='` + submission.Result.TransferID + `'`,
 		`DELETE FROM journal_transactions WHERE transfer_id='` + submission.Result.TransferID + `'`,
+		`UPDATE ledger_postings SET amount_minor=1 WHERE journal_transaction_id=(SELECT id FROM journal_transactions WHERE transfer_id='` + submission.Result.TransferID + `')`,
+		`DELETE FROM ledger_postings WHERE journal_transaction_id=(SELECT id FROM journal_transactions WHERE transfer_id='` + submission.Result.TransferID + `')`,
 	}
 	for _, statement := range statements {
 		if _, err := database.Exec(statement); err == nil {

@@ -111,6 +111,36 @@ func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 	}
 }
 
+func TestRealBFFSameKeyReplayAfterAPIProcessRestart(t *testing.T) {
+	baseURL := strings.TrimRight(os.Getenv("LEDGERSYNC_SYSTEM_WEB_URL"), "/")
+	key := os.Getenv("LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY")
+	if baseURL == "" || key == "" || os.Getenv("LEDGERSYNC_SYSTEM_EXPECT_RESTART_REPLAY") != "true" {
+		t.Skip("explicit post-restart system-test configuration is required for restart replay evidence")
+	}
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
+	var session sessionPayload
+	getJSON(t, client, baseURL+"/api/session", &session)
+	var before balancePayload
+	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance", &before)
+
+	body := []byte(`{"sourceAccountId":"10000000-0000-4000-8000-000000000001","destinationAccountId":"10000000-0000-4000-8000-000000000004","amount":{"currency":"INR","minorUnits":"100"}}`)
+	firstReplay := postTransfer(t, client, baseURL, session.CSRFToken, key, body)
+	secondReplay := postTransfer(t, client, baseURL, session.CSRFToken, key, body)
+	var after balancePayload
+	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance", &after)
+
+	if !firstReplay.Replayed || !secondReplay.Replayed || firstReplay.Status != "posted" || firstReplay.TransferID == "" || firstReplay.TransferID != secondReplay.TransferID {
+		t.Fatalf("restart retry did not resolve to one stable replay: first=%+v second=%+v", firstReplay, secondReplay)
+	}
+	if before.AvailableMinor != after.AvailableMinor {
+		t.Fatalf("restart replays changed the balance: before=%s after=%s", before.AvailableMinor, after.AvailableMinor)
+	}
+}
+
 func TestRealBFFReconciliationEvidence(t *testing.T) {
 	baseURL := strings.TrimRight(os.Getenv("LEDGERSYNC_SYSTEM_WEB_URL"), "/")
 	if baseURL == "" {

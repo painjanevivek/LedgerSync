@@ -115,6 +115,15 @@ jobs:
           LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
           LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-before-restart-000001
         run: go test ./tests/system -count=1 -v
+      - name: Prove a lost response remains replay-safe after API process restart
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-before-restart-000001
+          LEDGERSYNC_SYSTEM_EXPECT_RESTART_REPLAY: "true"
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart api
+          sh scripts/wait-for-stack-readiness.sh
+          go test ./tests/system -run TestRealBFFSameKeyReplayAfterAPIProcessRestart -count=1 -v
       - name: Prove demo seed reruns cannot rewind financial state
         run: |
           before="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT available_minor || ':' || ledger_minor || ':' || balance_version FROM account_balance_projections WHERE account_id='10000000-0000-4000-8000-000000000001'")"
