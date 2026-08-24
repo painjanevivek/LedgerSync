@@ -14,16 +14,17 @@ DO $$ BEGIN CREATE ROLE ledgersync_break_glass NOLOGIN; EXCEPTION WHEN duplicate
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO ledgersync_api, ledgersync_worker, ledgersync_reconciliation, ledgersync_provisioning, ledgersync_support_readonly;
 
-GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections,
+GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections, account_opening_balances,
   tenant_transfer_policies, tenant_subject_roles, partner_credential_events, transfers, idempotency_requests, api_rate_limit_windows,
   transfer_velocity_events, transfer_velocity_totals,
   journal_transactions, ledger_postings, delivery_attempts, delivery_replay_actions,
   reconciliation_runs, reconciliation_mismatches TO ledgersync_api;
-GRANT INSERT ON transfers, idempotency_requests, journal_transactions, ledger_postings,
+GRANT INSERT ON accounts, account_balance_projections, account_opening_balances, account_owners, account_credit_permissions,
+  transfers, idempotency_requests, journal_transactions, ledger_postings,
   outbox_events, audit_events, api_rate_limit_windows, retention_runs,
   transfer_velocity_events, transfer_velocity_totals,
   outbox_replay_actions, delivery_replay_actions TO ledgersync_api;
-GRANT UPDATE ON transfers, idempotency_requests, account_balance_projections,
+GRANT UPDATE ON accounts, transfers, idempotency_requests, account_balance_projections,
   api_rate_limit_windows, transfer_velocity_totals TO ledgersync_api;
 GRANT DELETE ON transfer_velocity_events TO ledgersync_api;
 

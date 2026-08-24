@@ -84,6 +84,16 @@ func (p *BalanceProjector) RunOnce(ctx context.Context) (int, error) {
 		}
 	}
 	for _, message := range messages {
+		// Other aggregate event types share the durable outbox and Redis stream,
+		// but this consumer group owns only the disposable balance cache. Acking
+		// an unrelated event advances this group without preventing a dedicated
+		// lifecycle consumer group from reading the same stream.
+		if message.Event.EventType != BalanceChangedEventType {
+			if err := p.stream.Ack(ctx, p.config.Group, message.ID); err != nil {
+				return len(messages), fmt.Errorf("ack non-balance event: %w", err)
+			}
+			continue
+		}
 		balance, err := decodeBalance(message.Event)
 		if err != nil {
 			return len(messages), err

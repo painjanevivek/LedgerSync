@@ -12,9 +12,20 @@ import (
 )
 
 var (
-	ErrInvalidAccount = errors.New("invalid account")
-	ErrUnauthorized   = errors.New("account access denied")
-	ErrInactive       = errors.New("account is not active")
+	ErrInvalidAccount            = errors.New("invalid account")
+	ErrInvalidMetadata           = errors.New("invalid account metadata")
+	ErrUnauthorized              = errors.New("account access denied")
+	ErrInactive                  = errors.New("account is not active")
+	ErrInvalidTransition         = errors.New("invalid account status transition")
+	ErrTerminalStatus            = errors.New("closed account status is terminal")
+	ErrNonZeroBalance            = errors.New("account cannot close with a non-zero balance")
+	ErrFinancialStateUnavailable = errors.New("account financial state is inconsistent or unavailable")
+	ErrVersionConflict           = errors.New("account version conflict")
+)
+
+const (
+	MaxDisplayNameRunes = 120
+	MaxReferenceLength  = 64
 )
 
 type Status string
@@ -43,12 +54,18 @@ type Owner struct {
 // Account is the authoritative account configuration. Current balances live
 // in a separately versioned projection so the ledger stays immutable.
 type Account struct {
-	ID        string
-	TenantID  string
-	Currency  money.Currency
-	Status    Status
-	Owners    []Owner
-	CreatedAt time.Time
+	ID                string
+	TenantID          string
+	Currency          money.Currency
+	Status            Status
+	DisplayName       string
+	ExternalReference string
+	Category          string
+	Version           int64
+	Owners            []Owner
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	ClosedAt          time.Time
 }
 
 func New(id, tenantID, currencyCode string, owners []Owner, createdAt time.Time) (Account, error) {
@@ -75,7 +92,8 @@ func New(id, tenantID, currencyCode string, owners []Owner, createdAt time.Time)
 		}
 		seen[owner.SubjectID] = struct{}{}
 	}
-	return Account{ID: id, TenantID: tenantID, Currency: currency, Status: StatusActive, Owners: owners, CreatedAt: createdAt.UTC()}, nil
+	createdAt = createdAt.UTC()
+	return Account{ID: id, TenantID: tenantID, Currency: currency, Status: StatusActive, Version: 1, Owners: owners, CreatedAt: createdAt, UpdatedAt: createdAt}, nil
 }
 
 func (a Account) CanRead(subjectID string) bool {

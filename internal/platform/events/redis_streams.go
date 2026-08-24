@@ -71,12 +71,21 @@ func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) (err err
 	started := time.Now()
 	ctx, span := p.start(ctx, "event.redis.publish")
 	defer func() { span.End(); p.observe(ctx, "publish", started, err) }()
+	aggregateType, aggregateID := event.AggregateType, event.AggregateID
+	if aggregateType == "" {
+		aggregateType = "account_balance"
+	}
+	if aggregateID == "" {
+		aggregateID = event.AccountID
+	}
 	_, err = p.client.XAdd(ctx, &redis.XAddArgs{Stream: p.stream, MaxLen: p.maxLength, Approx: p.maxLength > 0, Values: map[string]any{
 		"event_id":          event.ID,
 		"event_type":        event.EventType,
 		"tenant_id":         event.TenantID,
 		"transfer_id":       event.TransferID,
 		"account_id":        event.AccountID,
+		"aggregate_type":    aggregateType,
+		"aggregate_id":      aggregateID,
 		"aggregate_version": strconv.FormatInt(event.AggregateVersion, 10),
 		"payload":           string(event.Payload),
 		"occurred_at":       event.OccurredAt.UTC().Format(time.RFC3339Nano),
@@ -224,14 +233,16 @@ func decodeEvent(values map[string]any) (outbox.Event, error) {
 	if err != nil {
 		return outbox.Event{}, err
 	}
-	transferID, err := get("transfer_id")
-	if err != nil {
-		return outbox.Event{}, err
+	optional := func(key string) string {
+		value, ok := values[key]
+		if !ok {
+			return ""
+		}
+		text, _ := value.(string)
+		return text
 	}
-	accountID, err := get("account_id")
-	if err != nil {
-		return outbox.Event{}, err
-	}
+	transferID := optional("transfer_id")
+	accountID := optional("account_id")
 	versionText, err := get("aggregate_version")
 	if err != nil {
 		return outbox.Event{}, err
@@ -255,5 +266,12 @@ func decodeEvent(values map[string]any) (outbox.Event, error) {
 	if !json.Valid([]byte(payload)) {
 		return outbox.Event{}, errors.New("redis stream message payload is not JSON")
 	}
-	return outbox.Event{ID: id, EventType: eventType, TenantID: tenantID, TransferID: transferID, AccountID: accountID, AggregateVersion: version, Payload: []byte(payload), OccurredAt: occurredAt}, nil
+	aggregateType, aggregateID := optional("aggregate_type"), optional("aggregate_id")
+	if aggregateType == "" {
+		aggregateType = "account_balance"
+	}
+	if aggregateID == "" {
+		aggregateID = accountID
+	}
+	return outbox.Event{ID: id, EventType: eventType, TenantID: tenantID, TransferID: transferID, AccountID: accountID, AggregateType: aggregateType, AggregateID: aggregateID, AggregateVersion: version, Payload: []byte(payload), OccurredAt: occurredAt}, nil
 }

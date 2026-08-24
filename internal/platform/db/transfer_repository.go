@@ -510,8 +510,8 @@ func enqueueBalanceEvent(ctx context.Context, tx *sql.Tx, command transfers.Comm
 		return fmt.Errorf("marshal outbox event: %w", err)
 	}
 	_, err = tx.ExecContext(ctx, `
-INSERT INTO outbox_events (id, tenant_id, transfer_id, account_id, event_type, aggregate_version, payload, occurred_at)
-VALUES ($1, $2, $3, $4, 'account.balance.changed.v1', $5, $6, $7)`, id, command.TenantID, transferID, balance.ID, balance.BalanceVersion, payload, now)
+INSERT INTO outbox_events (id, tenant_id, transfer_id, account_id, aggregate_type, aggregate_id, event_type, aggregate_version, payload, occurred_at)
+VALUES ($1, $2, $3, $4, 'account_balance', $4, 'account.balance.changed.v1', $5, $6, $7)`, id, command.TenantID, transferID, balance.ID, balance.BalanceVersion, payload, now)
 	return wrap("enqueue balance event", err)
 }
 

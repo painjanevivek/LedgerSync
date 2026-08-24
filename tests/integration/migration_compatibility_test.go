@@ -2,7 +2,20 @@ package integration_test
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
+	"io/fs"
+	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
+	"testing/fstest"
+	"time"
+
+	accountapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
 func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testing.T) {
@@ -11,8 +24,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 12 {
-		t.Fatalf("migration versions=%d, want 12", versions)
+	if versions != 13 {
+		t.Fatalf("migration versions=%d, want 13", versions)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events"} {
 		var exists bool
@@ -33,11 +46,199 @@ WHERE table_schema = 'public'
     ('account_balance_projections', 'available_minor'),
     ('account_balance_projections', 'ledger_minor'),
     ('ledger_postings', 'direction'),
-    ('outbox_events', 'aggregate_version')
+    ('outbox_events', 'aggregate_version'),
+    ('outbox_events', 'aggregate_type'),
+    ('outbox_events', 'aggregate_id'),
+    ('accounts', 'version'),
+    ('accounts', 'updated_at')
   )`).Scan(&columns); err != nil {
 		t.Fatal(err)
 	}
-	if columns != 5 {
-		t.Fatalf("legacy financial read contract columns=%d, want 5", columns)
+	if columns != 9 {
+		t.Fatalf("legacy and additive account contract columns=%d, want 9", columns)
 	}
+}
+
+func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testing.T) {
+	databaseURL := os.Getenv("LEDGERSYNC_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("LEDGERSYNC_TEST_DATABASE_URL is required for migration upgrade tests")
+	}
+	parsed, err := url.Parse(databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	databaseName := fmt.Sprintf("ledgersync_upgrade_%d", time.Now().UnixNano())
+	admin, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: databaseURL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = admin.Close() }()
+	if _, err := admin.Exec(`CREATE DATABASE ` + databaseName); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = admin.Exec(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1`, databaseName)
+		_, _ = admin.Exec(`DROP DATABASE IF EXISTS ` + databaseName)
+	})
+	parsed.Path = "/" + databaseName
+	upgradeDatabase, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: parsed.String()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = upgradeDatabase.Close() }()
+	_, sourceFile, _, _ := runtime.Caller(0)
+	migrationDirectory := filepath.Join(filepath.Dir(sourceFile), "..", "..", "migrations")
+	phaseSeven := fstest.MapFS{}
+	entries, err := os.ReadDir(migrationDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		phaseSeven[entry.Name()] = &fstest.MapFile{Data: content, Mode: fs.FileMode(0o600)}
+	}
+	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: phaseSeven}); err != nil {
+		t.Fatal(err)
+	}
+	rolesSQL, err := os.ReadFile(filepath.Join(filepath.Dir(sourceFile), "..", "..", "deploy", "postgres", "roles.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
+		t.Fatalf("apply pre-000013 database roles: %v", err)
+	}
+	legacyTenant := "00000000-0000-0000-0000-000000000801"
+	legacyAccounts := []string{
+		"00000000-0000-0000-0000-000000000802",
+		"00000000-0000-0000-0000-000000000803",
+		"00000000-0000-0000-0000-000000000804",
+		"00000000-0000-0000-0000-000000000805",
+	}
+	createdAt := time.Date(2026, 8, 18, 8, 0, 0, 0, time.UTC)
+	if _, err := upgradeDatabase.Exec(`INSERT INTO tenants(id,external_reference)VALUES($1,'legacy-upgrade')`, legacyTenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(`
+INSERT INTO accounts(id,tenant_id,currency,status,created_at,display_name,external_reference)VALUES
+($1,$5,'INR','active',$6,'   ','   '),
+($2,$5,'INR','active',$6,'Mixed reference upper','Mixed-Ref'),
+($3,$5,'INR','active',$6,'Mixed reference lower',' mixed-ref '),
+($4,$5,'INR','active',$6,$7,' ../invalid?? ')`, legacyAccounts[0], legacyAccounts[1], legacyAccounts[2], legacyAccounts[3], legacyTenant, createdAt, strings.Repeat("x", 121)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(`
+INSERT INTO account_balance_projections(account_id,available_minor,ledger_minor,balance_version,updated_at)VALUES
+($1,725,725,9,$5),($2,10,10,2,$5),($3,20,20,3,$5),($4,30,30,4,$5)`, legacyAccounts[0], legacyAccounts[1], legacyAccounts[2], legacyAccounts[3], createdAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(`
+INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)VALUES
+($1,725,$5),($2,10,$5),($3,20,$5),($4,30,$5)`, legacyAccounts[0], legacyAccounts[1], legacyAccounts[2], legacyAccounts[3], createdAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role)VALUES($1,'upgrade-operator','operator')`, legacyTenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(`INSERT INTO account_owners(tenant_id,account_id,subject_id,permission)VALUES($1,$2,'upgrade-operator','debit')`, legacyTenant, legacyAccounts[0]); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: os.DirFS(migrationDirectory)}); err != nil {
+		t.Fatal(err)
+	}
+	wantBalances := map[string][3]int64{
+		legacyAccounts[0]: {725, 725, 9}, legacyAccounts[1]: {10, 10, 2}, legacyAccounts[2]: {20, 20, 3}, legacyAccounts[3]: {30, 30, 4},
+	}
+	rows, err := upgradeDatabase.Query(`
+SELECT a.id,a.tenant_id,a.currency,a.display_name,a.external_reference,a.version,a.created_at,a.updated_at,
+       b.available_minor,b.ledger_minor,b.balance_version
+FROM accounts a JOIN account_balance_projections b ON b.account_id=a.id
+WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	seenReferences := map[string]bool{}
+	for rows.Next() {
+		var id, tenant, currency, displayName, reference string
+		var available, ledger, balanceVersion, accountVersion int64
+		var storedCreatedAt, updatedAt time.Time
+		if err := rows.Scan(&id, &tenant, &currency, &displayName, &reference, &accountVersion, &storedCreatedAt, &updatedAt, &available, &ledger, &balanceVersion); err != nil {
+			t.Fatal(err)
+		}
+		want, ok := wantBalances[id]
+		if !ok || tenant != legacyTenant || currency != "INR" || available != want[0] || ledger != want[1] || balanceVersion != want[2] || accountVersion != 1 || !storedCreatedAt.Equal(createdAt) || !updatedAt.Equal(createdAt) || displayName == "" || len([]rune(displayName)) > 120 || reference == "" {
+			t.Fatalf("migration rewrote legacy financial identity/state: id=%s tenant=%s currency=%s available=%d ledger=%d balanceVersion=%d accountVersion=%d created=%s updated=%s name=%q reference=%q", id, tenant, currency, available, ledger, balanceVersion, accountVersion, storedCreatedAt, updatedAt, displayName, reference)
+		}
+		normalizedReference := strings.ToLower(reference)
+		if seenReferences[normalizedReference] {
+			t.Fatalf("migration left duplicate normalized reference %q", normalizedReference)
+		}
+		seenReferences[normalizedReference] = true
+		delete(wantBalances, id)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if len(wantBalances) != 0 || len(seenReferences) != 4 {
+		t.Fatalf("migration account coverage missing=%v references=%v", wantBalances, seenReferences)
+	}
+	if err := rows.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	loginRole := fmt.Sprintf("ledgersync_upgrade_api_%d", time.Now().UnixNano())
+	const loginPassword = "phase1_upgrade_test"
+	if _, err := upgradeDatabase.Exec(`CREATE ROLE ` + loginRole + ` LOGIN PASSWORD '` + loginPassword + `'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(`GRANT ledgersync_api TO ` + loginRole); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _, _ = admin.Exec(`DROP ROLE IF EXISTS ` + loginRole) })
+	limitedURL := *parsed
+	limitedURL.User = url.UserPassword(loginRole, loginPassword)
+	limitedDatabase, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: limitedURL.String()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	commandRepository, err := db.NewAccountCommandRepository(limitedDatabase, func() time.Time { return createdAt.Add(time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	commandService, err := accountapp.NewCommandService(commandRepository, func() time.Time { return createdAt.Add(time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := commandService.Create(context.Background(), accountapp.CreateAccountCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", CorrelationID: "00000000-0000-0000-0000-000000000899",
+		IdempotencyKey: "upgrade-role-create", DisplayName: "Upgrade-created account", Reference: "upgrade-created", Category: "operating", Currency: "INR",
+	})
+	if err != nil {
+		_ = limitedDatabase.Close()
+		t.Fatalf("account command with migrated API grants: %v", err)
+	}
+	if err := limitedDatabase.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1`, created.Result.AccountID) != 1 {
+		t.Fatalf("limited-role account create result=%#v", created.Result)
+	}
+}
+
+func countRowsInDatabase(t *testing.T, database interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, query string, args ...any) int {
+	t.Helper()
+	var count int
+	if err := database.QueryRowContext(context.Background(), query, args...).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	return count
 }

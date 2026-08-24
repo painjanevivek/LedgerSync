@@ -19,6 +19,11 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		expected               bool
 	}{
 		{"ledgersync_api", "transfers", "INSERT", true},
+		{"ledgersync_api", "accounts", "INSERT", true},
+		{"ledgersync_api", "accounts", "UPDATE", true},
+		{"ledgersync_api", "account_opening_balances", "SELECT", true},
+		{"ledgersync_api", "account_opening_balances", "INSERT", true},
+		{"ledgersync_api", "account_balance_projections", "DELETE", false},
 		{"ledgersync_api", "api_rate_limit_windows", "SELECT", true},
 		{"ledgersync_api", "transfer_velocity_events", "DELETE", true},
 		{"ledgersync_api", "transfer_velocity_totals", "UPDATE", true},
