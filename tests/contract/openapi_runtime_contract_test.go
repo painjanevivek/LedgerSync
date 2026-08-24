@@ -29,9 +29,12 @@ func TestOpenAPIContainsEveryRegisteredMVPRouteAndLosslessBoundaries(t *testing.
 			t.Errorf("OpenAPI missing runtime route %s", route)
 		}
 	}
-	for _, marker := range []string{"ExactMinor: { type: string", "ExactVersion: { type: string", "CreateAccountRequest:", "PatchAccountRequest:", "target_status:", "reason:", "Sanitized lifecycle reason projected only for account status-change commands and their denials.", "participates in idempotency", "account_version:", "distinct from the balance projection version", "Idempotent-Replay:", "AccountCreateReplay:", "runReconciliation", "reconciliation:write", "reconciliation_already_running", "response_unknown", "account_version_conflict", "invalid_account_transition", "account_not_zero", "external_reference_conflict", "temporary_unavailable", "unsupported_media_type", "'415':", "'429':", "Retry-After:", "identifier: Apache-2.0", "unknown outcome"} {
+	for _, marker := range []string{"ExactMinor: { type: string", "ExactVersion: { type: string", "CreateAccountRequest:", "PatchAccountRequest:", "target_status:", "reason:", "Sanitized lifecycle reason projected only for account status-change commands and their denials.", "participates in idempotency", "account_version:", "distinct from the balance projection version", "Idempotent-Replay:", "AccountCreateReplay:", "runReconciliation", "reconciliation:write", "reconciliation_already_running", "response_unknown", "getLocalDiagnostics", "getEventEvidence", "disposable_cache", "delivery_attempts_truncated", "maxItems: 25", "maxItems: 32", "no raw event payloads", "account_version_conflict", "invalid_account_transition", "account_not_zero", "external_reference_conflict", "temporary_unavailable", "unsupported_media_type", "'415':", "'429':", "Retry-After:", "identifier: Apache-2.0", "unknown outcome"} {
 		if !strings.Contains(contract, marker) {
 			t.Errorf("OpenAPI missing contract marker %q", marker)
 		}
+	}
+	if strings.Contains(contract, "/events/{eventId}/replay") || strings.Contains(contract, "replayEventEvidence") {
+		t.Fatal("Phase 5 OpenAPI added a forbidden event replay mutation")
 	}
 }

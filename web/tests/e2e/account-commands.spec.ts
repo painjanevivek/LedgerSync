@@ -242,8 +242,10 @@ test("close dialog refreshes account configuration and both balances before enab
   await mockOperatorConsole(page);
   let summaryReads = 0;
   let balanceReads = 0;
+  let releaseSummaryRefresh!: () => void;
+  const summaryRefreshGate = new Promise<void>((resolve) => { releaseSummaryRefresh = resolve; });
   await page.unroute(/\/api\/accounts\/[^/?]+(?:\?.*)?$/);
-  await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, async (route) => { summaryReads += 1; if (summaryReads > 1) await new Promise((resolve) => setTimeout(resolve, 60)); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...sourceAccount, account_version: "11", available_minor: "0", ledger_minor: "0" }) }); });
+  await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, async (route) => { summaryReads += 1; if (summaryReads > 1) await summaryRefreshGate; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...sourceAccount, account_version: "11", available_minor: "0", ledger_minor: "0" }) }); });
   await page.unroute("**/api/accounts/*/balance");
   await page.route("**/api/accounts/*/balance", (route) => { balanceReads += 1; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ account_id: sourceAccount.account_id, currency: "INR", available_minor: "0", ledger_minor: "0", version: "23", as_of: sourceAccount.as_of }) }); });
   await page.goto(`/accounts/${sourceAccount.account_id}`);
@@ -251,6 +253,7 @@ test("close dialog refreshes account configuration and both balances before enab
   const before = { summaryReads, balanceReads };
   await page.getByRole("button", { name: "Close account" }).click();
   await expect(page.getByText("Refreshing authoritative evidence")).toBeVisible();
+  releaseSummaryRefresh();
   await expect(page.getByText("Refreshing authoritative evidence")).toBeHidden();
   expect(summaryReads).toBeGreaterThan(before.summaryReads);
   expect(balanceReads).toBeGreaterThan(before.balanceReads);

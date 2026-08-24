@@ -135,7 +135,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -227,6 +227,13 @@ func main() {
 				RateLimitPerMinute: configuration.WriteRateLimitPerMinute, CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
 			}); err != nil {
 				slog.Error("reconciliation command route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerOperationsRoutes(router, operationsRouteConfig{
+				Database: database, Redis: redisClient, Environment: configuration.Environment, Identity: provider, Authenticator: authenticator,
+				RateLimiter: rateLimiter, AuditRecorder: auditRepository, RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
+			}); err != nil {
+				slog.Error("operations route initialization failed", "error", err)
 				os.Exit(1)
 			}
 			router.Handle("POST /api/transfers", transferHandler)

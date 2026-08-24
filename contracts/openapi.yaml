@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.4.0
+  version: 1.5.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -207,6 +207,48 @@ paths:
       parameters: [{ $ref: '#/components/parameters/RunID' }]
       responses:
         '200': { description: Reconciliation detail., content: { application/json: { schema: { $ref: '#/components/schemas/ReconciliationRun' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /local/diagnostics:
+    get:
+      operationId: getLocalDiagnostics
+      summary: Read a bounded, partial local health snapshot without infrastructure identifiers or secrets.
+      responses:
+        '200': { description: Ready, degraded, or unavailable diagnostic snapshot with independently classified dependencies., content: { application/json: { schema: { $ref: '#/components/schemas/DiagnosticSnapshot' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /events:
+    get:
+      operationId: listEventEvidence
+      summary: List sanitized tenant-authorized outbox and delivery evidence.
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { in: query, name: eventType, schema: { type: string, maxLength: 128 } }
+        - { in: query, name: state, schema: { type: string, enum: [pending, retrying, published, dead] } }
+        - { in: query, name: relatedId, schema: { type: string, format: uuid } }
+        - { in: query, name: correlationId, schema: { type: string, format: uuid } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: Stable page containing no raw event payloads or infrastructure fields., content: { application/json: { schema: { $ref: '#/components/schemas/EventEvidencePage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /events/{eventId}:
+    get:
+      operationId: getEventEvidence
+      summary: Read one sanitized event and its bounded delivery timeline without payload or endpoint disclosure.
+      parameters: [{ in: path, name: eventId, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Authorized event detail., content: { application/json: { schema: { $ref: '#/components/schemas/EventEvidenceDetail' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -432,6 +474,72 @@ components:
         completed_at: { type: string, format: date-time }
         mismatches: { type: array, items: { $ref: '#/components/schemas/ReconciliationMismatch' } }
     ReconciliationPage: { type: object, required: [runs, next_cursor], properties: { runs: { type: array, items: { $ref: '#/components/schemas/ReconciliationRun' } }, next_cursor: { type: string } } }
+    DiagnosticSnapshot:
+      type: object
+      required: [overall_state, generated_at, application, financial_authority, delivery_cache]
+      properties:
+        overall_state: { type: string, enum: [ready, degraded, unavailable] }
+        generated_at: { type: string, format: date-time }
+        application:
+          type: object
+          required: [version, commit, environment]
+          properties: { version: { type: string, maxLength: 128 }, commit: { type: string, maxLength: 128 }, environment: { type: string, enum: [local_demo, configured] } }
+        financial_authority:
+          type: object
+          required: [postgres, latest_reconciliation]
+          properties:
+            postgres: { type: object, required: [state], properties: { state: { type: string, enum: [reachable, unavailable] }, schema_version: { type: string, maxLength: 128 } } }
+            latest_reconciliation: { type: object, required: [state], properties: { state: { type: string, enum: [available, none, unavailable] }, status: { type: string, enum: [matched, mismatch, failed] }, run_id: { type: string, format: uuid }, completed_at: { type: string, format: date-time } } }
+        delivery_cache:
+          type: object
+          required: [outbox, redis]
+          properties:
+            outbox: { type: object, required: [state, worker_progress], properties: { state: { type: string, enum: [reachable, unavailable] }, pending_count: { $ref: '#/components/schemas/ExactVersion' }, dead_count: { $ref: '#/components/schemas/ExactVersion' }, worker_progress: { type: string, enum: [recent, idle, stalled, unknown] }, latest_published_at: { type: string, format: date-time }, oldest_pending_at: { type: string, format: date-time } } }
+            redis: { type: object, required: [state, label], properties: { state: { type: string, enum: [reachable, unavailable] }, label: { type: string, enum: [disposable_cache] } } }
+    EventEvidence:
+      type: object
+      required: [event_id, event_type, state, aggregate_type, aggregate_id, aggregate_version, attempt_count, occurred_at, available_at]
+      properties:
+        event_id: { type: string, format: uuid }
+        event_type: { type: string, maxLength: 128 }
+        state: { type: string, enum: [pending, retrying, published, dead, unknown] }
+        aggregate_type: { type: string, maxLength: 64 }
+        aggregate_id: { type: string, format: uuid }
+        aggregate_version: { $ref: '#/components/schemas/ExactVersion' }
+        attempt_count: { $ref: '#/components/schemas/ExactVersion' }
+        transfer_id: { type: string, format: uuid }
+        account_id: { type: string, format: uuid }
+        correlation_id: { type: string, format: uuid }
+        last_error_code: { type: string, enum: [publish_failed, invalid_event, redis_unavailable, approved_replay, redacted] }
+        occurred_at: { type: string, format: date-time }
+        available_at: { type: string, format: date-time }
+        claimed_until: { type: string, format: date-time }
+        published_at: { type: string, format: date-time }
+        dead_at: { type: string, format: date-time }
+    DeliveryEvidence:
+      type: object
+      required: [attempt_id, kind, state, attempt_number, due_at]
+      properties:
+        attempt_id: { type: string, format: uuid }
+        kind: { type: string, enum: [webhook, notification, unknown] }
+        state: { type: string, enum: [pending, retrying, delivered, dead, unknown] }
+        attempt_number: { $ref: '#/components/schemas/ExactVersion' }
+        response_class: { type: string, enum: [2xx, 3xx, 4xx, 5xx, network_error, timeout, redacted] }
+        error_code: { type: string, enum: [timeout, publish_failed, invalid_event, redis_unavailable, recipient_unavailable, connection_failed, redacted] }
+        due_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+    EventTimelineItem: { type: object, required: [kind, occurred_at], properties: { kind: { type: string, maxLength: 64 }, occurred_at: { type: string, format: date-time } } }
+    EventEvidenceDetail:
+      allOf:
+        - { $ref: '#/components/schemas/EventEvidence' }
+        - type: object
+          required: [delivery_attempts, delivery_attempts_truncated, timeline]
+          properties:
+            delivery_attempts: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/DeliveryEvidence' } }
+            delivery_attempts_truncated: { type: boolean }
+            timeline: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/EventTimelineItem' } }
+    EventEvidencePage: { type: object, required: [events, next_cursor], properties: { events: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/EventEvidence' } }, next_cursor: { type: string, maxLength: 512 } } }
     Error:
       type: object
       required: [error]

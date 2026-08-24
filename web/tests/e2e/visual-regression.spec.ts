@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
+import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
 
 const compact = { width: 390, height: 844 };
 const tablet = { width: 768, height: 1024 };
@@ -29,6 +29,9 @@ const populatedRoutes = [
   { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
   { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation detail" },
+  { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
+  { name: "events-populated", path: "/events", heading: "Event investigation" },
+  { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
 ] as const;
 
 for (const route of populatedRoutes) {

@@ -1,0 +1,60 @@
+"use client";
+
+import { ArrowClockwise, ArrowLeft, CheckCircle, Clock, WarningCircle } from "@phosphor-icons/react";
+import Link from "next/link";
+
+import { CopyControl, DataTableRegion, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import type { DeliveryEvent, DeliveryEventDetail } from "@/lib/api/operations";
+
+export type EventFilters = Readonly<{ eventType?: string; state?: string; relatedId?: string; correlationId?: string; from?: string; to?: string; cursor?: string }>;
+
+function utc(value?: string) {
+  if (!value) return "Not available";
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? "Not available" : date.toISOString().replace("T", " ").replace(".000Z", " UTC");
+}
+function label(value: string) { return value.replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase()); }
+function stateTone(state: DeliveryEvent["state"]) { return state === "published" ? "success" as const : state === "dead" ? "danger" as const : "warning" as const; }
+
+export function EventsListView({ events, filters, nextCursor, loading, error, online, canRead, onRefresh }: Readonly<{ events: DeliveryEvent[]; filters: EventFilters; nextCursor?: string; loading: boolean; error: string | null; online: boolean; canRead: boolean; onRefresh: () => void }>) {
+  const next = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) if (value && key !== "cursor") next.set(key, value);
+  if (nextCursor) next.set("cursor", nextCursor);
+      return <>
+    <PageHeader eyebrow="Delivery evidence / Tenant-scoped" title="Event investigation" description="Inspect downstream delivery without changing or replaying an event."><button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true" />Refresh events</button></PageHeader>
+    <div className="financial-separation-note"><CheckCircle weight="fill" aria-hidden="true"/><div><strong>Financial truth remains separate</strong><p>An event can be pending, retrying, or dead after its PostgreSQL transaction has committed. Verify any money result through its linked transfer or account evidence.</p></div></div>
+    {!canRead && <StatePanel kind="denied" title="Event evidence not authorized" message="This session does not include events:read. No event records have been requested." />}
+    {!online && <StatePanel kind="offline" title="Offline — event evidence is not current" message="Reconnect before refreshing or treating this list as current." />}
+    <form className="event-filter-document" method="get" action="/events" aria-label="Event filters">
+      <label>Event type<input name="eventType" defaultValue={filters.eventType} maxLength={256} /></label>
+      <label>State<select name="state" defaultValue={filters.state ?? ""}><option value="">All states</option><option value="pending">Pending</option><option value="retrying">Retrying</option><option value="published">Published</option><option value="dead">Dead</option></select></label>
+      <label>Related ID<input name="relatedId" defaultValue={filters.relatedId} maxLength={256} /></label>
+      <label>Correlation ID<input name="correlationId" defaultValue={filters.correlationId} maxLength={256} /></label>
+      <label>From UTC<input name="from" defaultValue={filters.from} placeholder="2026-08-25T00:00:00Z" maxLength={64} /></label>
+      <label>To UTC<input name="to" defaultValue={filters.to} placeholder="2026-08-25T23:59:59Z" maxLength={64} /></label>
+      <div className="event-filter-actions"><button className="button primary guarded-control" type="submit">Apply filters</button><Link className="button secondary guarded-control" href="/events">Clear filters</Link></div>
+    </form>
+    {error && <StatePanel kind="error" title="Event evidence unavailable" message={error} />}
+    {loading && events.length === 0 ? <StatePanel title="Loading event evidence" message="Requesting the current bounded event page. No delivery result is being inferred." /> : canRead && !error && events.length === 0 ? <StatePanel title="No events match these filters" message="Change or clear the filters to inspect another bounded tenant-scoped page." /> : events.length > 0 && <section className="ledger-section" aria-labelledby="event-list-heading" aria-busy={loading}><div className="section-heading"><div><p className="eyebrow">Ordered by occurrence</p><h2 id="event-list-heading">Delivery records</h2></div><span>{events.length} on this page</span></div><DataTableRegion label="Delivery event records"><table className="data-table event-table"><thead><tr><th scope="col">Event</th><th scope="col">State</th><th scope="col">Related record</th><th scope="col">Attempts</th><th scope="col">Occurred</th><th scope="col">Evidence</th></tr></thead><tbody>{events.map((event) => <tr key={event.event_id}><td><strong>{label(event.event_type)}</strong><CopyControl value={event.event_id} label={`Copy event ${event.event_id}`} /></td><td><StatusBadge tone={stateTone(event.state)}>{label(event.state)}</StatusBadge></td><td><code>{event.aggregate_type}</code><br/><code>{event.aggregate_id}</code>{(event.transfer_id || event.account_id) && <nav className="event-related-links" aria-label={`Related evidence for ${event.event_id}`}>{event.transfer_id && <RecordLink href={`/transfers/${encodeURIComponent(event.transfer_id)}`} label="Transfer" />}{event.account_id && <RecordLink href={`/accounts/${encodeURIComponent(event.account_id)}`} label="Account" />}</nav>}</td><td>{event.attempt_count}</td><td><time dateTime={event.occurred_at}>{utc(event.occurred_at)}</time></td><td><RecordLink href={`/events/${encodeURIComponent(event.event_id)}`} label="Open event" /></td></tr>)}</tbody></table></DataTableRegion><div className="pagination"><span>{nextCursor ? "More event evidence is available" : "End of available event records"}</span>{nextCursor ? <Link className="button secondary guarded-control" href={`/events?${next}`}>Next page</Link> : <button className="button secondary guarded-control" type="button" disabled>Next page</button>}</div></section>}
+  </>;
+}
+
+export function EventDetailView({ event, loading, error, online, canRead, onRefresh }: Readonly<{ event: DeliveryEventDetail | null; loading: boolean; error: string | null; online: boolean; canRead: boolean; onRefresh: () => void }>) {
+  const deliveryTone = event?.state === "published" ? "published" : event?.state === "dead" ? "dead" : "pending";
+  return <>
+    <Link className="record-link back-link" href="/events"><ArrowLeft aria-hidden="true"/>Back to event investigation</Link>
+    <PageHeader eyebrow="Delivery evidence / Read-only detail" title="Event detail" description="Inspect a bounded delivery timeline and sanitized attempt evidence."><button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true"/>Refresh event</button></PageHeader>
+    {!canRead && <StatePanel kind="denied" title="Event evidence not authorized" message="This session does not include events:read. No event detail has been requested." />}
+    {!online && <StatePanel kind="offline" title="Offline — detail is not current" message="The last verified detail may remain visible. Reconnect before treating it as current." />}
+    {error && <StatePanel kind="error" title="Event detail unavailable" message={error} />}
+    {loading && !event && <StatePanel title="Loading event detail" message="Requesting authorized event evidence. No delivery or financial status is being inferred." />}
+    {event && <article className="event-detail-document" aria-labelledby="event-detail-heading" aria-busy={loading}>
+      <header><div><p className="eyebrow">Event evidence</p><h2 id="event-detail-heading">{label(event.event_type)}</h2><CopyControl value={event.event_id} label="Copy event ID" /></div><StatusBadge tone={stateTone(event.state)}>{label(event.state)}</StatusBadge></header>
+      <div className={`delivery-impact-statement ${deliveryTone}`}>{deliveryTone === "published" ? <CheckCircle weight="fill" aria-hidden="true"/> : <WarningCircle weight="fill" aria-hidden="true"/>}<div><strong>{deliveryTone === "dead" ? "Delivery stopped; financial status is not inferred" : deliveryTone === "published" ? "Delivery published; financial status remains separate" : "Delivery is not confirmed; financial status is separate"}</strong><p>{event.transfer_id ? "A transfer may already be posted in PostgreSQL even when this event is not published. Open the transfer evidence to verify the financial result." : "This event state describes downstream delivery. It does not prove a balance or posting state."}</p></div></div>
+      <dl className="evidence-list"><div><dt>Aggregate</dt><dd>{event.aggregate_type} · version {event.aggregate_version}</dd></div><div><dt>Aggregate ID</dt><dd><CopyControl value={event.aggregate_id} label="Copy aggregate ID" /></dd></div><div><dt>Attempt count</dt><dd>{event.attempt_count}</dd></div><div><dt>Occurred</dt><dd>{utc(event.occurred_at)}</dd></div><div><dt>Available</dt><dd>{utc(event.available_at)}</dd></div>{event.correlation_id && <div><dt>Correlation ID</dt><dd><CopyControl value={event.correlation_id} label="Copy correlation ID" /></dd></div>}{event.last_error_code && <div><dt>Last bounded error code</dt><dd><code>{event.last_error_code}</code></dd></div>}</dl>
+      {(event.transfer_id || event.account_id) && <nav className="related-evidence" aria-label="Authorized related evidence">{event.transfer_id && <RecordLink href={`/transfers/${encodeURIComponent(event.transfer_id)}`} label="Open transfer evidence" />}{event.account_id && <RecordLink href={`/accounts/${encodeURIComponent(event.account_id)}`} label="Open account evidence" />}</nav>}
+      <section className="event-timeline" aria-labelledby="event-timeline-heading"><div className="section-heading"><div><p className="eyebrow">Ordered evidence</p><h3 id="event-timeline-heading">Event timeline</h3></div></div>{event.timeline.length === 0 ? <StatePanel title="No timeline entries available" message="No additional timeline evidence was returned for this event." /> : <ol>{event.timeline.map((item, index) => <li key={`${item.kind}-${item.occurred_at}-${index}`}><span aria-hidden="true"><Clock weight="fill"/></span><div><strong>{label(item.kind)}</strong><time dateTime={item.occurred_at}>{utc(item.occurred_at)}</time></div></li>)}</ol>}</section>
+      <section className="ledger-section" aria-labelledby="delivery-attempts-heading"><div className="section-heading"><div><p className="eyebrow">Sanitized downstream evidence</p><h3 id="delivery-attempts-heading">Delivery attempts</h3></div></div>{event.delivery_attempts_truncated && <StatePanel kind="unknown" title="Older attempts are not shown" message="This detail contains the newest bounded attempt evidence. The attempt count above may be larger than the rows shown."/>}{event.delivery_attempts.length === 0 ? <StatePanel title="No delivery attempts recorded" message="The event has no bounded attempt evidence yet." /> : <DataTableRegion label="Event delivery attempts"><table className="data-table"><thead><tr><th scope="col">Attempt</th><th scope="col">State</th><th scope="col">Kind</th><th scope="col">Due</th><th scope="col">Completed</th><th scope="col">Result class</th></tr></thead><tbody>{event.delivery_attempts.map((attempt) => <tr key={attempt.attempt_id}><td><strong>Attempt {attempt.attempt_number}</strong><CopyControl value={attempt.attempt_id} label={`Copy attempt ${attempt.attempt_number} ID`} /></td><td>{label(attempt.state)}</td><td>{label(attempt.kind)}</td><td>{utc(attempt.due_at)}</td><td>{utc(attempt.completed_at)}</td><td><code>{attempt.response_class ?? attempt.error_code ?? "Not available"}</code></td></tr>)}</tbody></table></DataTableRegion>}</section>
+    </article>}
+  </>;
+}

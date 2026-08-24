@@ -5,6 +5,8 @@ import {
   Bank,
   ChartDonut,
   CheckCircle,
+  Pulse,
+  Broadcast,
   ShieldCheck,
   SignOut,
   UserCircle,
@@ -14,7 +16,7 @@ import {
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-export type ConsoleSection = "overview" | "accounts" | "transfers" | "reconciliation";
+export type ConsoleSection = "overview" | "accounts" | "transfers" | "reconciliation" | "local-status" | "events";
 
 type Props = Readonly<{
   section: ConsoleSection;
@@ -33,6 +35,8 @@ const navigation = [
   { section: "accounts" as const, label: "Accounts", href: "/accounts", icon: Bank },
   { section: "transfers" as const, label: "Transfers", href: "/transfers", icon: ArrowsLeftRight },
   { section: "reconciliation" as const, label: "Reconciliation", href: "/reconciliation", icon: ShieldCheck },
+  { section: "local-status" as const, label: "Local status", href: "/local-status", icon: Pulse },
+  { section: "events" as const, label: "Events", href: "/events", icon: Broadcast },
 ];
 
 export function ConsoleShell({

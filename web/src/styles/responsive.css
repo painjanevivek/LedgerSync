@@ -54,6 +54,28 @@
 
 @media (forced-colors: active) { .status-label,.button,.state-panel,.side-nav { forced-color-adjust: auto; }.nav-item.active { outline: 2px solid CanvasText; } }
 
+@media (max-width: 900px) {
+  .truth-lane { grid-template-columns: 36px 22px minmax(0,1fr) auto; }
+  .truth-lane dl, .truth-lane > .record-link { grid-column: 3/-1; }
+  .operations-environment dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .event-filter-document { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 640px) {
+  .operations-verdict { grid-template-columns: 34px 1fr; padding: 18px; }
+  .operations-verdict .status-label { grid-column: 2; justify-self: start; }
+  .truth-lane { grid-template-columns: 34px 22px minmax(0,1fr); padding: 18px 8px; }
+  .truth-lane > .status-label, .truth-lane dl, .truth-lane > .record-link { grid-column: 3; justify-self: start; }
+  .truth-lane dl { grid-template-columns: 1fr; width: 100%; }
+  .operations-environment { padding: 18px 12px; }
+  .operations-environment dl, .event-filter-document { grid-template-columns: 1fr; }
+  .safe-next-action { grid-template-columns: 1fr; }
+  .event-filter-actions { flex-direction: column; }
+  .event-filter-actions .button { width: 100%; min-height: var(--target-comfortable); }
+  .event-detail-document { padding: 20px 12px; }
+  .event-detail-document > header { align-items: flex-start; flex-direction: column; }
+}
+
 @media (max-width: 760px) {
   .header-actions, .account-control-row { align-items: stretch; flex-direction: column; }
   .command-steps { grid-template-columns: 1fr; }

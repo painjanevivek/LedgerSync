@@ -25,8 +25,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 14 {
-		t.Fatalf("migration versions=%d, want 14", versions)
+	if versions != 15 {
+		t.Fatalf("migration versions=%d, want 15", versions)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events"} {
 		var exists bool
@@ -96,7 +96,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
