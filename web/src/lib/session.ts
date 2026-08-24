@@ -7,6 +7,8 @@ export type Session = Readonly<{
   tenantId: string;
   csrfToken: string;
   expiresAt: number;
+  roles?: readonly string[];
+  scopes?: readonly string[];
   consistencyRequirements?: Readonly<Record<string, string>>;
 }>;
 
@@ -50,6 +52,8 @@ export function readSession(raw: string | undefined): Session | null {
       tenantId: parsed.tenantId,
       csrfToken: parsed.csrfToken,
       expiresAt: parsed.expiresAt,
+      roles: validStringList(parsed.roles) ? parsed.roles : undefined,
+      scopes: validStringList(parsed.scopes) ? parsed.scopes : undefined,
       consistencyRequirements: requirements as Readonly<Record<string, string>> | undefined,
     };
     const expected = Buffer.from(sign(payload));
@@ -60,13 +64,20 @@ export function readSession(raw: string | undefined): Session | null {
   }
 }
 
+function validStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.length <= 16 && value.every((item) => typeof item === "string" && item.length > 0 && item.length <= 64);
+}
+
 export function sessionCookie(value: string) {
+  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? process.env.NODE_ENV ?? "development").trim().toLowerCase();
+  const production = deploymentEnvironment === "production" || deploymentEnvironment === "prod";
+  const explicitlyInsecureLocal = process.env.LEDGERSYNC_COOKIE_SECURE === "false" && !production;
   return {
     name: sessionCookieName,
     value,
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: !explicitlyInsecureLocal,
     path: "/",
     maxAge: 60 * 30,
   };

@@ -1,0 +1,62 @@
+name: Financial release evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_age_minutes:
+        description: "Measured age of the latest managed PostgreSQL backup"
+        required: true
+        type: string
+      restore_drill_status:
+        description: "Result recorded for the latest isolated restore drill (passed only)"
+        required: true
+        type: choice
+        options: [passed, failed]
+      ryew_violations:
+        description: "Observed requirement-bearing RYEW violations since the prior release"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Refuse stale backup, failed restore, or RYEW violation evidence
+        env:
+          BACKUP_AGE_MINUTES: ${{ inputs.backup_age_minutes }}
+          RESTORE_DRILL_STATUS: ${{ inputs.restore_drill_status }}
+          RYEW_VIOLATIONS: ${{ inputs.ryew_violations }}
+        run: |
+          [[ "$BACKUP_AGE_MINUTES" =~ ^[0-9]+$ ]] && (( BACKUP_AGE_MINUTES <= 15 ))
+          [[ "$RESTORE_DRILL_STATUS" == "passed" ]]
+          [[ "$RYEW_VIOLATIONS" == "0" ]]
+      - name: Start isolated PostgreSQL and Redis
+        run: |
+          docker run -d --rm --name ledgersync-release-postgres -e POSTGRES_DB=ledgersync -e POSTGRES_USER=ledgersync -e POSTGRES_PASSWORD=release-evidence -p 127.0.0.1:5432:5432 postgres:16-alpine
+          docker run -d --rm --name ledgersync-release-redis -p 127.0.0.1:6379:6379 redis:7.4-alpine
+          until docker exec ledgersync-release-postgres pg_isready -U ledgersync -d ledgersync; do sleep 1; done
+          until docker exec ledgersync-release-redis redis-cli ping; do sleep 1; done
+      - name: Run live migration, transfer, authorization, visibility, and recovery evidence serially
+        env:
+          LEDGERSYNC_TEST_DATABASE_URL: postgres://ledgersync:release-evidence@localhost:5432/ledgersync?sslmode=disable
+          LEDGERSYNC_TEST_REDIS_ADDR: localhost:6379
+        run: |
+          go test ./tests/integration -count=1 -v
+          go test ./tests/fault -count=1 -v
+      - name: Require recovery runbooks and dashboard sources
+        run: |
+          test -f deploy/observability/alerts.yml
+          test -f deploy/observability/dashboards/ledgersync-operations.json
+          test -f deploy/backup/postgres-pitr-policy.yaml
+          test -f docs/runbooks/restore.md
+          test -f docs/runbooks/reconciliation-mismatch.md
+      - name: Clean up disposable dependencies
+        if: always()
+        run: docker rm -f ledgersync-release-postgres ledgersync-release-redis || true

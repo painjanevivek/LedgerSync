@@ -1,66 +1,206 @@
 openapi: 3.1.0
 info:
-  title: LedgerSync Private Transfer API
-  version: 1.0.0
+  title: LedgerSync Private API
+  version: 1.2.0
   description: >-
-    Private API behind the LedgerSync BFF. Money is represented as an exact
-    decimal string at the boundary and never as a JSON number. A 201 response
-    is a final idempotent transfer outcome; inspect `status` for `posted` or
-    `rejected`.
-  license:
-    name: Proprietary
-    identifier: LicenseRef-Proprietary
-servers:
-  - url: /api
-security:
-  - bearerAuth: []
+    Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
+    minor units and monotonic versions are JSON strings. A timed-out transfer
+    has an unknown outcome and must be retried with the identical payload and
+    Idempotency-Key.
+  license: { name: Apache License 2.0, identifier: Apache-2.0 }
+servers: [{ url: /api }]
+security: [{ bearerAuth: [], actorAssertion: [] }]
 paths:
+  /me/accounts:
+    get:
+      operationId: listOwnedAccounts
+      summary: List accounts visible to the authenticated subject.
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { in: query, name: q, description: 'Case-insensitive display-name or external-reference prefix, or an exact account UUID.', schema: { type: string, maxLength: 128 } }
+        - { in: query, name: status, schema: { type: string, enum: [active, frozen, closed] } }
+        - { in: query, name: category, schema: { type: string, enum: [operating, customer_funds, payroll, payables, expenses, reserve] } }
+      responses:
+        '200': { description: Owned accounts and balances., content: { application/json: { schema: { $ref: '#/components/schemas/AccountList' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /accounts/{accountId}:
+    get:
+      operationId: getOwnedAccount
+      summary: Read one account visible to the authenticated subject without disclosing inaccessible records.
+      parameters: [{ $ref: '#/components/parameters/AccountID' }]
+      responses:
+        '200': { description: 'Authorized account identity, current balance, and permitted account-targeted audit context.', content: { application/json: { schema: { $ref: '#/components/schemas/AccountDetail' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /accounts/{accountId}/balance:
+    get:
+      operationId: getAccountBalance
+      summary: Read an authorized current balance.
+      parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/ConsistencyRequirement' }]
+      responses:
+        '200': { description: Requirement-bearing balance., content: { application/json: { schema: { $ref: '#/components/schemas/Balance' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /accounts/{accountId}/transactions:
+    get:
+      operationId: listAccountTransactions
+      summary: List immutable posted history for an authorized account.
+      parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200': { description: Stable descending history page., content: { application/json: { schema: { $ref: '#/components/schemas/TransactionPage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
   /transfers:
+    get:
+      operationId: listTransfers
+      summary: Search tenant transfer outcomes.
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { in: query, name: accountId, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, posted, rejected] } }
+        - { in: query, name: q, schema: { type: string, maxLength: 256 } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: Stable descending transfer page., content: { application/json: { schema: { $ref: '#/components/schemas/TransferPage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
     post:
       operationId: createTransfer
-      summary: Submit an exact same-currency transfer.
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/CorrelationID'
+      summary: Submit an exact internal transfer under tenant policy.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       requestBody:
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateTransferRequest'
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateTransferRequest' } } }
       responses:
         '201':
-          description: Transfer posted once.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransferResult'
+          description: Final posted or rejected idempotent outcome.
+          headers:
+            Idempotent-Replay: { schema: { type: string, enum: ['true'] } }
+            X-LedgerSync-Consistency-Requirements: { schema: { type: string } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/TransferResult' } } }
         '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/PolicyDenied' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '500': { $ref: '#/components/responses/InternalError' }
+  /transfers/{transferId}:
+    get:
+      operationId: getTransfer
+      summary: Inspect a transfer, postings, and evidence timeline.
+      parameters: [{ $ref: '#/components/parameters/TransferID' }]
+      responses:
+        '200': { description: Transfer detail., content: { application/json: { schema: { $ref: '#/components/schemas/TransferDetail' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /reconciliation/runs:
+    get:
+      operationId: listReconciliationRuns
+      summary: List persisted reconciliation runs.
+      parameters: [{ $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200': { description: Stable reconciliation page., content: { application/json: { schema: { $ref: '#/components/schemas/ReconciliationPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /reconciliation/runs/{runId}:
+    get:
+      operationId: getReconciliationRun
+      summary: Read a run and immutable mismatch evidence.
+      parameters: [{ $ref: '#/components/parameters/RunID' }]
+      responses:
+        '200': { description: Reconciliation detail., content: { application/json: { schema: { $ref: '#/components/schemas/ReconciliationRun' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: >-
-        Private API access token issued by the configured OIDC provider.
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    actorAssertion:
+      type: apiKey
+      in: header
+      name: X-LedgerSync-Actor-Assertion
+      description: Short-lived BFF-signed end-user context bound to the workload token.
   parameters:
-    IdempotencyKey:
-      in: header
-      name: Idempotency-Key
-      required: true
-      schema: { type: string, minLength: 16, maxLength: 255 }
-    CorrelationID:
-      in: header
-      name: X-Request-ID
-      required: false
-      schema: { type: string, format: uuid }
+    AccountID: { in: path, name: accountId, required: true, schema: { type: string, format: uuid } }
+    TransferID: { in: path, name: transferId, required: true, schema: { type: string, format: uuid } }
+    RunID: { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+    Cursor: { in: query, name: cursor, schema: { type: string, maxLength: 512 } }
+    Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+    IdempotencyKey: { in: header, name: Idempotency-Key, required: true, schema: { type: string, minLength: 16, maxLength: 255 } }
+    CorrelationID: { in: header, name: X-Request-ID, schema: { type: string, format: uuid } }
+    ConsistencyRequirement: { in: header, name: X-LedgerSync-Consistency-Requirement, schema: { type: string, maxLength: 2048 } }
   schemas:
+    ExactMinor: { type: string, pattern: '^-?(0|[1-9][0-9]*)$' }
+    ExactVersion: { type: string, pattern: '^(0|[1-9][0-9]*)$' }
+    Currency: { type: string, pattern: '^[A-Z]{3}$', example: INR }
+    Balance:
+      type: object
+      required: [account_id, currency, available_minor, ledger_minor, version, as_of]
+      properties:
+        account_id: { type: string, format: uuid }
+        currency: { $ref: '#/components/schemas/Currency' }
+        available_minor: { $ref: '#/components/schemas/ExactMinor' }
+        ledger_minor: { $ref: '#/components/schemas/ExactMinor' }
+        version: { $ref: '#/components/schemas/ExactVersion' }
+        as_of: { type: string, format: date-time }
+    Account:
+      allOf:
+        - { $ref: '#/components/schemas/Balance' }
+        - type: object
+          required: [status]
+          properties:
+            status: { type: string, enum: [active, frozen, closed] }
+            display_name: { type: string }
+            category: { type: string }
+            external_reference: { type: string }
+    AccountAuditEvent:
+      type: object
+      required: [event_id, event_type, actor_subject_id, outcome, correlation_id, occurred_at]
+      properties:
+        event_id: { type: string, format: uuid }
+        event_type: { type: string }
+        actor_subject_id: { type: string }
+        outcome: { type: string }
+        correlation_id: { type: string, format: uuid }
+        occurred_at: { type: string, format: date-time }
+    AccountDetail:
+      allOf:
+        - { $ref: '#/components/schemas/Account' }
+        - type: object
+          required: [audit_context]
+          properties:
+            audit_context: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/AccountAuditEvent' } }
+    AccountList:
+      type: object
+      required: [accounts, next_cursor]
+      properties:
+        accounts: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/Account' } }
+        next_cursor: { type: string, maxLength: 512 }
     CreateTransferRequest:
       type: object
       required: [source_account_id, destination_account_id, amount, currency]
@@ -68,30 +208,106 @@ components:
       properties:
         source_account_id: { type: string, format: uuid }
         destination_account_id: { type: string, format: uuid }
-        amount:
-          type: string
-          pattern: '^[0-9]+(\.[0-9]+)?$'
-          example: '125.50'
-        currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
+        amount: { type: string, pattern: '^[0-9]+(\.[0-9]+)?$', example: '125.50' }
+        currency: { $ref: '#/components/schemas/Currency' }
     TransferResult:
       type: object
       required: [transfer_id, status, currency, amount_minor, occurred_at, minimum_balance_versions]
       properties:
         transfer_id: { type: string, format: uuid }
         status: { type: string, enum: [posted, rejected] }
-        currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
-        amount_minor:
-          type: integer
-          format: int64
-          minimum: 1
-          description: Exact minor-unit amount. JavaScript clients should treat this as a string if integer precision is not guaranteed.
+        currency: { $ref: '#/components/schemas/Currency' }
+        amount_minor: { $ref: '#/components/schemas/ExactMinor' }
         occurred_at: { type: string, format: date-time }
-        minimum_balance_versions:
-          type: object
-          additionalProperties: { type: integer, format: int64, minimum: 0 }
-        rejection_code:
-          type: string
-          description: Present only when status is rejected; no ledger postings were created.
+        minimum_balance_versions: { type: object, additionalProperties: { $ref: '#/components/schemas/ExactVersion' } }
+        balances: { type: object, additionalProperties: { $ref: '#/components/schemas/TransferBalance' } }
+        rejection_code: { type: string }
+    TransferBalance:
+      type: object
+      required: [account_id, currency, posted_minor, version, as_of]
+      properties:
+        account_id: { type: string, format: uuid }
+        currency: { $ref: '#/components/schemas/Currency' }
+        posted_minor: { $ref: '#/components/schemas/ExactMinor' }
+        version: { $ref: '#/components/schemas/ExactVersion' }
+        as_of: { type: string, format: date-time }
+    TransferSummary:
+      type: object
+      required: [transfer_id, source_account_id, destination_account_id, amount_minor, currency, financial_status, delivery_status, created_at, completed_at]
+      properties:
+        transfer_id: { type: string, format: uuid }
+        source_account_id: { type: string, format: uuid }
+        destination_account_id: { type: string, format: uuid }
+        amount_minor: { $ref: '#/components/schemas/ExactMinor' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        financial_status: { type: string, enum: [pending, posted, rejected] }
+        delivery_status: { type: string, enum: [not_applicable, pending, retrying, delivered, dead] }
+        created_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        journal_transaction_id: { type: string, format: uuid }
+        rejection_code: { type: string }
+    Posting:
+      type: object
+      required: [posting_id, account_id, direction, amount_minor, currency, occurred_at]
+      properties:
+        posting_id: { type: string, format: uuid }
+        account_id: { type: string, format: uuid }
+        direction: { type: string, enum: [debit, credit] }
+        amount_minor: { $ref: '#/components/schemas/ExactMinor' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        occurred_at: { type: string, format: date-time }
+    TransferDetail:
+      allOf:
+        - { $ref: '#/components/schemas/TransferSummary' }
+        - type: object
+          required: [actor_subject_id, postings, timeline]
+          properties:
+            actor_subject_id: { type: string }
+            postings: { type: array, items: { $ref: '#/components/schemas/Posting' } }
+            timeline: { type: array, items: { type: object } }
+    TransactionEntry:
+      type: object
+      required: [transfer_id, direction, amount, currency, status, occurred_at]
+      properties:
+        transfer_id: { type: string, format: uuid }
+        direction: { type: string, enum: [debit, credit] }
+        amount: { $ref: '#/components/schemas/ExactMinor' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        status: { type: string, enum: [posted] }
+        occurred_at: { type: string, format: date-time }
+    TransactionPage: { type: object, required: [transactions, next_cursor], properties: { transactions: { type: array, items: { $ref: '#/components/schemas/TransactionEntry' } }, next_cursor: { type: string } } }
+    TransferPage: { type: object, required: [transfers, next_cursor], properties: { transfers: { type: array, items: { $ref: '#/components/schemas/TransferSummary' } }, next_cursor: { type: string } } }
+    ReconciliationMismatch:
+      type: object
+      required: [mismatch_id, classification, created_at]
+      properties:
+        mismatch_id: { type: string, format: uuid }
+        account_id: { type: string, format: uuid }
+        classification: { type: string }
+        currency: { $ref: '#/components/schemas/Currency' }
+        expected_minor: { $ref: '#/components/schemas/ExactMinor' }
+        observed_minor: { $ref: '#/components/schemas/ExactMinor' }
+        observed_available_minor: { $ref: '#/components/schemas/ExactMinor' }
+        balance_version: { $ref: '#/components/schemas/ExactVersion' }
+        created_at: { type: string, format: date-time }
+    ReconciliationRun:
+      type: object
+      required: [run_id, status, correlation_id, scope, ledger_watermark, application_version, schema_version, checked_account_count, posting_count, mismatch_count, started_at, completed_at]
+      properties:
+        run_id: { type: string, format: uuid }
+        status: { type: string, enum: [running, matched, mismatch, failed] }
+        correlation_id: { type: string, format: uuid }
+        scope: { type: string }
+        ledger_watermark: { type: string }
+        application_version: { type: string }
+        schema_version: { type: string }
+        checked_account_count: { $ref: '#/components/schemas/ExactVersion' }
+        posting_count: { $ref: '#/components/schemas/ExactVersion' }
+        mismatch_count: { $ref: '#/components/schemas/ExactVersion' }
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        mismatches: { type: array, items: { $ref: '#/components/schemas/ReconciliationMismatch' } }
+    ReconciliationPage: { type: object, required: [runs, next_cursor], properties: { runs: { type: array, items: { $ref: '#/components/schemas/ReconciliationRun' } }, next_cursor: { type: string } } }
     Error:
       type: object
       required: [error]
@@ -104,21 +320,15 @@ components:
             message: { type: string }
             request_id: { type: string, format: uuid }
   responses:
-    InvalidRequest:
-      description: Validation failed without changing any financial state.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-    Unauthorized:
-      description: Authentication is required.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-    Forbidden:
-      description: The principal cannot access this account.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-    Conflict:
-      description: A duplicate key has a mismatched request or remains in progress.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    InvalidRequest: { description: Validation failed without a financial change., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized: { description: Authentication is required., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: Access denied without resource disclosure., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: Authorized resource not found., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: Idempotency conflict or in-progress request., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    PolicyDenied: { description: "Tenant amount, velocity, destination, or currency policy denied the transfer.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     RateLimited:
-      description: The caller has exceeded the transfer request limit.
+      description: Principal/tenant/route limit exceeded.
+      headers: { Retry-After: { required: true, schema: { type: integer, minimum: 1 } } }
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-    InternalError:
-      description: A non-sensitive server error.
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unavailable: { description: Authoritative evidence or current balance unavailable., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    InternalError: { description: Non-sensitive server error., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

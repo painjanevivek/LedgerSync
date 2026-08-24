@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var ErrCacheMiss = errors.New("balance cache miss")
@@ -27,12 +29,13 @@ type Balance struct {
 }
 
 type BalanceCache struct {
-	client redis.UniversalClient
-	prefix string
-	ttl    time.Duration
+	client    redis.UniversalClient
+	prefix    string
+	ttl       time.Duration
+	telemetry *observability.Telemetry
 }
 
-func NewBalanceCache(client redis.UniversalClient, prefix string, ttl time.Duration) (*BalanceCache, error) {
+func NewBalanceCache(client redis.UniversalClient, prefix string, ttl time.Duration, telemetry ...*observability.Telemetry) (*BalanceCache, error) {
 	if client == nil {
 		return nil, errors.New("redis client is required")
 	}
@@ -42,10 +45,13 @@ func NewBalanceCache(client redis.UniversalClient, prefix string, ttl time.Durat
 	if ttl <= 0 {
 		ttl = 5 * time.Minute
 	}
-	return &BalanceCache{client: client, prefix: prefix, ttl: ttl}, nil
+	return &BalanceCache{client: client, prefix: prefix, ttl: ttl, telemetry: firstTelemetry(telemetry)}, nil
 }
 
-func (c *BalanceCache) Get(ctx context.Context, tenantID, accountID string) (Balance, error) {
+func (c *BalanceCache) Get(ctx context.Context, tenantID, accountID string) (balance Balance, err error) {
+	started := time.Now()
+	ctx, span := c.start(ctx, "cache.balance.get")
+	defer func() { span.End(); c.observe(ctx, "get", started, err) }()
 	values, err := c.client.HGetAll(ctx, c.key(tenantID, accountID)).Result()
 	if err != nil {
 		return Balance{}, fmt.Errorf("read balance cache: %w", err)
@@ -58,7 +64,10 @@ func (c *BalanceCache) Get(ctx context.Context, tenantID, accountID string) (Bal
 
 // PutIfNewer is an atomic monotonic write. The Lua comparison is intentionally
 // string based, avoiding Lua floating-point conversion for 64-bit versions.
-func (c *BalanceCache) PutIfNewer(ctx context.Context, balance Balance) (bool, error) {
+func (c *BalanceCache) PutIfNewer(ctx context.Context, balance Balance) (written bool, err error) {
+	started := time.Now()
+	ctx, span := c.start(ctx, "cache.balance.put_if_newer")
+	defer func() { span.End(); c.observe(ctx, "put_if_newer", started, err) }()
 	if err := validate(balance); err != nil {
 		return false, err
 	}
@@ -85,11 +94,34 @@ return 1`
 	return result == 1, nil
 }
 
-func (c *BalanceCache) Delete(ctx context.Context, tenantID, accountID string) error {
+func (c *BalanceCache) Delete(ctx context.Context, tenantID, accountID string) (err error) {
+	started := time.Now()
+	ctx, span := c.start(ctx, "cache.balance.delete")
+	defer func() { span.End(); c.observe(ctx, "delete", started, err) }()
 	if err := c.client.Del(ctx, c.key(tenantID, accountID)).Err(); err != nil {
 		return fmt.Errorf("delete balance cache: %w", err)
 	}
 	return nil
+}
+
+func firstTelemetry(values []*observability.Telemetry) *observability.Telemetry {
+	if len(values) == 0 {
+		return nil
+	}
+	return values[0]
+}
+
+func (c *BalanceCache) start(ctx context.Context, name string) (context.Context, trace.Span) {
+	if c.telemetry == nil {
+		return ctx, trace.SpanFromContext(ctx)
+	}
+	return c.telemetry.Start(ctx, name)
+}
+
+func (c *BalanceCache) observe(ctx context.Context, operation string, started time.Time, err error) {
+	if c.telemetry != nil {
+		c.telemetry.ObserveBoundary(ctx, "cache", operation, started, err)
+	}
 }
 
 func (c *BalanceCache) key(tenantID, accountID string) string {

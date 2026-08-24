@@ -78,7 +78,7 @@ func applyOne(ctx context.Context, database *sql.DB, source fs.FS, name string) 
 	if err != nil {
 		return fmt.Errorf("begin migration %q: %w", name, err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if _, err := tx.ExecContext(ctx, string(sqlBytes)); err != nil {
 		return fmt.Errorf("apply migration %q: %w", name, err)
 	}

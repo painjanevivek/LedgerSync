@@ -22,9 +22,14 @@ import (
 const maxTransferBodyBytes = 64 * 1024
 
 type TransferHandler struct {
-	service  *transfers.Service
-	identity identity.Provider
-	issuer   *consistency.Issuer
+	service       *transfers.Service
+	identity      identity.Provider
+	authenticator *identity.RequestAuthenticator
+	issuer        *consistency.Issuer
+	rateLimiter   RateLimiter
+	rateLimit     int
+	capacityLimit int
+	audit         AuditRecorder
 }
 
 func NewTransferHandler(service *transfers.Service, provider identity.Provider, issuers ...*consistency.Issuer) *TransferHandler {
@@ -33,6 +38,35 @@ func NewTransferHandler(service *transfers.Service, provider identity.Provider, 
 		issuer = issuers[0]
 	}
 	return &TransferHandler{service: service, identity: provider, issuer: issuer}
+}
+
+func (h *TransferHandler) WithBFFAssertionSecret(secret string) *TransferHandler {
+	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
+		h.authenticator = authenticator
+	}
+	return h
+}
+
+func (h *TransferHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransferHandler {
+	h.authenticator = authenticator
+	return h
+}
+
+func (h *TransferHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *TransferHandler {
+	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+
+// WithCapacityLimit applies the measured pilot envelope across all actors in a
+// tenant. It is separate from the per-principal abuse limit so adding API
+// clients cannot bypass the financial-system capacity boundary.
+func (h *TransferHandler) WithCapacityLimit(limiter RateLimiter, requestsPerSecond int) *TransferHandler {
+	h.rateLimiter, h.capacityLimit = limiter, requestsPerSecond
+	return h
+}
+func (h *TransferHandler) WithAuditRecorder(audit AuditRecorder) *TransferHandler {
+	h.audit = audit
+	return h
 }
 
 type createTransferRequest struct {
@@ -52,9 +86,19 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, errors.New("transfer handler is not configured"))
 		return
 	}
-	principal, err := h.identity.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")))
+	principal, err := h.authenticate(request)
 	if err != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		return
+	}
+	if identity.RequireScope(principal, "transfers:write") != nil {
+		writeScopeDenial(writer, request, h.audit, principal, "transfers:write")
+		return
+	}
+	if !enforceTenantCapacity(writer, request, h.rateLimiter, principal, "transfers:create", h.capacityLimit) {
+		return
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "transfers:create", h.rateLimit, true) {
 		return
 	}
 	input, err := decodeTransferRequest(writer, request)
@@ -106,6 +150,17 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	_ = json.NewEncoder(writer).Encode(submission.Result)
 }
 
+func (h *TransferHandler) authenticate(request *http.Request) (identity.Principal, error) {
+	assertion := request.Header.Get("X-LedgerSync-Actor-Assertion")
+	if h.authenticator != nil {
+		return h.authenticator.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")), assertion)
+	}
+	if assertion != "" {
+		return identity.Principal{}, identity.ErrUnauthenticated
+	}
+	return h.identity.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")))
+}
+
 func decodeTransferRequest(writer http.ResponseWriter, request *http.Request) (createTransferRequest, error) {
 	request.Body = http.MaxBytesReader(writer, request.Body, maxTransferBodyBytes)
 	decoder := json.NewDecoder(request.Body)
@@ -135,17 +190,23 @@ func publicTransferError(err error) error {
 	switch {
 	case errors.Is(err, transfers.ErrInvalidCommand), errors.Is(err, transfers.ErrInvalidIdempotencyKey), errors.Is(err, money.ErrInvalidAmount), errors.Is(err, money.ErrUnsupportedCurrency), errors.Is(err, money.ErrCurrencyMismatch):
 		return httptransport.ErrBadRequest
-	case errors.Is(err, db.ErrAccountNotFound), errors.Is(err, db.ErrNotAuthorized):
+	case errors.Is(err, db.ErrAccountNotFound), errors.Is(err, db.ErrNotAuthorized), errors.Is(err, db.ErrDestinationNotAuthorized):
 		// Return a safe denial/no-disclosure response for inaccessible accounts.
 		return httptransport.ErrForbidden
 	case errors.Is(err, db.ErrAccountInactive):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "account_inactive", Message: "An account is not active for this transfer."}
 	case errors.Is(err, db.ErrInsufficientFunds):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "insufficient_funds", Message: "The source account has insufficient posted balance."}
+	case errors.Is(err, db.ErrTransferBelowMinimum), errors.Is(err, db.ErrTransferAboveMaximum), errors.Is(err, db.ErrActorVelocityExceeded), errors.Is(err, db.ErrSourceVelocityExceeded), errors.Is(err, db.ErrTenantVelocityExceeded):
+		return &httptransport.PublicError{Status: http.StatusUnprocessableEntity, Code: "transfer_policy_denied", Message: "The transfer is outside the tenant's approved amount or rolling limits."}
+	case errors.Is(err, db.ErrTenantPolicyMissing), errors.Is(err, db.ErrUnsupportedPilotCurrency):
+		return &httptransport.PublicError{Status: http.StatusUnprocessableEntity, Code: "unsupported_pilot_policy", Message: "The transfer is outside the configured pilot currency or tenant policy."}
 	case errors.Is(err, transfers.ErrIdempotencyConflict):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "idempotency_conflict", Message: "This idempotency key belongs to a different request."}
 	case errors.Is(err, transfers.ErrRequestInProgress):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "request_in_progress", Message: "A matching request is still being completed. Retry with the same idempotency key."}
+	case db.IsRetryableTransactionError(err):
+		return &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "transaction_conflict_retryable", Message: "The transfer could not acquire a safe commit window. Retry the identical request with the same idempotency key."}
 	default:
 		return err
 	}

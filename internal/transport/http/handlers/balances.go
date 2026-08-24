@@ -17,8 +17,33 @@ import (
 const consistencyRequirementHeader = "X-LedgerSync-Consistency-Requirement"
 
 type BalanceHandler struct {
-	reader   *accounts.Reader
-	identity identity.Provider
+	reader        *accounts.Reader
+	identity      identity.Provider
+	authenticator *identity.RequestAuthenticator
+	rateLimiter   RateLimiter
+	rateLimit     int
+	audit         AuditRecorder
+}
+
+func (h *BalanceHandler) WithBFFAssertionSecret(secret string) *BalanceHandler {
+	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
+		h.authenticator = authenticator
+	}
+	return h
+}
+
+func (h *BalanceHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *BalanceHandler {
+	h.authenticator = authenticator
+	return h
+}
+
+func (h *BalanceHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *BalanceHandler {
+	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+func (h *BalanceHandler) WithAuditRecorder(audit AuditRecorder) *BalanceHandler {
+	h.audit = audit
+	return h
 }
 
 func NewBalanceHandler(reader *accounts.Reader, provider identity.Provider) *BalanceHandler {
@@ -40,9 +65,16 @@ func (h *BalanceHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return
 	}
-	principal, err := h.identity.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")))
+	principal, err := h.authenticate(request)
 	if err != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		return
+	}
+	if identity.RequireScope(principal, "accounts:read") != nil {
+		writeScopeDenial(writer, request, h.audit, principal, "accounts:read")
+		return
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "accounts:balance", h.rateLimit, false) {
 		return
 	}
 	result, err := h.reader.Read(request.Context(), principal.TenantID, principal.SubjectID, accountID, request.Header.Get(consistencyRequirementHeader))
@@ -53,6 +85,16 @@ func (h *BalanceHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(writer).Encode(balanceResponse{AccountID: result.Balance.AccountID, Currency: result.Balance.Currency, AvailableMinor: strconv.FormatInt(result.Balance.AvailableMinor, 10), LedgerMinor: strconv.FormatInt(result.Balance.LedgerMinor, 10), Version: strconv.FormatInt(result.Balance.Version, 10), AsOf: result.Balance.AsOf.UTC().Format("2006-01-02T15:04:05.999999999Z07:00")})
+}
+func (h *BalanceHandler) authenticate(request *http.Request) (identity.Principal, error) {
+	assertion := request.Header.Get("X-LedgerSync-Actor-Assertion")
+	if h.authenticator != nil {
+		return h.authenticator.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")), assertion)
+	}
+	if assertion != "" {
+		return identity.Principal{}, identity.ErrUnauthenticated
+	}
+	return h.identity.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")))
 }
 
 type balanceResponse struct {
@@ -78,7 +120,7 @@ func balanceAccountID(request *http.Request) (string, bool) {
 func publicBalanceError(err error) error {
 	switch {
 	case errors.Is(err, db.ErrBalanceNotAuthorized):
-		return httptransport.ErrForbidden
+		return httptransport.ErrNotFound
 	case errors.Is(err, accounts.ErrCurrentBalanceUnavailable):
 		return &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "current_balance_unavailable", Message: "Current balance is temporarily unavailable."}
 	case errors.Is(err, consistency.ErrInvalidRequirement), errors.Is(err, consistency.ErrExpiredRequirement):

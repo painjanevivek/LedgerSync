@@ -54,7 +54,16 @@ func requireFaultDependencies(t *testing.T, sourceBalance int64) (*transfers.Ser
 	if _, err := database.ExecContext(ctx, `INSERT INTO account_owners (tenant_id, account_id, subject_id, permission) VALUES ($1, $2, $3, 'debit')`, faultTenantID, faultSourceID, faultActorID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO account_credit_permissions (tenant_id,account_id,subject_id) VALUES ($1,$2,$3)`, faultTenantID, faultDestinationID, faultActorID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_transfer_policies (tenant_id,currency,minimum_transfer_minor,maximum_transfer_minor,actor_rolling_24h_minor,source_account_rolling_24h_minor,tenant_rolling_24h_minor) VALUES ($1,'USD',1,1000000000,5000000000,5000000000,10000000000)`, faultTenantID); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := database.ExecContext(ctx, `INSERT INTO account_balance_projections (account_id, available_minor, ledger_minor, balance_version) VALUES ($1, $3, $3, 0), ($2, 2000, 2000, 0)`, faultSourceID, faultDestinationID, sourceBalance); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO account_opening_balances (account_id, opening_ledger_minor) VALUES ($1, $3), ($2, 2000)`, faultSourceID, faultDestinationID, sourceBalance); err != nil {
 		t.Fatal(err)
 	}
 	repository, err := db.NewTransferRepository(database, nil)

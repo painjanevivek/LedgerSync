@@ -14,28 +14,64 @@ import (
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/outbox"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/projection"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const BalanceStream = "ledgersync:balance-events:v1"
 
 type RedisStreams struct {
-	client redis.UniversalClient
-	stream string
+	client    redis.UniversalClient
+	stream    string
+	telemetry *observability.Telemetry
+	maxLength int64
 }
 
-func NewRedisStreams(client redis.UniversalClient, stream string) (*RedisStreams, error) {
+func (p *RedisStreams) WithMaxLength(maxLength int64) *RedisStreams {
+	if maxLength > 0 {
+		p.maxLength = maxLength
+	}
+	return p
+}
+
+func (p *RedisStreams) ObserveHealth(ctx context.Context, group string) error {
+	depth, err := p.client.XLen(ctx, p.stream).Result()
+	if err != nil {
+		return fmt.Errorf("read redis stream depth: %w", err)
+	}
+	groups, err := p.client.XInfoGroups(ctx, p.stream).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return fmt.Errorf("read redis consumer lag: %w", err)
+	}
+	var lag int64
+	for _, current := range groups {
+		if current.Name == group {
+			lag = current.Lag
+			break
+		}
+	}
+	if p.telemetry != nil {
+		p.telemetry.ObserveRedisStream(ctx, depth, lag)
+	}
+	return nil
+}
+
+func NewRedisStreams(client redis.UniversalClient, stream string, telemetry ...*observability.Telemetry) (*RedisStreams, error) {
 	if client == nil {
 		return nil, errors.New("redis streams client is required")
 	}
 	if stream == "" {
 		stream = BalanceStream
 	}
-	return &RedisStreams{client: client, stream: stream}, nil
+	return &RedisStreams{client: client, stream: stream, telemetry: firstTelemetry(telemetry)}, nil
 }
 
-func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) error {
-	_, err := p.client.XAdd(ctx, &redis.XAddArgs{Stream: p.stream, Values: map[string]any{
+func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) (err error) {
+	started := time.Now()
+	ctx, span := p.start(ctx, "event.redis.publish")
+	defer func() { span.End(); p.observe(ctx, "publish", started, err) }()
+	_, err = p.client.XAdd(ctx, &redis.XAddArgs{Stream: p.stream, MaxLen: p.maxLength, Approx: p.maxLength > 0, Values: map[string]any{
 		"event_id":          event.ID,
 		"event_type":        event.EventType,
 		"tenant_id":         event.TenantID,
@@ -53,15 +89,31 @@ func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) error {
 
 // EnsureConsumerGroup is idempotent. The group starts at zero so a newly
 // provisioned cache can rebuild from retained stream entries when available.
-func (p *RedisStreams) EnsureConsumerGroup(ctx context.Context, group string) error {
-	err := p.client.XGroupCreateMkStream(ctx, p.stream, group, "0").Err()
+func (p *RedisStreams) EnsureConsumerGroup(ctx context.Context, group string) (err error) {
+	started := time.Now()
+	ctx, span := p.start(ctx, "event.redis.ensure_consumer_group")
+	defer func() { span.End(); p.observe(ctx, "ensure_consumer_group", started, err) }()
+	groups, err := p.client.XInfoGroups(ctx, p.stream).Result()
+	if err == nil {
+		for _, existing := range groups {
+			if existing.Name == group {
+				return nil
+			}
+		}
+	} else if !strings.Contains(strings.ToLower(err.Error()), "no such key") {
+		return fmt.Errorf("inspect redis consumer groups: %w", err)
+	}
+	err = p.client.XGroupCreateMkStream(ctx, p.stream, group, "0").Err()
 	if err != nil && !strings.Contains(strings.ToUpper(err.Error()), "BUSYGROUP") {
 		return fmt.Errorf("create redis consumer group: %w", err)
 	}
 	return nil
 }
 
-func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, count int64, block time.Duration) ([]projection.Message, error) {
+func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, count int64, block time.Duration) (messages []projection.Message, err error) {
+	started := time.Now()
+	ctx, span := p.start(ctx, "event.redis.read_group")
+	defer func() { span.End(); p.observe(ctx, "read_group", started, err) }()
 	if group == "" || consumer == "" || count <= 0 {
 		return nil, errors.New("group, consumer, and count are required")
 	}
@@ -77,7 +129,10 @@ func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, co
 
 // RecoverPending claims messages idle longer than minIdle. This makes cache
 // projection recoverable when a consumer process stops after delivery.
-func (p *RedisStreams) RecoverPending(ctx context.Context, group, consumer string, minIdle time.Duration, count int64) ([]projection.Message, error) {
+func (p *RedisStreams) RecoverPending(ctx context.Context, group, consumer string, minIdle time.Duration, count int64) (messages []projection.Message, err error) {
+	started := time.Now()
+	ctx, span := p.start(ctx, "event.redis.recover_pending")
+	defer func() { span.End(); p.observe(ctx, "recover_pending", started, err) }()
 	if group == "" || consumer == "" || count <= 0 {
 		return nil, errors.New("group, consumer, and count are required")
 	}
@@ -91,11 +146,34 @@ func (p *RedisStreams) RecoverPending(ctx context.Context, group, consumer strin
 	return decodeMessages(entries)
 }
 
-func (p *RedisStreams) Ack(ctx context.Context, group string, messageID string) error {
+func (p *RedisStreams) Ack(ctx context.Context, group string, messageID string) (err error) {
+	started := time.Now()
+	ctx, span := p.start(ctx, "event.redis.ack")
+	defer func() { span.End(); p.observe(ctx, "ack", started, err) }()
 	if _, err := p.client.XAck(ctx, p.stream, group, messageID).Result(); err != nil {
 		return fmt.Errorf("ack redis stream event: %w", err)
 	}
 	return nil
+}
+
+func (p *RedisStreams) start(ctx context.Context, name string) (context.Context, trace.Span) {
+	if p.telemetry == nil {
+		return ctx, trace.SpanFromContext(ctx)
+	}
+	return p.telemetry.Start(ctx, name)
+}
+
+func (p *RedisStreams) observe(ctx context.Context, operation string, started time.Time, err error) {
+	if p.telemetry != nil {
+		p.telemetry.ObserveBoundary(ctx, "event", operation, started, err)
+	}
+}
+
+func firstTelemetry(values []*observability.Telemetry) *observability.Telemetry {
+	if len(values) == 0 {
+		return nil
+	}
+	return values[0]
 }
 
 func decodeEntries(streams []redis.XStream) ([]projection.Message, error) {

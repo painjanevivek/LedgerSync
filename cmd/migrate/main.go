@@ -26,7 +26,7 @@ func main() {
 		slog.Error("open migration database", "error", err)
 		os.Exit(1)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	migrations := os.DirFS(filepath.Join(".", "migrations"))
 	if err := db.ApplyPending(ctx, database, db.MigrationConfig{Source: migrations}); err != nil {
 		slog.Error("apply migrations", "error", err)

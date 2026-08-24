@@ -13,10 +13,19 @@ export type TransferResult = Readonly<{
   transfer_id: string;
   status: "posted" | "rejected";
   currency: string;
-  amount_minor: number;
+  amount_minor: string;
   occurred_at: string;
-  minimum_balance_versions: Record<string, number>;
+  minimum_balance_versions: Record<string, string>;
+  balances?: Record<string, TransferBalance>;
   rejection_code?: string;
+}>;
+
+export type TransferBalance = Readonly<{
+  account_id: string;
+  currency: string;
+  posted_minor: string;
+  version: string;
+  as_of: string;
 }>;
 
 type PrivateTransferRequest = Readonly<{

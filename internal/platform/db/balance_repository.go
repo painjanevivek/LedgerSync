@@ -52,7 +52,7 @@ func (r *BalanceRepository) ListCurrentForTenant(ctx context.Context, tenantID s
 	if err != nil {
 		return nil, fmt.Errorf("list current balances: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var balances []accounts.Balance
 	for rows.Next() {
 		var b accounts.Balance
@@ -65,6 +65,9 @@ func (r *BalanceRepository) ListCurrentForTenant(ctx context.Context, tenantID s
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate current balances: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close current balance rows: %w", err)
 	}
 	return balances, nil
 }

@@ -4,7 +4,6 @@
 package projection
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -103,28 +102,26 @@ func decodeBalance(event outbox.Event) (accounts.Balance, error) {
 	if event.EventType != BalanceChangedEventType || event.ID == "" || event.TenantID == "" || event.AccountID == "" || event.AggregateVersion < 0 {
 		return accounts.Balance{}, errors.New("invalid balance event envelope")
 	}
-	decoder := json.NewDecoder(bytes.NewReader(event.Payload))
-	decoder.UseNumber()
 	var payload struct {
-		EventID        string      `json:"event_id"`
-		EventType      string      `json:"event_type"`
-		AccountID      string      `json:"account_id"`
-		Currency       string      `json:"currency"`
-		AvailableMinor json.Number `json:"available_minor"`
-		BalanceVersion json.Number `json:"balance_version"`
-		OccurredAt     string      `json:"occurred_at"`
+		EventID        string `json:"event_id"`
+		EventType      string `json:"event_type"`
+		AccountID      string `json:"account_id"`
+		Currency       string `json:"currency"`
+		AvailableMinor string `json:"available_minor"`
+		BalanceVersion string `json:"balance_version"`
+		OccurredAt     string `json:"occurred_at"`
 	}
-	if err := decoder.Decode(&payload); err != nil {
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
 		return accounts.Balance{}, fmt.Errorf("decode balance event payload: %w", err)
 	}
-	if decoder.More() || payload.EventID != event.ID || payload.EventType != event.EventType || payload.AccountID != event.AccountID {
+	if payload.EventID != event.ID || payload.EventType != event.EventType || payload.AccountID != event.AccountID {
 		return accounts.Balance{}, errors.New("balance event envelope does not match payload")
 	}
-	available, err := strconv.ParseInt(payload.AvailableMinor.String(), 10, 64)
+	available, err := strconv.ParseInt(payload.AvailableMinor, 10, 64)
 	if err != nil || available < 0 {
 		return accounts.Balance{}, errors.New("balance event has invalid available_minor")
 	}
-	version, err := strconv.ParseInt(payload.BalanceVersion.String(), 10, 64)
+	version, err := strconv.ParseInt(payload.BalanceVersion, 10, 64)
 	if err != nil || version < 0 || version != event.AggregateVersion {
 		return accounts.Balance{}, errors.New("balance event has invalid balance_version")
 	}

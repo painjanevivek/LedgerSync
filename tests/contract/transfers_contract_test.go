@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,7 +31,7 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 		TransferID:  "6b093f93-24a5-44c8-bb16-4d8b8ff6f0ad",
 		Status:      "posted",
 		Currency:    "USD",
-		AmountMinor: 12550,
+		AmountMinor: math.MaxInt64,
 		OccurredAt:  "2026-08-18T09:15:00Z",
 		MinimumBalanceVersions: map[string]int64{
 			"00000000-0000-0000-0000-000000000010": 42,
@@ -41,7 +42,11 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{SubjectID: "operator-1", TenantID: "00000000-0000-0000-0000-000000000001"})
+	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{
+		SubjectID: "operator-1",
+		TenantID:  "00000000-0000-0000-0000-000000000001",
+		Scopes:    []string{"transfers:write"},
+	})
 	request := httptest.NewRequest(http.MethodPost, "/api/transfers", strings.NewReader(`{
 "source_account_id":"00000000-0000-0000-0000-000000000010",
 "destination_account_id":"00000000-0000-0000-0000-000000000020",
@@ -55,6 +60,9 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
+	if !strings.Contains(recorder.Body.String(), `"amount_minor":"9223372036854775807"`) {
+		t.Fatalf("financial amount was not encoded as an exact JSON string: %s", recorder.Body.String())
+	}
 	if repository.command.Amount.Minor() != 12550 || repository.command.Amount.Currency().Code != "USD" {
 		t.Fatalf("handler did not parse exact money: %#v", repository.command.Amount)
 	}
@@ -65,7 +73,7 @@ func TestCreateTransferContractReturnsExactPostedOutcome(t *testing.T) {
 	if err := json.NewDecoder(recorder.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body.TransferID != repository.result.Result.TransferID || body.Status != "posted" || body.AmountMinor != 12550 {
+	if body.TransferID != repository.result.Result.TransferID || body.Status != "posted" || body.AmountMinor != math.MaxInt64 {
 		t.Fatalf("unexpected transfer result: %#v", body)
 	}
 }
@@ -76,7 +84,11 @@ func TestCreateTransferContractRejectsMalformedInputWithoutCallingService(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{SubjectID: "operator-1", TenantID: "tenant-1"})
+	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{
+		SubjectID: "operator-1",
+		TenantID:  "tenant-1",
+		Scopes:    []string{"transfers:write"},
+	})
 	request := httptest.NewRequest(http.MethodPost, "/api/transfers", strings.NewReader(`{"source_account_id":"a","destination_account_id":"b","amount":"1.999","currency":"USD"}`))
 	request.Header.Set("Authorization", "Bearer development-local-only")
 	request.Header.Set("Idempotency-Key", "transfer-contract-key-002")
@@ -89,5 +101,25 @@ func TestCreateTransferContractRejectsMalformedInputWithoutCallingService(t *tes
 	}
 	if repository.command.TenantID != "" {
 		t.Fatalf("service received invalid request: %#v", repository.command)
+	}
+}
+
+func TestCreateTransferContractRejectsOversizedBodyWithoutCallingService(t *testing.T) {
+	repository := &contractRepository{}
+	service, err := transfers.NewService(repository, time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := handlers.NewTransferHandler(service, identity.DevelopmentProvider{SubjectID: "operator-1", TenantID: "tenant-1", Scopes: []string{"transfers:write"}})
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers", strings.NewReader(`{"source_account_id":"`+strings.Repeat("a", 70*1024)+`"}`))
+	request.Header.Set("Authorization", "Bearer development-local-only")
+	request.Header.Set("Idempotency-Key", "transfer-contract-key-oversized")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if repository.command.TenantID != "" {
+		t.Fatal("oversized request reached transfer service")
 	}
 }

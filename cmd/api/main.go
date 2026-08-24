@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -12,12 +13,14 @@ import (
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/startup"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
@@ -31,34 +34,73 @@ func main() {
 		slog.Error("configuration invalid", "error", err)
 		os.Exit(1)
 	}
+	telemetry, err := observability.NewTelemetry(context.Background(), observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint})
+	if err != nil {
+		slog.Error("telemetry initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer func() { _ = telemetry.Shutdown(context.Background()) }()
+	startupContext, stopStartup := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopStartup()
+	startupConfig := startup.Config{
+		Timeout:        configuration.StartupTimeout,
+		InitialBackoff: configuration.StartupInitialBackoff,
+		MaxBackoff:     configuration.StartupMaxBackoff,
+		OnRetry: func(event startup.Event) {
+			slog.Warn("dependency not ready during bounded startup", "dependency", event.Dependency, "attempt", event.Attempt, "category", event.Category, "retry_in", event.Delay, "startup_time_remaining", event.Remaining, "error", event.Err)
+		},
+	}
 
 	var readiness httptransport.DependencyCheck
 	router := http.NewServeMux()
 	if configuration.DatabaseURL != "" {
-		database, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+		database, err := startup.Open(startupContext, "postgresql", startupConfig, func(ctx context.Context) (*sql.DB, error) {
+			return db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+		})
 		if err != nil {
 			slog.Error("database initialization failed", "error", err)
 			os.Exit(1)
 		}
-		defer database.Close()
+		defer func() {
+			if closeErr := database.Close(); closeErr != nil {
+				slog.Warn("database close failed", "error", closeErr)
+			}
+		}()
 		readiness = database.Ping
-		if configuration.Environment == "development" && configuration.DevelopmentSubjectID != "" && configuration.DevelopmentTenantID != "" {
+		if configuration.Environment != "development" {
+			if err := db.ValidatePilotCurrency(context.Background(), database, configuration.PilotCurrency); err != nil {
+				slog.Error("pilot currency validation failed", "error", err)
+				os.Exit(1)
+			}
+		}
+		if configuration.Environment != "development" || (configuration.DevelopmentSubjectID != "" && configuration.DevelopmentTenantID != "") {
 			if configuration.RedisAddress == "" || len(configuration.ConsistencySigningKey) < 32 {
 				slog.Error("balance consistency configuration is missing")
 				os.Exit(1)
 			}
-			redisClient := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
-			defer redisClient.Close()
-			if err := redisClient.Ping(context.Background()).Err(); err != nil {
+			redisClient, err := startup.Open(startupContext, "redis", startupConfig, func(ctx context.Context) (*redis.Client, error) {
+				client := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
+				if pingErr := client.Ping(ctx).Err(); pingErr != nil {
+					_ = client.Close()
+					return nil, pingErr
+				}
+				return client, nil
+			})
+			if err != nil {
 				slog.Error("redis initialization failed", "error", err)
 				os.Exit(1)
 			}
+			defer func() {
+				if closeErr := redisClient.Close(); closeErr != nil {
+					slog.Warn("redis close failed", "error", closeErr)
+				}
+			}()
 			issuer, err := consistency.NewIssuer(consistency.Key{ID: configuration.ConsistencySigningKeyID, Secret: []byte(configuration.ConsistencySigningKey)}, nil, nil, 10*time.Minute)
 			if err != nil {
 				slog.Error("consistency issuer initialization failed", "error", err)
 				os.Exit(1)
 			}
-			balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute)
+			balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute, telemetry)
 			if err != nil {
 				slog.Error("balance cache initialization failed", "error", err)
 				os.Exit(1)
@@ -73,34 +115,126 @@ func main() {
 				slog.Error("balance repository initialization failed", "error", err)
 				os.Exit(1)
 			}
-			ryewMetrics := &observability.RYEWMetrics{}
+			ryewMetrics := observability.NewRYEWMetrics(telemetry)
 			balanceReader, err := accounts.NewReader(balanceRepository, cacheAdapter, issuer, accounts.ReaderConfig{Metrics: ryewMetrics})
 			if err != nil {
 				slog.Error("balance reader initialization failed", "error", err)
 				os.Exit(1)
 			}
-			repository, err := db.NewTransferRepository(database, nil)
+			repository, err := db.NewTransferRepository(database, nil, telemetry)
 			if err != nil {
 				slog.Error("transfer repository initialization failed", "error", err)
 				os.Exit(1)
 			}
-			metrics := &observability.TransferMetrics{}
+			metrics := observability.NewTransferMetrics(telemetry)
 			service, err := transfers.NewService(repository, nil, metrics)
 			if err != nil {
 				slog.Error("transfer service initialization failed", "error", err)
 				os.Exit(1)
 			}
-			provider := identity.DevelopmentProvider{
-				SubjectID: configuration.DevelopmentSubjectID,
-				TenantID:  configuration.DevelopmentTenantID,
+			repository.WithPilotCurrency(configuration.PilotCurrency)
+			var provider identity.Provider
+			if configuration.Environment == "development" {
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Scopes: []string{"accounts:read", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", identity.BFFActorScope}}
+			} else {
+				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
+					IssuerURL:        configuration.OIDCIssuerURL,
+					ResourceAudience: configuration.OIDCResourceAudience,
+					ClientTenants:    configuration.OIDCClientTenantMap,
+				})
+				if err != nil {
+					slog.Error("OIDC provider initialization failed", "error", err)
+					os.Exit(1)
+				}
 			}
-			router.Handle("POST /api/transfers", handlers.NewTransferHandler(service, provider, issuer))
-			router.Handle("GET /api/accounts/{accountID}/balance", handlers.NewBalanceHandler(balanceReader, provider))
+			accountRepository, err := db.NewAccountRepository(database)
+			if err != nil {
+				slog.Error("account repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			accountService, err := accounts.NewService(accountRepository)
+			if err != nil {
+				slog.Error("account service initialization failed", "error", err)
+				os.Exit(1)
+			}
+			historyRepository, err := db.NewTransactionHistoryRepository(database)
+			if err != nil {
+				slog.Error("history repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			history, err := transactions.NewHistory(historyRepository)
+			if err != nil {
+				slog.Error("history service initialization failed", "error", err)
+				os.Exit(1)
+			}
+			transferHandler := handlers.NewTransferHandler(service, provider, issuer)
+			balanceHandler := handlers.NewBalanceHandler(balanceReader, provider)
+			accountsHandler := handlers.NewAccountsHandler(accountService, provider)
+			transactionsHandler := handlers.NewTransactionsHandler(history, provider)
+			investigationRepository, err := db.NewInvestigationRepository(database)
+			if err != nil {
+				slog.Error("investigation repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			investigationHandler := handlers.NewInvestigationHandler(investigationRepository, provider)
+			rateLimiter, err := db.NewRateLimitRepository(database, nil)
+			if err != nil {
+				slog.Error("rate limiter initialization failed", "error", err)
+				os.Exit(1)
+			}
+			transferHandler.WithRateLimiter(rateLimiter, configuration.WriteRateLimitPerMinute)
+			transferHandler.WithCapacityLimit(rateLimiter, configuration.WriteCapacityPerSecond)
+			balanceHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			accountsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			transactionsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			investigationHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			auditRepository, err := db.NewAuditRepository(database)
+			if err != nil {
+				slog.Error("audit repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			transferHandler.WithAuditRecorder(auditRepository)
+			balanceHandler.WithAuditRecorder(auditRepository)
+			accountsHandler.WithAuditRecorder(auditRepository)
+			transactionsHandler.WithAuditRecorder(auditRepository)
+			investigationHandler.WithAuditRecorder(auditRepository)
+			if len(configuration.BFFAssertionSecret) >= 32 {
+				assertionConfig := identity.ActorAssertionConfig{Issuer: configuration.BFFAssertionIssuer, Audience: configuration.BFFAssertionAudience, CurrentKey: identity.ActorAssertionKey{ID: configuration.BFFAssertionKeyID, Secret: []byte(configuration.BFFAssertionSecret)}, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: identity.NewMemoryReplayGuard(100_000)}
+				if configuration.BFFAssertionPreviousSecret != "" {
+					assertionConfig.PreviousKey = &identity.ActorAssertionKey{ID: configuration.BFFAssertionPreviousKeyID, Secret: []byte(configuration.BFFAssertionPreviousSecret)}
+				}
+				authenticator, err := identity.NewRequestAuthenticatorWithConfig(provider, assertionConfig)
+				if err != nil {
+					slog.Error("BFF actor assertion configuration is invalid")
+					os.Exit(1)
+				}
+				transferHandler.WithRequestAuthenticator(authenticator)
+				balanceHandler.WithRequestAuthenticator(authenticator)
+				accountsHandler.WithRequestAuthenticator(authenticator)
+				transactionsHandler.WithRequestAuthenticator(authenticator)
+				investigationHandler.WithRequestAuthenticator(authenticator)
+			}
+			router.Handle("POST /api/transfers", transferHandler)
+			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)
+			router.Handle("GET /api/me/accounts", accountsHandler)
+			router.Handle("GET /api/accounts/{accountID}", accountsHandler)
+			router.Handle("GET /api/accounts/{accountID}/transactions", transactionsHandler)
+			router.HandleFunc("GET /api/transfers", investigationHandler.Transfers)
+			router.HandleFunc("GET /api/transfers/{transferID}", investigationHandler.Transfer)
+			router.HandleFunc("GET /api/reconciliation/runs", investigationHandler.ReconciliationRuns)
+			router.HandleFunc("GET /api/reconciliation/runs/{runID}", investigationHandler.ReconciliationRun)
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
-	handler := middleware.Correlation(router)
-	server := &http.Server{Addr: configuration.HTTPAddress, Handler: handler}
+	handler := middleware.Correlation(telemetry.HTTP(router))
+	server := &http.Server{
+		Addr: configuration.HTTPAddress, Handler: handler,
+		ReadHeaderTimeout: configuration.HTTPReadHeaderTimeout,
+		ReadTimeout:       configuration.HTTPReadTimeout,
+		WriteTimeout:      configuration.HTTPWriteTimeout,
+		IdleTimeout:       configuration.HTTPIdleTimeout,
+		MaxHeaderBytes:    configuration.HTTPMaxHeaderBytes,
+	}
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	go func() {

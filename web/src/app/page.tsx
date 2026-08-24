@@ -1,3 +1,3 @@
-export default function Home() {
-  return <main><h1>LedgerSync</h1><p>The secure transfer dashboard is being rebuilt.</p></main>;
-}
+import { OperatorConsole } from "@/features/accounts/OperatorConsole";
+
+export default function Home() { return <OperatorConsole />; }

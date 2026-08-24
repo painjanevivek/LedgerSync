@@ -1,0 +1,205 @@
+name: Quality gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  go-quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Enforce Go formatting
+        run: test -z "$(gofmt -l cmd internal tests)"
+      - name: Vet production and deterministic tests
+        run: go vet ./cmd/... ./internal/... ./tests/unit ./tests/contract
+      - name: Run static analysis
+        uses: golangci/golangci-lint-action@d583c34f0599d37dbac4a198b9c83201be380893 # v9.3.0
+        with:
+          version: v2.13.1
+      - name: Race-test financial and contract paths
+        run: go test -race ./cmd/... ./internal/... ./tests/unit ./tests/contract
+      - name: Fuzz exact-money boundary
+        run: go test -run=^$ -fuzz=FuzzParseExactMoney -fuzztime=10s ./tests/unit
+      - name: Enforce 60% critical financial core coverage floor
+        run: |
+          go test -covermode=atomic -coverpkg=./internal/domain/...,./internal/application/transfers/... -coverprofile=critical-coverage.out ./internal/domain/... ./internal/application/transfers ./tests/unit ./tests/contract
+          go tool cover -func=critical-coverage.out | tee critical-coverage.txt
+          awk '/^total:/{ sub("%", "", $3); exit ($3 + 0 < 60) }' critical-coverage.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: { name: critical-financial-core-coverage, path: critical-coverage.out }
+  live-dependencies:
+    runs-on: ubuntu-24.04
+    needs: go-quality
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Start disposable PostgreSQL and Redis
+        run: |
+          docker run -d --rm --name ledgersync-quality-postgres -e POSTGRES_DB=ledgersync -e POSTGRES_USER=ledgersync -e POSTGRES_PASSWORD=quality -p 127.0.0.1:5432:5432 postgres:16-alpine
+          docker run -d --rm --name ledgersync-quality-redis -p 127.0.0.1:6379:6379 redis:7.4-alpine
+          until docker exec ledgersync-quality-postgres pg_isready -U ledgersync -d ledgersync; do sleep 1; done
+          until docker exec ledgersync-quality-redis redis-cli ping; do sleep 1; done
+      - name: Run Testcontainers-equivalent live database evidence serially
+        env:
+          LEDGERSYNC_TEST_DATABASE_URL: postgres://ledgersync:quality@localhost:5432/ledgersync?sslmode=disable
+          LEDGERSYNC_TEST_REDIS_ADDR: localhost:6379
+          LEDGERSYNC_DATABASE_URL: postgres://ledgersync:quality@localhost:5432/ledgersync?sslmode=disable
+        run: |
+          go run ./cmd/migrate
+          docker exec -i ledgersync-quality-postgres psql -U ledgersync -d ledgersync < deploy/postgres/roles.sql
+          go test ./tests/integration -count=1 -v
+          go test ./tests/fault -count=1 -v
+      - name: Remove disposable dependencies
+        if: always()
+        run: docker rm -f ledgersync-quality-postgres ledgersync-quality-redis || true
+  web-quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod, check-latest: true }
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
+      - working-directory: web
+        run: npm ci
+      - working-directory: web
+        run: npm run lint && npm test && npm run build
+      - name: Enforce frontend JavaScript budgets
+        working-directory: web
+        run: npm run test:performance
+  browser-quality:
+    runs-on: ubuntu-24.04
+    needs: web-quality
+    container:
+      image: mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e # v1.62.1-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - working-directory: web
+        run: npm ci
+      - name: Run browser journeys and fail on unreviewed visual drift
+        working-directory: web
+        run: |
+          npm run test:e2e
+          npm run test:e2e:performance
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: operator-browser-evidence-${{ github.sha }}
+          path: |
+            web/playwright-report
+            web/test-results
+          if-no-files-found: warn
+          retention-days: 30
+  real-stack:
+    runs-on: ubuntu-24.04
+    needs: [go-quality, web-quality, browser-quality]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Build and start the real BFF, API, PostgreSQL, Redis, worker path
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml up -d --build --wait
+          sh scripts/wait-for-stack-readiness.sh
+      - name: Prove retry safety through the actual browser-facing runtime boundary
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-before-restart-000001
+        run: go test ./tests/system -count=1 -v
+      - name: Prove a lost response remains replay-safe after API process restart
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-before-restart-000001
+          LEDGERSYNC_SYSTEM_EXPECT_RESTART_REPLAY: "true"
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart api
+          sh scripts/wait-for-stack-readiness.sh
+          go test ./tests/system -run TestRealBFFSameKeyReplayAfterAPIProcessRestart -count=1 -v
+      - name: Prove demo seed reruns cannot rewind financial state
+        run: |
+          before="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT available_minor || ':' || ledger_minor || ':' || balance_version FROM account_balance_projections WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          opening_before="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT opening_ledger_minor FROM account_opening_balances WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm demo-seed
+          after="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT available_minor || ':' || ledger_minor || ':' || balance_version FROM account_balance_projections WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          opening_after="$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres psql -U ledgersync -d ledgersync -At -c "SELECT opening_ledger_minor FROM account_opening_balances WHERE account_id='10000000-0000-4000-8000-000000000001'")"
+          test "$before" = "$after"
+          test "$opening_before" = "$opening_after"
+      - name: Prove stateless service and Redis restart recovery
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-after-service-restart-000001
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart web api outbox-worker redis
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T redis redis-cli ping
+          sh scripts/wait-for-stack-readiness.sh
+          go test ./tests/system -run TestRealBFFAPIAndPostgreSQLRetryPath -count=1 -v
+      - name: Prove PostgreSQL restart, migration idempotency, and reconciliation
+        env:
+          LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
+          LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: ci-system-after-database-restart-000001
+        run: |
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml restart postgres
+          for _ in $(seq 1 60); do docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml exec -T postgres pg_isready -U ledgersync -d ledgersync && break; sleep 2; done
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm migrate
+          sh scripts/wait-for-stack-readiness.sh
+          go test ./tests/system -run TestRealBFFAPIAndPostgreSQLRetryPath -count=1 -v
+          docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm --entrypoint /usr/local/bin/reconcile migrate --run --tenant-id 00000000-0000-4000-8000-000000000001
+          go test ./tests/system -run TestRealBFFReconciliationEvidence -count=1 -v
+      - name: Prove digest-bound backup and isolated restore
+        shell: pwsh
+        env:
+          LEDGERSYNC_LOCAL_COMPOSE_PROJECT: ledgersync-system
+        run: |
+          ./scripts/backup-local.ps1 -BackupRoot data/ci-backups -RetentionCount 1
+          $backup = Get-ChildItem -LiteralPath data/ci-backups -Directory | Select-Object -First 1
+          if ($null -eq $backup) { throw "Backup command produced no finalized bundle." }
+          ./scripts/local-restore-drill.ps1 -BackupDirectory $backup.FullName
+      - name: Prove dependency faults recover without financial drift
+        shell: pwsh
+        env:
+          LEDGERSYNC_LOCAL_COMPOSE_PROJECT: ledgersync-system
+        run: ./scripts/test-local-fault-recovery.ps1
+      - name: Verify non-root read-only workloads and private bindings
+        run: |
+          test "$(docker inspect -f '{{.Config.User}}' "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml ps -q api)")" = ledgersync
+          test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml ps -q api)")" = true
+          test "$(docker inspect -f '{{.Config.User}}' "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml ps -q web)")" = ledgersync
+          test -z "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml port redis 6379)"
+          test -z "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml port postgres 5432)"
+          test -z "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml port api 8080)"
+      - name: Capture failed real-stack logs
+        if: failure()
+        run: docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml logs --no-color > real-stack.log
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with: { name: real-stack-failure-log, path: real-stack.log }
+      - name: Remove disposable real stack
+        if: always()
+        run: docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml down -v
+  release-evidence:
+    runs-on: ubuntu-24.04
+    needs: [go-quality, live-dependencies, web-quality, browser-quality, real-stack]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: go.mod, check-latest: true }
+      - name: Generate commit-bound machine-readable release manifest
+        env:
+          LEDGERSYNC_EVIDENCE_COMMIT: ${{ github.sha }}
+        run: go run ./cmd/evidence-manifest > phase-0d-manifest.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: phase-0d-release-evidence-${{ github.sha }}
+          path: phase-0d-manifest.json
+          retention-days: 90

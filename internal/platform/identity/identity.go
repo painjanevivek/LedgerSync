@@ -8,11 +8,25 @@ import (
 )
 
 var ErrUnauthenticated = errors.New("unauthenticated")
+var ErrUnauthorized = errors.New("unauthorized")
 
 type Principal struct {
 	SubjectID string
 	TenantID  string
 	Roles     map[string]struct{}
+	Scopes    map[string]struct{}
+}
+
+func (p Principal) HasScope(scope string) bool {
+	_, ok := p.Scopes[scope]
+	return ok
+}
+
+func RequireScope(principal Principal, scope string) error {
+	if !principal.HasScope(scope) {
+		return ErrUnauthorized
+	}
+	return nil
 }
 
 func (p Principal) HasRole(role string) bool {

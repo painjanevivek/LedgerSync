@@ -102,7 +102,9 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 			continue
 		}
 		if err := w.publisher.Publish(ctx, event); err != nil {
-			w.handlePublishFailure(ctx, event, err)
+			if persistErr := w.handlePublishFailure(ctx, event, err); persistErr != nil {
+				return len(events), persistErr
+			}
 			continue
 		}
 		if err := w.store.MarkPublished(ctx, w.workerID, event.ID, w.clock().UTC()); err != nil {
@@ -117,18 +119,23 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 	return len(events), nil
 }
 
-func (w *Worker) handlePublishFailure(ctx context.Context, event Event, publishErr error) {
+func (w *Worker) handlePublishFailure(ctx context.Context, event Event, publishErr error) error {
 	now := w.clock().UTC()
 	if event.AttemptCount >= w.maxAttempts {
-		if err := w.store.MarkDead(ctx, w.workerID, event.ID, now, "publish_failed"); err == nil {
-			w.observeDead(event, publishErr)
+		if err := w.store.MarkDead(ctx, w.workerID, event.ID, now, "publish_failed"); err != nil {
+			return fmt.Errorf("persist dead outbox event: %w", err)
 		}
-		return
+		w.observeDead(event, publishErr)
+		return nil
 	}
 	next := now.Add(backoff(event.AttemptCount))
-	if err := w.store.Reschedule(ctx, w.workerID, event.ID, next, "publish_failed"); err == nil && w.metrics != nil {
+	if err := w.store.Reschedule(ctx, w.workerID, event.ID, next, "publish_failed"); err != nil {
+		return fmt.Errorf("persist outbox retry: %w", err)
+	}
+	if w.metrics != nil {
 		w.metrics.ObserveRetry(event, publishErr)
 	}
+	return nil
 }
 
 func validate(event Event) error {

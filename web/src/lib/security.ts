@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Session } from "@/lib/session";
 
 export const securityHeaders: Record<string, string> = {
-  "Content-Security-Policy": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
   "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -12,20 +11,43 @@ export const securityHeaders: Record<string, string> = {
   "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
 };
 
-export function addSecurityHeaders(response: NextResponse): NextResponse {
+export function contentSecurityPolicy(nonce?: string): string {
+  const scriptSource = nonce ? `script-src 'self' 'nonce-${nonce}'` : "script-src 'self'";
+  const styleSource = nonce ? `style-src 'self' 'nonce-${nonce}'` : "style-src 'self'";
+  return `default-src 'self'; ${scriptSource}; ${styleSource}; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'`;
+}
+
+export function addSecurityHeaders(response: NextResponse, nonce?: string): NextResponse {
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy(nonce));
   for (const [name, value] of Object.entries(securityHeaders)) response.headers.set(name, value);
+  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? "development").trim().toLowerCase();
+  if (deploymentEnvironment === "production" || deploymentEnvironment === "prod") {
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
   return response;
 }
 
 // Cookie-authenticated mutations must originate from this same public origin.
 export function hasSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
-  return origin !== null && origin === request.nextUrl.origin;
+  if (origin === null) return false;
+  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? "development").trim().toLowerCase();
+  const configuredOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN?.trim();
+  if ((deploymentEnvironment === "production" || deploymentEnvironment === "prod") && !configuredOrigin) return false;
+  if (!configuredOrigin) return origin === request.nextUrl.origin;
+  try {
+    return origin === new URL(configuredOrigin).origin;
+  } catch {
+    return false;
+  }
 }
 
 export function hasValidCSRF(request: NextRequest, session: Session): boolean {
   const token = request.headers.get("x-csrf-token");
-  return hasSameOrigin(request) && token !== null && token.length === session.csrfToken.length && token === session.csrfToken;
+  if (!hasSameOrigin(request) || token === null || token.length !== session.csrfToken.length) return false;
+  let difference = 0;
+  for (let index = 0; index < token.length; index += 1) difference |= token.charCodeAt(index) ^ session.csrfToken.charCodeAt(index);
+  return difference === 0;
 }
 
 export async function readBoundedJSON<T>(request: NextRequest, maximumBytes = 16_384): Promise<T> {

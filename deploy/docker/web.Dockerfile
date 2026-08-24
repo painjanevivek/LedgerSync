@@ -1,13 +1,16 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web ./
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:24-alpine
 ENV NODE_ENV=production
-RUN addgroup -S ledgersync && adduser -S ledgersync -G ledgersync
+ENV HOSTNAME=0.0.0.0
+RUN addgroup -S ledgersync && adduser -S ledgersync -G ledgersync \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 COPY --from=builder --chown=ledgersync:ledgersync /app/.next/standalone ./
 COPY --from=builder --chown=ledgersync:ledgersync /app/.next/static ./.next/static

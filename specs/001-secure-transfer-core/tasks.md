@@ -87,16 +87,16 @@
 
 **Independent Test**: modify account IDs, call admin routes as a normal user, and inspect logs/telemetry for sensitive-data leakage.
 
-- [ ] T050 [P] [US3] Write object-authorization negative tests in `tests/integration/account_authorization_test.go`
-- [ ] T051 [P] [US3] Write BFF CSRF, session, and security-header tests in `web/tests/security/session.test.ts`
-- [ ] T052 [P] [US3] Write administrative-route and log-redaction tests in `tests/integration/admin_authorization_test.go` and `tests/unit/redaction_test.go`
-- [ ] T053 [US3] Implement OIDC token validation and role/scope mapping in `internal/platform/identity/oidc.go`
-- [ ] T054 [US3] Implement account read/history authorization use cases in `internal/application/accounts/service.go` and `internal/application/transactions/history.go`
-- [ ] T055 [US3] Implement owned-account and history handlers in `internal/transport/http/handlers/accounts.go` and `internal/transport/http/handlers/transactions.go`
-- [ ] T056 [US3] Implement BFF account/history routes and deny-by-default admin routing in `web/src/app/api/me/accounts/route.ts`, `web/src/app/api/accounts/[accountId]/transactions/route.ts`, and `web/src/app/admin/`
-- [ ] T057 [US3] Implement audit-event persistence and sensitive-action audit policy in `internal/platform/db/audit_repository.go` and `docs/runbooks/audit-events.md`
-- [ ] T058 [US3] Move local secrets to configuration and document managed-secret/rotation requirements in `.env.example` and `docs/runbooks/secrets-rotation.md`
-- [ ] T059 [US3] Restrict Compose networking, container privileges, and diagnostic profile exposure in `deploy/compose/docker-compose.yml` and `deploy/docker/`
+- [X] T050 [P] [US3] Write object-authorization negative tests in `tests/integration/account_authorization_test.go`
+- [X] T051 [P] [US3] Write BFF CSRF, session, and security-header tests in `web/tests/security/session.test.ts`
+- [X] T052 [P] [US3] Write administrative-route and log-redaction tests in `tests/integration/admin_authorization_test.go` and `tests/unit/redaction_test.go`
+- [X] T053 [US3] Implement OIDC token validation and role/scope mapping in `internal/platform/identity/oidc.go`
+- [X] T054 [US3] Implement account read/history authorization use cases in `internal/application/accounts/service.go` and `internal/application/transactions/history.go`
+- [X] T055 [US3] Implement owned-account and history handlers in `internal/transport/http/handlers/accounts.go` and `internal/transport/http/handlers/transactions.go`
+- [X] T056 [US3] Implement BFF account/history routes and deny-by-default admin routing in `web/src/app/api/me/accounts/route.ts`, `web/src/app/api/accounts/[accountId]/transactions/route.ts`, and `web/src/app/admin/`
+- [X] T057 [US3] Implement audit-event persistence and sensitive-action audit policy in `internal/platform/db/audit_repository.go` and `docs/runbooks/audit-events.md`
+- [X] T058 [US3] Move local secrets to configuration and document managed-secret/rotation requirements in `.env.example` and `docs/runbooks/secrets-rotation.md`
+- [X] T059 [US3] Restrict Compose networking, container privileges, and diagnostic profile exposure in `deploy/compose/docker-compose.yml` and `deploy/docker/`
 
 **Checkpoint**: US3 denies cross-account and unauthorized admin access without disclosure, while operators retain sanitized audit evidence.
 
@@ -106,30 +106,109 @@
 
 **Independent Test**: stop Redis/worker, age an outbox event, simulate a restore, and verify dashboards/runbooks/reconciliation evidence.
 
-- [ ] T060 [P] [US4] Write dependency-loss, outbox-recovery, and reconciliation-alert fault tests in `tests/fault/dependency_recovery_test.go`
-- [ ] T061 [P] [US4] Write migration-forward/backward compatibility tests in `tests/integration/migration_compatibility_test.go`
-- [ ] T062 [US4] Implement OpenTelemetry traces/metrics for API, worker, DB, cache, and event boundaries in `internal/platform/observability/telemetry.go`
-- [ ] T063 [US4] Define Prometheus alerts and Grafana dashboards in `deploy/observability/alerts.yml` and `deploy/observability/dashboards/`
-- [ ] T064 [US4] Implement reconciliation command/result persistence in `cmd/reconcile/main.go` and `internal/application/reconciliation/service.go`
-- [ ] T065 [US4] Create encrypted-backup/PITR configuration and isolated restore procedure in `deploy/backup/` and `docs/runbooks/restore.md`
-- [ ] T066 [US4] Create database, Redis, outbox, consistency, idempotency, secret-compromise, and restore runbooks in `docs/runbooks/`
-- [ ] T067 [US4] Add backup-age, restore-result, outbox-age, and zero-RYEW-violation release checks in `.github/workflows/release-evidence.yml`
+- [X] T060 [P] [US4] Write dependency-loss, outbox-recovery, and reconciliation-alert fault tests in `tests/fault/dependency_recovery_test.go`
+- [X] T061 [P] [US4] Write migration-forward/backward compatibility tests in `tests/integration/migration_compatibility_test.go`
+- [X] T062 [US4] Implement OpenTelemetry traces/metrics for API, worker, DB, cache, and event boundaries in `internal/platform/observability/telemetry.go`
+- [X] T063 [US4] Define Prometheus alerts and Grafana dashboards in `deploy/observability/alerts.yml` and `deploy/observability/dashboards/`
+- [X] T064 [US4] Implement reconciliation command/result persistence in `cmd/reconcile/main.go` and `internal/application/reconciliation/service.go`
+- [X] T065 [US4] Create encrypted-backup/PITR configuration and isolated restore procedure in `deploy/backup/` and `docs/runbooks/restore.md`
+- [X] T066 [US4] Create database, Redis, outbox, consistency, idempotency, secret-compromise, and restore runbooks in `docs/runbooks/`
+- [X] T067 [US4] Add backup-age, restore-result, outbox-age, and zero-RYEW-violation release checks in `.github/workflows/release-evidence.yml`
 
 **Checkpoint**: US4 proves dependency behavior, runbook-guided recovery, reconciliation, and restore evidence before shared deployment.
 
 ## Phase 7: Polish and cross-cutting launch readiness
 
-- [ ] T068 [P] Build dashboard sign-in, owned-account, balance, transaction-history, and sign-out screens in `web/src/app/` and `web/src/features/accounts/`
-- [ ] T069 [P] Build accessible transfer form, exact-money input, stable idempotency-key lifecycle, confirmation, and error states in `web/src/features/transfers/`
-- [ ] T070 Implement plain-language RYEW refresh and temporary-unavailability UX in `web/src/features/accounts/BalanceStatus.tsx`
-- [ ] T071 [P] Add Playwright authorized transfer/retry/error journey tests in `web/tests/e2e/transfer.spec.ts`
-- [ ] T072 [P] Add axe accessibility checks in `web/tests/e2e/accessibility.spec.ts`
-- [ ] T073 Add Go formatting, vet, lint, race, fuzz/property, Testcontainers, and coverage gates in `.github/workflows/quality.yml`
-- [ ] T074 [P] Add secret, dependency, container, IaC, and SBOM/provenance gates in `.github/workflows/security.yml`
-- [ ] T075 [P] Add reproducible fault-injection profile and Toxiproxy scenarios in `deploy/compose/docker-compose.fault.yml` and `tests/fault/`
-- [ ] T076 Add load-test scenarios, initial SLO targets, and capacity report template in `tests/performance/` and `docs/performance-baseline.md`
-- [ ] T077 Add public architecture, API, operations, and developer onboarding documentation in `README.md` and `docs/`
-- [ ] T078 Run every scenario in `quickstart.md` and attach release evidence in `docs/release-evidence/secure-transfer-core.md`
+- [X] T068 [P] Build dashboard sign-in, owned-account, balance, transaction-history, and sign-out screens in `web/src/app/` and `web/src/features/accounts/`
+- [X] T069 [P] Build accessible transfer form, exact-money input, stable idempotency-key lifecycle, confirmation, and error states in `web/src/features/transfers/`
+- [X] T070 Implement plain-language RYEW refresh and temporary-unavailability UX in `web/src/features/accounts/BalanceStatus.tsx`
+- [X] T071 [P] Add Playwright authorized transfer/retry/error journey tests in `web/tests/e2e/transfer.spec.ts`
+- [X] T072 [P] Add axe accessibility checks in `web/tests/e2e/accessibility.spec.ts`
+- [X] T073 Add Go formatting, vet, lint, race, fuzz/property, Testcontainers, and coverage gates in `.github/workflows/quality.yml`
+- [X] T074 [P] Add secret, dependency, container, IaC, and SBOM/provenance gates in `.github/workflows/security.yml`
+- [X] T075 [P] Add reproducible fault-injection profile and Toxiproxy scenarios in `deploy/compose/docker-compose.fault.yml` and `tests/fault/`
+- [X] T076 Add load-test scenarios, initial SLO targets, and capacity report template in `tests/performance/` and `docs/performance-baseline.md`
+- [X] T077 Add public architecture, API, operations, and developer onboarding documentation in `README.md` and `docs/`
+- [X] T078 Run every scenario in `quickstart.md` and attach release evidence in `docs/release-evidence/secure-transfer-core.md`
+
+## Phase 0A–0D Amendment: Architecture-audit remediation — completed before UI/pilot work
+
+**Source of truth**: `docs/plans/ledgersync-implementation-plan.md`, architecture amendment dated 2026-08-24.
+
+**Execution record**: T097–T114 were stop-ship work and completed in order before the final T081/T092/T093/T096 evidence. Each task includes test-first evidence, implementation, contract/runbook updates, and focused commits. Existing checked tasks remain historical evidence and are not silently treated as proof for these cross-boundary controls.
+
+### Phase 0A — Cross-boundary identity and exact money
+
+- [X] T097 [REMED-001] Normalize the production TypeScript BFF actor assertion and Go verifier to one Unix-second, issuer/audience/key/unique-ID/scope/replay contract in `web/src/lib/actor-assertion.ts`, `internal/platform/identity/bff_assertion.go`, and cross-runtime tests
+- [X] T098 [REMED-002] Add renewable least-privilege private-API workload credentials, rotation/expiry handling, complete scope allowlisting, and production refusal of static local credentials in `web/src/lib/`, `internal/platform/identity/`, configuration, and runbooks
+- [X] T099 [REMED-003] Convert every unsafe financial JSON amount and version to canonical decimal strings across Go DTOs, OpenAPI, BFF/TypeScript types, formatters, fixtures, and UI without renaming public routes
+- [X] T100 [REMED-004] Add unmocked TypeScript-producer/decoder-to-Go-verifier/API contract tests covering assertion failures and signed-64-bit exact-money boundaries
+
+### Phase 0B — Reconciliation and delivery truth
+
+- [X] T101 [REMED-005] Rebuild reconciliation around a complete tenant scope and consistent PostgreSQL snapshot/watermark; detect missing/orphan projections, missing/unbalanced postings, empty unintended scope, and concurrent changes
+- [X] T102 [REMED-006] Persist cursor-addressable reconciliation mismatch records with exact expected/observed evidence, provenance, audit correlation, and restart-safe list/detail contracts
+- [X] T103 [REMED-007] Model actual downstream delivery attempts separately from financial and outbox/cache-publication state; derive UI/API delivery status only from durable attempt evidence
+
+### Phase 0C — Enforced platform controls and complete contract
+
+- [X] T104 [REMED-008] Wire bounded Go HTTP and BFF upstream timeouts, header/body/request limits, tenant/principal/route rate limits, stable `429`/`Retry-After`, metrics, and safe unknown-outcome retry behavior
+- [X] T105 [REMED-009] Enforce server-side transfer amount, rolling velocity, account status, tenant/role policy, and destination-credit authorization transactionally under concurrency
+- [X] T106 [REMED-010] Separate migration, API, worker, reconciliation, support/read-only, and break-glass PostgreSQL roles; deny runtime mutation of immutable financial/audit/evidence records
+- [X] T107 [REMED-011] Invoke append-only redacted audit coverage for transfers, auth decisions, reconciliation/mismatches, replay, privileged configuration, credential lifecycle, and recovery evidence
+- [X] T108 [REMED-012] Enforce one configured pilot currency across startup, provisioning, account/transfer validation, aggregation, reconciliation, fixtures, and UI formatting
+- [X] T109 [REMED-013] Complete OpenAPI for every supported MVP route and align string money/version fields, cursors, errors, auth, `429`, and Apache-2.0 metadata; block runtime/schema drift in CI
+
+### Phase 0D — Lifecycle, recovery operations, and real evidence
+
+- [X] T110 [REMED-014] Implement approved bounded Redis stream and PostgreSQL retention/partition/cleanup controls with dry-run, batching, metrics, restore compatibility, and immutable/unresolved-record protection
+- [X] T111 [REMED-015] Add authorized inspect/approve/replay operations for dead outbox/delivery work with deduplication, audit, alerting, restart safety, and surfaced persistence errors
+- [X] T112 [REMED-016] Preserve truthful independent history loading/error/empty states and re-enable complete contrast, keyboard, screen-reader, zoom, reflow, and responsive checks
+- [X] T113 [REMED-017] Align history indexes with stable query ordering and split oversized operator/account/transfer/style modules behind existing tests without public API renames or new dependencies
+- [X] T114 [REMED-018] Implement a narrow audited internal partner-provisioning workflow for tenant, subject mapping, accounts, currency, limits, roles, credentials, validation, and rollback without public self-service
+
+**Checkpoint**: the real BFF/API path authenticates; every financial JSON integer is lossless; reconciliation and delivery claims have positive persisted evidence; platform controls are enforced; growth and dead work are operable; critical integration evidence uses the actual runtimes.
+
+## Future roadmap Phase 1 amendment: India pilot identity and launch closure
+
+**Source of truth**: `docs/plans/ledgersync-future-scope-implementation-plan.md` and the approved India launch profile dated 2026-08-24.
+
+- [X] T115 [PILOT-001] Record the approved buyer, API-first plus invite-only console boundary, India jurisdiction, internal-ledger scope, INR policy, AWS regions, recovery objectives, capacity targets, and graduation metrics in `docs/pilot/india-launch-profile.md`
+- [X] T116 [P] [PILOT-002] Write failing Go, TypeScript, and contract tests for Cognito token purpose/audience/client mapping, server-owned operator permissions, mandatory BFF actor delegation, and INR pilot artifacts in `internal/platform/identity/oidc_test.go`, `internal/platform/config/config_test.go`, `web/tests/security/oidc-policy.test.ts`, and `tests/contract/india_pilot_contract_test.go`
+- [X] T117 [PILOT-003] Implement Cognito access-token validation with issuer discovery, signature/expiry verification, `token_use=access`, resource audience, `client_id`, allowlisted scopes, and server client-to-tenant mapping in `internal/platform/identity/oidc.go`, `internal/platform/config/config.go`, and `cmd/api/main.go`
+- [X] T118 [PILOT-004] Implement invite-only server-owned operator subject permissions, require `token_use=id` for the console callback, and reject BFF workload requests without an actor assertion in `web/src/lib/oidc.ts` and `internal/platform/identity/bff_assertion.go`
+- [X] T119 [PILOT-005] Align supported configuration, local evidence, provisioning, contracts, UI fixtures, and performance traffic to INR and the approved paise limits in `.env.example`, `deploy/compose/`, `docs/pilot/`, `contracts/`, `specs/`, `web/tests/e2e/`, and `tests/performance/`
+- [X] T120 [PILOT-006] Complete the validated repository-grounded India target-topology threat model with prioritized abuse paths, mitigations, detection, and manual-review focus paths in `docs/security/LedgerSync-threat-model.md`
+- [ ] T121 [PILOT-007] Deploy and prove the AWS Mumbai/Cognito target: WAF/private networking, managed secrets and database roles, Multi-AZ PostgreSQL/Redis, real-token allow/deny tests, clean-checkout suites, provider PITR/Redis rebuild/reconciliation drill, named incident owners, counsel/security/product/finance approval, and one design-partner release-candidate sign-off
+
+**Checkpoint**: repository identity and INR launch controls are complete. Phase 1 remains open until T121 produces managed-environment and accountable-human evidence; code or documentation cannot self-certify that gate.
+
+## Phase 8: Functional operator UI and responsive release completion
+
+**Goal**: replace the visual-only preview with truthful, working operator journeys that remain usable and financially unambiguous on mobile, tablet, laptop, desktop, zoomed, keyboard-only, and degraded-network environments.
+
+**Independent Test**: start the isolated local demo, complete account investigation and retry-safe transfer journeys at 390 × 844, 768 × 1024, 1024 × 768, 1366 × 768, 1440 × 900, and 1920 × 1080, then repeat critical checks with keyboard navigation, 200% zoom, 400% reflow, offline mode, and an unknown transfer outcome.
+
+- [X] T079 [P] Remove invented financial evidence and false affordances from `web/src/features/console/PreviewConsole.tsx` and `web/src/features/console/ConsoleShell.tsx`; every enabled link, button, row, copy icon, menu indicator, and refresh control must have an observable outcome
+- [X] T080 Implement a server-gated, production-blocked demo session and deterministic PostgreSQL seed workflow through the real BFF/API contracts in `web/src/app/api/session/`, `deploy/compose/`, and `docs/pilot/`; add tests proving demo mode cannot start in production
+- [X] T081 Implement truthful account list/search/filter/pagination and object-specific account detail routes in `web/src/app/accounts/`, preserving balance version, as-of time, currency, status, postings, audit context, and back/filter state
+- [X] T082 Implement transfer list/search/filter/pagination and immutable transfer detail BFF/routes in `web/src/app/transfers/`, separating ledger posting status from webhook/notification delivery status
+- [X] T083 Implement prepare → review → confirm → final-outcome transfer interaction with safe retry-key retention, focus management, confirmation summary, and updated balance in `web/src/features/transfers/`
+- [X] T084 Implement tenant-authorized reconciliation evidence BFF/list/detail routes and evidence-unavailable behavior in `web/src/app/api/reconciliation/` and `web/src/app/reconciliation/`; never infer a passing result
+- [X] T085 [P] Implement reusable accessible copy, status, record-link, filter, pagination, empty, loading, error, offline, permission-denied, and unknown-outcome components in `web/src/features/console/`
+- [X] T086 Build the responsive shell from one semantic component tree: shared breakpoint/layout tokens, CSS Grid/Flexbox and component-query adaptation, mobile top bar/drawer, tablet compact rail/top menu, desktop rail, safe-area/dynamic-viewport handling, focus restoration, Escape behavior, and persistent tenant/environment context in `web/src/features/console/ConsoleShell.tsx`; avoid hydration-sensitive JavaScript layout branching
+- [X] T087 Build responsive accounts, transfers, ledger, audit, and reconciliation data patterns: compact evidence cards where appropriate and labeled keyboard-scrollable tables where comparison is essential; prohibit page-level horizontal overflow and verify long names, full identifiers, large exact amounts, timestamps, error copy, and increased text spacing remain available and copyable
+- [X] T088 Build responsive transfer and detail layouts that preserve source, destination, exact amount/currency, status, identifiers, timestamps, and confirmation controls across rotation, breakpoint changes, and the mobile virtual keyboard
+- [X] T089 [P] Add semantic-content tests for approved balance aggregation, separation of financial/delivery states, truthful reconciliation language, and prohibition of production placeholder/demo claims in `web/tests/`
+- [X] T090 [P] Add keyboard, focus, screen-reader announcement, forced-colors, reduced-motion, 200% zoom, and 400% reflow checks across compact/tablet/desktop layouts in `web/tests/e2e/accessibility.spec.ts`
+- [X] T091 [P] Add Playwright viewport journeys at 390 × 844, 768 × 1024, 1024 × 768, 1366 × 768, 1440 × 900, and 1920 × 1080 for navigation, account detail, record deep links, filters, copy, transfer review/post/retry, updated balance, and reconciliation evidence in `web/tests/e2e/responsive.spec.ts`
+- [X] T092 Add visual-regression coverage for shared shell and every MVP screen in populated, loading, empty, error, offline, permission-denied, unknown-outcome, and mismatch states; store reviewed baselines in `docs/design/qa/responsive/`
+- [X] T093 Add frontend performance budgets and throttled compact-device checks for JavaScript, route chunks, fonts/icons, LCP, INP, CLS, progressive rendering, and large-history behavior in `.github/workflows/quality.yml` and `docs/performance-baseline.md`
+- [ ] T094 Perform and record smoke tests on real iOS, Android, tablet, and desktop/laptop devices, including safe areas, touch targets, virtual keyboard, rotation, slow network, and offline recovery in `docs/release-evidence/ui-device-matrix.md`
+- [ ] T095 Conduct finance/operations content review for aggregate balances, account ownership categories, status terminology, evidence provenance, and UTC presentation; record approved definitions in `docs/product/financial-ui-semantics.md`
+- [X] T096 Run the complete functional/responsive release suite and attach screenshots, interaction traces, accessibility output, performance results, demo-isolation proof, and known limitations to `docs/release-evidence/operator-ui.md`
+
+**Checkpoint**: no placeholder behavior or invented evidence remains in the supported operator journey; every visible control works or explains why it cannot; mobile, tablet, laptop, and desktop evidence meets the same financial-trust contract.
 
 ## Dependencies and execution order
 
@@ -140,6 +219,8 @@
 - **US3** requires Phase 2; it can be developed in parallel with US2 after US1's transfer contract and identity foundations are stable.
 - **US4** requires Phases 1–4 because it measures/recover their behavior; T060/T061 can start before observability implementation.
 - **Phase 7** dashboard work depends on US1–US3 contracts; final evidence T078 depends on all desired stories.
+- **Architecture amendment** T097–T114 depended on the frozen baseline and completed sequentially in Phase 0A → 0B → 0C → 0D before the final UI evidence.
+- **Phase 8** corrected the visual-only prototype against the remediated real BFF/API contracts. T096 now closes the automated/repository release suite; real-device T094 and finance approval T095 remain separate external gates and are not implied by T096.
 
 ## Parallel subagent assignments
 
@@ -152,6 +233,7 @@ Only start tasks whose prerequisites are complete. Avoid concurrent edits to the
 | Consistency/reliability engineer | T040–T049, T060–T067 | US1 completed; US4 after US2 | Outbox, versioned cache, RYEW, telemetry, recovery and runbooks. |
 | Web/security engineer | T050–T059, T068–T072 | Phase 2; UI after contracts stabilize | OIDC/BFF, authorization, admin isolation, accessible dashboard. |
 | Release-quality engineer | T073–T078 | Core contracts and tests exist | Supply-chain gates, fault/load tests, documentation and release evidence. |
+| Product UI/accessibility engineer | T079–T096 | Real BFF contracts available; demo isolation agreed | Truthful functional operator journeys and responsive evidence across supported devices. |
 
 ## MVP strategy
 

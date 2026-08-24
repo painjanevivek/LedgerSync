@@ -1,0 +1,74 @@
+:root {
+  color-scheme: light;
+  --ink: #0b1e3c;
+  --ink-soft: #253652;
+  --muted: #52627d;
+  --faint: #5f6c84;
+  --canvas: #f7f8fa;
+  --paper: #ffffff;
+  --paper-subtle: #f2f5f1;
+  --line: #d8dfda;
+  --line-strong: #b9c4bd;
+  --rail: #071a36;
+  --rail-deep: #0a2a50;
+  --rail-text: #f3f7f4;
+  --rail-muted: #c2cee0;
+  --green: #087443;
+  --green-dark: #065f38;
+  --green-soft: #eaf8f0;
+  --blue: #155ec5;
+  --amber: #81500e;
+  --amber-soft: #fbf2df;
+  --red: #8d392f;
+  --red-soft: #f7e9e7;
+  --focus: #b27100;
+  --blue-hover: #0f4d9f;
+  --brand-accent: #8ce0c1;
+  --surface-success: #f5fbf8;
+  --line-success: #b8d7c7;
+  --white: #ffffff;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  --type-caption: 8px;
+  --type-label: 10px;
+  --type-body: 12px;
+  --type-heading: 25px;
+
+  --radius-control: 3px;
+  --radius-surface: 6px;
+  --radius-pill: 999px;
+  --radius: var(--radius-control);
+  --shadow-surface: 0 1px 2px rgb(11 30 60 / 4%);
+  --shadow-drawer: 12px 0 30px rgb(0 0 0 / 24%);
+  --target-compact: 44px;
+  --target-comfortable: 48px;
+  --z-sticky: 12;
+  --z-skip-link: 20;
+  --z-backdrop: 25;
+  --z-drawer: 30;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-sans);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { min-width: 0; margin: 0; background: var(--canvas); color: var(--ink); }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .52; }
+a { color: inherit; }
+code, .mono { font-family: var(--font-mono); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

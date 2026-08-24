@@ -1,0 +1,5 @@
+# Backup and PITR operating policy
+
+The policy in [postgres-pitr-policy.yaml](../../deploy/backup/postgres-pitr-policy.yaml) is a release requirement, not an enabled backup system by itself.
+
+Before shared production, the platform owner must attach managed-provider evidence that confirms encrypted continuous WAL archiving, 35-day point-in-time retention, a separate backup trust boundary, and backup age below 15 minutes. The backup must include lifecycle, recovery-action, credential-event, and partner-provisioning evidence introduced by migration 000010 plus the account-directory indexes introduced by migration 000011. Run an isolated restore at least every 30 days and execute the compatibility checks in `restore.md`. A missing or failed drill blocks release.

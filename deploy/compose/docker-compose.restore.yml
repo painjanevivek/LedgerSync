@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ledgersync
+      POSTGRES_USER: ledgersync
+      POSTGRES_PASSWORD: restore-drill-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledgersync -d ledgersync"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    volumes:
+      - restore-postgres-data:/var/lib/postgresql/data
+    networks: [recovery]
+    security_opt: ["no-new-privileges:true"]
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    networks: [recovery]
+    security_opt: ["no-new-privileges:true"]
+
+  migrate:
+    profiles: [tooling]
+    image: ${LEDGERSYNC_RECOVERY_IMAGE:?set LEDGERSYNC_RECOVERY_IMAGE to the local API image}
+    entrypoint: ["/usr/local/bin/migrate"]
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:restore-drill-only@postgres:5432/ledgersync?sslmode=disable
+    networks: [recovery]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+  reconcile:
+    profiles: [tooling]
+    image: ${LEDGERSYNC_RECOVERY_IMAGE:?set LEDGERSYNC_RECOVERY_IMAGE to the local API image}
+    entrypoint: ["/usr/local/bin/reconcile"]
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:restore-drill-only@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_REDIS_ADDR: redis:6379
+    networks: [recovery]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
+networks:
+  recovery:
+    internal: true
+
+volumes:
+  restore-postgres-data:

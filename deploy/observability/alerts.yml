@@ -1,0 +1,73 @@
+groups:
+  - name: ledgersync-financial-safety
+    rules:
+      - alert: LedgerSyncRYEWViolation
+        expr: increase(ledgersync_ryew_violations_total[5m]) > 0
+        for: 0m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: A completed transfer's required balance version was unavailable from primary.
+          runbook: docs/runbooks/consistency-ryew.md
+      - alert: LedgerSyncReconciliationMismatch
+        expr: increase(ledgersync_reconciliation_runs_total{status="mismatch"}[15m]) > 0
+        for: 0m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: Ledger-derived balance and PostgreSQL projection differ.
+          runbook: docs/runbooks/reconciliation-mismatch.md
+      - alert: LedgerSyncOutboxBacklog
+        expr: histogram_quantile(0.99, sum(rate(ledgersync_outbox_event_age_seconds_bucket[10m])) by (le)) > 300
+        for: 10m
+        labels: { severity: warning, service: ledgersync }
+        annotations:
+          summary: A claimed outbox event is older than five minutes.
+          runbook: docs/runbooks/outbox-backlog.md
+      - alert: LedgerSyncRedisStreamNearBound
+        expr: ledgersync_redis_stream_depth > 4000000
+        for: 15m
+        labels: { severity: warning, service: ledgersync }
+        annotations:
+          summary: Disposable balance stream exceeds 80 percent of its configured five-million-entry bound.
+          runbook: docs/runbooks/outbox-backlog.md
+      - alert: LedgerSyncRedisConsumerLag
+        expr: ledgersync_redis_consumer_lag > 10000
+        for: 10m
+        labels: { severity: warning, service: ledgersync }
+        annotations:
+          summary: The balance projector is more than ten thousand events behind the Redis stream.
+          runbook: docs/runbooks/outbox-backlog.md
+      - alert: LedgerSyncDeadWorkDetected
+        expr: increase(ledgersync_recovery_dead_work_total[5m]) > 0
+        for: 0m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: Outbox work exhausted automatic retries and requires reviewed recovery.
+          runbook: docs/runbooks/outbox-backlog.md
+      - alert: LedgerSyncRecoveryOperationFailed
+        expr: increase(ledgersync_recovery_operations_total{outcome="error"}[5m]) > 0
+        for: 0m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: An inspect, approval, or replay recovery operation failed.
+          runbook: docs/runbooks/outbox-backlog.md
+      - alert: LedgerSyncBoundaryFailureRate
+        expr: sum(rate(ledgersync_boundary_operations_total{outcome="error"}[5m])) / clamp_min(sum(rate(ledgersync_boundary_operations_total[5m])), 1) > 0.02
+        for: 10m
+        labels: { severity: warning, service: ledgersync }
+        annotations:
+          summary: Dependency boundary error rate exceeds two percent.
+          runbook: docs/runbooks/database-outage.md
+      - alert: LedgerSyncBackupTooOld
+        expr: ledgersync_backup_age_minutes > 15
+        for: 5m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: Managed PostgreSQL backup age exceeds the approved RPO window.
+          runbook: docs/runbooks/backup-pitr.md
+      - alert: LedgerSyncRestoreDrillFailed
+        expr: ledgersync_restore_drill_success == 0
+        for: 0m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: The latest isolated restore drill did not complete successfully.
+          runbook: docs/runbooks/restore.md

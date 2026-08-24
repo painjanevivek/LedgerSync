@@ -34,7 +34,9 @@ data/
 .codebase-memory/
 .tools/
 .cache/
+.tmp/
 
 # Local Codex/agent instructions are machine-local and must never be committed.
 .agents/
 **/SKILL.md
+**/skills.md

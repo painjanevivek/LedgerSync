@@ -159,8 +159,16 @@ Domain code knows financial rules, not HTTP/Redis/UI. Application code orchestra
 5. Show validating, processing, completed, invalid, insufficient-funds, safely-retried, refreshing and temporary-unavailable states in plain language.
 6. Place simulation only on an authorized developer/admin page.
 7. Verify keyboard flow, focus return, labels, screen-reader status, contrast, mobile layout and recoverable errors.
+8. Treat responsive behavior as a release contract across compact mobile (320–767 px), tablet/small laptop (768–1199 px), standard desktop (1200–1599 px), and wide desktop (>=1600 px). Preserve tenant, status, exact amount/currency, identifiers, UTC timestamps, and evidence at every size.
+9. Implement a mobile top bar and full-height navigation drawer, tablet compact rail/top navigation, and desktop persistent rail from one semantic component tree. Centralize breakpoints/spacing/type/target/z-index tokens, prefer CSS Grid/Flexbox and component container queries, and avoid hydration-sensitive JavaScript layout branching. Navigation overlays restore focus, close with Escape, respect safe areas, and never hide tenant/environment context.
+10. Transform account and transfer tables into prioritized record cards on compact screens where comparison is not required. True tables may scroll inside a labeled keyboard-accessible region; the page itself must not gain horizontal overflow. Stress-test long names, immutable IDs, large exact amounts, timestamps, errors, and increased text spacing without losing the complete copyable value.
+11. Implement prepare → review → confirm → final-outcome transfer steps. Mobile review uses a dedicated page/full-screen sheet so source, destination, exact amount, currency, and posting consequence remain visible together.
+12. Remove visual-only controls and fictional financial claims. Every record link opens the selected object; copy, refresh, filter, tenant, menu, and row controls either work, clearly explain their prerequisite, or are absent.
+13. Use deterministic PostgreSQL seed data through the real BFF/API for local demonstration. A server-gated demo session must fail closed when `NODE_ENV=production`; normal environments retain OIDC and object authorization.
+14. Require authoritative evidence before displaying “reconciled,” “passed,” or a mismatch count. Show evidence unavailable when the reconciliation BFF contract is absent.
+15. Separate committed ledger status from webhook/notification delivery status and avoid aggregate balance totals unless finance approves the accounting meaning.
 
-**Exit evidence**: browser E2E tests cover success/error/retry; accessibility tests pass; 95% of representative users can complete a normal transfer on first attempt.
+**Exit evidence**: browser E2E tests cover success/error/retry and every visible control; accessibility, 200% zoom, 400% reflow, rotation, safe-area, virtual-keyboard, and overflow checks pass at 390, 768, 1024, 1366, 1440, and 1920 px classes; 95% of representative users can complete a normal transfer on first attempt on mobile, tablet, and desktop.
 
 ### Phase 6 — Security and network hardening
 
@@ -201,8 +209,13 @@ Domain code knows financial rules, not HTTP/Redis/UI. Application code orchestra
 6. Load test agreed capacity; tune only after query plan/pool/worker/cache measurement.
 7. CI requires formatting, static analysis, tests, secret/SCA/container/IaC scans, SBOM, provenance/signing and migration compatibility.
 8. Production release requires review, required checks, reconciliation, RYEW fault, cross-account authorization and restore-drill evidence.
+9. Add responsive interaction and visual-regression suites for loading, populated, empty, error, offline, permission-denied, unknown-outcome, and reconciliation-mismatch states across the approved viewport matrix.
+10. Fail UI quality checks on unintended page-level horizontal overflow, clipped focus rings, covered sticky actions, inaccessible scroll containers, broken deep links, or text below the approved type-token floor.
+11. Test keyboard and screen-reader journeys at compact, tablet, and desktop sizes; automated axe results supplement manual verification.
+12. Set frontend performance budgets for initial JavaScript, route chunks, LCP, INP, and CLS; validate compact layouts under throttled CPU/network and use progressive rendering without presenting stale financial data as current.
+13. Complete real-device smoke tests on iOS, Android, tablet, and desktop/laptop before the shared pilot. Emulation alone does not validate touch accuracy, safe areas, virtual keyboards, or mobile performance.
 
-**Exit evidence**: every feature requirement has automated evidence; artifacts are traceable; performance target is met without bypassing a required gate.
+**Exit evidence**: every feature requirement has automated evidence; viewport/zoom/orientation/accessibility evidence and a signed real-device checklist are traceable; performance targets are met without bypassing a financial, security, or usability gate.
 
 ### Phase 9 — Controlled rollout and justified scaling
 

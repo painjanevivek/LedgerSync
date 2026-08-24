@@ -2,8 +2,8 @@ package unit_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"log/slog"
-	"strings"
 	"testing"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
@@ -13,11 +13,14 @@ func TestLoggerRedactsSensitiveValues(t *testing.T) {
 	var output bytes.Buffer
 	logger := observability.NewLogger(slog.NewJSONHandler(&output, nil))
 	logger.Info("request", "authorization", "Bearer secret", "balance_minor", 900, "safe", "ok")
-	log := output.String()
-	if strings.Contains(log, "Bearer secret") || strings.Contains(log, "900") {
-		t.Fatalf("sensitive value was logged: %s", log)
+	var record map[string]any
+	if err := json.Unmarshal(output.Bytes(), &record); err != nil {
+		t.Fatalf("decode structured log: %v", err)
 	}
-	if !strings.Contains(log, observability.Redacted) || !strings.Contains(log, "ok") {
-		t.Fatalf("expected redaction and safe value: %s", log)
+	if record["authorization"] != observability.Redacted || record["balance_minor"] != observability.Redacted {
+		t.Fatalf("sensitive fields were not redacted: %s", output.String())
+	}
+	if record["safe"] != "ok" {
+		t.Fatalf("safe field was not retained: %s", output.String())
 	}
 }
