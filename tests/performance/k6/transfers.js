@@ -65,7 +65,7 @@ function ensureSession() {
 function transfer(key) {
   const response = http.post(
     `${baseURL}/api/transfers`,
-    JSON.stringify({ sourceAccountId, destinationAccountId, amount: { currency: "USD", minorUnits: "1" } }),
+    JSON.stringify({ sourceAccountId, destinationAccountId, amount: { currency: "INR", minorUnits: "100" } }),
     {
       headers: {
         "Content-Type": "application/json",

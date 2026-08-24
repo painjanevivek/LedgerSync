@@ -68,7 +68,7 @@ func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 
 	var before balancePayload
 	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance", &before)
-	body := []byte(`{"sourceAccountId":"10000000-0000-4000-8000-000000000001","destinationAccountId":"10000000-0000-4000-8000-000000000004","amount":{"currency":"USD","minorUnits":"1"}}`)
+	body := []byte(`{"sourceAccountId":"10000000-0000-4000-8000-000000000001","destinationAccountId":"10000000-0000-4000-8000-000000000004","amount":{"currency":"INR","minorUnits":"100"}}`)
 	key := os.Getenv("LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY")
 	if key == "" {
 		key = "system-stack-idempotency-00000001"
@@ -101,7 +101,7 @@ func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse updated exact balance %q: %v", afterFirst.AvailableMinor, err)
 	}
-	if afterFirstMinor != beforeMinor-1 || afterRetry.AvailableMinor != afterFirst.AvailableMinor {
+	if afterFirstMinor != beforeMinor-100 || afterRetry.AvailableMinor != afterFirst.AvailableMinor {
 		t.Fatalf("immediate balance or replay safety failed: before=%s after_first=%s after_retry=%s", before.AvailableMinor, afterFirst.AvailableMinor, afterRetry.AvailableMinor)
 	}
 	sourceID := "10000000-0000-4000-8000-000000000001"

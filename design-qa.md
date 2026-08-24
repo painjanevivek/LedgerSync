@@ -15,7 +15,7 @@ The comparison normalizes the selected 1440 × 1024 source and the Codex in-app 
 |---|---|---|
 | Application shell | Passed | Persistent deep-navy rail, LedgerSync wordmark, environment context, four-item navigation, session/operator footer, and pale evidence canvas match the source hierarchy. |
 | Overview hierarchy | Passed | Eyebrow, single serif H1, statement balance, reconciliation proof, transfer table, and trust footer appear in the same document order as the reference. |
-| Financial statement | Passed | Exact tabular amount, explicit USD, account scope, authoritative timestamp, and ledger version are grouped in one restrained bordered surface. |
+| Financial statement | Passed | Exact tabular amount, explicit INR, account scope, authoritative timestamp, and ledger version are grouped in one restrained bordered surface. |
 | Reconciliation evidence | Passed | Green verified state, mismatch count, projection explanation, checked time, and evidence action are visibly separated from the transfer table. |
 | Transfer table | Passed | Immutable ID, source, destination, exact amount, financial status, delivery status, UTC time, and record action are presented as a native table with stable alignment. |
 | Typography | Passed | Serif headings, bold sans statement numerals, compact sans UI text, and monospace identifiers/timestamps reproduce the selected editorial-operational character. |

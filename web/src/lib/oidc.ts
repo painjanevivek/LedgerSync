@@ -8,6 +8,26 @@ const transactionLifetimeMs = 10 * 60 * 1000;
 type Discovery = Readonly<{ issuer: string; authorization_endpoint: string; token_endpoint: string; jwks_uri: string }>;
 type Transaction = Readonly<{ state: string; codeVerifier: string; nonce: string; expiresAt: number }>;
 export type VerifiedIdentity = Readonly<{ subjectId: string; tenantId: string; roles: string[]; scopes: string[]; expiresAt: number }>;
+type OperatorAuthorization = Readonly<{ tenantId: string; roles: string[]; scopes: string[] }>;
+
+const allowedRoles = new Set(["tenant:operator", "tenant:admin"]);
+const allowedScopes = new Set(["accounts:read", "transfers:read", "transfers:write", "transactions:read", "reconciliation:read", "audit:read"]);
+
+export function resolveOperatorAuthorization(subjectId: string): OperatorAuthorization {
+  const raw = process.env.LEDGERSYNC_OIDC_SUBJECT_PERMISSIONS;
+  if (!raw) throw new Error("operator authorization mapping is required");
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { throw new Error("operator authorization mapping is invalid"); }
+  if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("operator authorization mapping is invalid");
+  const candidate = (parsed as Record<string, unknown>)[subjectId];
+  if (!candidate || Array.isArray(candidate) || typeof candidate !== "object") throw new Error("operator is not invited");
+  const record = candidate as Record<string, unknown>;
+  const tenantId = typeof record.tenantId === "string" ? record.tenantId.trim() : "";
+  const roles = Array.isArray(record.roles) ? [...new Set(record.roles.filter((value): value is string => typeof value === "string" && allowedRoles.has(value)))] : [];
+  const scopes = Array.isArray(record.scopes) ? [...new Set(record.scopes.filter((value): value is string => typeof value === "string" && allowedScopes.has(value)))] : [];
+  if (!tenantId || tenantId.length > 128 || roles.length === 0 || scopes.length === 0) throw new Error("operator authorization mapping is invalid");
+  return { tenantId, roles, scopes };
+}
 
 function configuration() {
   const issuer = process.env.LEDGERSYNC_OIDC_ISSUER_URL?.replace(/\/$/, "");
@@ -87,10 +107,9 @@ export async function completeAuthorization(code: string, state: string, transac
   const jwks = createRemoteJWKSet(new URL(metadata.jwks_uri), { timeoutDuration: 5_000 });
   const { payload, protectedHeader } = await jwtVerify(token.id_token, jwks, { issuer: config.issuer, audience: config.clientID, algorithms: ["RS256", "ES256", "PS256"] });
   if (protectedHeader.alg !== "RS256" && protectedHeader.alg !== "ES256" && protectedHeader.alg !== "PS256") throw new Error("OIDC signing algorithm is not allowed");
-  if (payload.nonce !== transaction.nonce || typeof payload.sub !== "string" || typeof payload.tenant_id !== "string" || typeof payload.exp !== "number") throw new Error("OIDC identity claims are invalid");
-  const roles = Array.isArray(payload.roles) ? payload.roles.filter((role): role is string => typeof role === "string" && role.length > 0 && role.length <= 64).slice(0, 16) : [];
-  const scopes = typeof payload.scope === "string" ? payload.scope.split(/\s+/).filter((scope) => scope.length > 0 && scope.length <= 64).slice(0, 16) : [];
-  return { subjectId: payload.sub, tenantId: payload.tenant_id, roles, scopes, expiresAt: Math.min(payload.exp * 1000, Date.now() + 30 * 60 * 1000) };
+  if (payload.nonce !== transaction.nonce || payload.token_use !== "id" || typeof payload.sub !== "string" || typeof payload.exp !== "number") throw new Error("OIDC identity claims are invalid");
+  const authorization = resolveOperatorAuthorization(payload.sub);
+  return { subjectId: payload.sub, ...authorization, expiresAt: Math.min(payload.exp * 1000, Date.now() + 30 * 60 * 1000) };
 }
 
 export { transactionCookieName };

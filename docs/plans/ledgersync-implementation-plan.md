@@ -275,7 +275,7 @@ These requirements close mismatches found between the intended architecture and 
 
 ### Assumptions Used
 
-1. USD remains demonstration-only until finance/product formally select the pilot currency.
+1. Superseded on 2026-08-24: finance/product selected INR as the India pilot currency; supported fixtures and launch controls use integer paise.
 2. The production position is non-custodial ledger infrastructure unless legal/product explicitly approve a licensed-partner model.
 3. Current and previous Chrome/Edge, current Firefox, and current Safari/iOS Safari remain the proposed browser matrix until partner environment data is available.
 4. Initial recovery proposals remain RPO at most five minutes and RTO at most sixty minutes until operations approves or changes them.
@@ -1909,7 +1909,7 @@ Execute in this order:
 
 ### Assumptions
 
-- USD remains demo-only until formally approved.
+- Superseded on 2026-08-24: INR is the approved India pilot currency; USD remains only in currency-agnostic unit/integration coverage where multi-code parsing is intentionally tested.
 - Non-custodial ledger-infrastructure positioning remains the default.
 - Existing public API names and financial history remain stable.
 - Required providers and accountable people will be selected before their gates.

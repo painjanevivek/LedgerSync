@@ -19,6 +19,6 @@ From the repository root:
 docker compose -f deploy/compose/docker-compose.yml up --build
 ```
 
-The `migrate` one-shot service applies versioned schema changes. The `demo-seed` one-shot service then idempotently seeds six categorized USD accounts, posted/rejected transfers, ledger postings, an empty-history account, a frozen account, and matched/mismatch reconciliation evidence. API and web services start only after this sequence succeeds.
+The `migrate` one-shot service applies versioned schema changes. The `demo-seed` one-shot service then idempotently seeds six categorized INR accounts, posted/rejected transfers, ledger postings, an empty-history account, a frozen account, and matched/mismatch reconciliation evidence. API and web services start only after this sequence succeeds.
 
 Reset only the disposable local environment by explicitly removing the Compose volumes, then starting the stack again. Never reuse the demo tenant, credentials, cookies, or database in a shared or production environment.

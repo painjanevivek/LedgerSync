@@ -50,7 +50,7 @@ test("account balance and ledger history report independent truth states", async
   await page.unroute("**/api/accounts/*/transactions?*");
   await page.route("**/api/accounts/*/transactions?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "history_unavailable" } }) }));
   await page.goto(`/accounts/11111111-1111-4111-8111-111111111111`);
-  await expect(page.getByText("USD 1250.00")).toBeVisible();
+  await expect(page.getByText("INR 1250.00")).toBeVisible();
   await expect(page.getByText("Ledger history unavailable", { exact: true })).toBeVisible();
   await expect(page.getByText("No ledger entries")).toHaveCount(0);
 });
@@ -105,7 +105,7 @@ test("exact-money input survives phone rotation and retains maximum signed-64-bi
   await expect(amount).toHaveValue("92233720368547758.07");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await expect(page.getByText("USD 92233720368547758.07")).toBeVisible();
+  await expect(page.getByText("INR 92233720368547758.07")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
@@ -120,7 +120,7 @@ test("WCAG text-spacing overrides preserve compact evidence and controls", async
     style.textContent = css;
     document.head.append(style);
   }, "* { line-height: 1.5 !important; letter-spacing: .12em !important; word-spacing: .16em !important; } p { margin-bottom: 2em !important; }");
-  await expect(page.getByText("USD 1250.00")).toBeVisible();
+  await expect(page.getByText("INR 1250.00")).toBeVisible();
   await expect(page.getByRole("link", { name: /Back to account directory/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });

@@ -17,7 +17,7 @@ The browser calls only same-origin HTTPS BFF routes. The BFF validates session/C
 {
   "sourceAccountId": "acc_001",
   "destinationAccountId": "acc_002",
-  "amount": { "currency": "USD", "minorUnits": "1250" }
+  "amount": { "currency": "INR", "minorUnits": "1250" }
 }
 ```
 

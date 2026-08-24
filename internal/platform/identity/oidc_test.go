@@ -20,6 +20,35 @@ func TestAllowedSetDropsUnknownRolesAndScopes(t *testing.T) {
 		t.Fatalf("unexpected scopes: %#v", scopes)
 	}
 }
+
+func TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping(t *testing.T) {
+	valid := accessTokenClaims{
+		ClientID: "partner-client",
+		TokenUse: "access",
+		Audience: []string{"https://api.ledgersync.example"},
+		Scope:    "accounts:read transfers:write unknown:scope",
+	}
+	principal, err := principalFromAccessTokenClaims(valid, "https://api.ledgersync.example", map[string]string{"partner-client": "tenant-a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if principal.SubjectID != "oauth-client:partner-client" || principal.TenantID != "tenant-a" || !principal.HasScope("accounts:read") || !principal.HasScope("transfers:write") || principal.HasScope("unknown:scope") {
+		t.Fatalf("unexpected workload principal: %#v", principal)
+	}
+
+	for name, claims := range map[string]accessTokenClaims{
+		"id token":          {ClientID: valid.ClientID, TokenUse: "id", Audience: valid.Audience, Scope: valid.Scope},
+		"wrong audience":    {ClientID: valid.ClientID, TokenUse: valid.TokenUse, Audience: []string{"another-api"}, Scope: valid.Scope},
+		"unmapped client":   {ClientID: "unknown", TokenUse: valid.TokenUse, Audience: valid.Audience, Scope: valid.Scope},
+		"missing client id": {TokenUse: valid.TokenUse, Audience: valid.Audience, Scope: valid.Scope},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := principalFromAccessTokenClaims(claims, "https://api.ledgersync.example", map[string]string{"partner-client": "tenant-a"}); err == nil {
+				t.Fatal("invalid Cognito access token claims were accepted")
+			}
+		})
+	}
+}
 func contains(values map[string]struct{}, key string) bool { _, ok := values[key]; return ok }
 
 type workloadProvider struct{}
@@ -49,6 +78,16 @@ func TestBFFActorAssertionRequiresSignedShortLivedActorContext(t *testing.T) {
 	}
 	if _, err := authenticator.Authenticate(context.Background(), "workload-token", assertion); err == nil {
 		t.Fatal("replayed actor assertion was accepted")
+	}
+}
+
+func TestBFFWorkloadCannotActWithoutActorAssertion(t *testing.T) {
+	authenticator, err := NewRequestAuthenticator(workloadProvider{}, "this-is-a-phase-one-test-secret-long-enough")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := authenticator.Authenticate(context.Background(), "workload-token", ""); err == nil {
+		t.Fatal("BFF workload token was accepted without delegated actor context")
 	}
 }
 

@@ -13,8 +13,8 @@ Provisioning is a controlled operator workflow, not a public route or self-servi
 ## Validate and apply
 
 ```text
-go run ./cmd/provision-partner -action validate -config docs/pilot/provisioning-example.json -pilot-currency USD
-go run ./cmd/provision-partner -action apply -config docs/pilot/provisioning-example.json -pilot-currency USD -actor-subject-id <platform-operator> -correlation-id <change-uuid>
+go run ./cmd/provision-partner -action validate -config docs/pilot/provisioning-example.json -pilot-currency INR
+go run ./cmd/provision-partner -action apply -config docs/pilot/provisioning-example.json -pilot-currency INR -actor-subject-id <platform-operator> -correlation-id <change-uuid>
 ```
 
 Archive the printed configuration fingerprint with the reviewed request. A retry with the same correlation ID and identical fingerprint is safe; the same correlation with changed content is rejected.

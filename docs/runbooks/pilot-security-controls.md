@@ -4,7 +4,7 @@ LedgerSync fails closed for financial mutations and keeps read availability wher
 
 ## Before enabling partner traffic
 
-1. Record the finance/product-approved pilot currency and limits in the change ticket. `USD` in local fixtures is demonstration-only.
+1. Record the approved India-only `INR` policy in the change ticket: minimum `100` paise, maximum `10000000` paise per transfer, actor and source-account rolling limits of `50000000` paise, and tenant rolling limit of `500000000` paise. Changes require a reviewed, audited provisioning action.
 2. Set `LEDGERSYNC_PILOT_CURRENCY` and the bounded HTTP/rate environment variables. Production startup refuses tenant policies, accounts, or transfers outside the selected currency.
 3. Provision exactly one `tenant_transfer_policies` row and explicit `account_credit_permissions` relationships for each permitted actor/destination. Same-tenant existence alone never authorizes a credit.
 4. Apply `deploy/postgres/roles.sql` as database owner, then grant each NOLOGIN group role to a separately authenticated workload identity. Do not grant standing authority to `ledgersync_break_glass`.

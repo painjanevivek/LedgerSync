@@ -80,6 +80,9 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 		return Principal{}, ErrUnauthenticated
 	}
 	if assertion == "" {
+		if principal.HasScope(BFFActorScope) {
+			return Principal{}, ErrUnauthenticated
+		}
 		return principal, nil
 	}
 	if !principal.HasScope(BFFActorScope) {

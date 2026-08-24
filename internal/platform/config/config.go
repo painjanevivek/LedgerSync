@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -28,7 +29,8 @@ type Config struct {
 	ConsistencySigningKeyID    string
 	SessionSecret              string
 	OIDCIssuerURL              string
-	OIDCAudience               string
+	OIDCResourceAudience       string
+	OIDCClientTenantMap        map[string]string
 	BFFAssertionSecret         string
 	BFFAssertionKeyID          string
 	BFFAssertionIssuer         string
@@ -49,7 +51,15 @@ func Load() (Config, error) {
 		if environment != "development" {
 			return Config{}, fmt.Errorf("LEDGERSYNC_PILOT_CURRENCY must be explicitly selected outside development")
 		}
-		pilotCurrency = "USD"
+		pilotCurrency = "INR"
+	}
+	clientTenantMap := map[string]string{}
+	if raw := strings.TrimSpace(os.Getenv("LEDGERSYNC_OIDC_CLIENT_TENANT_MAP")); raw != "" {
+		parsed, parseErr := parseOIDCClientTenantMap(raw)
+		if parseErr != nil {
+			return Config{}, parseErr
+		}
+		clientTenantMap = parsed
 	}
 	timeout, err := time.ParseDuration(valueOrDefault("LEDGERSYNC_SHUTDOWN_TIMEOUT", "10s"))
 	if err != nil || timeout <= 0 {
@@ -111,7 +121,8 @@ func Load() (Config, error) {
 		ConsistencySigningKeyID:    valueOrDefault("LEDGERSYNC_CONSISTENCY_SIGNING_KEY_ID", "current"),
 		SessionSecret:              os.Getenv("LEDGERSYNC_SESSION_SECRET"),
 		OIDCIssuerURL:              os.Getenv("LEDGERSYNC_OIDC_ISSUER_URL"),
-		OIDCAudience:               valueOrDefault("LEDGERSYNC_OIDC_AUDIENCE", "ledgersync"),
+		OIDCResourceAudience:       os.Getenv("LEDGERSYNC_OIDC_RESOURCE_AUDIENCE"),
+		OIDCClientTenantMap:        clientTenantMap,
 		BFFAssertionSecret:         os.Getenv("LEDGERSYNC_BFF_ASSERTION_SECRET"),
 		BFFAssertionKeyID:          valueOrDefault("LEDGERSYNC_BFF_ASSERTION_KEY_ID", "current"),
 		BFFAssertionIssuer:         valueOrDefault("LEDGERSYNC_BFF_ASSERTION_ISSUER", "ledgersync-bff"),
@@ -124,8 +135,8 @@ func Load() (Config, error) {
 		TelemetryServiceName:       valueOrDefault("LEDGERSYNC_TELEMETRY_SERVICE_NAME", "ledgersync-api"),
 		OTLPHTTPEndpoint:           os.Getenv("LEDGERSYNC_OTLP_HTTP_ENDPOINT"),
 	}
-	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCAudience == "" || len(config.BFFAssertionSecret) < 32) {
-		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/audience, and 32-byte BFF assertion secret are required outside development")
+	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
+		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/resource audience/client mapping, and 32-byte BFF assertion secret are required outside development")
 	}
 	if config.Environment != "development" && (!config.TelemetryEnabled || config.OTLPHTTPEndpoint == "") {
 		return Config{}, fmt.Errorf("enabled telemetry and a private OTLP HTTP endpoint are required outside development")
@@ -137,6 +148,22 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("LEDGERSYNC_PILOT_CURRENCY must be an ISO-style three-letter uppercase code")
 	}
 	return config, nil
+}
+
+func parseOIDCClientTenantMap(raw string) (map[string]string, error) {
+	var parsed map[string]string
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil || len(parsed) == 0 {
+		return nil, fmt.Errorf("LEDGERSYNC_OIDC_CLIENT_TENANT_MAP must be a non-empty JSON object")
+	}
+	result := make(map[string]string, len(parsed))
+	for clientID, tenantID := range parsed {
+		clientID, tenantID = strings.TrimSpace(clientID), strings.TrimSpace(tenantID)
+		if clientID == "" || tenantID == "" || len(clientID) > 256 || len(tenantID) > 128 {
+			return nil, fmt.Errorf("LEDGERSYNC_OIDC_CLIENT_TENANT_MAP contains an invalid client or tenant")
+		}
+		result[clientID] = tenantID
+	}
+	return result, nil
 }
 
 func positiveDuration(key, fallback string) (time.Duration, error) {

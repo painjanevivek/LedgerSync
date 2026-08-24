@@ -90,7 +90,7 @@ test("large bounded history progressively renders without blocking navigation", 
     transfer_id: `70000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
     direction: index % 2 === 0 ? "credit" : "debit",
     amount: String(100 + index),
-    currency: "USD",
+    currency: "INR",
     status: "posted",
     occurred_at: `2026-08-19T11:${String(index % 60).padStart(2, "0")}:00Z`,
   }));

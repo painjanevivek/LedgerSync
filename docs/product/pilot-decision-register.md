@@ -24,7 +24,7 @@ This register separates implementation assumptions from decisions that require p
 
 These assumptions support deterministic development and automated testing. They are not production approvals.
 
-- Demo currency: USD.
+- Demo and India pilot currency: INR, represented in paise.
 - Demo jurisdiction: intentionally unspecified and labeled non-production.
 - Custody posture: non-custodial ledger infrastructure; no bank/card/FX/regulated-funds claims.
 - Demo tenant: one isolated tenant with explicitly scoped operator identities.
@@ -67,4 +67,3 @@ Any change that expands movement scope, custody, currencies, authorization, tran
 4. migration and compatibility plan;
 5. updated contract and test evidence;
 6. approval by the relevant owner named above.
-

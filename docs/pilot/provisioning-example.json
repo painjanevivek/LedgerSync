@@ -1,19 +1,19 @@
 {
   "tenant_id": "10000000-0000-4000-8000-000000000001",
   "external_reference": "design-partner-example",
-  "currency": "USD",
-  "minimum_transfer_minor": "1",
-  "maximum_transfer_minor": "100000000",
-  "actor_rolling_24h_minor": "500000000",
-  "source_rolling_24h_minor": "500000000",
-  "tenant_rolling_24h_minor": "1000000000",
+  "currency": "INR",
+  "minimum_transfer_minor": "100",
+  "maximum_transfer_minor": "10000000",
+  "actor_rolling_24h_minor": "50000000",
+  "source_rolling_24h_minor": "50000000",
+  "tenant_rolling_24h_minor": "500000000",
   "subjects": [
     { "id": "partner-operator", "roles": ["operator", "finance"] }
   ],
   "credentials": [
     {
       "reference": "idp://pilot/design-partner-example/client",
-      "audience": "ledgersync-api",
+      "audience": "https://api.ledgersync.example",
       "scopes": ["accounts:read", "transfers:read", "transfers:write", "reconciliation:read"],
       "expires_at": "2035-01-01T00:00:00Z"
     }

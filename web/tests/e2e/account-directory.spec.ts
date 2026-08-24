@@ -59,7 +59,7 @@ test("large exact account evidence reflows without page-level overflow", async (
   await page.route("**/api/me/accounts?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accounts: [longAccount], next_cursor: "" }) }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/accounts");
-  await expect(page.getByText("USD 92233720368547758.07").last()).toBeVisible();
+  await expect(page.getByText("INR 92233720368547758.07").last()).toBeVisible();
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.innerWidth);
 });

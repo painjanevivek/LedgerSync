@@ -2,7 +2,7 @@
 
 **Roadmap source:** `docs/plans/ledgersync-future-scope-implementation-plan.md`  
 **Last updated:** 2026-08-24  
-**Current delivery gate:** Phase 0 complete; Phase 1 is active and awaiting business-owned launch decisions.
+**Current delivery gate:** Phase 0 complete; Phase 1 repository closure is implemented and awaiting managed AWS/Cognito, recovery, partner, and accountable-human evidence.
 
 This register is the evidence-backed companion to the future-scope implementation plan. It separates work that is demonstrably complete in the repository from work that depends on an approved business decision, third-party service, production environment, customer agreement, or measured operating result. A phase is never marked complete from code alone when its exit criteria require external evidence.
 
@@ -11,8 +11,8 @@ This register is the evidence-backed companion to the future-scope implementatio
 | Phase | Status | What the status means |
 |---|---|---|
 | 0 — Repository re-baseline and governance | **Complete** | The supported product boundary, deployment path, quality gates, and evidence sources are explicit and verified. |
-| 1 — Pilot financial, identity, and security closure | **Active / decision-gated** | Repository controls are implemented; production identity, jurisdiction, pilot policy, partner, and recovery decisions remain open. |
-| 2 — Managed platform, infrastructure, and recovery | **Pending** | Starts after the Phase 1 launch profile and target cloud/region are approved. |
+| 1 — Pilot financial, identity, and security closure | **Active / environment-gated** | Launch decisions and repository controls are complete; the real AWS/Cognito topology, provider restore, named partner, and approvals remain unproven. |
+| 2 — Managed platform, infrastructure, and recovery | **Ready to start** | AWS Mumbai, Cognito, India-region recovery, network boundaries, and service objectives are now approved inputs. |
 | 3 — Controlled production pilot | **Pending** | Requires deployed infrastructure, approved controls, design partners, and operational ownership. |
 | 4 — Monorepo product and public surfaces | **Pending** | Begins only after pilot evidence validates the product and operating model. |
 | 5 — Developer platform and reliable webhooks | **Pending** | Requires stable pilot contracts and external-consumer requirements. |
@@ -71,27 +71,35 @@ feat(pilot-security) : complete the Phase 0 delivery baseline
 
 ## Phase 1 active gate
 
-### Repository work already delivered
+### Approved decisions
 
-The technical pilot-control slice is present: exact money, atomic ledger posting, idempotency, safe reads, tenant isolation, destination authorization, rolling velocity controls, shared route limiting, least-privilege roles, audit evidence, contract parity, and truthful UI timeout/degraded states.
+The approved profile is an India-only, non-custodial, internal-ledger product for vertical-SaaS and fintech-infrastructure teams. The API is the primary integration surface and the invite-only operator console is required from day one. INR is the sole pilot currency. AWS Mumbai and Cognito are selected, with encrypted backup copies in Hyderabad, explicit recovery objectives, capacity targets, compliance posture, and graduation metrics. See `docs/pilot/india-launch-profile.md`.
 
-### Decisions and external evidence still required
+### Repository work delivered
 
-The following items must be explicitly approved before Phase 1 can be declared complete:
+The technical pilot-control slice includes exact money, atomic ledger posting, idempotency, safe reads, tenant isolation, destination authorization, approved INR amount/rolling limits, shared route limiting, least-privilege roles, audit evidence, contract parity, and truthful UI timeout/degraded states.
 
-1. **Pilot buyer and daily user:** name the initial segment and design partners so workflows, permissions, service levels, and evidence match a real operating team.
-2. **Launch surface:** confirm whether the API or the operator web application is the primary launch surface, while retaining both where required.
-3. **Money-movement boundary:** confirm that launch is internal ledger transfer only, or name the regulated provider and rails if external settlement is included.
-4. **Legal and compliance profile:** approve the launch jurisdiction, contracting entity, data-residency obligations, retention periods, sanctions/KYC/KYB responsibilities, and incident-notification duties.
-5. **Financial pilot policy:** approve the initial currency, per-transfer minimum and maximum, actor rolling limit, tenant rolling limit, timezone/window semantics, and exception owner.
-6. **Identity provider:** select the production OIDC provider, define issuer/audience/client configuration, map tenant and role claims, require MFA where appropriate, and document joiner/mover/leaver handling.
-7. **Target platform:** select cloud, region, network boundary, secrets/KMS service, managed PostgreSQL/Redis products, and observability destinations.
-8. **Recovery objectives:** approve RPO, RTO, backup retention, restore-test frequency, incident severity levels, and accountable on-call owners.
-9. **Pilot success criteria:** set measurable targets for customers, accounts, transfers, error rate, duplicate-posting rate, reconciliation mismatches, support response, latency, and pilot duration.
+- Cognito API access tokens require `token_use=access`, `client_id`, the configured LedgerSync resource audience, and allowlisted scopes.
+- Partner/BFF app-client IDs map to tenants on the server; a token claim or request parameter cannot choose tenant authority.
+- Operator OIDC subjects map to tenant, roles, and scopes in invite-only server configuration; Cognito ID tokens require `token_use=id`.
+- A BFF workload token carrying `bff:act-as-user` is rejected unless it includes a valid, unreplayed, short-lived actor assertion.
+- Supported configuration, demo/provisioning data, OpenAPI examples, browser evidence, and performance traffic use INR paise and the approved pilot limits.
+- `docs/security/LedgerSync-threat-model.md` models the validated AWS/Cognito topology, residual risks, abuse paths, and required detections.
+
+### External evidence still required
+
+Phase 1 cannot be declared complete until the following evidence exists:
+
+1. The actual Cognito pool/app clients disable self-registration, require MFA for operators, bind access tokens to the LedgerSync resource, and pass the real-token allow/deny matrix.
+2. AWS edge, WAF, private subnets, security groups, managed secrets, PostgreSQL/Redis encryption, workload/database roles, and India-region observability are deployed and independently reviewed.
+3. A provider-backed isolated PITR restore meets the approved RPO/RTO, Redis is rebuilt, reconciliation reports zero differences, and write reopening is approved.
+4. Named product, finance, security, operations, legal/compliance, incident, and partner owners approve the release candidate.
+5. At least one contracted design partner, account set, support path, IP policy, and observation window are approved.
+6. A clean checkout passes all release suites in the target environment with no unresolved critical/high security finding.
 
 ### Why work does not jump directly to Phase 2
 
-Infrastructure, identity, network, backup, and compliance implementations encode the decisions above. Building them before those decisions would create expensive rework and could produce controls that are technically polished but legally or operationally wrong. Repository-safe preparation may continue, but Phase 1 remains open until the launch profile is approved and its evidence is captured.
+The decisions required to begin Phase 2 now exist, so managed-platform implementation may start. Phase 1 remains open in parallel as an environment evidence gate: infrastructure code, a local test, or a document cannot substitute for real Cognito tokens, deployed network reachability, provider restore results, counsel review, or accountable sign-off.
 
 ## Evidence rules for every later phase
 

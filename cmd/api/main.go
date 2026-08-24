@@ -116,7 +116,11 @@ func main() {
 			if configuration.Environment == "development" {
 				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Scopes: []string{"accounts:read", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", identity.BFFActorScope}}
 			} else {
-				provider, err = identity.NewOIDCProvider(context.Background(), configuration.OIDCIssuerURL, configuration.OIDCAudience)
+				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
+					IssuerURL:        configuration.OIDCIssuerURL,
+					ResourceAudience: configuration.OIDCResourceAudience,
+					ClientTenants:    configuration.OIDCClientTenantMap,
+				})
 				if err != nil {
 					slog.Error("OIDC provider initialization failed", "error", err)
 					os.Exit(1)

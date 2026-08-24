@@ -44,7 +44,7 @@ test("a malformed exact-money amount is rejected before it reaches the API", asy
   await page.goto("/transfers");
   await page.getByLabel("Amount").fill("1.999");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await expect(page.getByText("USD supports at most 2 decimal places.")).toBeVisible();
+  await expect(page.getByText("INR supports at most 2 decimal places.")).toBeVisible();
   expect(calls).toBe(0);
 });
 

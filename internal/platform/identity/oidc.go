@@ -9,26 +9,52 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 )
 
-// OIDCProvider verifies bearer ID tokens with the issuer's discovered key set.
-// Tenant membership is a required, provider-mapped claim; roles and scopes are
-// allowlisted so an unexpected custom claim never grants authority.
-type OIDCProvider struct{ verifier *oidc.IDTokenVerifier }
+// OIDCProvider verifies Cognito-style OAuth access tokens. Tenant authority is
+// derived from a server-owned client mapping, never from a caller-controlled
+// custom claim. The resource audience binds tokens to this API.
+type OIDCProvider struct {
+	verifier         *oidc.IDTokenVerifier
+	resourceAudience string
+	clientTenants    map[string]string
+}
 
-func NewOIDCProvider(ctx context.Context, issuerURL, audience string) (*OIDCProvider, error) {
-	issuerURL, audience = strings.TrimSpace(issuerURL), strings.TrimSpace(audience)
-	if issuerURL == "" || audience == "" {
-		return nil, errors.New("OIDC issuer URL and audience are required")
+type OIDCProviderConfig struct {
+	IssuerURL        string
+	ResourceAudience string
+	ClientTenants    map[string]string
+}
+
+type accessTokenClaims struct {
+	ClientID string   `json:"client_id"`
+	TokenUse string   `json:"token_use"`
+	Scope    string   `json:"scope"`
+	Audience []string `json:"-"`
+}
+
+func NewOIDCProvider(ctx context.Context, config OIDCProviderConfig) (*OIDCProvider, error) {
+	config.IssuerURL = strings.TrimSpace(config.IssuerURL)
+	config.ResourceAudience = strings.TrimSpace(config.ResourceAudience)
+	if config.IssuerURL == "" || config.ResourceAudience == "" || len(config.ClientTenants) == 0 {
+		return nil, errors.New("OIDC issuer URL, resource audience, and client tenant mapping are required")
 	}
 	discoveryContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	provider, err := oidc.NewProvider(discoveryContext, issuerURL)
+	provider, err := oidc.NewProvider(discoveryContext, config.IssuerURL)
 	if err != nil {
 		return nil, errors.New("discover OIDC provider")
 	}
+	clientTenants := make(map[string]string, len(config.ClientTenants))
+	for clientID, tenantID := range config.ClientTenants {
+		clientID, tenantID = strings.TrimSpace(clientID), strings.TrimSpace(tenantID)
+		if clientID == "" || tenantID == "" {
+			return nil, errors.New("OIDC client tenant mapping is invalid")
+		}
+		clientTenants[clientID] = tenantID
+	}
 	return &OIDCProvider{verifier: provider.Verifier(&oidc.Config{
-		ClientID:             audience,
+		SkipClientIDCheck:    true,
 		SupportedSigningAlgs: []string{"RS256", "ES256", "PS256"},
-	})}, nil
+	}), resourceAudience: config.ResourceAudience, clientTenants: clientTenants}, nil
 }
 
 func (p *OIDCProvider) Authenticate(ctx context.Context, credential string) (Principal, error) {
@@ -39,21 +65,42 @@ func (p *OIDCProvider) Authenticate(ctx context.Context, credential string) (Pri
 	if err != nil {
 		return Principal{}, ErrUnauthenticated
 	}
-	var claims struct {
-		Subject  string   `json:"sub"`
-		TenantID string   `json:"tenant_id"`
-		Roles    []string `json:"roles"`
-		Scope    string   `json:"scope"`
+	var claims accessTokenClaims
+	if err := token.Claims(&claims); err != nil {
+		return Principal{}, ErrUnauthenticated
 	}
-	if err := token.Claims(&claims); err != nil || strings.TrimSpace(claims.Subject) == "" || strings.TrimSpace(claims.TenantID) == "" {
+	claims.Audience = append([]string(nil), token.Audience...)
+	return principalFromAccessTokenClaims(claims, p.resourceAudience, p.clientTenants)
+}
+
+func principalFromAccessTokenClaims(claims accessTokenClaims, resourceAudience string, clientTenants map[string]string) (Principal, error) {
+	claims.ClientID = strings.TrimSpace(claims.ClientID)
+	if claims.TokenUse != "access" || claims.ClientID == "" || !containsAudience(claims.Audience, resourceAudience) {
+		return Principal{}, ErrUnauthenticated
+	}
+	tenantID := strings.TrimSpace(clientTenants[claims.ClientID])
+	if tenantID == "" {
 		return Principal{}, ErrUnauthenticated
 	}
 	return Principal{
-		SubjectID: claims.Subject,
-		TenantID:  claims.TenantID,
-		Roles:     allowedSet(claims.Roles, allowedRoles),
+		SubjectID: "oauth-client:" + claims.ClientID,
+		TenantID:  tenantID,
+		Roles:     map[string]struct{}{},
 		Scopes:    allowedSet(strings.Fields(claims.Scope), allowedScopes),
 	}, nil
+}
+
+func containsAudience(audiences []string, required string) bool {
+	required = strings.TrimSpace(required)
+	if required == "" {
+		return false
+	}
+	for _, audience := range audiences {
+		if audience == required {
+			return true
+		}
+	}
+	return false
 }
 
 var allowedRoles = map[string]struct{}{

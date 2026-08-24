@@ -206,9 +206,9 @@ stateDiagram-v2
 | Rule | Enforced representation | Example |
 |---|---|---|
 | Amount | signed integer minor units (`BIGINT`) | `1250` minor units |
-| Currency | explicit uppercase ISO code | `USD` |
+| Currency | explicit uppercase ISO code | `INR` for the India pilot |
 | Command amount | must be positive | `0`, `-1` rejected |
-| v1 currency movement | same currency only | `USD → USD` allowed; `USD → EUR` rejected |
+| v1 currency movement | same currency only | `INR → INR` allowed; `INR → USD` rejected |
 | Float use | forbidden on the financial path | JavaScript `Number` does not represent money |
 
 For each posted transfer \(t\) and currency \(c\):
@@ -337,7 +337,7 @@ Administrative routes are deny-by-default until a privileged, audited operator s
 {
   "sourceAccountId": "00000000-0000-0000-0000-000000000010",
   "destinationAccountId": "00000000-0000-0000-0000-000000000020",
-  "amount": { "currency": "USD", "minorUnits": "1250" }
+  "amount": { "currency": "INR", "minorUnits": "1250" }
 }
 ```
 

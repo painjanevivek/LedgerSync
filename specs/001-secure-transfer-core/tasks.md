@@ -169,6 +169,20 @@
 
 **Checkpoint**: the real BFF/API path authenticates; every financial JSON integer is lossless; reconciliation and delivery claims have positive persisted evidence; platform controls are enforced; growth and dead work are operable; critical integration evidence uses the actual runtimes.
 
+## Future roadmap Phase 1 amendment: India pilot identity and launch closure
+
+**Source of truth**: `docs/plans/ledgersync-future-scope-implementation-plan.md` and the approved India launch profile dated 2026-08-24.
+
+- [X] T115 [PILOT-001] Record the approved buyer, API-first plus invite-only console boundary, India jurisdiction, internal-ledger scope, INR policy, AWS regions, recovery objectives, capacity targets, and graduation metrics in `docs/pilot/india-launch-profile.md`
+- [X] T116 [P] [PILOT-002] Write failing Go, TypeScript, and contract tests for Cognito token purpose/audience/client mapping, server-owned operator permissions, mandatory BFF actor delegation, and INR pilot artifacts in `internal/platform/identity/oidc_test.go`, `internal/platform/config/config_test.go`, `web/tests/security/oidc-policy.test.ts`, and `tests/contract/india_pilot_contract_test.go`
+- [X] T117 [PILOT-003] Implement Cognito access-token validation with issuer discovery, signature/expiry verification, `token_use=access`, resource audience, `client_id`, allowlisted scopes, and server client-to-tenant mapping in `internal/platform/identity/oidc.go`, `internal/platform/config/config.go`, and `cmd/api/main.go`
+- [X] T118 [PILOT-004] Implement invite-only server-owned operator subject permissions, require `token_use=id` for the console callback, and reject BFF workload requests without an actor assertion in `web/src/lib/oidc.ts` and `internal/platform/identity/bff_assertion.go`
+- [X] T119 [PILOT-005] Align supported configuration, local evidence, provisioning, contracts, UI fixtures, and performance traffic to INR and the approved paise limits in `.env.example`, `deploy/compose/`, `docs/pilot/`, `contracts/`, `specs/`, `web/tests/e2e/`, and `tests/performance/`
+- [X] T120 [PILOT-006] Complete the validated repository-grounded India target-topology threat model with prioritized abuse paths, mitigations, detection, and manual-review focus paths in `docs/security/LedgerSync-threat-model.md`
+- [ ] T121 [PILOT-007] Deploy and prove the AWS Mumbai/Cognito target: WAF/private networking, managed secrets and database roles, Multi-AZ PostgreSQL/Redis, real-token allow/deny tests, clean-checkout suites, provider PITR/Redis rebuild/reconciliation drill, named incident owners, counsel/security/product/finance approval, and one design-partner release-candidate sign-off
+
+**Checkpoint**: repository identity and INR launch controls are complete. Phase 1 remains open until T121 produces managed-environment and accountable-human evidence; code or documentation cannot self-certify that gate.
+
 ## Phase 8: Functional operator UI and responsive release completion
 
 **Goal**: replace the visual-only preview with truthful, working operator journeys that remain usable and financially unambiguous on mobile, tablet, laptop, desktop, zoomed, keyboard-only, and degraded-network environments.

@@ -157,7 +157,7 @@ components:
   schemas:
     ExactMinor: { type: string, pattern: '^-?(0|[1-9][0-9]*)$' }
     ExactVersion: { type: string, pattern: '^(0|[1-9][0-9]*)$' }
-    Currency: { type: string, pattern: '^[A-Z]{3}$', example: USD }
+    Currency: { type: string, pattern: '^[A-Z]{3}$', example: INR }
     Balance:
       type: object
       required: [account_id, currency, available_minor, ledger_minor, version, as_of]

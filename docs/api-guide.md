@@ -15,7 +15,7 @@ server-side into integer minor units.
   "source_account_id": "source-account-uuid",
   "destination_account_id": "destination-account-uuid",
   "amount": "12.50",
-  "currency": "USD"
+  "currency": "INR"
 }
 ```
 

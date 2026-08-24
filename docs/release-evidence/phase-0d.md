@@ -42,7 +42,7 @@ docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml down -v
 Validate a provisioning file without writing data:
 
 ```powershell
-go run ./cmd/provision-partner -action validate -config docs/pilot/provisioning-example.json -pilot-currency USD
+go run ./cmd/provision-partner -action validate -config docs/pilot/provisioning-example.json -pilot-currency INR
 ```
 
 CI generates `release-evidence-manifest.json` after all required jobs pass. The manifest is bound to the tested commit SHA and identifies external gates rather than reporting them as passed.
