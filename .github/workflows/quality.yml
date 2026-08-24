@@ -109,6 +109,10 @@ jobs:
       - name: Generate ephemeral real-stack secrets
         shell: bash
         run: |
+          runtime_env="$GITHUB_WORKSPACE/data/local-runtime/runtime.env"
+          install -d -m 700 "$(dirname "$runtime_env")"
+          : > "$runtime_env"
+          chmod 600 "$runtime_env"
           for variable in \
             POSTGRES_PASSWORD \
             LEDGERSYNC_SESSION_SECRET \
@@ -120,6 +124,7 @@ jobs:
             value="$(openssl rand -hex 32)"
             printf '::add-mask::%s\n' "$value"
             printf '%s=%s\n' "$variable" "$value" >> "$GITHUB_ENV"
+            printf '%s=%s\n' "$variable" "$value" >> "$runtime_env"
           done
       - name: Build and start the real BFF, API, PostgreSQL, Redis, worker path
         env:
