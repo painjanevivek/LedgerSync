@@ -14,19 +14,19 @@ jobs:
   secrets-dependencies-and-iac:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           check-latest: true
       - name: Scan Go dependencies
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: secrets-dependencies-and-iac
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build immutable scan targets
         run: |
           docker build -f deploy/docker/api.Dockerfile -t ledgersync-api:${{ github.sha }} .
@@ -72,6 +72,6 @@ jobs:
         with:
           artifact-name: ledgersync-sbom
           output-file: sbom.spdx.json
-      - uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: sbom.spdx.json

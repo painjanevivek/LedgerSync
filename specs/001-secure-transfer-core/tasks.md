@@ -131,11 +131,11 @@
 - [X] T077 Add public architecture, API, operations, and developer onboarding documentation in `README.md` and `docs/`
 - [X] T078 Run every scenario in `quickstart.md` and attach release evidence in `docs/release-evidence/secure-transfer-core.md`
 
-## Phase 0A–0D Amendment: Architecture-audit remediation — mandatory before unfinished UI/pilot work
+## Phase 0A–0D Amendment: Architecture-audit remediation — completed before UI/pilot work
 
 **Source of truth**: `docs/plans/ledgersync-implementation-plan.md`, architecture amendment dated 2026-08-24.
 
-**Execution rule**: T097–T114 are stop-ship work. Complete them in order before T081 and T092–T096. Each task includes test-first evidence, implementation, contract/runbook updates, and a focused phase commit. Existing checked tasks remain historical evidence and are not silently treated as proof for these new cross-boundary controls.
+**Execution record**: T097–T114 were stop-ship work and completed in order before the final T081/T092/T093/T096 evidence. Each task includes test-first evidence, implementation, contract/runbook updates, and focused commits. Existing checked tasks remain historical evidence and are not silently treated as proof for these cross-boundary controls.
 
 ### Phase 0A — Cross-boundary identity and exact money
 
@@ -206,7 +206,7 @@
 - [X] T093 Add frontend performance budgets and throttled compact-device checks for JavaScript, route chunks, fonts/icons, LCP, INP, CLS, progressive rendering, and large-history behavior in `.github/workflows/quality.yml` and `docs/performance-baseline.md`
 - [ ] T094 Perform and record smoke tests on real iOS, Android, tablet, and desktop/laptop devices, including safe areas, touch targets, virtual keyboard, rotation, slow network, and offline recovery in `docs/release-evidence/ui-device-matrix.md`
 - [ ] T095 Conduct finance/operations content review for aggregate balances, account ownership categories, status terminology, evidence provenance, and UTC presentation; record approved definitions in `docs/product/financial-ui-semantics.md`
-- [ ] T096 Run the complete functional/responsive release suite and attach screenshots, interaction traces, accessibility output, performance results, demo-isolation proof, and known limitations to `docs/release-evidence/operator-ui.md`
+- [X] T096 Run the complete functional/responsive release suite and attach screenshots, interaction traces, accessibility output, performance results, demo-isolation proof, and known limitations to `docs/release-evidence/operator-ui.md`
 
 **Checkpoint**: no placeholder behavior or invented evidence remains in the supported operator journey; every visible control works or explains why it cannot; mobile, tablet, laptop, and desktop evidence meets the same financial-trust contract.
 
@@ -219,8 +219,8 @@
 - **US3** requires Phase 2; it can be developed in parallel with US2 after US1's transfer contract and identity foundations are stable.
 - **US4** requires Phases 1–4 because it measures/recover their behavior; T060/T061 can start before observability implementation.
 - **Phase 7** dashboard work depends on US1–US3 contracts; final evidence T078 depends on all desired stories.
-- **Architecture amendment** T097–T114 depends on the frozen existing baseline and executes sequentially in Phase 0A → 0B → 0C → 0D order. It is mandatory before unfinished T081/T092–T096 and before any pilot-readiness claim.
-- **Phase 8** corrects the visual-only prototype and depends on the remediated real BFF/API contracts. Historical T079/T082–T091 remain checked evidence but must be rerun where T097–T114 changes their contracts. T081 follows T109/T113; T092/T093 follow T112/T113; real-device T094, finance approval T095, and final evidence T096 remain last.
+- **Architecture amendment** T097–T114 depended on the frozen baseline and completed sequentially in Phase 0A → 0B → 0C → 0D before the final UI evidence.
+- **Phase 8** corrected the visual-only prototype against the remediated real BFF/API contracts. T096 now closes the automated/repository release suite; real-device T094 and finance approval T095 remain separate external gates and are not implied by T096.
 
 ## Parallel subagent assignments
 

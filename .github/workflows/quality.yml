@@ -12,8 +12,8 @@ jobs:
   go-quality:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod, check-latest: true }
       - name: Enforce Go formatting
         run: test -z "$(gofmt -l cmd internal tests)"
@@ -32,14 +32,14 @@ jobs:
           go test -covermode=atomic -coverpkg=./internal/domain/...,./internal/application/transfers/... -coverprofile=critical-coverage.out ./internal/domain/... ./internal/application/transfers ./tests/unit ./tests/contract
           go tool cover -func=critical-coverage.out | tee critical-coverage.txt
           awk '/^total:/{ sub("%", "", $3); exit ($3 + 0 < 60) }' critical-coverage.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with: { name: critical-financial-core-coverage, path: critical-coverage.out }
   live-dependencies:
     runs-on: ubuntu-24.04
     needs: go-quality
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod, check-latest: true }
       - name: Start disposable PostgreSQL and Redis
         run: |
@@ -63,10 +63,10 @@ jobs:
   web-quality:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod, check-latest: true }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
       - working-directory: web
         run: npm ci
@@ -82,13 +82,13 @@ jobs:
       image: mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e # v1.62.1-noble
       options: --ipc=host
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - working-directory: web
         run: npm ci
       - name: Run browser journeys and fail on unreviewed visual drift
         working-directory: web
         run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: operator-browser-evidence-${{ github.sha }}
@@ -101,8 +101,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [go-quality, web-quality, browser-quality]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod, check-latest: true }
       - name: Build and start the real BFF, API, PostgreSQL, Redis, worker path
         env:
@@ -156,7 +156,7 @@ jobs:
       - name: Capture failed real-stack logs
         if: failure()
         run: docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml logs --no-color > real-stack.log
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with: { name: real-stack-failure-log, path: real-stack.log }
       - name: Remove disposable real stack
@@ -166,14 +166,14 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [go-quality, live-dependencies, web-quality, browser-quality, real-stack]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod, check-latest: true }
       - name: Generate commit-bound machine-readable release manifest
         env:
           LEDGERSYNC_EVIDENCE_COMMIT: ${{ github.sha }}
         run: go run ./cmd/evidence-manifest > phase-0d-manifest.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: phase-0d-release-evidence-${{ github.sha }}
           path: phase-0d-manifest.json

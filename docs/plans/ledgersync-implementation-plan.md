@@ -62,25 +62,15 @@ The repository is a locally implemented design-partner demonstration candidate, 
 - responsive account, transfer, and reconciliation operator journeys using production-shaped BFF/API route contracts; critical Playwright fixtures are currently intercepted and are not cross-runtime proof;
 - passing Go, web unit/security/semantics, Next.js build, Playwright, static bundle-budget, and Compose configuration checks at the recorded release-evidence checkpoint; those checks do not override the architecture-audit failures.
 
-The release evidence and the 24 August 2026 architecture audit truthfully record remaining gaps:
+The 24 August 2026 architecture audit originally found cross-runtime identity, exact-money JSON, reconciliation, delivery, timeout/rate/policy, database-role, audit, retention, OpenAPI, currency, account-directory, Docker, and visual-evidence gaps. T097–T114 and T079–T096 now close those repository-addressable items with contract, database, browser, Linux/Windows visual, real-stack, and release-manifest evidence. The detailed historical findings remain in `docs/reviews/2026-08-24-architecture-assessment.md`.
 
-- the TypeScript BFF emits an actor-assertion `exp` value in JavaScript milliseconds while the Go verifier expects Unix seconds; the production authentication path is therefore not proven end to end;
-- exact monetary values and balance versions are still exposed through some JSON contracts as numbers, which cannot safely represent the complete signed 64-bit integer range in JavaScript;
-- reconciliation can omit accounts with missing balance projections and still appear matched; it lacks a consistent comparison watermark and persisted mismatch-level evidence;
-- downstream delivery is inferred from outbox publication rather than recorded as its own durable attempt/state model;
-- API/BFF rate limiting, bounded upstream/server timeouts, amount/velocity controls, runtime database privilege separation, and broad immutable audit coverage are specified but not fully wired;
-- cross-runtime tests currently do not prove the real TypeScript BFF assertion and response decoders against the Go API;
-- outbox, Redis stream, idempotency, audit, and reconciliation retention/partition/cleanup policies are incomplete;
-- the OpenAPI description is incomplete and conflicts with implemented routes, financial string semantics, rate-limit behavior, and the repository's Apache-2.0 license;
-- the pilot's one-currency rule is not enforced consistently at configuration, API, aggregation, and UI boundaries;
-- account API cursor pagination and back/filter preservation need completion before claiming a 10,000-account directory;
-- full-stack Docker runtime smoke must be rerun against an available Docker engine;
-- comprehensive visual-regression baselines do not yet cover every required state;
-- physical iOS, Android, and tablet evidence remains incomplete;
-- production account-category aggregation requires finance approval;
-- a managed PostgreSQL provider-backed PITR restore is not yet evidenced;
-- managed-environment 10–50 TPS and headroom evidence remains pending;
-- jurisdiction, currency, custody position, limits, operational ownership, and partner rollout approvals remain external gates.
+The remaining gaps are not silently converted into code passes:
+
+- the concentrated 50 TPS hot-account run failed its error budget with 26 retryable serializable conflicts and requires Phase 1 remediation or an enforced lower signed limit;
+- physical iOS, Android, tablet, laptop, and desktop evidence remains incomplete;
+- finance-approved account aggregation/terminology and security/risk-approved roles, limits, and pause authority remain unsigned;
+- managed Cognito, renewable workload identity, private AWS infrastructure, alert routing, provider PITR, and production secret rotation are not deployed;
+- legal/custody/retention approval, an operational tabletop, a consenting design partner, live operating evidence, and graduation signatures remain external gates.
 
 ### Architecture Audit Correction
 
@@ -1267,7 +1257,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Acceptance criteria: a design partner can be created reproducibly with tenant isolation, least privilege, currency/limits, credentials, and audit evidence; no public self-service is introduced.
   - Priority: P0 before partner onboarding. Relevant visual: Visual 3. Risk: accidentally building an admin product; keep it narrow and internal.
 
-- [ ] `TASK-001` — Freeze the evidence baseline
+- [x] `TASK-001` — Freeze the evidence baseline
   - Purpose: establish the exact commit, artifacts, tests, known gaps, and scope used by this plan.
   - Dependencies: current repository.
   - Expected output: evidence manifest and reconciled gate register.

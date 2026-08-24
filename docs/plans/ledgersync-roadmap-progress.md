@@ -12,7 +12,7 @@ This register is the evidence-backed companion to the future-scope implementatio
 |---|---|---|
 | 0 — Repository re-baseline and governance | **Complete** | The supported product boundary, deployment path, quality gates, and evidence sources are explicit and verified. |
 | 1 — Pilot financial, identity, and security closure | **Active / environment-gated** | Launch decisions and repository controls are complete; the real AWS/Cognito topology, provider restore, named partner, and approvals remain unproven. |
-| 2 — Managed platform, infrastructure, and recovery | **Ready to start** | AWS Mumbai, Cognito, India-region recovery, network boundaries, and service objectives are now approved inputs. |
+| 2 — Managed platform, infrastructure, and recovery | **Blocked external / technically ready** | AWS Mumbai/Cognito is the selected technical baseline, but account, budget, legal boundary, credentials, DNS, and accountable owners are not authorized. |
 | 3 — Controlled production pilot | **Pending** | Requires deployed infrastructure, approved controls, design partners, and operational ownership. |
 | 4 — Monorepo product and public surfaces | **Pending** | Begins only after pilot evidence validates the product and operating model. |
 | 5 — Developer platform and reliable webhooks | **Pending** | Requires stable pilot contracts and external-consumer requirements. |
@@ -50,8 +50,8 @@ The following gates passed on 2026-08-24:
 - Go command, application, unit, and contract tests.
 - PostgreSQL integration tests, including migration compatibility, least-privilege roles, pilot controls, rate limiting, and ledger invariants.
 - Fault-injection tests for degraded PostgreSQL, Redis, worker, and network behavior.
-- Web linting, 17 unit/security tests, and the optimized production build.
-- 15 browser end-to-end checks covering accessibility, compact navigation, forced colors, reduced motion, zoom/reflow, exact money, idempotent retry, timeout semantics, and authorization-safe states.
+- Web linting, 20 unit/security/semantics tests, and the optimized production build.
+- 45 browser end-to-end checks covering accessibility, six responsive viewports, compact navigation, forced colors, reduced motion, zoom/reflow, exact money, idempotent retry, timeout semantics, progressive history, and 19 reviewed visual states.
 - OpenAPI linting with Redocly and no findings.
 - JavaScript performance budgets for total and largest chunk size.
 - Canonical root and supported Compose configuration validation.
@@ -99,7 +99,7 @@ Phase 1 cannot be declared complete until the following evidence exists:
 
 ### Why work does not jump directly to Phase 2
 
-The decisions required to begin Phase 2 now exist, so managed-platform implementation may start. Phase 1 remains open in parallel as an environment evidence gate: infrastructure code, a local test, or a document cannot substitute for real Cognito tokens, deployed network reachability, provider restore results, counsel review, or accountable sign-off.
+The technical decisions required to design Phase 2 now exist, so Codex can prepare reviewed infrastructure code and cost/exit material. Actual resource creation remains blocked until account/budget authorization, the legal boundary, approved secret handling, and time-bounded credentials exist. Phase 1 remains open in parallel as an environment evidence gate: infrastructure code, a local test, or a document cannot substitute for real Cognito tokens, deployed network reachability, provider restore results, counsel review, or accountable sign-off.
 
 ## Evidence rules for every later phase
 
