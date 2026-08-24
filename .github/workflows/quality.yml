@@ -106,6 +106,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: go.mod, check-latest: true }
+      - name: Generate ephemeral real-stack secrets
+        shell: bash
+        run: |
+          for variable in \
+            POSTGRES_PASSWORD \
+            LEDGERSYNC_SESSION_SECRET \
+            LEDGERSYNC_CONSISTENCY_SIGNING_KEY \
+            LEDGERSYNC_BFF_ASSERTION_SECRET \
+            LEDGERSYNC_DEVELOPMENT_API_TOKEN \
+            LEDGERSYNC_WEB_SESSION_SECRET
+          do
+            printf '%s=%s\n' "$variable" "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          done
       - name: Build and start the real BFF, API, PostgreSQL, Redis, worker path
         env:
           LEDGERSYNC_SYSTEM_WEB_URL: http://localhost:3000
