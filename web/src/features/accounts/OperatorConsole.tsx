@@ -15,23 +15,27 @@ import { OverviewView } from "@/features/overview/OverviewView";
 import { ReconciliationView } from "@/features/reconciliation/ReconciliationViews";
 import { TransfersView } from "@/features/transfers/TransferViews";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
+import type { LocalOrientation, TransferExplainability } from "@/lib/api/orientation";
 
 type Props = Readonly<{
   initialSection?: ConsoleSection;
   initialAccountId?: string;
   initialTransferId?: string;
   initialReconciliationRunId?: string;
+  initialReconciliationReturnTo?: string;
   initialAccountFilters?: AccountFilters;
   initialAccountFocusId?: string;
   initialAccountCreate?: boolean;
   initialAccountReturnTo?: string;
   initialTransferDestinationId?: string;
   initialTransferReturnTo?: string;
+  initialTransferFilters?: { query: string; status: string };
+  initialShowOrientation?: boolean;
 }>;
 type TransfersPayload = { transfers?: TransferSummary[]; next_cursor?: string };
 type RunsPayload = { runs?: ReconciliationRun[]; next_cursor?: string };
 
-export function OperatorConsole({ initialSection = "overview", initialAccountId, initialTransferId, initialReconciliationRunId, initialAccountFilters = emptyAccountFilters, initialAccountFocusId, initialAccountCreate = false, initialAccountReturnTo = "/accounts", initialTransferDestinationId, initialTransferReturnTo }: Props) {
+export function OperatorConsole({ initialSection = "overview", initialAccountId, initialTransferId, initialReconciliationRunId, initialReconciliationReturnTo, initialAccountFilters = emptyAccountFilters, initialAccountFocusId, initialAccountCreate = false, initialAccountReturnTo = "/accounts", initialTransferDestinationId, initialTransferReturnTo, initialTransferFilters, initialShowOrientation = false }: Props) {
   const router = useRouter();
   const [session, setSession] = useState<ConsoleSession | null>(null);
   const accountWorkspace = useAccountWorkspace(initialAccountId, initialAccountFilters);
@@ -47,6 +51,12 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
   const [transferCursor, setTransferCursor] = useState<string>();
   const [runCursor, setRunCursor] = useState<string>();
   const [online, setOnline] = useState(true);
+  const [orientation, setOrientation] = useState<LocalOrientation | null>(null);
+  const [orientationLoading, setOrientationLoading] = useState(false);
+  const [orientationError, setOrientationError] = useState<string | null>(null);
+  const [explainability, setExplainability] = useState<TransferExplainability | null>(null);
+  const [explainabilityLoading, setExplainabilityLoading] = useState(false);
+  const [explainabilityError, setExplainabilityError] = useState<string | null>(null);
 
 
   const loadTransfers = useCallback(async (cursor?: string, append = false) => {
@@ -68,6 +78,22 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
     if (response.ok && response.data.transfer_id) { setTransferDetail(response.data); setTransferError(null); }
     else setTransferError(unavailableMessage(response.status, "transfer evidence"));
     setDetailLoading(false);
+  }, []);
+
+  const loadOrientation = useCallback(async () => {
+    setOrientationLoading(true);
+    const response = await readJSON<LocalOrientation>("/api/local/orientation");
+    if (response.ok && Array.isArray(response.data.steps)) { setOrientation(response.data); setOrientationError(null); }
+    else { setOrientation(null); setOrientationError(unavailableMessage(response.status, "local orientation evidence")); }
+    setOrientationLoading(false);
+  }, []);
+
+  const loadExplainability = useCallback(async (id: string) => {
+    setExplainabilityLoading(true);
+    const response = await readJSON<TransferExplainability>(`/api/transfers/${encodeURIComponent(id)}/explainability`);
+    if (response.ok && Array.isArray(response.data.stages)) { setExplainability(response.data); setExplainabilityError(null); }
+    else { setExplainability(null); setExplainabilityError(response.status === 404 ? "The linked timeline was not found in this authorized tenant scope." : unavailableMessage(response.status, "stored evidence timeline")); }
+    setExplainabilityLoading(false);
   }, []);
 
   const loadRuns = useCallback(async (cursor?: string, append = false) => {
@@ -116,16 +142,19 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
         setLoading(false);
         const directory = initialSection === "accounts" && !initialAccountId && !initialAccountCreate;
         const owned = await loadAccounts(directory ? initialAccountFilters : emptyAccountFilters, directory ? 25 : 100);
+        const canExplain = ["explainability:read", "transfers:read", "events:read", "reconciliation:read"].every((scope) => response.data.scopes.includes(scope));
         await Promise.all([
           initialAccountId ? loadAccountDetail(initialAccountId) : owned[0] && !directory ? loadAccountDetail(owned[0].account_id) : Promise.resolve(),
           initialTransferId ? loadTransferDetail(initialTransferId) : loadTransfers(),
+          initialTransferId && canExplain ? loadExplainability(initialTransferId) : Promise.resolve(),
           initialReconciliationRunId ? loadRunDetail(initialReconciliationRunId) : loadRuns(),
+          initialSection === "overview" && response.data.environment === "demo" && response.data.scopes.includes("local:read") ? loadOrientation() : Promise.resolve(),
         ]);
       }
       if (active) setLoading(false);
     })();
     return () => { active = false; };
-  }, [initialAccountCreate, initialAccountFilters, initialAccountId, initialReconciliationRunId, initialSection, initialTransferId, loadAccountDetail, loadAccounts, loadRunDetail, loadRuns, loadTransferDetail, loadTransfers]);
+  }, [initialAccountCreate, initialAccountFilters, initialAccountId, initialReconciliationRunId, initialSection, initialTransferId, loadAccountDetail, loadAccounts, loadExplainability, loadOrientation, loadRunDetail, loadRuns, loadTransferDetail, loadTransfers]);
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -155,10 +184,10 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
 
   return <ConsoleShell section={initialSection} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "demo" ? "Non-production data" : "Authorized operator"} preview={session.environment === "demo"} onSignOut={() => void signOut()}>
     {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Writes are disabled and no unverified result is shown.</span></div>}
-    {initialSection === "overview" && <OverviewView accounts={accountWorkspace.accounts} transfers={transfers} reconciliation={runs[0] ?? null} loading={accountWorkspace.directoryLoading || detailLoading} error={accountWorkspace.error ?? (!accountWorkspace.scopeComplete ? "The authorized account scope exceeds one bounded page. LedgerSync will not present a partial page as a complete balance aggregate." : null)} online={online} onRefresh={() => void refresh()} />}
-    {initialSection === "accounts" && (initialAccountCreate ? <AccountCreateFlow tenantId={session.tenant_id} tenantLabel={session.tenant_label ?? "Ledger tenant"} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} csrfToken={session.csrf_token} online={online} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} fundingScopeComplete={accountWorkspace.scopeComplete} fundedSourceAvailable={accountWorkspace.accounts.some((candidate) => candidate.status === "active" && candidate.currency === "INR" && hasPositiveMinorUnits(candidate.available_minor))} returnTo={initialAccountReturnTo} onCreated={async () => { await loadAccounts(accountWorkspace.filters, 100); }} /> : <AccountsView accounts={accountWorkspace.accounts} selected={accountWorkspace.selected} detailRequested={Boolean(initialAccountId)} balance={accountWorkspace.balance} transactions={accountWorkspace.transactions} balanceLoading={accountWorkspace.balanceLoading} historyLoading={accountWorkspace.historyLoading} directoryLoading={accountWorkspace.directoryLoading} balanceError={accountWorkspace.balanceError} historyError={accountWorkspace.historyError} error={accountWorkspace.error} online={online} filters={accountWorkspace.filters} nextCursor={accountWorkspace.nextCursor} historyNextCursor={accountWorkspace.historyCursor} focusAccountId={initialAccountFocusId} tenantId={session.tenant_id} csrfToken={session.csrf_token} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("transactions:read")} fundingScopeComplete={accountWorkspace.scopeComplete} onRefresh={() => void refresh()} onApplyFilters={accountWorkspace.applyFilters} onNext={accountWorkspace.loadNextPage} onHistoryNext={() => void accountWorkspace.loadMoreHistory()} onAccountChanged={async () => { if (initialAccountId) await loadAccountDetail(initialAccountId); await loadAccounts(accountWorkspace.filters, 100); }} onRefreshLifecycleEvidence={async () => initialAccountId ? loadAccountDetail(initialAccountId) : { account: null, balance: null }} />)}
-    {initialSection === "transfers" && <TransfersView accounts={accountWorkspace.accounts} transfers={transfers} detail={transferDetail} detailRequested={Boolean(initialTransferId)} error={transferError} loading={detailLoading} nextCursor={transferCursor} online={online} canWrite={session.scopes.includes("transfers:write") && accountWorkspace.scopeComplete} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("transfers:read")} writeUnavailableReason={!accountWorkspace.scopeComplete ? "Transfer creation is disabled because the authorized account picker is larger than one bounded page. Use the API until server-backed account selection is configured." : undefined} tenantId={session.tenant_id} csrfToken={session.csrf_token} preferredDestinationId={initialTransferDestinationId} returnTo={initialTransferReturnTo} onRefresh={async () => { await refresh(); }} onMore={() => { if (transferCursor) void loadTransfers(transferCursor, true); }} />}
-    {initialSection === "reconciliation" && <ReconciliationView runs={runs} detail={runDetail} detailRequested={Boolean(initialReconciliationRunId)} error={reconciliationError} loading={detailLoading} nextCursor={runCursor} tenantId={session.tenant_id} csrfToken={session.csrf_token} online={online} canWrite={session.scopes.includes("reconciliation:write")} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("reconciliation:read")} onObserved={observeRun} onRefresh={() => loadRuns()} onMore={() => { if (runCursor) void loadRuns(runCursor, true); }} />}
+    {initialSection === "overview" && <OverviewView accounts={accountWorkspace.accounts} transfers={transfers} reconciliation={runs[0] ?? null} loading={accountWorkspace.directoryLoading || detailLoading} error={accountWorkspace.error ?? (!accountWorkspace.scopeComplete ? "The authorized account scope exceeds one bounded page. LedgerSync will not present a partial page as a complete balance aggregate." : null)} online={online} tenantId={session.tenant_id} orientation={orientation} orientationLoading={orientationLoading} orientationError={orientationError} canReadOrientation={session.environment === "demo" && session.scopes.includes("local:read")} localDemo={session.environment === "demo"} forceOrientation={initialShowOrientation} onRefresh={() => void refresh()} onRefreshOrientation={() => void loadOrientation()} />}
+    {initialSection === "accounts" && (initialAccountCreate ? <AccountCreateFlow tenantId={session.tenant_id} tenantLabel={session.tenant_label ?? "Ledger tenant"} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} csrfToken={session.csrf_token} online={online} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} fundingScopeComplete={accountWorkspace.scopeComplete} fundedSourceAvailable={accountWorkspace.accounts.some((candidate) => candidate.status === "active" && candidate.currency === "INR" && hasPositiveMinorUnits(candidate.available_minor))} returnTo={initialAccountReturnTo} onCreated={async () => { await loadAccounts(accountWorkspace.filters, 100); }} /> : <AccountsView accounts={accountWorkspace.accounts} selected={accountWorkspace.selected} detailRequested={Boolean(initialAccountId)} balance={accountWorkspace.balance} transactions={accountWorkspace.transactions} balanceLoading={accountWorkspace.balanceLoading} historyLoading={accountWorkspace.historyLoading} directoryLoading={accountWorkspace.directoryLoading} balanceError={accountWorkspace.balanceError} historyError={accountWorkspace.historyError} error={accountWorkspace.error} online={online} filters={accountWorkspace.filters} nextCursor={accountWorkspace.nextCursor} historyNextCursor={accountWorkspace.historyCursor} focusAccountId={initialAccountFocusId} tenantId={session.tenant_id} csrfToken={session.csrf_token} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("transactions:read")} fundingScopeComplete={accountWorkspace.scopeComplete} detailReturnTo={initialAccountId ? initialAccountReturnTo : undefined} onRefresh={() => void refresh()} onApplyFilters={accountWorkspace.applyFilters} onNext={accountWorkspace.loadNextPage} onHistoryNext={() => void accountWorkspace.loadMoreHistory()} onAccountChanged={async () => { if (initialAccountId) await loadAccountDetail(initialAccountId); await loadAccounts(accountWorkspace.filters, 100); }} onRefreshLifecycleEvidence={async () => initialAccountId ? loadAccountDetail(initialAccountId) : { account: null, balance: null }} />)}
+    {initialSection === "transfers" && <TransfersView accounts={accountWorkspace.accounts} transfers={transfers} detail={transferDetail} detailRequested={Boolean(initialTransferId)} explainability={explainability} explainabilityLoading={explainabilityLoading} explainabilityError={explainabilityError} error={transferError} loading={detailLoading} nextCursor={transferCursor} online={online} canWrite={session.scopes.includes("transfers:write") && accountWorkspace.scopeComplete} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("transfers:read")} canReadExplainability={["explainability:read", "transfers:read", "events:read", "reconciliation:read"].every((scope) => session.scopes.includes(scope))} writeUnavailableReason={!accountWorkspace.scopeComplete ? "Transfer creation is disabled because the authorized account picker is larger than one bounded page. Use the API until server-backed account selection is configured." : undefined} tenantId={session.tenant_id} csrfToken={session.csrf_token} preferredDestinationId={initialTransferDestinationId} returnTo={initialTransferReturnTo} initialFilters={initialTransferFilters} onRefresh={async () => { await refresh(); }} onRefreshExplainability={() => { if (initialTransferId) void loadExplainability(initialTransferId); }} onMore={() => { if (transferCursor) void loadTransfers(transferCursor, true); }} />}
+    {initialSection === "reconciliation" && <ReconciliationView runs={runs} detail={runDetail} detailRequested={Boolean(initialReconciliationRunId)} error={reconciliationError} loading={detailLoading} nextCursor={runCursor} tenantId={session.tenant_id} csrfToken={session.csrf_token} online={online} canWrite={session.scopes.includes("reconciliation:write")} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("reconciliation:read")} returnTo={initialReconciliationReturnTo} onObserved={observeRun} onRefresh={() => loadRuns()} onMore={() => { if (runCursor) void loadRuns(runCursor, true); }} />}
     <ConsoleFooter />
   </ConsoleShell>;
 }

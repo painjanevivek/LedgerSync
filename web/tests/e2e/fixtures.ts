@@ -9,6 +9,24 @@ export const deliveryEvent = { event_id:"77777777-7777-4777-8777-777777777777",e
 export const eventDetail = { ...deliveryEvent, delivery_attempts:[{attempt_id:"99999999-9999-4999-8999-999999999999",kind:"notification",state:"retrying",attempt_number:"2",due_at:"2026-08-19T11:02:00Z",started_at:"2026-08-19T11:01:58Z",completed_at:"2026-08-19T11:02:00Z",response_class:"timeout",error_code:"timeout"}],delivery_attempts_truncated:false,timeline:[{kind:"committed",occurred_at:"2026-08-19T11:00:01Z"},{kind:"delivery_retrying",occurred_at:"2026-08-19T11:02:00Z"}] };
 export const diagnostics = { overall_state:"degraded",generated_at:"2026-08-19T12:00:00Z",application:{version:"0.1.0",commit:"abc123def456",environment:"local_demo",public_origin:"http://127.0.0.1:3100"},financial_authority:{postgres:{state:"reachable",schema_version:"000008"},latest_reconciliation:{state:"available",status:"matched",run_id:run.run_id,completed_at:run.completed_at}},delivery_cache:{outbox:{state:"reachable",pending_count:"1",dead_count:"0",worker_progress:"stalled",latest_published_at:"2026-08-19T11:00:00Z",oldest_pending_at:"2026-08-19T11:00:01Z"},redis:{state:"unavailable",label:"disposable_cache"}} };
 export const recoveryEvidence = { format_version:"ledgersync-recovery-evidence-index/v1",generated_at_utc:"2026-08-19T12:05:00Z",latest_backup:{backup_id:"backup-20260819T115000Z-abcdef1",finalized_at_utc:"2026-08-19T11:50:00Z",size_bytes:1048576,schema_version:"000008_account_commands",digest_status:"verified",validation_status:"passed",source_commit:"0123456789abcdef0123456789abcdef01234567"},latest_restore:{backup_id:"backup-20260819T115000Z-abcdef1",completed_at_utc:"2026-08-19T11:57:00Z",status:"passed",reconciliation_status:"matched",mismatch_count:0,normal_project_unchanged:true,local_rto_seconds:42.5},retention:{valid_backup_count:3,ignored_entry_count:0,configured_keep_count:5} };
+export const orientationEvidence = { generated_at:"2026-08-19T12:05:00Z",evidence_state:"complete",steps:[
+  {id:"inspect_account",state:"evidence_available",evidence_type:"account_record",evidence_id:sourceAccount.account_id,occurred_at:sourceAccount.as_of},
+  {id:"create_account",state:"completed",evidence_type:"account_created_audit",evidence_id:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",occurred_at:"2026-08-19T10:00:00Z"},
+  {id:"fund_account",state:"completed",evidence_type:"posted_transfer",evidence_id:transfer.transfer_id,occurred_at:transfer.completed_at},
+  {id:"inspect_transfer",state:"evidence_available",evidence_type:"transfer_record",evidence_id:transfer.transfer_id,occurred_at:transfer.completed_at},
+  {id:"run_reconciliation",state:"completed",evidence_type:"reconciliation_run",evidence_id:run.run_id,occurred_at:run.completed_at},
+  {id:"inspect_delivery",state:"evidence_available",evidence_type:"delivery_attempt",evidence_id:deliveryEvent.event_id,occurred_at:deliveryEvent.occurred_at},
+  {id:"create_backup",state:"completed",evidence_type:"recovery_backup",evidence_id:recoveryEvidence.latest_backup.backup_id,occurred_at:recoveryEvidence.latest_backup.finalized_at_utc},
+]};
+export const transferExplainability = { transfer_id:transfer.transfer_id,generated_at:"2026-08-19T12:05:00Z",evidence_state:"complete",stages:[
+  {sequence:1,kind:"request",state:"available",truncated:false,evidence:[{evidence_type:"idempotency_outcome",evidence_id:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",status:"completed",occurred_at:transfer.created_at}]},
+  {sequence:2,kind:"transfer",state:"available",truncated:false,evidence:[{evidence_type:"transfer",evidence_id:transfer.transfer_id,status:"posted",amount_minor:"500",currency:"INR",occurred_at:transfer.completed_at}]},
+  {sequence:3,kind:"journal_postings",state:"available",truncated:false,evidence:[{evidence_type:"journal",evidence_id:transfer.journal_transaction_id,occurred_at:transfer.completed_at},{evidence_type:"posting",evidence_id:"aaaaaaaa-1111-4111-8111-111111111111",account_id:sourceAccount.account_id,status:"debit",direction:"debit",amount_minor:"500",currency:"INR",occurred_at:transfer.completed_at},{evidence_type:"posting",evidence_id:"aaaaaaaa-2222-4222-8222-222222222222",account_id:destinationAccount.account_id,status:"credit",direction:"credit",amount_minor:"500",currency:"INR",occurred_at:transfer.completed_at}]},
+  {sequence:4,kind:"balance_versions",state:"available",truncated:false,evidence:[{evidence_type:"balance_version",account_id:sourceAccount.account_id,balance_version:"8",occurred_at:transfer.completed_at},{evidence_type:"balance_version",account_id:destinationAccount.account_id,balance_version:"4",occurred_at:transfer.completed_at}]},
+  {sequence:5,kind:"outbox",state:"available",truncated:false,evidence:[{evidence_type:"outbox_event",evidence_id:deliveryEvent.event_id,status:"pending",occurred_at:transfer.completed_at}]},
+  {sequence:6,kind:"delivery",state:"available",truncated:false,evidence:[{evidence_type:"delivery_attempt",evidence_id:eventDetail.delivery_attempts[0].attempt_id,status:"retrying",attempt_number:"2",occurred_at:eventDetail.delivery_attempts[0].completed_at}]},
+  {sequence:7,kind:"reconciliation",state:"available",truncated:false,evidence:[{evidence_type:"reconciliation_run",evidence_id:run.run_id,status:"matched",related_id:run.ledger_watermark,occurred_at:run.completed_at}]},
+]};
 export const developerMetadata = developerMetadataSource;
 
 function json(route: Route, body: unknown, status = 200) {
@@ -16,7 +34,7 @@ function json(route: Route, body: unknown, status = 200) {
 }
 
 export async function mockOperatorConsole(page: Page) {
-  await page.route("**/api/session", (route) => json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "developer:read", "recovery:read", "exports:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" }));
+  await page.route("**/api/session", (route) => json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" }));
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
     const account = route.request().url().includes(sourceAccount.account_id) ? sourceAccount : destinationAccount;
@@ -32,6 +50,8 @@ export async function mockOperatorConsole(page: Page) {
   await page.route("**/api/reconciliation/runs?*", (route) => json(route, { runs:[run],next_cursor:"" }));
   await page.route("**/api/reconciliation/runs/*", (route) => json(route, run));
   await page.route("**/api/local/diagnostics", (route) => json(route, diagnostics));
+  await page.route("**/api/local/orientation", (route) => json(route, orientationEvidence));
+  await page.route("**/api/transfers/*/explainability", (route) => json(route, transferExplainability));
   await page.route(/\/api\/events\?(?:.*)/, (route) => json(route, { events:[deliveryEvent],next_cursor:"" }));
   await page.route(/\/api\/events\/[^/?]+$/, (route) => json(route, eventDetail));
   await page.route("**/api/developer/metadata", (route) => json(route, developerMetadata));

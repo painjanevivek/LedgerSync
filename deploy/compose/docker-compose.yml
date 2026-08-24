@@ -179,7 +179,16 @@ services:
     image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}
-    command: ["psql", "-h", "postgres", "-U", "ledgersync", "-d", "ledgersync", "-f", "/seed/demo-seed.sql"]
+      LEDGERSYNC_INITIALIZATION_MODE: ${LEDGERSYNC_INITIALIZATION_MODE:-demo}
+    command:
+      - "sh"
+      - "-ec"
+      - >-
+        case "$${LEDGERSYNC_INITIALIZATION_MODE}" in
+          demo) exec psql -h postgres -U ledgersync -d ledgersync -f /seed/demo-seed.sql ;;
+          empty) echo 'Fresh empty initialization selected; deterministic demo seed skipped.' ;;
+          *) echo 'Unsupported LedgerSync initialization mode.' >&2; exit 64 ;;
+        esac
     volumes:
       - ./demo-seed.sql:/seed/demo-seed.sql:ro
     depends_on:

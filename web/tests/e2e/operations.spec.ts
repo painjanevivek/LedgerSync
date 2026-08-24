@@ -68,8 +68,8 @@ test("event list exposes authorized related evidence links", async ({ page }) =>
   await mockOperatorConsole(page);
   await page.goto("/events");
   const related = page.getByRole("navigation", { name:`Related evidence for ${deliveryEvent.event_id}` });
-  await expect(related.getByRole("link", { name:"Transfer" })).toHaveAttribute("href", `/transfers/${deliveryEvent.transfer_id}`);
-  await expect(related.getByRole("link", { name:"Account" })).toHaveAttribute("href", `/accounts/${deliveryEvent.account_id}`);
+  await expect(related.getByRole("link", { name:"Transfer" })).toHaveAttribute("href", `/transfers/${deliveryEvent.transfer_id}?return_to=%2Fevents`);
+  await expect(related.getByRole("link", { name:"Account" })).toHaveAttribute("href", `/accounts/${deliveryEvent.account_id}?return_to=%2Fevents`);
 });
 
 test("missing operations scopes are distinct from empty evidence and do not call the BFF", async ({ page }) => {

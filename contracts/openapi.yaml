@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.7.0
+  version: 1.8.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -234,6 +234,22 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /local/orientation:
+    get:
+      operationId: getLocalOrientationEvidence
+      x-required-scope: local:read
+      summary: Read a truthful seven-step local orientation progress summary backed by durable evidence.
+      description: >-
+        Requires local:read and a tenant operator or administrator role.
+        Browser inspection actions are not durably recorded, so related records
+        are reported only as evidence_available rather than completed.
+      responses:
+        '200': { description: Durable local progress evidence with missing and unavailable states kept distinct., content: { application/json: { schema: { $ref: '#/components/schemas/OrientationSummary' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /events:
     get:
       operationId: listEventEvidence
@@ -263,6 +279,24 @@ paths:
       parameters: [{ in: path, name: eventId, required: true, schema: { type: string, format: uuid } }]
       responses:
         '200': { description: Authorized event detail., content: { application/json: { schema: { $ref: '#/components/schemas/EventEvidenceDetail' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /transfers/{transferId}/explainability:
+    get:
+      operationId: explainTransferEvidence
+      x-required-scope: explainability:read
+      summary: Read one authorized transfer as a bounded seven-stage persisted-evidence timeline.
+      description: >-
+        Requires explainability:read together with transfers:read, events:read,
+        and reconciliation:read. Missing links and reconciliation coverage that
+        cannot be proven from a stored PostgreSQL snapshot watermark remain
+        explicit; the API never infers delivery or reconciliation success.
+      parameters: [{ $ref: '#/components/parameters/TransferID' }]
+      responses:
+        '200': { description: Exactly seven semantic stages in evidence order., content: { application/json: { schema: { $ref: '#/components/schemas/ExplainabilityTimeline' } } } }
         '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -366,7 +400,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.7.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.8.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -658,6 +692,62 @@ components:
             delivery_attempts_truncated: { type: boolean }
             timeline: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/EventTimelineItem' } }
     EventEvidencePage: { type: object, required: [events, next_cursor], properties: { events: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/EventEvidence' } }, next_cursor: { type: string, maxLength: 512 } } }
+    OrientationSummary:
+      type: object
+      additionalProperties: false
+      required: [generated_at, evidence_state, steps]
+      properties:
+        generated_at: { type: string, format: date-time }
+        evidence_state: { type: string, enum: [complete, partial] }
+        steps: { type: array, minItems: 7, maxItems: 7, items: { $ref: '#/components/schemas/OrientationStep' } }
+    OrientationStep:
+      type: object
+      additionalProperties: false
+      required: [id, state, evidence_type]
+      properties:
+        id: { type: string, enum: [inspect_account, create_account, fund_account, inspect_transfer, run_reconciliation, inspect_delivery, create_backup] }
+        state: { type: string, enum: [completed, evidence_available, missing, unavailable] }
+        evidence_type: { type: string, enum: [account_record, account_created_audit, posted_transfer, transfer_record, reconciliation_run, delivery_attempt, recovery_backup] }
+        evidence_id: { type: string, minLength: 1, maxLength: 128 }
+        occurred_at: { type: string, format: date-time }
+        reason_code: { type: string, enum: [browser_action_not_recorded, no_authorized_account, no_account_creation_evidence, no_posted_transfer, no_authorized_transfer, no_reconciliation_run, no_delivery_attempt, no_validated_backup, recovery_evidence_unavailable] }
+    ExplainabilityTimeline:
+      type: object
+      additionalProperties: false
+      required: [transfer_id, generated_at, evidence_state, stages]
+      properties:
+        transfer_id: { type: string, format: uuid }
+        generated_at: { type: string, format: date-time }
+        evidence_state: { type: string, enum: [complete, partial] }
+        stages: { type: array, minItems: 7, maxItems: 7, items: { $ref: '#/components/schemas/ExplainabilityStage' } }
+    ExplainabilityStage:
+      type: object
+      additionalProperties: false
+      required: [sequence, kind, state, truncated, evidence]
+      properties:
+        sequence: { type: integer, minimum: 1, maximum: 7 }
+        kind: { type: string, enum: [request, transfer, journal_postings, balance_versions, outbox, delivery, reconciliation] }
+        state: { type: string, enum: [available, missing, unavailable] }
+        reason_code: { type: string, enum: [no_retained_idempotency_outcome, no_journal, no_postings, no_balance_version_evidence, no_outbox_events, no_delivery_attempts, coverage_not_provable, dependency_unavailable, evidence_truncated] }
+        truncated: { type: boolean }
+        evidence: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/ExplainabilityEvidence' } }
+    ExplainabilityEvidence:
+      type: object
+      additionalProperties: false
+      required: [evidence_type, occurred_at]
+      properties:
+        evidence_type: { type: string, enum: [idempotency_outcome, transfer, journal, posting, balance_version, outbox_event, delivery_attempt, reconciliation_run] }
+        evidence_id: { type: string, format: uuid }
+        related_id: { type: string, format: uuid }
+        status: { type: string, enum: [in_progress, completed, failed, pending, posted, rejected, debit, credit, published, retrying, dead, delivered, matched, mismatch] }
+        event_type: { type: string, enum: [account.balance.changed.v1] }
+        account_id: { type: string, format: uuid }
+        direction: { type: string, enum: [debit, credit] }
+        amount_minor: { $ref: '#/components/schemas/ExactMinor' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        balance_version: { $ref: '#/components/schemas/ExactVersion' }
+        attempt_number: { type: string, pattern: '^[1-9][0-9]*$' }
+        occurred_at: { type: string, format: date-time }
     RecoveryEvidenceIndex:
       type: object
       additionalProperties: false

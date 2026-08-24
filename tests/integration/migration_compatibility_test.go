@@ -25,8 +25,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 15 {
-		t.Fatalf("migration versions=%d, want 15", versions)
+	if versions != 16 {
+		t.Fatalf("migration versions=%d, want 16", versions)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events"} {
 		var exists bool
@@ -96,7 +96,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
@@ -152,6 +152,15 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	}
 	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: os.DirFS(migrationDirectory)}); err != nil {
 		t.Fatal(err)
+	}
+	var canReadOutbox, canReadAudit bool
+	if err := upgradeDatabase.QueryRow(`
+SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
+       has_table_privilege('ledgersync_api','audit_events','SELECT')`).Scan(&canReadOutbox, &canReadAudit); err != nil {
+		t.Fatal(err)
+	}
+	if !canReadOutbox || !canReadAudit {
+		t.Fatalf("guided read-model migration did not upgrade API evidence grants: outbox=%t audit=%t", canReadOutbox, canReadAudit)
 	}
 	wantBalances := map[string][3]int64{
 		legacyAccounts[0]: {725, 725, 9}, legacyAccounts[1]: {10, 10, 2}, legacyAccounts[2]: {20, 20, 3}, legacyAccounts[3]: {30, 30, 4},

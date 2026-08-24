@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "1.7.0",
+  "contract_version": "1.8.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -56,8 +56,10 @@
       "label": "Local operations",
       "operations": [
         { "operation_id": "getLocalDiagnostics", "method": "GET", "path": "/local/diagnostics", "scope": "local:read" },
+        { "operation_id": "getLocalOrientationEvidence", "method": "GET", "path": "/local/orientation", "scope": "local:read" },
         { "operation_id": "listEventEvidence", "method": "GET", "path": "/events", "scope": "events:read" },
-        { "operation_id": "getEventEvidence", "method": "GET", "path": "/events/{eventId}", "scope": "events:read" }
+        { "operation_id": "getEventEvidence", "method": "GET", "path": "/events/{eventId}", "scope": "events:read" },
+        { "operation_id": "explainTransferEvidence", "method": "GET", "path": "/transfers/{transferId}/explainability", "scope": "explainability:read" }
       ]
     },
     {

@@ -135,7 +135,9 @@ SELECT id,event_type,COALESCE(actor_subject_id,''),outcome,correlation_id,
 	occurred_at
 FROM audit_events
 WHERE tenant_id=$1 AND target_type='account' AND target_id=$2
-ORDER BY occurred_at DESC,id DESC LIMIT 25`, tenantID, accountID)
+ORDER BY occurred_at DESC,
+  CASE WHEN event_type='account.status_changed' THEN 1 ELSE 0 END DESC,
+  id DESC LIMIT 25`, tenantID, accountID)
 	if err != nil {
 		return item, fmt.Errorf("get account audit context: %w", err)
 	}

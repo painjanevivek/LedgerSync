@@ -12,7 +12,7 @@ import { LocalStatusView } from "@/features/operations/LocalStatusView";
 import type { DeliveryEvent, DeliveryEventDetail, EventPage, LocalDiagnostics } from "@/lib/api/operations";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
 
-type Props = Readonly<{ section: "local-status" | "events"; eventId?: string; filters?: EventFilters }>;
+type Props = Readonly<{ section: "local-status" | "events"; eventId?: string; filters?: EventFilters; returnTo?: string }>;
 const emptyEventFilters: EventFilters = {};
 
 function eventQuery(filters: EventFilters) {
@@ -21,7 +21,7 @@ function eventQuery(filters: EventFilters) {
   return query.toString();
 }
 
-export function OperationsConsole({ section, eventId, filters = emptyEventFilters }: Props) {
+export function OperationsConsole({ section, eventId, filters = emptyEventFilters, returnTo }: Props) {
   const router = useRouter();
   const [session, setSession] = useState<ConsoleSession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
@@ -109,7 +109,7 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
   return <ConsoleShell section={section} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "demo" ? "Non-production data" : "Authorized operator"} preview={session.environment === "demo"} onSignOut={() => void signOut()}>
     {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true"/><span><strong>You are offline.</strong> Read evidence is retained only with its last verified timestamp.</span></div>}
     {section === "local-status" && <LocalStatusView evidence={diagnostics} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadDiagnostics()} />}
-    {section === "events" && eventId && <EventDetailView event={event} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadEvent()} />}
+    {section === "events" && eventId && <EventDetailView event={event} loading={loading} error={error} online={online} canRead={canRead} returnTo={returnTo} onRefresh={() => void loadEvent()} />}
     {section === "events" && !eventId && <EventsListView events={events} filters={filters} nextCursor={nextCursor} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadEvents()} />}
     <ConsoleFooter/>
   </ConsoleShell>;

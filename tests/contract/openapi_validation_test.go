@@ -157,6 +157,11 @@ func TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs(t *testing.T) {
 		{"internal/application/recovery/manifests.go", "BackupManifestEvidence", "RecoveryBackupEvidence"},
 		{"internal/application/recovery/manifests.go", "RestoreManifestEvidence", "RecoveryRestoreEvidence"},
 		{"internal/application/recovery/manifests.go", "ManifestRetention", "RecoveryRetentionEvidence"},
+		{"internal/application/guidance/service.go", "OrientationSummary", "OrientationSummary"},
+		{"internal/application/guidance/service.go", "OrientationStep", "OrientationStep"},
+		{"internal/application/guidance/service.go", "ExplainabilityTimeline", "ExplainabilityTimeline"},
+		{"internal/application/guidance/service.go", "TimelineStage", "ExplainabilityStage"},
+		{"internal/application/guidance/service.go", "EvidenceItem", "ExplainabilityEvidence"},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.schema, func(t *testing.T) {

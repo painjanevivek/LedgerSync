@@ -55,6 +55,8 @@
 @media (forced-colors: active) { .status-label,.button,.state-panel,.side-nav { forced-color-adjust: auto; }.nav-item.active { outline: 2px solid CanvasText; } }
 
 @media (max-width: 900px) {
+  .orientation-checklist li { grid-template-columns:28px minmax(0,1fr) auto; }.orientation-checklist .record-link { grid-column:2/-1; justify-self:start; }
+  .stage-evidence-list>li { grid-template-columns:minmax(160px,1fr) auto auto; }.stage-evidence-list .record-link,.stage-evidence-list .copy-control { grid-column:1/-1; justify-self:start; }
   .truth-lane { grid-template-columns: 36px 22px minmax(0,1fr) auto; }
   .truth-lane dl, .truth-lane > .record-link { grid-column: 3/-1; }
   .operations-environment dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -76,6 +78,9 @@
 }
 
 @media (max-width: 640px) {
+  .local-orientation>header { grid-template-columns:30px minmax(0,1fr) 44px; padding:18px 14px; }.orientation-boundary { grid-template-columns:1fr 1fr; }.orientation-boundary>div:nth-child(2) { border-right:0; }.orientation-boundary>div:nth-child(-n+2) { border-bottom:1px solid var(--line); }
+  .orientation-checklist li { grid-template-columns:28px minmax(0,1fr); align-items:start; padding:15px 14px; }.orientation-checklist .status-label,.orientation-checklist .record-link { grid-column:2; justify-self:start; }.orientation-state { grid-template-columns:22px 1fr; padding:16px 14px; }.orientation-state .button { grid-column:1/-1; }.local-orientation>footer { grid-template-columns:1fr; padding:17px 14px; }.local-orientation>footer .copy-control { min-width:0; }
+  .transfer-evidence-chain>header { align-items:stretch; flex-direction:column; }.transfer-evidence-chain>header .button { width:100%; }.evidence-stage { grid-template-columns:34px minmax(0,1fr); gap:8px; }.evidence-stage>article { padding:14px 10px; }.evidence-stage>article>header { align-items:flex-start; flex-direction:column; }.stage-evidence-list>li { grid-template-columns:1fr; gap:7px; }.stage-evidence-list .status-label,.stage-evidence-list .record-link,.stage-evidence-list .copy-control { grid-column:1; justify-self:start; }.transfer-evidence-chain>footer { align-items:flex-start; flex-direction:column; overflow-wrap:anywhere; }
   .operations-verdict { grid-template-columns: 34px 1fr; padding: 18px; }
   .operations-verdict .status-label { grid-column: 2; justify-self: start; }
   .truth-lane { grid-template-columns: 34px 22px minmax(0,1fr); padding: 18px 8px; }

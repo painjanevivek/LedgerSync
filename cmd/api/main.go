@@ -135,7 +135,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "developer:read", "recovery:read", "exports:read", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "developer:read", "recovery:read", "exports:read", "explainability:read", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -248,6 +248,13 @@ func main() {
 				RateLimiter: rateLimiter, AuditRecorder: auditRepository, RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
 			}); err != nil {
 				slog.Error("recovery/export route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerGuidanceRoutes(router, guidanceRouteConfig{
+				Database: database, RecoveryRoot: configuration.RecoveryEvidenceRoot, Identity: provider, Authenticator: authenticator,
+				RateLimiter: rateLimiter, AuditRecorder: auditRepository, RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
+			}); err != nil {
+				slog.Error("guidance route initialization failed", "error", err)
 				os.Exit(1)
 			}
 			router.Handle("POST /api/transfers", transferHandler)

@@ -121,6 +121,7 @@ var allowedScopes = map[string]struct{}{
 	"developer:read":       {},
 	"recovery:read":        {},
 	"exports:read":         {},
+	"explainability:read":  {},
 	"audit:read":           {},
 	BFFActorScope:          {},
 }

@@ -13,6 +13,7 @@ import {
   SignOut,
   UserCircle,
   List,
+  Compass,
   X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -86,7 +87,7 @@ export function ConsoleShell({
       </div>
 
       <nav className="primary-nav" aria-label="Primary navigation">
-        {navigation.map((group) => <div className="nav-group" key={group.label}><p className="nav-section-label">{group.label}</p>{group.items.map((item) => {
+        {navigation.map((group) => <div className="nav-group" key={group.label}><p className="nav-section-label">{group.label}</p>{group.label === "Local tools" && preview && <Link href="/?guide=1" onClick={() => setNavigationOpen(false)} className="nav-item"><Compass aria-hidden="true"/><span>Local guide</span></Link>}{group.items.map((item) => {
             const Icon = item.icon;
             return <Link key={item.section} href={item.href} onClick={() => setNavigationOpen(false)} className={section === item.section ? "nav-item active" : "nav-item"} aria-current={section === item.section ? "page" : undefined}>
               <Icon weight={section === item.section ? "fill" : "regular"} aria-hidden="true" />

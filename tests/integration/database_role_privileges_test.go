@@ -35,6 +35,8 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		{"ledgersync_api", "reconciliation_run_commands", "SELECT", true},
 		{"ledgersync_api", "reconciliation_run_commands", "INSERT", true},
 		{"ledgersync_api", "reconciliation_run_commands", "DELETE", true},
+		{"ledgersync_api", "outbox_events", "SELECT", true},
+		{"ledgersync_api", "audit_events", "SELECT", true},
 		{"ledgersync_api", "schema_migrations", "SELECT", true},
 		{"ledgersync_api", "ledger_postings", "DELETE", false},
 		{"ledgersync_worker", "ledger_postings", "INSERT", false},

@@ -1,10 +1,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$Confirmation
+    [string]$Confirmation,
+    [ValidateSet("demo", "empty")]
+    [string]$InitializationMode
 )
 
 . (Join-Path $PSScriptRoot "local-runtime-common.ps1")
+. (Join-Path $PSScriptRoot "local-backup-common.ps1")
+. (Join-Path $PSScriptRoot "local-initialization-common.ps1")
 
 $requiredConfirmation = "DELETE LEDGERSYNC LOCAL DATA"
 if ($Confirmation -cne $requiredConfirmation) {
@@ -20,7 +24,13 @@ try {
 
     Write-Warning "Deleting LedgerSync containers and named PostgreSQL/Redis volumes for project '$script:LedgerSyncComposeProject'."
     Invoke-LedgerSyncCompose -ComposeArguments @("down", "--volumes", "--remove-orphans")
+    if ($PSBoundParameters.ContainsKey("InitializationMode")) {
+        Set-LedgerSyncFreshInitializationMode -Mode $InitializationMode | Out-Null
+    }
     Write-Host "The exact LedgerSync local project and its data volumes were deleted. This cannot be undone from this command." -ForegroundColor Yellow
+    if ($PSBoundParameters.ContainsKey("InitializationMode")) {
+        Write-Host "The next fresh startup is pinned to initialization mode '$InitializationMode'." -ForegroundColor Yellow
+    }
 }
 catch {
     Write-Error $_
