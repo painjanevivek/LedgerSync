@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { AccountsView, type AccountFilters } from "@/features/accounts/AccountViews";
+import { AccountCreateFlow } from "@/features/accounts/AccountCreateFlow";
+import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
 import type { ConsoleSession, ReconciliationRun, TransferDetail, TransferSummary } from "@/features/accounts/types";
 import { emptyAccountFilters, useAccountWorkspace } from "@/features/accounts/useAccountWorkspace";
 import { ConsoleFooter, ConsoleShell, type ConsoleSection } from "@/features/console/ConsoleShell";
@@ -21,11 +23,15 @@ type Props = Readonly<{
   initialReconciliationRunId?: string;
   initialAccountFilters?: AccountFilters;
   initialAccountFocusId?: string;
+  initialAccountCreate?: boolean;
+  initialAccountReturnTo?: string;
+  initialTransferDestinationId?: string;
+  initialTransferReturnTo?: string;
 }>;
 type TransfersPayload = { transfers?: TransferSummary[]; next_cursor?: string };
 type RunsPayload = { runs?: ReconciliationRun[]; next_cursor?: string };
 
-export function OperatorConsole({ initialSection = "overview", initialAccountId, initialTransferId, initialReconciliationRunId, initialAccountFilters = emptyAccountFilters, initialAccountFocusId }: Props) {
+export function OperatorConsole({ initialSection = "overview", initialAccountId, initialTransferId, initialReconciliationRunId, initialAccountFilters = emptyAccountFilters, initialAccountFocusId, initialAccountCreate = false, initialAccountReturnTo = "/accounts", initialTransferDestinationId, initialTransferReturnTo }: Props) {
   const router = useRouter();
   const [session, setSession] = useState<ConsoleSession | null>(null);
   const accountWorkspace = useAccountWorkspace(initialAccountId, initialAccountFilters);
@@ -86,14 +92,14 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
   }, []);
 
   const refresh = useCallback(async () => {
-    const directory = initialSection === "accounts";
+    const directory = initialSection === "accounts" && !initialAccountId && !initialAccountCreate;
     const owned = await loadAccounts(directory ? accountWorkspace.filters : emptyAccountFilters, directory ? 25 : 100);
     await Promise.all([
       initialAccountId ? loadAccountDetail(initialAccountId) : owned[0] && !directory ? loadAccountDetail(owned[0].account_id) : Promise.resolve(),
       loadTransfers(),
       loadRuns(),
     ]);
-  }, [accountWorkspace.filters, initialAccountId, initialSection, loadAccountDetail, loadAccounts, loadRuns, loadTransfers]);
+  }, [accountWorkspace.filters, initialAccountCreate, initialAccountId, initialSection, loadAccountDetail, loadAccounts, loadRuns, loadTransfers]);
 
   useEffect(() => {
     let active = true;
@@ -102,7 +108,7 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
       if (active && response.ok && response.data.tenant_id) {
         setSession(response.data);
         setLoading(false);
-        const directory = initialSection === "accounts";
+        const directory = initialSection === "accounts" && !initialAccountId && !initialAccountCreate;
         const owned = await loadAccounts(directory ? initialAccountFilters : emptyAccountFilters, directory ? 25 : 100);
         await Promise.all([
           initialAccountId ? loadAccountDetail(initialAccountId) : owned[0] && !directory ? loadAccountDetail(owned[0].account_id) : Promise.resolve(),
@@ -113,7 +119,7 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
       if (active) setLoading(false);
     })();
     return () => { active = false; };
-  }, [initialAccountFilters, initialAccountId, initialReconciliationRunId, initialSection, initialTransferId, loadAccountDetail, loadAccounts, loadRunDetail, loadRuns, loadTransferDetail, loadTransfers]);
+  }, [initialAccountCreate, initialAccountFilters, initialAccountId, initialReconciliationRunId, initialSection, initialTransferId, loadAccountDetail, loadAccounts, loadRunDetail, loadRuns, loadTransferDetail, loadTransfers]);
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -144,8 +150,8 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
   return <ConsoleShell section={initialSection} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "demo" ? "Non-production data" : "Authorized operator"} preview={session.environment === "demo"} onSignOut={() => void signOut()}>
     {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Writes are disabled and no unverified result is shown.</span></div>}
     {initialSection === "overview" && <OverviewView accounts={accountWorkspace.accounts} transfers={transfers} reconciliation={runs[0] ?? null} loading={accountWorkspace.directoryLoading || detailLoading} error={accountWorkspace.error ?? (!accountWorkspace.scopeComplete ? "The authorized account scope exceeds one bounded page. LedgerSync will not present a partial page as a complete balance aggregate." : null)} online={online} onRefresh={() => void refresh()} />}
-    {initialSection === "accounts" && <AccountsView accounts={accountWorkspace.accounts} selected={accountWorkspace.selected} detailRequested={Boolean(initialAccountId)} balance={accountWorkspace.balance} transactions={accountWorkspace.transactions} balanceLoading={accountWorkspace.balanceLoading} historyLoading={accountWorkspace.historyLoading} directoryLoading={accountWorkspace.directoryLoading} balanceError={accountWorkspace.balanceError} historyError={accountWorkspace.historyError} error={accountWorkspace.error} online={online} filters={accountWorkspace.filters} nextCursor={accountWorkspace.nextCursor} historyNextCursor={accountWorkspace.historyCursor} focusAccountId={initialAccountFocusId} onRefresh={() => void refresh()} onApplyFilters={accountWorkspace.applyFilters} onNext={accountWorkspace.loadNextPage} onHistoryNext={() => void accountWorkspace.loadMoreHistory()} />}
-    {initialSection === "transfers" && <TransfersView accounts={accountWorkspace.accounts} transfers={transfers} detail={transferDetail} detailRequested={Boolean(initialTransferId)} error={transferError} loading={detailLoading} nextCursor={transferCursor} online={online} canWrite={session.scopes.includes("transfers:write") && accountWorkspace.scopeComplete} writeUnavailableReason={!accountWorkspace.scopeComplete ? "Transfer creation is disabled because the authorized account picker is larger than one bounded page. Use the API until server-backed account selection is configured." : undefined} tenantId={session.tenant_id} csrfToken={session.csrf_token} onRefresh={async () => { await refresh(); }} onMore={() => { if (transferCursor) void loadTransfers(transferCursor, true); }} />}
+    {initialSection === "accounts" && (initialAccountCreate ? <AccountCreateFlow tenantId={session.tenant_id} tenantLabel={session.tenant_label ?? "Ledger tenant"} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} csrfToken={session.csrf_token} online={online} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} fundingScopeComplete={accountWorkspace.scopeComplete} fundedSourceAvailable={accountWorkspace.accounts.some((candidate) => candidate.status === "active" && candidate.currency === "INR" && hasPositiveMinorUnits(candidate.available_minor))} returnTo={initialAccountReturnTo} onCreated={async () => { await loadAccounts(accountWorkspace.filters, 100); }} /> : <AccountsView accounts={accountWorkspace.accounts} selected={accountWorkspace.selected} detailRequested={Boolean(initialAccountId)} balance={accountWorkspace.balance} transactions={accountWorkspace.transactions} balanceLoading={accountWorkspace.balanceLoading} historyLoading={accountWorkspace.historyLoading} directoryLoading={accountWorkspace.directoryLoading} balanceError={accountWorkspace.balanceError} historyError={accountWorkspace.historyError} error={accountWorkspace.error} online={online} filters={accountWorkspace.filters} nextCursor={accountWorkspace.nextCursor} historyNextCursor={accountWorkspace.historyCursor} focusAccountId={initialAccountFocusId} tenantId={session.tenant_id} csrfToken={session.csrf_token} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} fundingScopeComplete={accountWorkspace.scopeComplete} onRefresh={() => void refresh()} onApplyFilters={accountWorkspace.applyFilters} onNext={accountWorkspace.loadNextPage} onHistoryNext={() => void accountWorkspace.loadMoreHistory()} onAccountChanged={async () => { if (initialAccountId) await loadAccountDetail(initialAccountId); await loadAccounts(accountWorkspace.filters, 100); }} onRefreshLifecycleEvidence={async () => initialAccountId ? loadAccountDetail(initialAccountId) : { account: null, balance: null }} />)}
+    {initialSection === "transfers" && <TransfersView accounts={accountWorkspace.accounts} transfers={transfers} detail={transferDetail} detailRequested={Boolean(initialTransferId)} error={transferError} loading={detailLoading} nextCursor={transferCursor} online={online} canWrite={session.scopes.includes("transfers:write") && accountWorkspace.scopeComplete} writeUnavailableReason={!accountWorkspace.scopeComplete ? "Transfer creation is disabled because the authorized account picker is larger than one bounded page. Use the API until server-backed account selection is configured." : undefined} tenantId={session.tenant_id} csrfToken={session.csrf_token} preferredDestinationId={initialTransferDestinationId} returnTo={initialTransferReturnTo} onRefresh={async () => { await refresh(); }} onMore={() => { if (transferCursor) void loadTransfers(transferCursor, true); }} />}
     {initialSection === "reconciliation" && <ReconciliationView runs={runs} detail={runDetail} detailRequested={Boolean(initialReconciliationRunId)} error={reconciliationError} loading={detailLoading} nextCursor={runCursor} onRefresh={() => void loadRuns()} onMore={() => { if (runCursor) void loadRuns(runCursor, true); }} />}
     <ConsoleFooter />
   </ConsoleShell>;

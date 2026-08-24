@@ -313,6 +313,17 @@ func TestAccountLifecycleCloseRulesVersionAndTenantBoundary(t *testing.T) {
 	if got := countRows(t, database, `SELECT count(*) FROM audit_events WHERE target_id=$1 AND event_type='account.status_changed' AND sanitized_metadata->>'reason'='Account no longer required'`, created.Result.AccountID); got != 1 {
 		t.Fatalf("lifecycle reason audit rows=%d, want one", got)
 	}
+	readRepository, err := db.NewAccountRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := readRepository.GetOwned(context.Background(), testTenantID, testActorID, created.Result.AccountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.AuditContext) < 1 || detail.AuditContext[0].EventType != "account.status_changed" || detail.AuditContext[0].Reason != "Account no longer required" {
+		t.Fatalf("account detail lifecycle audit=%+v", detail.AuditContext)
+	}
 	if got := countRows(t, database, `SELECT count(*) FROM outbox_events WHERE aggregate_id=$1 AND event_type='account.status.changed.v1' AND payload->>'reason'='Account no longer required'`, created.Result.AccountID); got != 1 {
 		t.Fatalf("lifecycle reason outbox rows=%d, want one", got)
 	}

@@ -246,9 +246,20 @@ function Test-LedgerSyncPortAvailableOrOwned {
         return
     }
 
-    $owners = @(& docker ps --filter "publish=3000" --format '{{.Label "com.docker.compose.project"}}|{{.Label "com.docker.compose.service"}}' 2>$null)
+    $ownerIDs = @(& docker ps --filter "publish=3000" --format '{{.ID}}' 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Port 3000 is listening, but Docker ownership could not be verified."
+    }
+    $owners = @($ownerIDs | ForEach-Object {
+        $container = & docker inspect ([string]$_) 2>$null | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or $null -eq $container) {
+            throw "Port 3000 is listening, but its Docker container could not be inspected."
+        }
+        $labels = @($container)[0].Config.Labels
+        "$($labels.'com.docker.compose.project')|$($labels.'com.docker.compose.service')"
+    })
     $expected = "$($script:LedgerSyncComposeProject)|web"
-    if ($LASTEXITCODE -ne 0 -or $owners -notcontains $expected) {
+    if ($owners -notcontains $expected) {
         throw "Port 3000 is already in use by another process. LedgerSync will not stop or replace that process."
     }
 }

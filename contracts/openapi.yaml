@@ -239,6 +239,7 @@ components:
         actor_subject_id: { type: string }
         outcome: { type: string }
         correlation_id: { type: string, format: uuid }
+        reason: { type: string, maxLength: 256, description: Sanitized lifecycle reason projected only for account status-change commands and their denials. }
         occurred_at: { type: string, format: date-time }
     AccountDetail:
       allOf:

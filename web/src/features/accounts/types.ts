@@ -13,7 +13,16 @@ export type Account = Readonly<{
   audit_context?: AccountAuditEvent[];
 }>;
 
-export type AccountAuditEvent = Readonly<{ event_id: string; event_type: string; actor_subject_id: string; outcome: string; correlation_id: string; occurred_at: string }>;
+export type AccountAuditEvent = Readonly<{ event_id: string; event_type: string; actor_subject_id: string; outcome: string; correlation_id: string; reason?: string; occurred_at: string }>;
+
+export type AccountBalance = Readonly<{
+  account_id: string;
+  currency: string;
+  available_minor: string;
+  ledger_minor: string;
+  version: string;
+  as_of: string;
+}>;
 
 export type Transaction = Readonly<{
   transfer_id: string;
@@ -61,3 +70,18 @@ export type ReconciliationRun = Readonly<{
 export type ReconciliationMismatch = Readonly<{ mismatch_id: string; account_id?: string; classification: string; currency?: string; expected_minor?: string; observed_minor?: string; observed_available_minor?: string; balance_version?: string; created_at: string }>;
 
 export type ConsoleSession = Readonly<{ subject_id: string; tenant_id: string; csrf_token: string; scopes: string[]; environment?: "demo" | "production"; operator_label?: string; tenant_label?: string }>;
+
+export type AccountCommandResult = Readonly<{
+  account_id: string;
+  tenant_id: string;
+  currency: "INR";
+  status: Account["status"];
+  display_name: string;
+  external_reference: string;
+  category: NonNullable<Account["category"]>;
+  account_version: string;
+  available_minor: string;
+  ledger_minor: string;
+  created_at: string;
+  updated_at: string;
+}>;

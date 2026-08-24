@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import type { AccountFilters } from "@/features/accounts/AccountViews";
-import type { Account, Transaction } from "@/features/accounts/types";
+import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
 
 type AccountsPayload = { accounts?: Account[]; next_cursor?: string };
@@ -36,7 +36,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   const [filters, setFilters] = useState<AccountFilters>(initialFilters);
   const [nextCursor, setNextCursor] = useState<string>();
   const [scopeComplete, setScopeComplete] = useState(true);
-  const [balance, setBalance] = useState<Account | null>(null);
+  const [balance, setBalance] = useState<AccountBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [historyCursor, setHistoryCursor] = useState<string>();
   const [directoryLoading, setDirectoryLoading] = useState(false);
@@ -72,11 +72,12 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     setHistoryError(null);
     const [summary, currentBalance, history] = await Promise.all([
       readJSON<Account>(`/api/accounts/${encodeURIComponent(accountId)}`),
-      readJSON<Account>(`/api/accounts/${encodeURIComponent(accountId)}/balance`),
+      readJSON<AccountBalance>(`/api/accounts/${encodeURIComponent(accountId)}/balance`),
       readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(accountId)}/transactions?limit=25`),
     ]);
     setAccountDetail(summary.ok && summary.data.account_id ? summary.data : null);
     if (!summary.ok) setError(unavailableMessage(summary.status, "account evidence"));
+    else setError(null);
     setBalance(currentBalance.ok && currentBalance.data.account_id ? currentBalance.data : null);
     if (!currentBalance.ok) setBalanceError("The authoritative balance could not be verified. An older value is not shown as current.");
     setBalanceLoading(false);
@@ -89,6 +90,10 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
       setHistoryError(history.status === 401 ? "Your session expired. Re-authenticate before viewing ledger history." : history.status === 403 ? "Your role is not authorized to view ledger history." : "Ledger history is temporarily unavailable. No empty result is being inferred.");
     }
     setHistoryLoading(false);
+    return {
+      account: summary.ok && summary.data.account_id ? summary.data : null,
+      balance: currentBalance.ok && currentBalance.data.account_id ? currentBalance.data : null,
+    };
   }, []);
 
   const loadMoreHistory = useCallback(async () => {

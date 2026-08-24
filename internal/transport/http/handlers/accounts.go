@@ -145,11 +145,12 @@ func writeAccountResponse(writer http.ResponseWriter, item accounts.Summary) {
 		ActorSubjectID string `json:"actor_subject_id"`
 		Outcome        string `json:"outcome"`
 		CorrelationID  string `json:"correlation_id"`
+		Reason         string `json:"reason,omitempty"`
 		OccurredAt     string `json:"occurred_at"`
 	}
 	audit := make([]auditResponse, 0, len(item.AuditContext))
 	for _, event := range item.AuditContext {
-		audit = append(audit, auditResponse{EventID: event.EventID, EventType: event.EventType, ActorSubjectID: event.ActorSubjectID, Outcome: event.Outcome, CorrelationID: event.CorrelationID, OccurredAt: event.OccurredAt.Format(time.RFC3339Nano)})
+		audit = append(audit, auditResponse{EventID: event.EventID, EventType: event.EventType, ActorSubjectID: event.ActorSubjectID, Outcome: event.Outcome, CorrelationID: event.CorrelationID, Reason: event.Reason, OccurredAt: event.OccurredAt.Format(time.RFC3339Nano)})
 	}
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")

@@ -227,3 +227,59 @@ h2 { margin: 5px 0 0; font-family: var(--font-display); font-size: 25px; font-we
 .overview-metrics { display: grid; grid-template-columns: 1.25fr .75fr; width: min(1080px,100%); gap: 16px; }.secondary-balance .hero-amount { font-size: clamp(38px,4vw,52px); }.metric-definition { max-width: 650px; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .detail-document,.transfer-review,.transfer-outcome { display: grid; width: min(1080px,100%); gap: 20px; padding: 26px; }.detail-amount { font-family: var(--font-display); font-size: clamp(40px,5vw,60px); font-variant-numeric: tabular-nums; }.evidence-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1px; margin: 0; background: var(--line); }.evidence-list > div { display: grid; min-width: 0; gap: 8px; padding: 15px; background: var(--paper); }.evidence-list dd { margin: 0; overflow-wrap: anywhere; font-size: 12px; }.review-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 0; }.review-grid > div { display: grid; gap: 7px; border: 1px solid var(--line); padding: 17px; }.review-grid > div:last-child { grid-column: 1/-1; background: var(--paper-subtle); }.review-grid dt { color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }.review-grid dd { display: grid; gap: 5px; margin: 0; font-weight: 700; }.review-grid code { overflow-wrap: anywhere; color: var(--muted); font-size: 10px; font-weight: 400; }.action-row { display: flex; justify-content: flex-end; gap: 10px; }.field-error { grid-column: 1/-1; margin: 0; color: var(--red); font-size: 11px; font-weight: 700; }.posting-row { display: grid; grid-template-columns: 90px minmax(0,1fr) 150px 200px; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); padding: 14px 4px; font-size: 11px; }.posting-row strong { text-align: right; font-variant-numeric: tabular-nums; }.posting-row time { color: var(--muted); }.back-link { margin-top: 24px; }
 .status-label.info { color: var(--blue); }
+
+.header-actions, .account-control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.button.danger { border-color: var(--red); background: var(--red); color: var(--white); }
+.button.danger:hover { background: var(--red); filter: brightness(.9); }
+.guarded-control { min-height: 44px; }
+.button > svg, .account-control-row .button svg { width: 16px; height: 16px; margin-right: 7px; }
+.status-label { gap: 4px; }
+.status-label svg { width: 10px; height: 10px; }
+.command-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(880px, 100%); margin: 0 0 18px; border-block: 1px solid var(--line-strong); }
+.command-steps span { display: flex; min-height: 52px; align-items: center; gap: 9px; border-right: 1px solid var(--line); padding: 10px 12px; color: var(--muted); font-size: 10px; font-weight: 760; }
+.command-steps span:last-child { border-right: 0; }
+.command-steps span.current { color: var(--ink); }
+.command-steps b { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-family: var(--font-mono); font-size: 9px; }
+.command-steps span.current b { background: var(--rail); color: var(--white); }
+.account-create-document, .account-command-result { display: grid; width: min(880px, 100%); gap: 20px; border-top: 3px solid var(--blue); padding: 28px; }
+.account-command-result { border-top-color: var(--green); }
+.account-create-document > p:not(.eyebrow), .account-command-result > p:not(.eyebrow) { margin: 0; }
+.account-command-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.account-command-form label, .confirmation-dialog label { display: grid; gap: 7px; color: var(--ink-soft); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.account-command-form input, .account-command-form select, .confirmation-dialog input, .confirmation-dialog textarea { width: 100%; min-height: 44px; border: 1px solid var(--line-strong); border-radius: 0; padding: 10px 11px; background: var(--white); color: var(--ink); font: 11px/1.45 var(--font-sans); }
+.account-command-form input[readonly] { background: var(--paper-subtle); font-family: var(--font-mono); }
+.account-command-form > p, .account-command-form > .button { grid-column: 1 / -1; justify-self: start; }
+.financial-boundary-proof { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line-success); border-top: 3px solid var(--green); background: var(--surface-success); }
+.financial-boundary-proof > div, .financial-boundary-proof > p { display: grid; grid-template-columns: 22px 1fr; align-content: center; gap: 4px 10px; min-height: 76px; margin: 0; border-right: 1px solid var(--line-success); border-bottom: 1px solid var(--line-success); padding: 14px 16px; }
+.financial-boundary-proof > :nth-child(2n) { border-right: 0; }
+.financial-boundary-proof > :nth-last-child(-n + 2) { border-bottom: 0; }
+.financial-boundary-proof svg { grid-row: 1 / span 2; width: 18px; height: 18px; color: var(--green); }
+.financial-boundary-proof span { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.financial-boundary-proof strong { color: var(--green-dark); font-family: var(--font-mono); font-size: 11px; line-height: 1.45; }
+.financial-boundary-proof > p { grid-template-columns: 1fr; }
+.financial-boundary-proof.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.financial-boundary-proof.compact > p { border-bottom: 0; }
+.guardrail-copy { border-left: 3px solid var(--green); padding: 12px 14px; background: var(--paper-subtle); color: var(--ink-soft); font-size: 11px; line-height: 1.6; }
+.account-review-grid > div:last-child { grid-column: auto; background: var(--paper); }
+.account-command-actions { align-items: center; }
+.account-command-actions .intent-lock-note { margin-right: auto; }
+.intent-lock-note svg { width: 16px; height: 16px; margin-right: 6px; vertical-align: text-bottom; }
+.error-summary { width: min(880px, 100%); margin: 0 0 18px; border: 1px solid var(--red); border-left-width: 3px; padding: 16px 18px; background: var(--red-soft); }
+.error-summary strong { font-size: 12px; }
+.error-summary p { margin: 8px 0 0; color: var(--red); font-size: 11px; line-height: 1.5; }
+.error-summary ul { margin: 8px 0 0; padding-left: 20px; color: var(--red); font-size: 11px; line-height: 1.5; }
+.account-lifecycle { border-top: 3px solid var(--rail); padding-top: 18px; }
+.account-control-row { margin-top: 18px; }
+.account-command-recovery { margin-top: 20px; border: 1px solid var(--amber); padding: 20px; background: var(--amber-soft); }
+.account-command-recovery h3 { margin: 0; font-family: var(--font-display); font-size: 21px; }
+.confirmation-dialog { width: min(650px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; border: 1px solid var(--line-strong); border-top: 3px solid var(--rail); border-radius: var(--radius-surface); padding: 0; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-drawer); }
+.confirmation-dialog::backdrop { background: rgb(4 13 29 / 68%); }
+.confirmation-dialog form { display: grid; gap: 18px; padding: 26px; }
+.confirmation-dialog form > p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.confirmation-dialog textarea { resize: vertical; }
+.destination-preselection { border-left: 3px solid var(--green); padding: 10px 12px; background: var(--green-soft); color: var(--green-dark); }
+
+@media (forced-colors: active) {
+  .financial-boundary-proof, .account-create-document, .account-command-result, .account-lifecycle, .confirmation-dialog, .error-summary { border-color: CanvasText; }
+  .command-steps span.current b { background: Highlight; color: HighlightText; }
+}

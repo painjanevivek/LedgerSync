@@ -25,7 +25,7 @@ export function TransactionLedger({ transactions, account, loading, error, nextC
     {!error && transactions.length > 0 && <><div className="ledger-list">{transactions.map((transaction) => <article className="ledger-row" key={`${transaction.transfer_id}-${transaction.direction}`}>
       <span className={`status-icon ${transaction.status === "posted" ? "success" : "danger"}`} aria-hidden="true">{transaction.status === "posted" ? <CheckCircle weight="fill" /> : <WarningCircle weight="fill" />}</span>
       <div className="ledger-identity"><strong>{transaction.direction === "debit" ? "Transfer sent" : "Transfer received"}</strong><span><code>{transaction.transfer_id}</code> · {utcDateTime(transaction.occurred_at)}</span></div>
-      <strong className="ledger-amount">{transaction.direction === "debit" ? "−" : "+"}{formatMinorUnits(transaction.currency, transaction.amount)}</strong><StatusBadge tone={transaction.status === "posted" ? "success" : "danger"}>{transaction.status}</StatusBadge><RecordLink href={`/transfers/${transaction.transfer_id}`} label="Open" />
+      <strong className="ledger-amount">{transaction.direction === "debit" ? "−" : "+"}{formatMinorUnits(transaction.currency, transaction.amount)}</strong><StatusBadge tone={transaction.status === "posted" ? "success" : "danger"}>{transaction.status}</StatusBadge><RecordLink href={`/transfers/${transaction.transfer_id}`} label={`Open transfer ${transaction.transfer_id}`} />
     </article>)}</div><Pagination nextCursor={nextCursor} busy={loading} onNext={onNext} /></>}
   </section>;
 }

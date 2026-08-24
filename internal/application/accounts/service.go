@@ -30,6 +30,7 @@ type AuditEvent struct {
 	ActorSubjectID string
 	Outcome        string
 	CorrelationID  string
+	Reason         string
 	OccurredAt     time.Time
 }
 

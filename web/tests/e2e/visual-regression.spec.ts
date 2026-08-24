@@ -143,3 +143,36 @@ test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
   await expect(page.getByText("Mixed-currency pilot data blocked")).toBeVisible();
   await capture(page, "overview-mixed-currency-error", desktop);
 });
+
+test("account create review has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  await mockOperatorConsole(page);
+  await page.goto("/accounts/new");
+  await page.getByLabel("Display name").fill("Settlement evidence");
+  await page.getByLabel("External reference").fill("SETTLEMENT-INR");
+  await page.getByLabel("Category").selectOption("operating");
+  await page.getByRole("button", { name: "Continue to financial boundary" }).click();
+  await page.getByRole("button", { name: "Continue to review" }).click();
+  await expect(page.getByRole("heading", { name: "Review exact account command" })).toBeVisible();
+  await capture(page, "account-create-review", desktop);
+  await capture(page, "account-create-review-compact", compact);
+});
+
+test("account lifecycle guard has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  await mockOperatorConsole(page);
+  await page.goto(`/accounts/${sourceAccount.account_id}`);
+  await page.getByRole("button", { name: "Freeze account" }).click();
+  await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");
+  await expect(page.getByRole("heading", { name: "Freeze account" })).toBeVisible();
+  await page.setViewportSize(desktop);
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot("account-freeze-confirmation-1440x900.png", { animations: "disabled", caret: "hide", fullPage: false, maxDiffPixelRatio: 0.002 });
+  await page.keyboard.press("Escape");
+  await page.setViewportSize(compact);
+  await page.getByRole("button", { name: "Freeze account" }).click();
+  await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");
+  await expect(page.getByRole("heading", { name: "Freeze account" })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot("account-freeze-confirmation-compact-390x844.png", { animations: "disabled", caret: "hide", fullPage: false, maxDiffPixelRatio: 0.002 });
+});

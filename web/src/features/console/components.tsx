@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, Copy, Info, WarningCircle } from "@phosphor-icons/react";
+import { ArrowRight, Check, CheckCircle, Copy, Info, WarningCircle, XCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
@@ -11,7 +11,8 @@ export function CopyControl({ value, label = "Copy identifier" }: Readonly<{ val
 }
 
 export function StatusBadge({ children, tone = "neutral" }: Readonly<{ children: ReactNode; tone?: "success" | "warning" | "danger" | "neutral" | "info" }>) {
-  return <span className={`status-label ${tone}`}>{children}</span>;
+  const icon = tone === "success" ? <CheckCircle weight="fill" aria-hidden="true" /> : tone === "warning" ? <WarningCircle weight="fill" aria-hidden="true" /> : tone === "danger" ? <XCircle weight="fill" aria-hidden="true" /> : <Info weight="fill" aria-hidden="true" />;
+  return <span className={`status-label ${tone}`}>{icon}{children}</span>;
 }
 
 export function StatePanel({ title, message, kind = "empty", action }: Readonly<{ title: string; message: string; kind?: "empty" | "error" | "offline" | "denied" | "unknown"; action?: ReactNode }>) {

@@ -124,7 +124,18 @@ WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN
 	}
 	item.Balance.TenantID, item.Balance.AccountID, item.Balance.Currency = tenantID, item.AccountID, item.Currency
 	item.Balance.AsOf = item.Balance.AsOf.UTC()
-	rows, err := r.database.QueryContext(ctx, `SELECT id,event_type,COALESCE(actor_subject_id,''),outcome,correlation_id,occurred_at FROM audit_events WHERE tenant_id=$1 AND target_type='account' AND target_id=$2 ORDER BY occurred_at DESC,id DESC LIMIT 25`, tenantID, accountID)
+	rows, err := r.database.QueryContext(ctx, `
+SELECT id,event_type,COALESCE(actor_subject_id,''),outcome,correlation_id,
+	CASE
+		WHEN event_type='account.status_changed'
+			OR (event_type='account.command_denied' AND sanitized_metadata->>'operation'='account_status_change')
+		THEN COALESCE(sanitized_metadata->>'reason','')
+		ELSE ''
+	END,
+	occurred_at
+FROM audit_events
+WHERE tenant_id=$1 AND target_type='account' AND target_id=$2
+ORDER BY occurred_at DESC,id DESC LIMIT 25`, tenantID, accountID)
 	if err != nil {
 		return item, fmt.Errorf("get account audit context: %w", err)
 	}
@@ -132,8 +143,11 @@ WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN
 	item.AuditContext = []accounts.AuditEvent{}
 	for rows.Next() {
 		var event accounts.AuditEvent
-		if err := rows.Scan(&event.EventID, &event.EventType, &event.ActorSubjectID, &event.Outcome, &event.CorrelationID, &event.OccurredAt); err != nil {
+		if err := rows.Scan(&event.EventID, &event.EventType, &event.ActorSubjectID, &event.Outcome, &event.CorrelationID, &event.Reason, &event.OccurredAt); err != nil {
 			return item, fmt.Errorf("scan account audit context: %w", err)
+		}
+		if !allowedAuditMetadataValue("reason", event.Reason) {
+			event.Reason = ""
 		}
 		event.OccurredAt = event.OccurredAt.UTC()
 		item.AuditContext = append(item.AuditContext, event)

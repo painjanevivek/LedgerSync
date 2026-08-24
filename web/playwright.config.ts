@@ -12,6 +12,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: "npm run build && node scripts/prepare-e2e-server.mjs && node -e \"process.env.HOSTNAME='0.0.0.0'; process.env.PORT='3100'; require('./.next/standalone/server.js')\"",
+    env: { ...process.env, LEDGERSYNC_DEPLOYMENT_ENV: "development", LEDGERSYNC_PUBLIC_ORIGIN: "http://127.0.0.1:3100" },
     url: "http://127.0.0.1:3100",
     reuseExistingServer: false,
     timeout: 60_000,
