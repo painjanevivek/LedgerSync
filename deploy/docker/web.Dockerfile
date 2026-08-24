@@ -2,6 +2,7 @@ FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a5
 WORKDIR /app
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
+COPY contracts /contracts
 COPY web ./
 RUN npm run build
 

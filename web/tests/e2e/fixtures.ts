@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import developerMetadataSource from "../../../contracts/developer-examples.v1.json";
 
 export const sourceAccount = { account_id: "11111111-1111-4111-8111-111111111111", display_name:"Operating Reserve", category:"operating", external_reference:"OPS-RESERVE", currency: "INR", status: "active", available_minor: "125000", ledger_minor: "125000", account_version: "1", version: "8", as_of: "2026-08-19T12:00:00Z" };
 export const destinationAccount = { account_id: "22222222-2222-4222-8222-222222222222", display_name:"Customer Funds", category:"customer_funds", external_reference:"CUSTOMER-FUNDS", currency: "INR", status: "active", available_minor: "25000", ledger_minor: "25000", account_version: "1", version: "4", as_of: "2026-08-19T12:00:00Z" };
@@ -7,13 +8,14 @@ export const run = { run_id:"55555555-5555-4555-8555-555555555555",status:"match
 export const deliveryEvent = { event_id:"77777777-7777-4777-8777-777777777777",event_type:"account.balance.changed.v1",state:"retrying",aggregate_type:"account",aggregate_id:destinationAccount.account_id,aggregate_version:"4",attempt_count:"2",occurred_at:"2026-08-19T11:00:01Z",available_at:"2026-08-19T11:02:00Z",transfer_id:transfer.transfer_id,account_id:destinationAccount.account_id,correlation_id:"88888888-8888-4888-8888-888888888888",last_error_code:"redis_unavailable" };
 export const eventDetail = { ...deliveryEvent, delivery_attempts:[{attempt_id:"99999999-9999-4999-8999-999999999999",kind:"notification",state:"retrying",attempt_number:"2",due_at:"2026-08-19T11:02:00Z",started_at:"2026-08-19T11:01:58Z",completed_at:"2026-08-19T11:02:00Z",response_class:"timeout",error_code:"timeout"}],delivery_attempts_truncated:false,timeline:[{kind:"committed",occurred_at:"2026-08-19T11:00:01Z"},{kind:"delivery_retrying",occurred_at:"2026-08-19T11:02:00Z"}] };
 export const diagnostics = { overall_state:"degraded",generated_at:"2026-08-19T12:00:00Z",application:{version:"0.1.0",commit:"abc123def456",environment:"local_demo",public_origin:"http://127.0.0.1:3100"},financial_authority:{postgres:{state:"reachable",schema_version:"000008"},latest_reconciliation:{state:"available",status:"matched",run_id:run.run_id,completed_at:run.completed_at}},delivery_cache:{outbox:{state:"reachable",pending_count:"1",dead_count:"0",worker_progress:"stalled",latest_published_at:"2026-08-19T11:00:00Z",oldest_pending_at:"2026-08-19T11:00:01Z"},redis:{state:"unavailable",label:"disposable_cache"}} };
+export const developerMetadata = developerMetadataSource;
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
 export async function mockOperatorConsole(page: Page) {
-  await page.route("**/api/session", (route) => json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:write", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" }));
+  await page.route("**/api/session", (route) => json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:write", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "developer:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" }));
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
     const account = route.request().url().includes(sourceAccount.account_id) ? sourceAccount : destinationAccount;
@@ -31,4 +33,6 @@ export async function mockOperatorConsole(page: Page) {
   await page.route("**/api/local/diagnostics", (route) => json(route, diagnostics));
   await page.route(/\/api\/events\?(?:.*)/, (route) => json(route, { events:[deliveryEvent],next_cursor:"" }));
   await page.route(/\/api\/events\/[^/?]+$/, (route) => json(route, eventDetail));
+  await page.route("**/api/developer/metadata", (route) => json(route, developerMetadata));
+  await page.route("**/api/developer/openapi", (route) => route.fulfill({ status:200,contentType:"application/yaml",headers:{"Content-Disposition":`attachment; filename="ledgersync-openapi.yaml"`},body:"openapi: 3.1.0\ninfo:\n  title: LedgerSync\npaths:\ncomponents:\n" }));
 }

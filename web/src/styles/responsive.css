@@ -59,6 +59,14 @@
   .truth-lane dl, .truth-lane > .record-link { grid-column: 3/-1; }
   .operations-environment dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .event-filter-document { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .developer-boundary { grid-template-columns:44px minmax(0,1fr); }
+  .developer-boundary dl { grid-column:2; }
+  .endpoint-row { grid-template-columns:64px minmax(180px,1fr) minmax(130px,.7fr); }
+  .endpoint-row small { grid-column:2/-1; }
+  .request-proof-line { grid-template-columns:160px minmax(0,1fr); }
+  .request-proof-line small { grid-column:2; }
+  .developer-correlation { grid-template-columns:1fr 180px; }
+  .developer-correlation ul { grid-column:1/-1; }
 }
 
 @media (max-width: 640px) {
@@ -74,6 +82,24 @@
   .event-filter-actions .button { width: 100%; min-height: var(--target-comfortable); }
   .event-detail-document { padding: 20px 12px; }
   .event-detail-document > header { align-items: flex-start; flex-direction: column; }
+  .developer-boundary { grid-template-columns:34px minmax(0,1fr); padding:18px 14px; }
+  .developer-boundary dl { grid-column:1/-1; grid-template-columns:1fr; }
+  .authentication-ledger { grid-template-columns:1fr; }
+  .authentication-ledger article { grid-template-columns:28px 22px minmax(0,1fr); border-right:0; border-bottom:1px solid var(--line); padding:18px 12px; }
+  .authentication-ledger article:last-child { border-bottom:0; }
+  .endpoint-row { grid-template-columns:58px minmax(0,1fr); padding:11px 10px; }
+  .endpoint-row>span:not(.method-label),.endpoint-row>small { grid-column:2; }
+  .request-proof-sheet>header { align-items:flex-start; flex-direction:column; padding:20px 14px; }
+  .request-proof-line { grid-template-columns:1fr; gap:8px; padding:14px; }
+  .request-proof-line small { grid-column:1; }
+  .developer-code pre { padding:15px 12px; }
+  .safe-retry-rule { padding:15px 14px; }
+  .developer-capability-index>div { grid-template-columns:1fr; gap:7px; }
+  .developer-capability-index a { justify-self:start; }
+  .developer-correlation { grid-template-columns:1fr; padding:18px 14px; }
+  .developer-correlation ul,.developer-correlation>p { grid-column:1; }
+  .openapi-download { grid-template-columns:28px 1fr; padding:18px 14px; }
+  .openapi-download .button { grid-column:1/-1; width:100%; }
 }
 
 @media (max-width: 760px) {

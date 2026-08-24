@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.5.0
+  version: 1.6.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -15,6 +15,7 @@ paths:
   /accounts:
     post:
       operationId: createAccount
+      x-required-scope: accounts:write
       summary: Create an owned INR account with exact zero balances.
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       requestBody:
@@ -43,6 +44,7 @@ paths:
   /me/accounts:
     get:
       operationId: listOwnedAccounts
+      x-required-scope: accounts:read
       summary: List accounts visible to the authenticated subject.
       parameters:
         - { $ref: '#/components/parameters/Cursor' }
@@ -60,6 +62,7 @@ paths:
   /accounts/{accountId}:
     get:
       operationId: getOwnedAccount
+      x-required-scope: accounts:read
       summary: Read one account visible to the authenticated subject without disclosing inaccessible records.
       parameters: [{ $ref: '#/components/parameters/AccountID' }]
       responses:
@@ -70,6 +73,7 @@ paths:
         '429': { $ref: '#/components/responses/RateLimited' }
     patch:
       operationId: updateAccount
+      x-required-scope: accounts:write
       summary: Replace mutable account metadata or request one lifecycle transition.
       parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       requestBody:
@@ -93,6 +97,7 @@ paths:
   /accounts/{accountId}/balance:
     get:
       operationId: getAccountBalance
+      x-required-scope: accounts:read
       summary: Read an authorized current balance.
       parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/ConsistencyRequirement' }]
       responses:
@@ -106,6 +111,7 @@ paths:
   /accounts/{accountId}/transactions:
     get:
       operationId: listAccountTransactions
+      x-required-scope: transactions:read
       summary: List immutable posted history for an authorized account.
       parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
       responses:
@@ -118,6 +124,7 @@ paths:
   /transfers:
     get:
       operationId: listTransfers
+      x-required-scope: transfers:read
       summary: Search tenant transfer outcomes.
       parameters:
         - { $ref: '#/components/parameters/Cursor' }
@@ -135,6 +142,7 @@ paths:
         '429': { $ref: '#/components/responses/RateLimited' }
     post:
       operationId: createTransfer
+      x-required-scope: transfers:write
       summary: Submit an exact internal transfer under tenant policy.
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       requestBody:
@@ -157,6 +165,7 @@ paths:
   /transfers/{transferId}:
     get:
       operationId: getTransfer
+      x-required-scope: transfers:read
       summary: Inspect a transfer, postings, and evidence timeline.
       parameters: [{ $ref: '#/components/parameters/TransferID' }]
       responses:
@@ -168,6 +177,7 @@ paths:
   /reconciliation/runs:
     get:
       operationId: listReconciliationRuns
+      x-required-scope: reconciliation:read
       summary: List persisted reconciliation runs.
       parameters: [{ $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
       responses:
@@ -178,6 +188,7 @@ paths:
         '503': { $ref: '#/components/responses/Unavailable' }
     post:
       operationId: runReconciliation
+      x-required-scope: reconciliation:write
       summary: Run one tenant-wide reconciliation under transaction-safe single-run exclusion.
       description: >-
         Requires reconciliation:write. The request has no body and requires an
@@ -203,6 +214,7 @@ paths:
   /reconciliation/runs/{runId}:
     get:
       operationId: getReconciliationRun
+      x-required-scope: reconciliation:read
       summary: Read a run and immutable mismatch evidence.
       parameters: [{ $ref: '#/components/parameters/RunID' }]
       responses:
@@ -215,15 +227,17 @@ paths:
   /local/diagnostics:
     get:
       operationId: getLocalDiagnostics
+      x-required-scope: local:read
       summary: Read a bounded, partial local health snapshot without infrastructure identifiers or secrets.
       responses:
-        '200': { description: Ready, degraded, or unavailable diagnostic snapshot with independently classified dependencies., content: { application/json: { schema: { $ref: '#/components/schemas/DiagnosticSnapshot' } } } }
+        '200': { description: 'Ready, degraded, or unavailable diagnostic snapshot with independently classified dependencies.', content: { application/json: { schema: { $ref: '#/components/schemas/DiagnosticSnapshot' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
   /events:
     get:
       operationId: listEventEvidence
+      x-required-scope: events:read
       summary: List sanitized tenant-authorized outbox and delivery evidence.
       parameters:
         - { $ref: '#/components/parameters/Cursor' }
@@ -244,6 +258,7 @@ paths:
   /events/{eventId}:
     get:
       operationId: getEventEvidence
+      x-required-scope: events:read
       summary: Read one sanitized event and its bounded delivery timeline without payload or endpoint disclosure.
       parameters: [{ in: path, name: eventId, required: true, schema: { type: string, format: uuid } }]
       responses:
@@ -254,6 +269,34 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /developer/metadata:
+    get:
+      operationId: getDeveloperMetadata
+      x-required-scope: developer:read
+      summary: Read the bounded, versioned, non-secret developer example catalogue.
+      description: Requires developer:read. This static response contains no credential values and cannot execute requests.
+      responses:
+        '200':
+          description: Canonical developer metadata synchronized with this OpenAPI contract.
+          content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperMetadata' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /openapi.yaml:
+    get:
+      operationId: downloadOpenAPI
+      x-required-scope: developer:read
+      summary: Download this canonical OpenAPI YAML as a bounded read-only attachment.
+      description: Requires developer:read. The response is compiled into the API binary from the reviewed canonical source.
+      responses:
+        '200':
+          description: Canonical LedgerSync private API contract.
+          headers:
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.6.0.yaml"' }
+          content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
@@ -540,6 +583,105 @@ components:
             delivery_attempts_truncated: { type: boolean }
             timeline: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/EventTimelineItem' } }
     EventEvidencePage: { type: object, required: [events, next_cursor], properties: { events: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/EventEvidence' } }, next_cursor: { type: string, maxLength: 512 } } }
+    DeveloperMetadata:
+      type: object
+      additionalProperties: false
+      required: [schema_version, contract_version, base_url, openapi_download_path, boundary, authentication, endpoint_groups, examples, retry_outcomes, error_catalogue, record_lookup]
+      properties:
+        schema_version: { type: string, enum: ['1'] }
+        contract_version: { type: string, pattern: '^[0-9]+\.[0-9]+\.[0-9]+$' }
+        base_url: { type: string, enum: [/api] }
+        openapi_download_path: { type: string, enum: [/api/openapi.yaml] }
+        boundary: { $ref: '#/components/schemas/DeveloperBoundary' }
+        authentication: { type: array, minItems: 2, maxItems: 4, items: { $ref: '#/components/schemas/DeveloperAuthenticationMode' } }
+        endpoint_groups: { type: array, minItems: 1, maxItems: 8, items: { $ref: '#/components/schemas/DeveloperEndpointGroup' } }
+        examples: { type: array, minItems: 2, maxItems: 8, items: { $ref: '#/components/schemas/DeveloperRequestExample' } }
+        retry_outcomes: { type: array, minItems: 1, maxItems: 16, items: { $ref: '#/components/schemas/DeveloperRetryOutcome' } }
+        error_catalogue: { type: array, minItems: 1, maxItems: 32, items: { $ref: '#/components/schemas/DeveloperErrorEntry' } }
+        record_lookup: { $ref: '#/components/schemas/DeveloperRecordLookup' }
+    DeveloperBoundary:
+      type: object
+      additionalProperties: false
+      required: [title, summary, network]
+      properties:
+        title: { type: string, maxLength: 80 }
+        summary: { type: string, maxLength: 512 }
+        network: { type: string, enum: [loopback_only] }
+    DeveloperAuthenticationMode:
+      type: object
+      additionalProperties: false
+      required: [id, label, summary]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 64 }
+        label: { type: string, maxLength: 80 }
+        summary: { type: string, maxLength: 512 }
+    DeveloperEndpointGroup:
+      type: object
+      additionalProperties: false
+      required: [id, label, operations]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 64 }
+        label: { type: string, maxLength: 80 }
+        operations: { type: array, minItems: 1, maxItems: 20, items: { $ref: '#/components/schemas/DeveloperEndpoint' } }
+    DeveloperEndpoint:
+      type: object
+      additionalProperties: false
+      required: [operation_id, method, path, scope]
+      properties:
+        operation_id: { type: string, pattern: '^[A-Za-z][A-Za-z0-9]*$', maxLength: 80 }
+        method: { type: string, enum: [GET, POST, PATCH] }
+        path: { type: string, pattern: '^/[A-Za-z0-9{}._/-]+$', maxLength: 160 }
+        scope: { type: string, pattern: '^[a-z]+:[a-z]+$', maxLength: 64 }
+    DeveloperRequestExample:
+      type: object
+      additionalProperties: false
+      required: [id, title, operation_id, request_schema, method, path, headers, body, retry_summary]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 64 }
+        title: { type: string, maxLength: 120 }
+        operation_id: { type: string, pattern: '^[A-Za-z][A-Za-z0-9]*$', maxLength: 80 }
+        request_schema: { type: string, pattern: '^#/components/schemas/[A-Za-z][A-Za-z0-9]*$', maxLength: 128 }
+        method: { type: string, enum: [POST, PATCH] }
+        path: { type: string, pattern: '^/[A-Za-z0-9{}._/-]+$', maxLength: 160 }
+        headers:
+          type: object
+          additionalProperties: false
+          required: [Content-Type, Idempotency-Key]
+          properties:
+            Content-Type: { type: string, enum: [application/json] }
+            Idempotency-Key: { type: string, minLength: 16, maxLength: 255 }
+        body: { type: object, minProperties: 1, maxProperties: 8 }
+        result_facts:
+          type: object
+          additionalProperties: false
+          properties:
+            currency: { type: string, enum: [INR] }
+            status: { type: string, enum: [active, posted] }
+            available_minor: { $ref: '#/components/schemas/ExactMinor' }
+            ledger_minor: { $ref: '#/components/schemas/ExactMinor' }
+        retry_summary: { type: string, maxLength: 512 }
+    DeveloperRetryOutcome:
+      type: object
+      additionalProperties: false
+      required: [code, safe_action]
+      properties:
+        code: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 80 }
+        safe_action: { type: string, maxLength: 512 }
+    DeveloperErrorEntry:
+      type: object
+      additionalProperties: false
+      required: [code, meaning]
+      properties:
+        code: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 80 }
+        meaning: { type: string, maxLength: 512 }
+    DeveloperRecordLookup:
+      type: object
+      additionalProperties: false
+      required: [summary, correlation_header, safe_fields]
+      properties:
+        summary: { type: string, maxLength: 512 }
+        correlation_header: { type: string, enum: [X-Request-ID] }
+        safe_fields: { type: array, minItems: 1, maxItems: 8, uniqueItems: true, items: { type: string, enum: [account_id, transfer_id, run_id, event_id, correlation_id] } }
     Error:
       type: object
       required: [error]
@@ -588,7 +730,7 @@ components:
     AccountCommandUnavailable:
       description: The outcome is unavailable or a safe close predicate could not be proven; retry the identical intent and key.
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { responseUnknown: { $ref: '#/components/examples/AccountResponseUnknown' } } } }
-    ReconciliationConflict: { description: A run is already active, the key belongs to another intent, or the same request is still completing. already_running includes the active run_id when one remains active., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Error' }, { type: object, properties: { run_id: { type: string, format: uuid } } }] }, examples: { alreadyRunning: { $ref: '#/components/examples/ReconciliationAlreadyRunning' } } } } }
+    ReconciliationConflict: { description: 'A run is already active, the key belongs to another intent, or the same request is still completing. already_running includes the active run_id when one remains active.', headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Error' }, { type: object, properties: { run_id: { type: string, format: uuid } } }] }, examples: { alreadyRunning: { $ref: '#/components/examples/ReconciliationAlreadyRunning' } } } } }
     ReconciliationUnavailable: { description: Reconciliation could not start safely; retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     ReconciliationResponseUnknown: { description: The caller timed out after submission and must retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { responseUnknown: { $ref: '#/components/examples/ReconciliationResponseUnknown' } } } } }
     PolicyDenied: { description: "Tenant amount, velocity, destination, or currency policy denied the transfer.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

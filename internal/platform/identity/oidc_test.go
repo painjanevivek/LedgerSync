@@ -15,8 +15,8 @@ func TestAllowedSetDropsUnknownRolesAndScopes(t *testing.T) {
 	if len(roles) != 1 || !contains(roles, "tenant:admin") {
 		t.Fatalf("unexpected roles: %#v", roles)
 	}
-	scopes := allowedSet([]string{"accounts:read", "accounts:write", "reconciliation:write", "local:read", "events:read", "accounts:all"}, allowedScopes)
-	if len(scopes) != 5 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") || !contains(scopes, "reconciliation:write") || !contains(scopes, "local:read") || !contains(scopes, "events:read") {
+	scopes := allowedSet([]string{"accounts:read", "accounts:write", "reconciliation:write", "local:read", "events:read", "developer:read", "accounts:all"}, allowedScopes)
+	if len(scopes) != 6 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") || !contains(scopes, "reconciliation:write") || !contains(scopes, "local:read") || !contains(scopes, "events:read") || !contains(scopes, "developer:read") {
 		t.Fatalf("unexpected scopes: %#v", scopes)
 	}
 }

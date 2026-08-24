@@ -118,6 +118,7 @@ var allowedScopes = map[string]struct{}{
 	"reconciliation:write": {},
 	"local:read":           {},
 	"events:read":          {},
+	"developer:read":       {},
 	"audit:read":           {},
 	BFFActorScope:          {},
 }

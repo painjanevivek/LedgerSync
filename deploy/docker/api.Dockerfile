@@ -2,6 +2,7 @@ FROM golang:1.26.6-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a
 WORKDIR /src
 COPY go.mod go.sum go.work ./
 COPY cmd ./cmd
+COPY contracts ./contracts
 COPY internal ./internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate

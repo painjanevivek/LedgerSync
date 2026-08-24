@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Pulse,
   Broadcast,
+  Code,
   ShieldCheck,
   SignOut,
   UserCircle,
@@ -16,7 +17,7 @@ import {
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-export type ConsoleSection = "overview" | "accounts" | "transfers" | "reconciliation" | "local-status" | "events";
+export type ConsoleSection = "overview" | "accounts" | "transfers" | "reconciliation" | "local-status" | "events" | "developer";
 
 type Props = Readonly<{
   section: ConsoleSection;
@@ -37,6 +38,7 @@ const navigation = [
   { section: "reconciliation" as const, label: "Reconciliation", href: "/reconciliation", icon: ShieldCheck },
   { section: "local-status" as const, label: "Local status", href: "/local-status", icon: Pulse },
   { section: "events" as const, label: "Events", href: "/events", icon: Broadcast },
+  { section: "developer" as const, label: "Developer", href: "/developer", icon: Code },
 ];
 
 export function ConsoleShell({

@@ -135,7 +135,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "developer:read", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -234,6 +234,13 @@ func main() {
 				RateLimiter: rateLimiter, AuditRecorder: auditRepository, RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
 			}); err != nil {
 				slog.Error("operations route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerDeveloperRoutes(router, developerRouteConfig{
+				Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
+				RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
+			}); err != nil {
+				slog.Error("developer contract route initialization failed", "error", err)
 				os.Exit(1)
 			}
 			router.Handle("POST /api/transfers", transferHandler)

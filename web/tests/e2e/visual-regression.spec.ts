@@ -32,6 +32,7 @@ const populatedRoutes = [
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
   { name: "events-populated", path: "/events", heading: "Event investigation" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
+  { name: "developer-contract", path: "/developer", heading: "Developer" },
 ] as const;
 
 for (const route of populatedRoutes) {
@@ -48,6 +49,13 @@ test("compact account directory preserves the selected information hierarchy", a
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
   await capture(page, "accounts-populated-compact", compact);
+});
+
+test("compact developer contract preserves code and retry hierarchy",async({page})=>{
+  await mockOperatorConsole(page);
+  await page.goto("/developer");
+  await expect(page.getByRole("heading",{name:"Developer",exact:true})).toBeVisible();
+  await capture(page,"developer-contract-compact",compact);
 });
 
 test("loading state does not imply empty account evidence", async ({ page }) => {
