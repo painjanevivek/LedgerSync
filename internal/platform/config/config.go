@@ -13,6 +13,9 @@ import (
 type Config struct {
 	Environment                string
 	HTTPAddress                string
+	StartupTimeout             time.Duration
+	StartupInitialBackoff      time.Duration
+	StartupMaxBackoff          time.Duration
 	ShutdownTimeout            time.Duration
 	HTTPReadHeaderTimeout      time.Duration
 	HTTPReadTimeout            time.Duration
@@ -66,6 +69,21 @@ func Load() (Config, error) {
 	if err != nil || timeout <= 0 {
 		return Config{}, fmt.Errorf("LEDGERSYNC_SHUTDOWN_TIMEOUT must be a positive duration")
 	}
+	startupTimeout, err := positiveDuration("LEDGERSYNC_STARTUP_TIMEOUT", "90s")
+	if err != nil {
+		return Config{}, err
+	}
+	startupInitialBackoff, err := positiveDuration("LEDGERSYNC_STARTUP_INITIAL_BACKOFF", "250ms")
+	if err != nil {
+		return Config{}, err
+	}
+	startupMaxBackoff, err := positiveDuration("LEDGERSYNC_STARTUP_MAX_BACKOFF", "5s")
+	if err != nil {
+		return Config{}, err
+	}
+	if startupInitialBackoff > startupMaxBackoff || startupMaxBackoff > startupTimeout {
+		return Config{}, fmt.Errorf("startup durations must satisfy initial backoff <= max backoff <= timeout")
+	}
 
 	readHeaderTimeout, err := positiveDuration("LEDGERSYNC_HTTP_READ_HEADER_TIMEOUT", "3s")
 	if err != nil {
@@ -110,6 +128,9 @@ func Load() (Config, error) {
 	config := Config{
 		Environment:                environment,
 		HTTPAddress:                valueOrDefault("LEDGERSYNC_HTTP_ADDR", ":8080"),
+		StartupTimeout:             startupTimeout,
+		StartupInitialBackoff:      startupInitialBackoff,
+		StartupMaxBackoff:          startupMaxBackoff,
 		ShutdownTimeout:            timeout,
 		HTTPReadHeaderTimeout:      readHeaderTimeout,
 		HTTPReadTimeout:            readTimeout,

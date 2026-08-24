@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/events"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/startup"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -37,7 +39,17 @@ func main() {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
-	database, err := db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+	startupConfig := startup.Config{
+		Timeout:        configuration.StartupTimeout,
+		InitialBackoff: configuration.StartupInitialBackoff,
+		MaxBackoff:     configuration.StartupMaxBackoff,
+		OnRetry: func(event startup.Event) {
+			slog.Warn("dependency not ready during bounded startup", "dependency", event.Dependency, "attempt", event.Attempt, "category", event.Category, "retry_in", event.Delay, "startup_time_remaining", event.Remaining, "error", event.Err)
+		},
+	}
+	database, err := startup.Open(ctx, "postgresql", startupConfig, func(ctx context.Context) (*sql.DB, error) {
+		return db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+	})
 	if err != nil {
 		slog.Error("database initialization failed", "error", err)
 		os.Exit(1)
@@ -47,16 +59,23 @@ func main() {
 			slog.Warn("database close failed", "error", closeErr)
 		}
 	}()
-	redisClient := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
+	redisClient, err := startup.Open(ctx, "redis", startupConfig, func(ctx context.Context) (*redis.Client, error) {
+		client := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
+		if pingErr := client.Ping(ctx).Err(); pingErr != nil {
+			_ = client.Close()
+			return nil, pingErr
+		}
+		return client, nil
+	})
+	if err != nil {
+		slog.Error("redis initialization failed", "error", err)
+		os.Exit(1)
+	}
 	defer func() {
 		if closeErr := redisClient.Close(); closeErr != nil {
 			slog.Warn("redis close failed", "error", closeErr)
 		}
 	}()
-	if err := redisClient.Ping(ctx).Err(); err != nil {
-		slog.Error("redis initialization failed", "error", err)
-		os.Exit(1)
-	}
 	store, err := db.NewOutboxRepository(database, nil, telemetry)
 	if err != nil {
 		slog.Error("outbox repository initialization failed", "error", err)

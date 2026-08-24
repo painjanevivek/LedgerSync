@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/startup"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
@@ -38,11 +40,23 @@ func main() {
 		os.Exit(1)
 	}
 	defer func() { _ = telemetry.Shutdown(context.Background()) }()
+	startupContext, stopStartup := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopStartup()
+	startupConfig := startup.Config{
+		Timeout:        configuration.StartupTimeout,
+		InitialBackoff: configuration.StartupInitialBackoff,
+		MaxBackoff:     configuration.StartupMaxBackoff,
+		OnRetry: func(event startup.Event) {
+			slog.Warn("dependency not ready during bounded startup", "dependency", event.Dependency, "attempt", event.Attempt, "category", event.Category, "retry_in", event.Delay, "startup_time_remaining", event.Remaining, "error", event.Err)
+		},
+	}
 
 	var readiness httptransport.DependencyCheck
 	router := http.NewServeMux()
 	if configuration.DatabaseURL != "" {
-		database, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+		database, err := startup.Open(startupContext, "postgresql", startupConfig, func(ctx context.Context) (*sql.DB, error) {
+			return db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+		})
 		if err != nil {
 			slog.Error("database initialization failed", "error", err)
 			os.Exit(1)
@@ -64,16 +78,23 @@ func main() {
 				slog.Error("balance consistency configuration is missing")
 				os.Exit(1)
 			}
-			redisClient := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
+			redisClient, err := startup.Open(startupContext, "redis", startupConfig, func(ctx context.Context) (*redis.Client, error) {
+				client := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
+				if pingErr := client.Ping(ctx).Err(); pingErr != nil {
+					_ = client.Close()
+					return nil, pingErr
+				}
+				return client, nil
+			})
+			if err != nil {
+				slog.Error("redis initialization failed", "error", err)
+				os.Exit(1)
+			}
 			defer func() {
 				if closeErr := redisClient.Close(); closeErr != nil {
 					slog.Warn("redis close failed", "error", closeErr)
 				}
 			}()
-			if err := redisClient.Ping(context.Background()).Err(); err != nil {
-				slog.Error("redis initialization failed", "error", err)
-				os.Exit(1)
-			}
 			issuer, err := consistency.NewIssuer(consistency.Key{ID: configuration.ConsistencySigningKeyID, Secret: []byte(configuration.ConsistencySigningKey)}, nil, nil, 10*time.Minute)
 			if err != nil {
 				slog.Error("consistency issuer initialization failed", "error", err)

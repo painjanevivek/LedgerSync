@@ -20,8 +20,11 @@ This register is the single status source for work that remains after the verifi
 | `FAILED_REMEDIATE` | Objective evidence failed; movement/expansion stays paused until a fix and retest pass. |
 | `PASSED` | Every stated exit criterion has reviewable evidence. |
 | `NOT_APPLICABLE` | An accountable decision records why the gate does not apply. |
+| `OUT_OF_SCOPE_LOCAL_MVP` | The gate remains valid for a shared production pilot but cannot block the one-workstation, loopback-only demo release. See the [local MVP register](local-mvp-gates.md). |
 
 “Mostly done,” “conditional pass,” and undocumented verbal approval are prohibited.
+
+This register remains authoritative for a shared design-partner pilot. The separate [local-only MVP gate register](local-mvp-gates.md) reclassifies external requirements only inside the one-workstation boundary and does not modify any historical status or evidence below.
 
 ## Authoritative gates
 

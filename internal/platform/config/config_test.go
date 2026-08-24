@@ -14,8 +14,21 @@ func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	if configuration.HTTPReadHeaderTimeout <= 0 || configuration.HTTPReadTimeout <= 0 || configuration.HTTPWriteTimeout <= 0 || configuration.HTTPIdleTimeout <= 0 || configuration.HTTPMaxHeaderBytes < 1024 {
 		t.Fatalf("HTTP bounds are incomplete: %#v", configuration)
 	}
+	if configuration.StartupTimeout <= 0 || configuration.StartupInitialBackoff <= 0 || configuration.StartupMaxBackoff < configuration.StartupInitialBackoff || configuration.StartupTimeout < configuration.StartupMaxBackoff {
+		t.Fatalf("startup retry bounds are incomplete: %#v", configuration)
+	}
 	if configuration.PilotCurrency != "INR" || configuration.ReadRateLimitPerMinute != 6_000 || configuration.WriteRateLimitPerMinute != 1_800 || configuration.WriteCapacityPerSecond != 30 {
 		t.Fatalf("pilot controls are incomplete: %#v", configuration)
+	}
+}
+
+func TestLoadRejectsInvalidStartupRetryOrder(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("LEDGERSYNC_STARTUP_TIMEOUT", "1s")
+	t.Setenv("LEDGERSYNC_STARTUP_INITIAL_BACKOFF", "2s")
+	t.Setenv("LEDGERSYNC_STARTUP_MAX_BACKOFF", "3s")
+	if _, err := Load(); err == nil {
+		t.Fatal("invalid startup retry order was accepted")
 	}
 }
 

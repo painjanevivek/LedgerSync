@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Pilot status:** the engineering MVP and a conservative local capacity envelope are implemented and evidenced. Partner traffic remains blocked on physical-device review, signed finance/security/legal decisions, managed OIDC and infrastructure, provider-backed PITR, named operational ownership, and a consenting design partner.
+**Release status:** the engineering core is implemented. A ready-to-use **local-only MVP** is being completed for one Windows workstation at `http://localhost:3000`, with INR demo data and no external deployment. This is separate from the shared production pilot, which remains blocked on physical-device review, signed finance/security/legal decisions, managed OIDC and infrastructure, provider-backed PITR, named operational ownership, and a consenting design partner. See the [two gate registers](docs/pilot/local-mvp-gates.md).
 
 ## Contents
 
@@ -423,25 +423,26 @@ The repository-root `docker-compose.yml` is the canonical local entry point and 
 | Docker Engine + Compose | current supported release |
 
 ```powershell
-# 1. Create local-only configuration; never commit real values.
-Copy-Item .env.example .env
+# 1. Start or recover the complete supported topology. This preserves existing data.
+.\scripts\start-local.ps1
 
-# 2. Start the supported local topology.
-docker compose up --build
+# 2. Open the product.
+Start-Process http://localhost:3000
 
-# 3. Apply schema changes explicitly. API startup never mutates a financial schema.
-docker compose exec api migrate
+# 3. Inspect or stop it without deleting PostgreSQL/Redis volumes.
+.\scripts\status-local.ps1
+.\scripts\logs-local.ps1 -Service api -Tail 100 -Since 15m
+.\scripts\stop-local.ps1
 
-# 4. Run focused verification.
+# 4. Run focused developer verification when changing code.
 $env:GOCACHE = "$PWD\.cache\go-build"
 go test ./internal/... ./cmd/api ./tests/unit -mod=mod
 npm --prefix web run test
 npm --prefix web run lint
 npm --prefix web run build
-
-# 5. Stop services.
-docker compose down
 ```
+
+`start-local.ps1` validates Docker and Compose, waits for PostgreSQL and Redis health, requires migrations and the idempotent demo seed to finish, verifies every long-running service, and tests the real browser/BFF read path before printing “ready.” API startup never mutates the financial schema. The destructive reset command is deliberately separate and refuses to run without the exact confirmation documented in the [local runtime runbook](docs/runbooks/local-runtime-smoke.md).
 
 To rebuild the disposable cache from PostgreSQL projections:
 
