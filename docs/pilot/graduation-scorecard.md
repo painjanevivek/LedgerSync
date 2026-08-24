@@ -27,8 +27,8 @@ decision option.
 | Exactness/idempotency | Duplicate movement and changed-intent conflicts | 0 duplicate movements; all conflicts explained | Repository tests pass | PARTIAL |
 | Reconciliation | Persisted run IDs and mismatch investigations | 0 unexplained mismatches throughout window | Local evidence only | PARTIAL |
 | RYEW/balances | RYEW violations, primary fallback, stale-current incidents | 0 RYEW/stale-current violations | Local evidence only | PARTIAL |
-| Transfer latency | p50/p95/p99 and error rate at representative 10–50 TPS | Approved SLO and headroom | 50 TPS hot-account gate paused | BLOCKED |
-| Balance latency | p50/p95/p99 by cache/fallback path | Approved SLO | Local diagnostic p95 only | BLOCKED |
+| Transfer latency | p50/p95/p99 and error rate at representative approved traffic | Approved SLO and headroom | Local 25 TPS envelope and 50 TPS 2× headroom pass; managed rerun pending | PARTIAL |
+| Balance latency | p50/p95/p99 by cache/fallback path | Approved SLO | Local 25 TPS balance p95 159.32 ms; managed rerun pending | PARTIAL |
 | Recovery | Provider PITR, achieved point, RPO/RTO, cache rebuild, reconciliation | Approved objectives met in isolation | Local logical restore only | BLOCKED |
 | Security/identity | Managed OIDC/secrets/network evidence and findings | 0 open critical/high; cross-tenant tests pass | No managed environment | BLOCKED |
 | Accessibility/devices | Physical matrix, defects/retests, WCAG evidence | No unresolved critical issue | Automation only | BLOCKED |
@@ -69,7 +69,7 @@ review, data/ledger model, operational program, and explicit approval:
 | Authority | Name | Decision | Evidence reference | UTC date |
 |---|---|---|---|---|
 | Product | — | Not eligible | This scorecard | 2026-08-24 |
-| Engineering | — | Not eligible | Open managed/capacity gates | 2026-08-24 |
+| Engineering | — | Not eligible | Capacity passes locally; managed, recovery, approval, device, operations, and partner gates remain | 2026-08-24 |
 | Finance | — | Pending | — | — |
 | Security | — | Pending | — | — |
 | Operations | — | Pending | — | — |

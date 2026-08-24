@@ -46,7 +46,7 @@
 - Physical iOS, Android, tablet, laptop, and desktop review is still required; automation/emulation does not close T094/TASK-013.
 - Finance/product approval of balance terminology and aggregation is still required; T095/TASK-014 remains open.
 - Security/risk approval of roles, transfer/velocity limits, and pause authority remains open.
-- The measured hot-account 50 TPS result remains paused at 26 retryable serialization conflicts; Phase 1 must remediate or enforce a lower approved limit.
+- The original hot-account conflict is remediated. Local capacity is intentionally bounded to 25 partner TPS with 30 total write attempts/second; 50 TPS passed as 2× local service headroom, while 60/100 TPS remain unapproved saturation points.
 - Managed Cognito, renewable workload identity, private AWS infrastructure, provider PITR, secret rotation, alert routing, and the operational tabletop are not active.
 - Legal/custody/retention approval, a consenting design partner, an operating window, and graduation signatures do not exist.
 

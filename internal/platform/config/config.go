@@ -22,6 +22,7 @@ type Config struct {
 	PilotCurrency              string
 	ReadRateLimitPerMinute     int
 	WriteRateLimitPerMinute    int
+	WriteCapacityPerSecond     int
 	RedisStreamMaxLength       int64
 	DatabaseURL                string
 	RedisAddress               string
@@ -86,13 +87,17 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	readRate, err := positiveInt("LEDGERSYNC_READ_RATE_LIMIT_PER_MINUTE", 120)
+	readRate, err := positiveInt("LEDGERSYNC_READ_RATE_LIMIT_PER_MINUTE", 6_000)
 	if err != nil {
 		return Config{}, err
 	}
-	writeRate, err := positiveInt("LEDGERSYNC_WRITE_RATE_LIMIT_PER_MINUTE", 30)
+	writeRate, err := positiveInt("LEDGERSYNC_WRITE_RATE_LIMIT_PER_MINUTE", 1_800)
 	if err != nil {
 		return Config{}, err
+	}
+	writeCapacity, err := positiveInt("LEDGERSYNC_WRITE_CAPACITY_PER_SECOND", 30)
+	if err != nil || writeCapacity > 10_000 {
+		return Config{}, fmt.Errorf("LEDGERSYNC_WRITE_CAPACITY_PER_SECOND must be between 1 and 10000")
 	}
 	streamMaxLength, err := positiveInt("LEDGERSYNC_REDIS_STREAM_MAX_LENGTH", 5_000_000)
 	if err != nil {
@@ -114,6 +119,7 @@ func Load() (Config, error) {
 		PilotCurrency:              pilotCurrency,
 		ReadRateLimitPerMinute:     readRate,
 		WriteRateLimitPerMinute:    writeRate,
+		WriteCapacityPerSecond:     writeCapacity,
 		RedisStreamMaxLength:       int64(streamMaxLength),
 		DatabaseURL:                os.Getenv("LEDGERSYNC_DATABASE_URL"),
 		RedisAddress:               os.Getenv("LEDGERSYNC_REDIS_ADDR"),

@@ -31,8 +31,9 @@ report is not treated as a pass.
    Redis memory, application revision, and test start time.
 3. Supply short-lived test-only credentials through the environment. Never put
    credentials in the script or shell history.
-4. Run `k6 run tests/performance/k6/transfers.js` at 10, 25, and 50 TPS for
-   five minutes each, reconciling between runs.
+4. Run `scripts/run-capacity-qualification.ps1`; it pins k6 by digest, samples
+   the containers and PostgreSQL every five seconds, records Redis/outbox and
+   financial invariants, and reconciles after the workload.
 5. Archive the k6 JSON summary, trace/metric dashboard snapshot, and
    reconciliation result in the pilot evidence store.
 
@@ -41,42 +42,58 @@ establishment, one-minor-unit exact transfers, sampled same-key replay,
 authoritative balance reads, account/history pages, and reconciliation reads.
 Expected replay responses are measured separately from unexpected outcomes.
 
-## 2026-08-24 local diagnostic results
+## 2026-08-24 Phase 1 capacity decision
 
-These 20-second runs used one demo operator and one source/destination pair on
-Docker Desktop. They are useful contention diagnostics, not the required
-five-minute production-like capacity qualification. The local run did not retain
-p50/p99, host CPU/IO, pool occupancy, or lock-wait time-series, so those fields
-remain explicitly unqualified.
+The initial concentrated 50 TPS result was not accepted. A reproduction on the
+accumulated demo database produced 10 exhausted serializable retries and 234
+PostgreSQL rollbacks in 60 seconds. The transaction repeatedly scanned immutable
+transfer history to calculate rolling limits while holding financial locks.
 
-| Run | Offered TPS | Iterations | Transfer p95 | Balance p95 | Unexpected outcomes | Result |
+The remediation preserves serializable isolation and PostgreSQL authority. It
+adds exact, rebuildable active-window velocity events/totals and sequences the
+unavoidable tenant policy decision before starting the transaction. The Redis
+worker also stopped issuing a benign `BUSYGROUP` command on every loop. See
+[ADR-0012](architecture/adr-0012-bounded-transfer-capacity.md).
+
+### Workload-shape diagnostics after remediation
+
+Each 20-second shape traversed session/CSRF, transfers, balances, account and
+history reads, plus reconciliation sampling. `retry` deliberately discarded a
+response and replayed the same key. All unexpected-outcome counts were zero.
+
+| Shape | TPS | Iterations | Transfer p50 / p95 / p99 | Balance p95 | Result |
+|---|---:|---:|---:|---:|---|
+| Hot pair | 10 / 25 / 50 | 200 / 501 / 1,001 | 14.22/17.04/27.64; 13.36/16.09/21.70; 13.35/49.45/68.51 ms | 158.37 / 157.63 / 157.75 ms | pass |
+| Four-account mixed | 10 / 25 / 50 | 200 / 501 / 1,000 | 14.07/26.95/32.65; 13.87/18.54/30.03; 15.12/87.61/142.02 ms | 156.62 / 158.77 / 160.53 ms | pass |
+| Retry-heavy | 10 / 25 / 50 | 201 / 500 / 1,001 | 13.29/42.47/58.00; 11.99/16.80/19.74; 12.16/50.63/97.36 ms | 141.69 / 157.65 / 157.48 ms | pass; 102 / 252 / 503 simulated lost responses |
+
+### Five-minute qualification and saturation
+
+The launch envelope is deliberately lower than the original aspirational range.
+The partner limit is 25 new transfer journeys/second. PostgreSQL enforces 30
+total write attempts/second and 1,800/minute across the tenant, reserving retry
+capacity. The 50 TPS service run is the required 2× planning headroom evidence.
+
+| Decision | Offered / achieved | Iterations | Transfer p50 / p95 / p99 | Balance p95 | Unexpected / dropped | Reconciliation |
 |---|---:|---:|---:|---:|---:|---|
-| Baseline | 10 | 201 | 19.62 ms | 160.99 ms | 0 | PASS — 602/602 checks |
-| Target | 25 | 501 | 19.04 ms | 157.10 ms | 0 | PASS — 1,410/1,410 checks |
-| Hot-account ceiling | 50 | 1,000 | 240.62 ms | 166.43 ms | 26 | PAUSE — 26 retryable serializable conflicts (0.92% request failure) |
+| **Pilot envelope — pass** | 25 / 24.993 TPS | 7,501 | 15.58 / 36.28 / 168.03 ms | 159.32 ms | 0 / 0 | matched, 0 (`dd9af0f0-0368-43c6-8818-87fb11466414`) |
+| **2× service headroom — pass** | 50 / 49.988 TPS | 15,001 | 14.68 / 52.33 / 200.92 ms | 160.87 ms | 0 / 0 | matched, 0 (`1c1d7974-dd5f-49ab-93a0-53aaf3d594eb`) |
+| **Saturation — not approved** | 60 / 59.475 TPS | 17,847 | 17.43 / 150.97 / 2,317.24 ms | 171.50 ms | 6 / 153 | matched, 0 (`b0466c44-c686-46d6-b33e-8d14528c6598`) |
+| **Saturation — not approved** | 100 / 97.227 TPS | 29,320 | 54.62 / 2,595.58 / 4,664.33 ms | 1,376.07 ms | 147 / 680 | matched, 0 (`56a5d94b-c187-492f-817e-366c51acdbf3`, post-load) |
 
-The 50 TPS result is a correct, explicit `503 transaction_conflict_retryable`
-rather than an unexplained `500`, and retry instructions require the original
-idempotency key. It still fails the below-0.1% error target. PostgreSQL recorded
-520 transaction rollbacks and zero deadlocks across the diagnostic sequence.
-Post-run reconciliation matched all six accounts with zero mismatches (run
-`266205c8-0dee-4252-be98-ca601cbb386c`); unpublished and dead outbox counts were
-both zero.
+The 25 TPS controlled run recorded zero PostgreSQL rollbacks/deadlocks, maximum
+six connections, maximum three active connections, and maximum two waiting
+locks. Docker samples recorded average/maximum CPU of 16.23%/29.57% for the API,
+20.34%/54.17% for PostgreSQL, 22.49%/62.83% for the web BFF, 3.52%/7.75% for
+Redis, and 2.01%/3.95% for the worker. Redis returned zero errors; outbox
+unpublished/dead counts were zero. Database growth was 47,513,600 bytes for this
+synthetic write-heavy run.
 
-### Required remediation before capacity approval
-
-1. Exercise a representative multi-tenant, multi-actor, multi-account workload;
-   retain this single-pair case as the explicit hot-account ceiling scenario.
-2. Replace repeated rolling-window scans under serializable isolation with an
-   approved transactionally locked velocity-counter design, or demonstrate an
-   equivalent bounded-contention control without weakening limits.
-3. Retain bounded same-key client retry with jitter for the explicit retryable
-   conflict response; never create a new key for an unknown outcome.
-4. Run 10, 25, and 50 TPS for five minutes in the isolated pilot environment,
-   capture p50/p95/p99, DB CPU/IO/connections/locks, pool saturation, Redis,
-   outbox age, and reconcile between runs.
-5. Demonstrate the agreed 2× planning headroom or record a signed scope/traffic
-   reduction. Until then, partner traffic remains paused at this gate.
+These are local Docker Desktop measurements on an accumulated synthetic database,
+not AWS sizing or a managed-environment SLO. CPU percentages are Docker per-core
+figures and can exceed 100% in other runs. Provider capacity remains a later
+managed-environment gate. Raising the partner limit requires a new commit-bound
+qualification and explicit configuration change.
 
 ## Browser and asset evidence
 
@@ -91,9 +108,9 @@ both zero.
 
 | Run | TPS | p50 / p95 / p99 transfer ms | p95 balance ms | HTTP error % | DB CPU / connections | Redis memory | Reconciliation mismatch | Decision |
 |---|---:|---|---:|---:|---|---|---:|---|
-| Baseline | 10 | Required 5-minute run | Required | Required | Required | Required | Required | pending production-like run |
-| Target | 25 | Required 5-minute run | Required | Required | Required | Required | Required | pending production-like run |
-| Ceiling | 50 | Required 5-minute run | Required | Required | Required | Required | Required | local hot-account run paused |
+| Pilot | 25 | 15.58 / 36.28 / 168.03 | 159.32 | 0 | avg 20.34% / max 6 connections | 195,845,192-byte observed peak | 0 | pass locally; managed rerun remains |
+| Headroom | 50 | 14.68 / 52.33 / 200.92 | 160.87 | 0 | avg 44.58% / max 6 connections | 40,695,296-byte observed peak at that run | 0 | pass as local 2× headroom |
+| Saturation | 60 / 100 | not approved | not approved | above budget | captured | captured | 0 | do not raise pilot limit |
 
 An observed mismatch, duplicate movement, or unmet latency target blocks pilot
 expansion until the cause is explained and a new run is recorded.

@@ -20,6 +20,8 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 	}{
 		{"ledgersync_api", "transfers", "INSERT", true},
 		{"ledgersync_api", "api_rate_limit_windows", "SELECT", true},
+		{"ledgersync_api", "transfer_velocity_events", "DELETE", true},
+		{"ledgersync_api", "transfer_velocity_totals", "UPDATE", true},
 		{"ledgersync_api", "delivery_attempts", "SELECT", true},
 		{"ledgersync_api", "ledger_postings", "SELECT", true},
 		{"ledgersync_api", "reconciliation_runs", "SELECT", true},

@@ -93,6 +93,16 @@ func (p *RedisStreams) EnsureConsumerGroup(ctx context.Context, group string) (e
 	started := time.Now()
 	ctx, span := p.start(ctx, "event.redis.ensure_consumer_group")
 	defer func() { span.End(); p.observe(ctx, "ensure_consumer_group", started, err) }()
+	groups, err := p.client.XInfoGroups(ctx, p.stream).Result()
+	if err == nil {
+		for _, existing := range groups {
+			if existing.Name == group {
+				return nil
+			}
+		}
+	} else if !strings.Contains(strings.ToLower(err.Error()), "no such key") {
+		return fmt.Errorf("inspect redis consumer groups: %w", err)
+	}
 	err = p.client.XGroupCreateMkStream(ctx, p.stream, group, "0").Err()
 	if err != nil && !strings.Contains(strings.ToUpper(err.Error()), "BUSYGROUP") {
 		return fmt.Errorf("create redis consumer group: %w", err)

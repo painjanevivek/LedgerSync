@@ -162,6 +162,7 @@ func main() {
 				os.Exit(1)
 			}
 			transferHandler.WithRateLimiter(rateLimiter, configuration.WriteRateLimitPerMinute)
+			transferHandler.WithCapacityLimit(rateLimiter, configuration.WriteCapacityPerSecond)
 			balanceHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
 			accountsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
 			transactionsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)

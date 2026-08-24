@@ -28,7 +28,7 @@ This register is the single status source for work that remains after the verifi
 | ID | Plan/task | Gate and plain-language outcome | Accountable owner | Evidence | Status | Expiry/review | Blocker class | Next action |
 |---|---|---|---|---|---|---|---|---|
 | G-000 | Phase 0, TASK-001, T096 | Repository, task, test, screenshot, and CI claims agree | Engineering/release owner | [operator UI](../release-evidence/operator-ui.md), [Spec Kit tasks](../../specs/001-secure-transfer-core/tasks.md), [roadmap register](../plans/ledgersync-roadmap-progress.md), commit-bound Quality artifact | `PASSED` | Every source or workflow change | Internal | Keep all required workflows green for the commit containing this register |
-| G-010 | Phase 1, TASK-012 | Safe representative 10–50 TPS capacity and approved headroom | Engineering/SRE | [performance baseline](../performance-baseline.md), [resilience evidence](../release-evidence/phase-5-resilience.md) | `FAILED_REMEDIATE` | Retest after remediation | Measured capacity | Reproduce mixed, hot-account, and retry-heavy shapes; fix contention or enforce a lower signed limit |
+| G-010 | Phase 1, TASK-012 | Enforced 25 TPS partner envelope and measured 2× service headroom | Engineering/SRE | [performance baseline](../performance-baseline.md), [capacity ADR](../architecture/adr-0012-bounded-transfer-capacity.md), [resilience evidence](../release-evidence/phase-5-resilience.md) | `PASSED` | Requalify before any limit/topology change | Measured capacity | Preserve 30 attempts/s and 1,800/minute tenant controls; repeat in the managed environment before partner traffic |
 | G-020 | Phase 2, T094, TASK-013 | Real phone, tablet, laptop, and desktop journeys preserve the same financial meaning | Product UI/accessibility owner | [device matrix](../release-evidence/ui-device-matrix.md) | `BLOCKED_EXTERNAL` | Before partner traffic | Physical devices/reviewer | Supply authorized device farm or named reviewers; execute and sign every row |
 | G-030 | Phase 3, T095, TASK-014 | Finance-approved balance, aggregation, status, provenance, and UTC language | Finance + product | [financial semantics](../product/financial-ui-semantics.md), [decision register](../product/pilot-decision-register.md) | `BLOCKED_EXTERNAL` | Before shared overview/write use | Human decision | Review prepared definitions and record named approval, date, evidence, and expiry |
 | G-031 | Phase 3, TASK-015 | Least-privilege roles, INR limits, negative-balance rule, destination policy, and pause authority are signed and enforced | Product + security/risk | [India launch profile](india-launch-profile.md), [decision register](../product/pilot-decision-register.md) | `BLOCKED_EXTERNAL` | Before production writes | Human decision | Approve or amend proposed values; Codex then binds the signed revision to policy tests |
@@ -51,7 +51,7 @@ T121 is the Spec Kit umbrella for G-060 through G-120. It stays open until the a
 | Source | Complete | Open | Open identifiers |
 |---|---:|---:|---|
 | Spec Kit `tasks.md` | 118 / 121 | 3 | T094, T095, T121 |
-| Master implementation plan | 11 / 22 | 11 | TASK-012 through TASK-022 |
+| Master implementation plan | 12 / 22 | 10 | TASK-013 through TASK-022 |
 
 The two lists overlap; their counts must not be added together. TASK-013 maps to T094, TASK-014 maps to T095, and T121 summarizes multiple managed/human/partner tasks.
 

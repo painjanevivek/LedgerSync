@@ -66,7 +66,7 @@ The 24 August 2026 architecture audit originally found cross-runtime identity, e
 
 The remaining gaps are not silently converted into code passes:
 
-- the concentrated 50 TPS hot-account run failed its error budget with 26 retryable serializable conflicts and requires Phase 1 remediation or an enforced lower signed limit;
+- the original concentrated 50 TPS conflict is remediated; the enforced local pilot envelope is 25 TPS with 30 total attempts/second, and a five-minute 50 TPS run provides 2× service headroom;
 - physical iOS, Android, tablet, laptop, and desktop evidence remains incomplete;
 - finance-approved account aggregation/terminology and security/risk-approved roles, limits, and pause authority remain unsigned;
 - managed Cognito, renewable workload identity, private AWS infrastructure, alert routing, provider PITR, and production secret rotation are not deployed;
@@ -1356,7 +1356,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Relevant visual: Visual 2.
   - Risks: nondeterministic timing; use leases, bounded waits, and controlled fault injection.
 
-- [ ] `TASK-012` — Run production-like capacity test
+- [x] `TASK-012` — Run production-like capacity test
   - Purpose: validate the 10–50 TPS and latency targets without weakening correctness.
   - Dependencies: TASK-003, TASK-009–011, production-like environment.
   - Expected output: capacity report with p50/p95/p99 and saturation signals.
@@ -1364,6 +1364,7 @@ All `REMED-*` tasks below precede `TASK-002`. `TASK-001` supplies their frozen b
   - Priority: P0 before partner traffic.
   - Relevant visual: Visual 3.
   - Risks: unrealistic workload mix or fabricated certainty; publish workload and limitations.
+  - Evidence: local Docker qualification on 2026-08-24 passed 25 TPS and 50 TPS headroom with zero unexpected outcomes or reconciliation mismatches; 60/100 TPS saturation failed availability/latency and remains unapproved. Managed-environment rerun remains part of TASK-017 rather than being fabricated here.
 
 - [ ] `TASK-013` — Complete physical-device matrix
   - Purpose: validate real browser chrome, safe areas, touch, keyboards, and rotation.

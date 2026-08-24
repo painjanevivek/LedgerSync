@@ -14,8 +14,16 @@ func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	if configuration.HTTPReadHeaderTimeout <= 0 || configuration.HTTPReadTimeout <= 0 || configuration.HTTPWriteTimeout <= 0 || configuration.HTTPIdleTimeout <= 0 || configuration.HTTPMaxHeaderBytes < 1024 {
 		t.Fatalf("HTTP bounds are incomplete: %#v", configuration)
 	}
-	if configuration.PilotCurrency != "INR" || configuration.ReadRateLimitPerMinute <= 0 || configuration.WriteRateLimitPerMinute <= 0 {
+	if configuration.PilotCurrency != "INR" || configuration.ReadRateLimitPerMinute != 6_000 || configuration.WriteRateLimitPerMinute != 1_800 || configuration.WriteCapacityPerSecond != 30 {
 		t.Fatalf("pilot controls are incomplete: %#v", configuration)
+	}
+}
+
+func TestLoadRejectsUnsafeWriteCapacity(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("LEDGERSYNC_WRITE_CAPACITY_PER_SECOND", "10001")
+	if _, err := Load(); err == nil {
+		t.Fatal("unbounded write capacity was accepted")
 	}
 }
 

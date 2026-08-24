@@ -98,8 +98,9 @@ Before production traffic, perform at least one provider-backed isolated restore
 ## Capacity and service objectives
 
 - Support at least 10,000 accounts per tenant and approximately 30,000 across the pilot.
-- Demonstrate 10 TPS for 60 minutes and a 50 TPS burst for 10 minutes.
-- Stress to 100 TPS to measure headroom and graceful degradation; 100 TPS is not a launch SLO.
+- Launch at no more than 25 new transfer journeys/second, with tenant-wide controls of 30 total write attempts/second and 1,800/minute so same-key recovery retains capacity.
+- Treat the locally qualified 50 TPS mixed workload as 2× service headroom. Repeat the approved envelope in the managed environment before partner traffic.
+- Keep 60 and 100 TPS as saturation probes, not launch SLOs; both exceeded the local availability/latency envelope even though reconciliation remained exact.
 - Target 50,000–250,000 genuine pilot transfers over approximately 30 days.
 - Transfer commit latency: p95 under 500 ms and p99 under 1 second with healthy dependencies.
 - Balance-read latency: p95 under 200 ms.

@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Pilot status:** Phase 3–7 product, financial, visibility, security, recovery, and launch-quality controls are implemented locally and evidenced. Production-pilot readiness still requires a chosen jurisdiction/currency, managed OIDC authorization-code-with-PKCE login, a provider-backed PITR restore drill, and named operational ownership.
+**Pilot status:** the engineering MVP and a conservative local capacity envelope are implemented and evidenced. Partner traffic remains blocked on physical-device review, signed finance/security/legal decisions, managed OIDC and infrastructure, provider-backed PITR, named operational ownership, and a consenting design partner.
 
 ## Contents
 
@@ -67,7 +67,7 @@ The numbers below are deliberate launch constraints. They are **not claims of ob
 | Jurisdictions | **1** | Choose and document before pilot |
 | Currencies | **1** | Internal same-currency movement only |
 | Pilot account scale | **≥ 10,000** | Meaningful pilot completion threshold |
-| Transfer throughput | **10–50 TPS** | Credible first-scale target |
+| Initial partner throughput | **≤ 25 TPS** | Enforced lower launch envelope; 50 TPS is measured local service headroom |
 | Transfer latency | **p95 < 500 ms** | Healthy-dependency commit outcome target |
 | Balance-read latency | **p95 < 200 ms** | Healthy-dependency cache/primary-read target |
 | Reconciliation mismatches | **0** | Non-negotiable pilot exit criterion |
@@ -102,7 +102,7 @@ xychart-beta
 | Phase 5 PostgreSQL ownership suite | **PASS in 2.513 s** | cross-account reads denied without disclosure |
 | BFF security suite | **3 / 3 tests passed** | session tamper/expiry, CSRF, response headers |
 | Phase 4 fault cases | **3 scenarios passed** | delayed projection, Redis loss/rebuild, monotonic cache version |
-| Ordered migrations | **4** | financial schema, transfer ledger, integrity, outbox leases |
+| Ordered migrations | **12** | financial schema through bounded velocity/capacity state |
 | Journal postings / posted transfer | **2** | one debit + one credit |
 | Account events / transfer | **2** | one outbox event per affected account |
 | Consistency requirement lifetime | **10 min** | signed minimum balance version |
@@ -137,7 +137,7 @@ sequenceDiagram
   A->>DB: Begin serializable transaction
   DB->>DB: Reserve idempotency key and fingerprint
   DB->>DB: Lock source + destination in stable ID order
-  DB->>DB: Check accounts and available funds
+  DB->>DB: Check accounts, available funds, and exact rolling velocity
   DB->>DB: Insert transfer, journal, debit + credit
   DB->>DB: Update balance versions, audit, outcome, outbox
   DB-->>A: Commit once

@@ -28,6 +28,7 @@ type TransferHandler struct {
 	issuer        *consistency.Issuer
 	rateLimiter   RateLimiter
 	rateLimit     int
+	capacityLimit int
 	audit         AuditRecorder
 }
 
@@ -53,6 +54,14 @@ func (h *TransferHandler) WithRequestAuthenticator(authenticator *identity.Reque
 
 func (h *TransferHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *TransferHandler {
 	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+
+// WithCapacityLimit applies the measured pilot envelope across all actors in a
+// tenant. It is separate from the per-principal abuse limit so adding API
+// clients cannot bypass the financial-system capacity boundary.
+func (h *TransferHandler) WithCapacityLimit(limiter RateLimiter, requestsPerSecond int) *TransferHandler {
+	h.rateLimiter, h.capacityLimit = limiter, requestsPerSecond
 	return h
 }
 func (h *TransferHandler) WithAuditRecorder(audit AuditRecorder) *TransferHandler {
@@ -84,6 +93,9 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	}
 	if identity.RequireScope(principal, "transfers:write") != nil {
 		writeScopeDenial(writer, request, h.audit, principal, "transfers:write")
+		return
+	}
+	if !enforceTenantCapacity(writer, request, h.rateLimiter, principal, "transfers:create", h.capacityLimit) {
 		return
 	}
 	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "transfers:create", h.rateLimit, true) {

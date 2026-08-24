@@ -4,11 +4,13 @@ Evidence date: 2026-08-24 Asia/Calcutta (2026-08-23 UTC runtime logs)
 
 ## Decision
 
-Transfer correctness, dependency-fault behavior, compact browser budgets, and a
-local isolated restore are qualified. The final production-like capacity gate is
-**paused**, because a deliberately concentrated 50 TPS workload exceeded the
-0.1% error budget with explicit retryable PostgreSQL serialization conflicts.
-No correctness or reconciliation failure was observed.
+Transfer correctness, dependency-fault behavior, compact browser budgets, local
+isolated restore, and the conservative local capacity envelope are qualified.
+The earlier concentrated 50 TPS conflict was remediated without weakening
+serializable isolation. The initial partner limit is now 25 TPS, protected by a
+tenant-wide 30-attempt/second and 1,800-attempt/minute admission envelope. A
+five-minute 50 TPS run passed as 2× service headroom. Managed-provider capacity
+evidence remains separate and incomplete.
 
 ## Safety and fault evidence
 
@@ -25,20 +27,23 @@ The API now returns `503 transaction_conflict_retryable` after bounded
 serializable retry exhaustion. The response tells clients to retry the original
 request with the same idempotency key, preserving unknown-outcome safety.
 
-## Local workload evidence
+## Local workload evidence after remediation
 
-| Offered TPS | Duration | Iterations | Transfer p95 | Balance p95 | Unexpected | Decision |
+| Offered TPS | Duration | Iterations | Transfer p95 | Balance p95 | Unexpected / dropped | Decision |
 |---:|---:|---:|---:|---:|---:|---|
-| 10 | 20 s | 201 | 19.62 ms | 160.99 ms | 0 | diagnostic pass |
-| 25 | 20 s | 501 | 19.04 ms | 157.10 ms | 0 | diagnostic pass |
-| 50, one hot account pair | 20 s | 1,000 | 240.62 ms | 166.43 ms | 26 retryable conflicts | pause/remediate |
+| 25, enforced mixed | 5 min | 7,501 | 36.28 ms | 159.32 ms | 0 / 0 | pilot envelope pass |
+| 50, four-account mixed | 5 min | 15,001 | 52.33 ms | 160.87 ms | 0 / 0 | 2× service headroom pass |
+| 60, four-account mixed | 5 min | 17,847 | 150.97 ms | 171.50 ms | 6 / 153 | saturation; not approved |
+| 100, four-account mixed | 5 min | 29,320 | 2,595.58 ms | 1,376.07 ms | 147 / 680 | saturation; not approved |
 
 The workload traversed the real BFF session and CSRF boundary. It mixed exact
-transfers, sampled same-key retries, authoritative balances, accounts, history,
-and reconciliation reads. Post-run reconciliation matched six accounts with
-zero mismatches (`266205c8-0dee-4252-be98-ca601cbb386c`), and both unpublished
-and dead outbox counts were zero. See `docs/performance-baseline.md` for the
-limitations and required remediation.
+transfers, distributed same-key retries, authoritative balances, accounts,
+history, and reconciliation reads. Every run reconciled with zero mismatches;
+the accepted 25 TPS run is `dd9af0f0-0368-43c6-8818-87fb11466414`. Unpublished
+and dead outbox counts, duplicate journal movements, negative projections,
+tenant violations, and velocity drift were all zero. See
+`docs/performance-baseline.md` for percentiles, resource signals, saturation,
+and local-environment limitations.
 
 ## Browser evidence
 
@@ -55,19 +60,20 @@ CI uploads the Playwright report and raw attached web-vital JSON for review.
 
 ## Isolated local restore evidence
 
-`scripts/local-restore-drill.ps1` restored a 1,537,059-byte logical dump into a
+`scripts/local-restore-drill.ps1 -ComposeProject compose` restored an
+80,011,017-byte logical dump into a
 fresh internal PostgreSQL 16 container, ran the migration binary, rebuilt a new
 Redis 7.4 instance, and reconciled the restored tenant.
 
 | Check | Result |
 |---|---|
-| Applied schema migrations | 11 |
+| Applied schema migrations | 12 |
 | Restored accounts | 6 |
-| Restored posted transfers | 2,746 |
+| Restored posted transfers | 140,582 |
 | Reconciliation | `matched`, 0 mismatches |
-| Reconciliation run | `61aa1c01-69d9-4adb-b60f-5dcb5ab6caea` |
+| Reconciliation run | `16c65ee4-0cb1-4f91-84e0-3fda4a66748a` |
 | Rebuilt Redis keys | 6 |
-| Local procedure time | 4.93 seconds |
+| Local procedure time | 27.83 seconds |
 | Isolated-resource cleanup | complete |
 
 This proves logical restore compatibility and cache reconstruction, not managed
@@ -75,7 +81,7 @@ PITR or a production RPO/RTO. Provider-backed recovery remains a Phase 7 gate.
 
 ## Release gate
 
-Phase 5 satisfies its acceptance rule through an explicit pause/remediation
-decision: outcomes remained exact and reconcilable, but production-like capacity
-and 2× headroom are not approved. External partner traffic must not begin until
-the full five-minute representative workload passes with saturation telemetry.
+The local capacity pause is closed with an enforced lower partner envelope and
+2× service headroom. This does not authorize external traffic: physical-device,
+finance/security/legal, managed identity/infrastructure, provider PITR,
+operational-tabletop, and design-partner gates remain open.

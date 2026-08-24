@@ -20,6 +20,23 @@ type AuditRecorder interface {
 	Record(context.Context, db.AuditEvent) error
 }
 
+const tenantCapacityPrincipal = "ledgersync:tenant-capacity"
+
+// enforceTenantCapacity combines a one-second burst guard with a one-minute
+// sustained guard. Both counters are shared in PostgreSQL across API replicas;
+// Redis is never used to coordinate admission to the financial write path.
+func enforceTenantCapacity(writer http.ResponseWriter, request *http.Request, limiter RateLimiter, principal identity.Principal, route string, requestsPerSecond int) bool {
+	if limiter == nil || requestsPerSecond < 1 {
+		return true
+	}
+	capacityPrincipal := principal
+	capacityPrincipal.SubjectID = tenantCapacityPrincipal
+	if !enforceRateLimitWindow(writer, request, limiter, capacityPrincipal, route+":capacity:second", requestsPerSecond, time.Second, true) {
+		return false
+	}
+	return enforceRateLimitWindow(writer, request, limiter, capacityPrincipal, route+":capacity:minute", requestsPerSecond*60, time.Minute, true)
+}
+
 func writeScopeDenial(writer http.ResponseWriter, request *http.Request, audit AuditRecorder, principal identity.Principal, scope string) {
 	if audit != nil {
 		err := audit.Record(request.Context(), db.AuditEvent{TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, EventType: "authorization.denied", TargetType: "api_scope", TargetID: scope, Outcome: "failed", CorrelationID: middleware.CorrelationID(request.Context()), Metadata: map[string]string{"reason": "missing_scope"}})
@@ -32,10 +49,14 @@ func writeScopeDenial(writer http.ResponseWriter, request *http.Request, audit A
 }
 
 func enforceRateLimit(writer http.ResponseWriter, request *http.Request, limiter RateLimiter, principal identity.Principal, route string, limit int, failClosed bool) bool {
+	return enforceRateLimitWindow(writer, request, limiter, principal, route, limit, time.Minute, failClosed)
+}
+
+func enforceRateLimitWindow(writer http.ResponseWriter, request *http.Request, limiter RateLimiter, principal identity.Principal, route string, limit int, window time.Duration, failClosed bool) bool {
 	if limiter == nil {
 		return true
 	}
-	decision, err := limiter.Consume(request.Context(), principal.TenantID, principal.SubjectID, route, limit, time.Minute)
+	decision, err := limiter.Consume(request.Context(), principal.TenantID, principal.SubjectID, route, limit, window)
 	if err != nil {
 		if failClosed {
 			httptransport.WriteError(writer, request, err)

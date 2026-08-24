@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -48,6 +49,14 @@ func OpenPool(ctx context.Context, cfg PoolConfig) (*sql.DB, error) {
 // serializable isolation. Only proven transient conflicts are retried; callers
 // must make every attempted operation idempotent inside the transaction.
 func WithSerializableRetry(ctx context.Context, database *sql.DB, attempts int, fn func(*sql.Tx) error) error {
+	return withSerializableRetry(ctx, database, attempts, fn)
+}
+
+type transactionBeginner interface {
+	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
+}
+
+func withSerializableRetry(ctx context.Context, database transactionBeginner, attempts int, fn func(*sql.Tx) error) error {
 	if attempts < 1 {
 		attempts = 1
 	}
@@ -82,6 +91,38 @@ func WithSerializableRetry(ctx context.Context, database *sql.DB, attempts int, 
 		}
 	}
 	return lastErr
+}
+
+// WithSerializableSequence acquires a PostgreSQL session advisory lock before
+// opening the serializable transaction. It is used only where one exact policy
+// row necessarily serializes all writes in the named scope. Acquiring the lock
+// before BeginTx gives every queued request a fresh serializable snapshot and
+// prevents avoidable retry storms across multiple API instances.
+func WithSerializableSequence(ctx context.Context, database *sql.DB, sequenceKey string, attempts int, fn func(*sql.Tx) error) (err error) {
+	if strings.TrimSpace(sequenceKey) == "" {
+		return errors.New("serializable sequence key is required")
+	}
+	connection, err := database.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("reserve serializable sequence connection: %w", err)
+	}
+	defer func() { _ = connection.Close() }()
+	if _, err = connection.ExecContext(ctx, `SELECT pg_advisory_lock(hashtextextended($1,0))`, sequenceKey); err != nil {
+		return fmt.Errorf("acquire serializable sequence: %w", err)
+	}
+	defer func() {
+		unlockContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if _, unlockErr := connection.ExecContext(unlockContext, `SELECT pg_advisory_unlock_all()`); unlockErr != nil {
+			// A connection with an uncertain session-lock state must never return
+			// to the pool. driver.ErrBadConn instructs database/sql to discard it.
+			_ = connection.Raw(func(any) error { return driver.ErrBadConn })
+			if err == nil {
+				err = fmt.Errorf("release serializable sequence: %w", unlockErr)
+			}
+		}
+	}()
+	return withSerializableRetry(ctx, connection, attempts, fn)
 }
 
 // IsRetryableTransactionError recognizes PostgreSQL serialization and deadlock

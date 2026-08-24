@@ -3,6 +3,8 @@ package integration_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -88,6 +90,114 @@ func TestConcurrentTransfersCannotBypassRollingActorLimit(t *testing.T) {
 	}
 	if got := countRows(t, database, `SELECT count(*) FROM transfers WHERE status='posted'`); got != 1 {
 		t.Fatalf("posted=%d", got)
+	}
+}
+
+func TestHotTenantSequenceAvoidsExhaustedSerializationConflicts(t *testing.T) {
+	service, database := requireTransferService(t, 1_000_000)
+	const submissions = 50
+	errs := make(chan error, submissions)
+	var wait sync.WaitGroup
+	for index := 0; index < submissions; index++ {
+		key := fmt.Sprintf("hot-tenant-capacity-%04d", index)
+		wait.Add(1)
+		go func(index int) {
+			defer wait.Done()
+			command := transferCommand(t, key, "1.00")
+			if index%2 == 0 {
+				command.TenantID = strings.ToUpper(command.TenantID)
+			}
+			_, err := service.Submit(context.Background(), command)
+			errs <- err
+		}(index)
+	}
+	wait.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatalf("hot-tenant submission failed: %v", err)
+		}
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM transfers WHERE status='posted'`); got != submissions {
+		t.Fatalf("posted transfers=%d, want %d", got, submissions)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM ledger_postings`); got != submissions*2 {
+		t.Fatalf("ledger postings=%d, want %d", got, submissions*2)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM transfer_velocity_events`); got != submissions {
+		t.Fatalf("velocity events=%d, want %d", got, submissions)
+	}
+}
+
+func TestVelocityStatePrunesExpiredMovementAndDoesNotDoubleCountReplay(t *testing.T) {
+	service, database := requireTransferService(t, 10_000)
+	oldTransferID := "00000000-0000-0000-0000-000000000701"
+	oldJournalID := "00000000-0000-0000-0000-000000000702"
+	oldOccurredAt := time.Date(2026, 8, 17, 9, 14, 59, 0, time.UTC)
+	tx, err := database.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err = tx.Exec(`
+INSERT INTO transfers (
+  id,tenant_id,actor_subject_id,debit_account_id,credit_account_id,
+  amount_minor,currency,status,created_at
+) VALUES ($1,$2,$3,$4,$5,100,'USD','pending',$6)`, oldTransferID, testTenantID,
+		testActorID, testSourceID, testDestinationID, oldOccurredAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(`INSERT INTO journal_transactions (id,tenant_id,transfer_id,occurred_at) VALUES ($1,$2,$3,$4)`, oldJournalID, testTenantID, oldTransferID, oldOccurredAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(`
+INSERT INTO ledger_postings (id,journal_transaction_id,account_id,direction,amount_minor,currency,occurred_at) VALUES
+  ('00000000-0000-0000-0000-000000000703',$1,$2,'debit',100,'USD',$4),
+  ('00000000-0000-0000-0000-000000000704',$1,$3,'credit',100,'USD',$4)`, oldJournalID, testSourceID, testDestinationID, oldOccurredAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(`UPDATE transfers SET status='posted',journal_transaction_id=$2,completed_at=$3 WHERE id=$1`, oldTransferID, oldJournalID, oldOccurredAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(`
+INSERT INTO transfer_velocity_events (
+  transfer_id,tenant_id,actor_subject_id,source_account_id,
+  amount_minor,occurred_at,expires_at
+) VALUES ($1,$2,$3,$4,100,$5::timestamptz,$5::timestamptz + INTERVAL '24 hours')`, oldTransferID, testTenantID,
+		testActorID, testSourceID, oldOccurredAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = tx.Exec(`
+INSERT INTO transfer_velocity_totals (tenant_id,dimension_type,dimension_reference,total_minor) VALUES
+  ($1::uuid,'tenant',$1::uuid::text,100),($1::uuid,'actor',$2,100),($1::uuid,'source',$3,100)`, testTenantID, testActorID, testSourceID); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	command := transferCommand(t, "velocity-expiry-replay-0001", "1.00")
+	first, err := service.Submit(context.Background(), command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay, err := service.Submit(context.Background(), command)
+	if err != nil || !replay.Replayed || replay.Result.TransferID != first.Result.TransferID {
+		t.Fatalf("replay=%#v err=%v", replay, err)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM transfer_velocity_events`); got != 1 {
+		t.Fatalf("active velocity events=%d, want 1", got)
+	}
+	var tenantTotal, actorTotal, sourceTotal int64
+	if err := database.QueryRow(`
+SELECT
+  MAX(total_minor) FILTER (WHERE dimension_type='tenant'),
+  MAX(total_minor) FILTER (WHERE dimension_type='actor'),
+  MAX(total_minor) FILTER (WHERE dimension_type='source')
+FROM transfer_velocity_totals WHERE tenant_id=$1`, testTenantID).Scan(&tenantTotal, &actorTotal, &sourceTotal); err != nil {
+		t.Fatal(err)
+	}
+	if tenantTotal != 100 || actorTotal != 100 || sourceTotal != 100 {
+		t.Fatalf("velocity totals tenant=%d actor=%d source=%d, want 100 each", tenantTotal, actorTotal, sourceTotal)
 	}
 }
 

@@ -74,7 +74,11 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = r.clock().UTC()
 	}
-	err = WithSerializableRetry(ctx, r.database, 5, func(tx *sql.Tx) error {
+	// PostgreSQL UUID input is case-insensitive. Normalize the textual tenant
+	// identity as well so equivalent configured UUID spellings cannot split the
+	// cross-replica policy sequence into separate advisory-lock keys.
+	sequenceTenant := strings.ToLower(strings.TrimSpace(command.TenantID))
+	err = WithSerializableSequence(ctx, r.database, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
 		resolved, replay, err := reserveOrReplay(ctx, tx, command, fingerprint)
 		if err != nil {
 			return err
@@ -268,6 +272,9 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err := markTransferPosted(ctx, tx, entry); err != nil {
 		return transfers.Result{}, err
 	}
+	if err := recordTransferVelocity(ctx, tx, entry.ID); err != nil {
+		return transfers.Result{}, err
+	}
 	if err := insertAuditEvent(ctx, tx, command, entry.ID, transfers.AuditTransferPosted, "succeeded", now); err != nil {
 		return transfers.Result{}, err
 	}
@@ -339,50 +346,6 @@ WHERE tenant_id = $1 AND account_id = $2 AND subject_id = $3`
 	}
 	if !destinationAllowed {
 		return ErrDestinationNotAuthorized
-	}
-	return nil
-}
-
-func (r *TransferRepository) validateTransferPolicy(ctx context.Context, tx *sql.Tx, command transfers.Command) error {
-	if command.Amount.Currency().Code != r.pilotCurrency {
-		return ErrUnsupportedPilotCurrency
-	}
-	// Serialize velocity decisions even when no prior transfer row exists.
-	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, command.TenantID+"|"+command.ActorSubjectID); err != nil {
-		return fmt.Errorf("lock actor transfer policy: %w", err)
-	}
-	var currency string
-	var minimum, maximum, actorLimit, sourceLimit, tenantLimit int64
-	err := tx.QueryRowContext(ctx, `SELECT currency,minimum_transfer_minor,maximum_transfer_minor,actor_rolling_24h_minor,source_account_rolling_24h_minor,tenant_rolling_24h_minor FROM tenant_transfer_policies WHERE tenant_id=$1 FOR UPDATE`, command.TenantID).Scan(&currency, &minimum, &maximum, &actorLimit, &sourceLimit, &tenantLimit)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrTenantPolicyMissing
-	}
-	if err != nil {
-		return fmt.Errorf("load tenant transfer policy: %w", err)
-	}
-	if currency != r.pilotCurrency || currency != command.Amount.Currency().Code {
-		return ErrUnsupportedPilotCurrency
-	}
-	minor := command.Amount.Minor()
-	if minor < minimum {
-		return ErrTransferBelowMinimum
-	}
-	if minor > maximum {
-		return ErrTransferAboveMaximum
-	}
-	windowStart := command.OccurredAt.UTC().Add(-24 * time.Hour)
-	var actorTotal, sourceTotal, tenantTotal int64
-	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(SUM(amount_minor) FILTER (WHERE actor_subject_id=$2),0),COALESCE(SUM(amount_minor) FILTER (WHERE debit_account_id=$3),0),COALESCE(SUM(amount_minor),0) FROM transfers WHERE tenant_id=$1 AND status='posted' AND completed_at>$4`, command.TenantID, command.ActorSubjectID, command.DebitAccountID, windowStart).Scan(&actorTotal, &sourceTotal, &tenantTotal); err != nil {
-		return fmt.Errorf("read rolling transfer velocity: %w", err)
-	}
-	if actorTotal > actorLimit-minor {
-		return ErrActorVelocityExceeded
-	}
-	if sourceTotal > sourceLimit-minor {
-		return ErrSourceVelocityExceeded
-	}
-	if tenantTotal > tenantLimit-minor {
-		return ErrTenantVelocityExceeded
 	}
 	return nil
 }

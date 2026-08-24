@@ -16,13 +16,16 @@ GRANT USAGE ON SCHEMA public TO ledgersync_api, ledgersync_worker, ledgersync_re
 
 GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections,
   tenant_transfer_policies, tenant_subject_roles, partner_credential_events, transfers, idempotency_requests, api_rate_limit_windows,
+  transfer_velocity_events, transfer_velocity_totals,
   journal_transactions, ledger_postings, delivery_attempts, delivery_replay_actions,
   reconciliation_runs, reconciliation_mismatches TO ledgersync_api;
 GRANT INSERT ON transfers, idempotency_requests, journal_transactions, ledger_postings,
   outbox_events, audit_events, api_rate_limit_windows, retention_runs,
+  transfer_velocity_events, transfer_velocity_totals,
   outbox_replay_actions, delivery_replay_actions TO ledgersync_api;
 GRANT UPDATE ON transfers, idempotency_requests, account_balance_projections,
-  api_rate_limit_windows TO ledgersync_api;
+  api_rate_limit_windows, transfer_velocity_totals TO ledgersync_api;
+GRANT DELETE ON transfer_velocity_events TO ledgersync_api;
 
 GRANT SELECT, UPDATE ON outbox_events TO ledgersync_worker;
 GRANT INSERT ON delivery_attempts, audit_events, outbox_replay_actions, delivery_replay_actions TO ledgersync_worker;
