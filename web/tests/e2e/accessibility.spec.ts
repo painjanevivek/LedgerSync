@@ -32,17 +32,44 @@ test("320 CSS-pixel reflow, equivalent to 400% desktop zoom, keeps evidence avai
   const reflow = await page.evaluate(() => {
     const root = document.documentElement;
     const offenders = [...document.querySelectorAll<HTMLElement>("body *")]
-      .filter((element) => element.getBoundingClientRect().right > root.clientWidth + 1)
+      .filter((element) => !element.closest(".data-table-wrap") && element.getBoundingClientRect().right > root.clientWidth + 1)
       .map((element) => `${element.tagName.toLowerCase()}.${element.className}:${Math.round(element.getBoundingClientRect().right)}`)
       .slice(0, 8);
     return { horizontalOverflow: root.scrollWidth > root.clientWidth, overflowPixels: root.scrollWidth - root.clientWidth, offenders };
   });
   expect(reflow).toEqual({ horizontalOverflow: false, overflowPixels: 0, offenders: [] });
+  const tableRegion = page.getByRole("region", { name: "Transfer comparison" });
+  await expect(tableRegion).toBeVisible();
+  expect(await tableRegion.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  await tableRegion.focus();
+  await expect(tableRegion).toBeFocused();
+});
+
+test("200% desktop zoom preserves the exact-value table and its primary action", async ({ page }) => {
+  // A 640 CSS-pixel viewport represents a 1280-pixel desktop viewport at 200%
+  // zoom. The table may scroll inside its labelled region; the page must not.
+  await page.setViewportSize({ width: 640, height: 720 });
+  await mockOperatorConsole(page);
+  await page.goto("/accounts");
+  const comparison = page.getByRole("region", { name: "Authorized account comparison" });
+  await expect(comparison).toBeVisible();
+  await expect(comparison.getByText("INR 1250.00")).toBeVisible();
+  await comparison.focus();
+  await expect(comparison).toBeFocused();
+  await expect(page.getByRole("button", { name: "Apply filters" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
 test("copy controls announce completion without hiding the full identifier", async ({page})=>{
   await page.context().grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page); await page.goto("/reconciliation");
   await page.getByRole("button",{name:"Copy identifier"}).first().click(); await expect(page.getByText("Copied",{exact:true}).first()).toBeAttached();
+});
+
+test("visually shortened transfer routes retain their complete accessible account identifiers", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/transfers");
+  await expect(page.getByRole("link", { name: `Source account ${transfer.source_account_id}` }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: `Destination account ${transfer.destination_account_id}` }).first()).toBeVisible();
 });
 
 test("account balance and ledger history report independent truth states", async ({ page }) => {

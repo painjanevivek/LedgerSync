@@ -24,6 +24,10 @@ export function Pagination({ nextCursor, onNext, busy, label = "Load more" }: Re
   return <div className="pagination"><span>{nextCursor ? "More records are available" : "End of available records"}</span><button className="button secondary" type="button" disabled={!nextCursor || busy} onClick={onNext}>{busy ? "Loading…" : label}</button></div>;
 }
 
+export function DataTableRegion({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
+  return <div className="data-table-wrap" role="region" aria-label={label} tabIndex={0}><p className="table-scroll-hint">Scroll horizontally to inspect every exact field.</p>{children}</div>;
+}
+
 export function PageHeader({ eyebrow, title, description, children }: Readonly<{ eyebrow: string; title: string; description: string; children?: ReactNode }>) {
   return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div>{children}</header>;
 }

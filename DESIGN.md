@@ -178,7 +178,7 @@ The selected palette is built around deep navy, quiet paper, cobalt actions, and
 | `warning-50` | `#FBF2DF` | Delayed/attention background | Used for recoverable operational attention. |
 | `danger-700` | `#A1463B` | Rejected/error text and destructive action | A restrained brick red reserved for confirmed negative outcomes. |
 | `danger-50` | `#F7E9E7` | Error/rejection background | Keeps error evidence readable rather than visually aggressive. |
-| `focus-ring` | `#E1A529` | 3 px keyboard focus ring | Gold remains highly visible on both the navy rail and white documents. |
+| `focus-ring` | `#B27100` | 3 px keyboard focus ring | Dark amber measures 4.00:1 against white documents and 4.34:1 against the navy rail, so the same focus token works across both surfaces. |
 
 ### Semantic usage rules
 

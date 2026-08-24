@@ -21,8 +21,41 @@
   --amber-soft: #fbf2df;
   --red: #8d392f;
   --red-soft: #f7e9e7;
-  --focus: #e1a529;
-  --radius: 3px;
+  --focus: #b27100;
+  --blue-hover: #0f4d9f;
+  --brand-accent: #8ce0c1;
+  --surface-success: #f5fbf8;
+  --line-success: #b8d7c7;
+  --white: #ffffff;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  --type-caption: 8px;
+  --type-label: 10px;
+  --type-body: 12px;
+  --type-heading: 25px;
+
+  --radius-control: 3px;
+  --radius-surface: 6px;
+  --radius-pill: 999px;
+  --radius: var(--radius-control);
+  --shadow-surface: 0 1px 2px rgb(11 30 60 / 4%);
+  --shadow-drawer: 12px 0 30px rgb(0 0 0 / 24%);
+  --target-compact: 44px;
+  --target-comfortable: 48px;
+  --z-sticky: 12;
+  --z-skip-link: 20;
+  --z-backdrop: 25;
+  --z-drawer: 30;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;

@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "tsx --test tests/**/*.test.ts",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --grep-invert @performance",
+    "test:e2e:performance": "playwright test --grep @performance --workers=1",
     "test:visual": "playwright test tests/e2e/visual-regression.spec.ts",
     "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots",
     "test:performance": "node scripts/check-performance-budgets.mjs"
