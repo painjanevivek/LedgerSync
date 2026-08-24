@@ -3,7 +3,9 @@ $ErrorActionPreference = "Stop"
 
 $script:LedgerSyncRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $script:LedgerSyncComposeFile = Join-Path $script:LedgerSyncRepositoryRoot "deploy\compose\docker-compose.yml"
-$script:LedgerSyncWebUrl = "http://localhost:3000"
+$script:LedgerSyncRuntimeStateDirectory = Join-Path $script:LedgerSyncRepositoryRoot "data\local-runtime"
+$script:LedgerSyncRuntimeEnvironmentFile = Join-Path $script:LedgerSyncRuntimeStateDirectory "runtime.env"
+$script:LedgerSyncWebUrl = "http://127.0.0.1:3000"
 $script:LedgerSyncLongRunningServices = @("postgres", "redis", "api", "outbox-worker", "web")
 $script:LedgerSyncOneShotServices = @("migrate", "demo-seed")
 
@@ -15,6 +17,115 @@ if ($requestedProject -cnotmatch '^[a-z0-9][a-z0-9_-]{0,62}$') {
     throw "LEDGERSYNC_LOCAL_COMPOSE_PROJECT must contain only lowercase letters, digits, underscores, or hyphens."
 }
 $script:LedgerSyncComposeProject = $requestedProject
+
+function New-LedgerSyncLocalSecret {
+    $bytes = New-Object byte[] 32
+    [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    return -join ($bytes | ForEach-Object { $_.ToString("x2") })
+}
+
+function Test-LedgerSyncRuntimeEnvironmentFile {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return $false
+    }
+    $required = @(
+        "POSTGRES_PASSWORD",
+        "LEDGERSYNC_SESSION_SECRET",
+        "LEDGERSYNC_CONSISTENCY_SIGNING_KEY",
+        "LEDGERSYNC_BFF_ASSERTION_SECRET",
+        "LEDGERSYNC_WEB_SESSION_SECRET",
+        "LEDGERSYNC_DEVELOPMENT_API_TOKEN"
+    )
+    $values = @{}
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        if ($line -match '^([A-Z0-9_]+)=([a-f0-9]{64})$') {
+            $values[$Matches[1]] = $Matches[2]
+        }
+    }
+    return @($required | Where-Object { -not $values.ContainsKey($_) }).Count -eq 0
+}
+
+function Get-LedgerSyncRuntimeEnvironmentValue {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+    foreach ($line in Get-Content -LiteralPath $Path) {
+        if ($line.StartsWith("$Name=", [StringComparison]::Ordinal)) {
+            return $line.Substring($Name.Length + 1)
+        }
+    }
+    throw "Local runtime secret state is incomplete. Delete only data/local-runtime/runtime.env, then run scripts/start-local.ps1 again."
+}
+
+function Protect-LedgerSyncLocalSecretFile {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ($env:OS -eq "Windows_NT") {
+        $principal = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+        & icacls.exe $Path /inheritance:r /grant:r "${principal}:(F)" *> $null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not restrict the local runtime secret file to the current Windows user."
+        }
+    }
+}
+
+function Initialize-LedgerSyncLocalSecrets {
+    if (Test-LedgerSyncRuntimeEnvironmentFile -Path $script:LedgerSyncRuntimeEnvironmentFile) {
+        return
+    }
+
+    New-Item -ItemType Directory -Force -Path $script:LedgerSyncRuntimeStateDirectory | Out-Null
+    $pendingPath = "$($script:LedgerSyncRuntimeEnvironmentFile).pending"
+    if (-not (Test-LedgerSyncRuntimeEnvironmentFile -Path $pendingPath)) {
+        $lines = @(
+            "POSTGRES_PASSWORD=$(New-LedgerSyncLocalSecret)",
+            "LEDGERSYNC_SESSION_SECRET=$(New-LedgerSyncLocalSecret)",
+            "LEDGERSYNC_CONSISTENCY_SIGNING_KEY=$(New-LedgerSyncLocalSecret)",
+            "LEDGERSYNC_BFF_ASSERTION_SECRET=$(New-LedgerSyncLocalSecret)",
+            "LEDGERSYNC_WEB_SESSION_SECRET=$(New-LedgerSyncLocalSecret)",
+            "LEDGERSYNC_DEVELOPMENT_API_TOKEN=$(New-LedgerSyncLocalSecret)"
+        )
+        [IO.File]::WriteAllLines($pendingPath, $lines, [Text.UTF8Encoding]::new($false))
+        Protect-LedgerSyncLocalSecretFile -Path $pendingPath
+    }
+
+    # Upgrade an existing pre-Phase-6 database without resetting its named
+    # volume. The new secret travels only over stdin to the local container.
+    $postgresContainer = @(& docker ps -a `
+        --filter "label=com.docker.compose.project=$script:LedgerSyncComposeProject" `
+        --filter "label=com.docker.compose.service=postgres" `
+        --format '{{.ID}}' 2>$null | Select-Object -First 1)
+    if ($postgresContainer.Count -eq 1 -and -not [string]::IsNullOrWhiteSpace([string]$postgresContainer[0])) {
+        $containerID = [string]$postgresContainer[0]
+        $running = (& docker inspect --format '{{.State.Running}}' $containerID 2>$null) -eq "true"
+        if (-not $running) {
+            & docker start $containerID *> $null
+            if ($LASTEXITCODE -ne 0) { throw "Could not start the existing PostgreSQL container for local credential rotation." }
+        }
+        $ready = $false
+        for ($attempt = 1; $attempt -le 30; $attempt++) {
+            & docker exec $containerID pg_isready -U ledgersync -d ledgersync *> $null
+            if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+            Start-Sleep -Seconds 1
+        }
+        if (-not $ready) { throw "Existing PostgreSQL did not become ready for local credential rotation." }
+        $postgresPassword = Get-LedgerSyncRuntimeEnvironmentValue -Path $pendingPath -Name "POSTGRES_PASSWORD"
+        "ALTER ROLE ledgersync PASSWORD '$postgresPassword';" | & docker exec -i $containerID psql -v ON_ERROR_STOP=1 -U ledgersync -d ledgersync *> $null
+        if ($LASTEXITCODE -ne 0) { throw "Existing PostgreSQL rejected the local credential rotation; no runtime secret file was activated." }
+    } else {
+        $volumeName = "$($script:LedgerSyncComposeProject)_postgres-data"
+        & docker volume inspect $volumeName *> $null
+        if ($LASTEXITCODE -eq 0) {
+            throw "A preserved PostgreSQL volume exists without its container, so automatic password rotation cannot prove safety. Restore the matching postgres container or use the explicit reset-local workflow."
+        }
+    }
+
+    Move-Item -LiteralPath $pendingPath -Destination $script:LedgerSyncRuntimeEnvironmentFile -Force
+    Protect-LedgerSyncLocalSecretFile -Path $script:LedgerSyncRuntimeEnvironmentFile
+}
 
 function Assert-LedgerSyncDockerAvailable {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -36,6 +147,7 @@ function Invoke-LedgerSyncCompose {
 
     $baseArguments = @(
         "compose",
+        "--env-file", $script:LedgerSyncRuntimeEnvironmentFile,
         "-p", $script:LedgerSyncComposeProject,
         "-f", $script:LedgerSyncComposeFile
     )
@@ -204,6 +316,6 @@ function ConvertTo-LedgerSyncRedactedLogLine {
 
     $redacted = $Line -replace '(?i)(authorization:\s*bearer\s+)[^\s]+', '$1[REDACTED]'
     $redacted = $redacted -replace '(?i)(postgres(?:ql)?://[^:\s]+:)[^@\s]+(@)', '$1[REDACTED]$2'
-    $redacted = $redacted -replace '(?i)(password|secret|token|signing_key)(["''=: ]+)([^,\s}"'']+)', '$1$2[REDACTED]'
+    $redacted = $redacted -replace '(?i)(password|secret|token|signing_key|authorization|cookie|session|csrf|consistency|credential|database_url|connection_string|dsn|private_key|api_key|access_key|balance|amount|email|phone|address|ip_address)(?:_[a-z0-9]+)*(["''=: ]+)([^,\s}"'']+)', '$1$2[REDACTED]'
     return $redacted
 }

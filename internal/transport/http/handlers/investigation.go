@@ -156,6 +156,12 @@ func (h *InvestigationHandler) authorize(writer http.ResponseWriter, request *ht
 		writeScopeDenial(writer, request, h.audit, principal, scope)
 		return identity.Principal{}, false
 	}
+	// Investigation evidence is tenant-wide by product contract. A narrow read
+	// scope alone must never silently become administrative access.
+	if !principal.HasRole("tenant:operator") && !principal.HasRole("tenant:admin") {
+		writeScopeDenial(writer, request, h.audit, principal, "tenant:investigate")
+		return identity.Principal{}, false
+	}
 	if !enforceRateLimit(writer, request, h.rateLimiter, principal, scope, h.rateLimit, false) {
 		return identity.Principal{}, false
 	}

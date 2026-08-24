@@ -3,12 +3,15 @@ import test from "node:test";
 
 import { createDemoSession, readDemoConfiguration } from "../../src/lib/demo";
 
-test("demo mode is rejected in production", () => {
-  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEMO_MODE: "true", LEDGERSYNC_DEPLOYMENT_ENV: "production" }), /forbidden/);
+test("demo mode requires an affirmative development environment", () => {
+  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEMO_MODE: "true", LEDGERSYNC_DEPLOYMENT_ENV: "production" }), /explicit development/);
+  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEMO_MODE: "true", LEDGERSYNC_DEPLOYMENT_ENV: "prod" }), /explicit development/);
+  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEMO_MODE: "true", LEDGERSYNC_DEPLOYMENT_ENV: "staging" }), /explicit development/);
+  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEMO_MODE: "true" }), /explicit development/);
 });
 
 test("production rejects demo identity configuration even when the mode flag is absent", () => {
-  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEPLOYMENT_ENV:"prod", LEDGERSYNC_DEMO_SUBJECT_ID:"demo" }), /forbidden/);
+  assert.throws(() => readDemoConfiguration({ LEDGERSYNC_DEPLOYMENT_ENV:"preview", LEDGERSYNC_DEMO_SUBJECT_ID:"demo" }), /explicit development/);
 });
 
 test("demo mode creates a narrow, expiring operator session in development", () => {

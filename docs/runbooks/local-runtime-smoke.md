@@ -5,7 +5,7 @@ This runbook operates the loopback-only Compose project on one workstation. It i
 ## Supported boundary
 
 - Project name: `compose` by default, matching existing local volumes.
-- Browser surface: `http://localhost:3000` bound to `127.0.0.1`.
+- Browser surface: `http://127.0.0.1:3000`, bound only to IPv4 loopback.
 - Private services: PostgreSQL, Redis, API, and worker have no host-published ports.
 - Financial scope: internal same-currency INR demo transfers only.
 - Normal start, stop, and restart preserve the Compose-named volumes
@@ -115,7 +115,7 @@ docker compose -p compose -f deploy/compose/docker-compose.yml restart web
 Then run the idempotent retry and reconciliation proof with a new test key:
 
 ```powershell
-$env:LEDGERSYNC_SYSTEM_WEB_URL='http://localhost:3000'
+$env:LEDGERSYNC_SYSTEM_WEB_URL='http://127.0.0.1:3000'
 $env:LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY='local-system-after-restart-000001'
 go test ./tests/system -run 'TestRealBFFAPIAndPostgreSQLRetryPath|TestRealBFFReconciliationEvidence' -count=1 -v
 ```

@@ -10,6 +10,7 @@ param(
 try {
     Write-Host "Checking Docker and the LedgerSync local boundary..."
     Assert-LedgerSyncDockerAvailable
+    Initialize-LedgerSyncLocalSecrets
     Test-LedgerSyncPortAvailableOrOwned
     Invoke-LedgerSyncCompose -ComposeArguments @("config", "-q")
 

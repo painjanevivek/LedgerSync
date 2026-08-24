@@ -219,8 +219,8 @@ components:
         currency: { $ref: '#/components/schemas/Currency' }
         amount_minor: { $ref: '#/components/schemas/ExactMinor' }
         occurred_at: { type: string, format: date-time }
-        minimum_balance_versions: { type: object, additionalProperties: { $ref: '#/components/schemas/ExactVersion' } }
-        balances: { type: object, additionalProperties: { $ref: '#/components/schemas/TransferBalance' } }
+        minimum_balance_versions: { type: object, description: "Read-your-writes versions only for accounts the initiating actor may read.", additionalProperties: { $ref: '#/components/schemas/ExactVersion' } }
+        balances: { type: object, description: "Committed balances only for accounts the initiating actor may read; credit permission alone never discloses a destination balance.", additionalProperties: { $ref: '#/components/schemas/TransferBalance' } }
         rejection_code: { type: string }
     TransferBalance:
       type: object

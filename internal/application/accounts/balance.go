@@ -36,6 +36,7 @@ type Result struct {
 }
 
 type Repository interface {
+	Authorize(context.Context, string, string, string) error
 	ReadCurrent(context.Context, string, string, string) (Balance, error)
 }
 type Cache interface {
@@ -81,6 +82,12 @@ func NewReader(primary Repository, cache Cache, verifier Verifier, cfg ReaderCon
 func (r *Reader) Read(ctx context.Context, tenantID, actorID, accountID, rawRequirement string) (Result, error) {
 	if tenantID == "" || actorID == "" || accountID == "" {
 		return Result{}, errors.New("tenant, actor, and account are required")
+	}
+	// Authorization is an invariant of the read operation, not a side effect of
+	// selecting PostgreSQL as the data source. Enforce it before a shared cache
+	// can disclose an account projection.
+	if err := r.primary.Authorize(ctx, tenantID, actorID, accountID); err != nil {
+		return Result{}, fmt.Errorf("%w: %v", ErrCurrentBalanceUnavailable, err)
 	}
 	minimum, err := r.minimumVersion(tenantID, accountID, rawRequirement)
 	if err != nil {

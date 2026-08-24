@@ -25,16 +25,23 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
   try {
     process.env.LEDGERSYNC_PUBLIC_ORIGIN = "https://ledger.example";
     process.env.LEDGERSYNC_DEPLOYMENT_ENV = "production";
-    const good = new NextRequest("http://internal-web/api/transfers", { method: "POST", headers: { origin: "https://ledger.example", "x-csrf-token": session.csrfToken } });
-    const crossOrigin = new NextRequest("http://internal-web/api/transfers", { method: "POST", headers: { origin: "https://attacker.example", "x-csrf-token": session.csrfToken } });
+    const good = new NextRequest("https://ledger.example/api/transfers", { method: "POST", headers: { host: "ledger.example", origin: "https://ledger.example", "x-csrf-token": session.csrfToken } });
+    const crossOrigin = new NextRequest("https://ledger.example/api/transfers", { method: "POST", headers: { host: "ledger.example", origin: "https://attacker.example", "x-csrf-token": session.csrfToken } });
+    const reboundHost = new NextRequest("https://attacker.example/api/transfers", { method: "POST", headers: { host: "attacker.example", origin: "https://ledger.example", "x-csrf-token": session.csrfToken } });
     assert.equal(hasValidCSRF(good, session), true);
     assert.equal(hasValidCSRF(crossOrigin, session), false);
+    assert.equal(hasValidCSRF(reboundHost, session), false);
     delete process.env.LEDGERSYNC_PUBLIC_ORIGIN;
     assert.equal(hasValidCSRF(good, session), false);
   } finally {
     if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
     if (previousDeployment === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV; else process.env.LEDGERSYNC_DEPLOYMENT_ENV = previousDeployment;
   }
+});
+
+test("session signatures verify the exact encoded payload regardless of property insertion order", () => {
+  const reordered: Session = { scopes: ["accounts:read"], expiresAt: Date.now() + 60_000, tenantId: "tenant-a", csrfToken: "csrf", subjectId: "operator-a", roles: ["tenant:operator"] };
+  assert.deepEqual(readSession(createSession(reordered)), { ...reordered, consistencyRequirements: undefined });
 });
 
 test("insecure cookies are explicit-local only and cannot weaken production", () => {

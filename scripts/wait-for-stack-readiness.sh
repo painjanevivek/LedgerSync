@@ -2,7 +2,7 @@
 
 set -eu
 
-base_url="${LEDGERSYNC_SYSTEM_WEB_URL:-http://localhost:3000}"
+base_url="${LEDGERSYNC_SYSTEM_WEB_URL:-http://127.0.0.1:3000}"
 max_attempts="${LEDGERSYNC_READINESS_MAX_ATTEMPTS:-60}"
 retry_seconds="${LEDGERSYNC_READINESS_RETRY_SECONDS:-2}"
 cookie_jar="$(mktemp)"

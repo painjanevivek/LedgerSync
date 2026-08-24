@@ -132,3 +132,23 @@ func TestBFFActorAssertionAcceptsPreviousKeyDuringRotation(t *testing.T) {
 		t.Fatalf("previous key rejected during overlap: %v", err)
 	}
 }
+
+func TestMemoryReplayGuardExpiresIncrementallyAndEnforcesCapacity(t *testing.T) {
+	guard := NewMemoryReplayGuard(2)
+	now := time.Now()
+	if err := guard.Use(context.Background(), "first", now.Add(-time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if err := guard.Use(context.Background(), "second", now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := guard.Use(context.Background(), "third", now.Add(time.Minute)); err != nil {
+		t.Fatalf("expired entry was not reclaimed: %v", err)
+	}
+	if err := guard.Use(context.Background(), "fourth", now.Add(time.Minute)); err == nil {
+		t.Fatal("replay guard exceeded its bounded capacity")
+	}
+	if err := guard.Use(context.Background(), "second", now.Add(time.Minute)); err == nil {
+		t.Fatal("duplicate assertion was accepted")
+	}
+}

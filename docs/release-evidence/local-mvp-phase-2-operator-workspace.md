@@ -31,7 +31,7 @@ Every supported local operator route reads and writes through the same-origin br
 - A changed amount, destination, currency, corrupt record, non-canonical amount, or same-account record cannot reuse the retained key.
 - Definitive rejection clears the key so a corrected intent receives a new key.
 - A posted response becomes the final UI state before optional detail/history refreshes. A failed follow-up read cannot turn posted money into an unknown outcome.
-- The final confirmation displays transfer ID, journal transaction evidence, exact amount, posted UTC, source, destination, and committed source/destination balances with versions and as-of times.
+- The final confirmation displays transfer ID, journal transaction evidence, exact amount, posted UTC, source, destination, and the committed source balance/version. A credit-only destination balance is deliberately not disclosed.
 
 ## Reproducible checks
 
@@ -58,4 +58,4 @@ Directory, current balance, immutable history, transfer detail, and reconciliati
 
 ## Boundary
 
-All browser requests remained on `http://localhost:3000`. PostgreSQL, Redis, API, and worker endpoints stayed container-private. This evidence proves the one-workstation demo workspace only; it does not claim managed identity, cloud deployment, custody, bank rails, or production-pilot readiness.
+All browser requests remained on IPv4 loopback. PostgreSQL, Redis, API, and worker endpoints stayed container-private. This evidence proves the one-workstation demo workspace only; it does not claim managed identity, cloud deployment, custody, bank rails, or production-pilot readiness.

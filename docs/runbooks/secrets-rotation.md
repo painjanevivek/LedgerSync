@@ -11,6 +11,14 @@ LedgerSync uses managed secret references in production. Environment variables a
 - OIDC issuer/audience are configuration, not secret. OIDC private keys stay only with the identity provider.
 - `LEDGERSYNC_PRIVATE_API_TOKEN`: short-lived BFF workload OIDC token for the pilot. It must contain only the `bff:act-as-user` scope; the API uses the independently signed, 60-second actor assertion to apply the user’s OIDC subject, tenant, roles, and scopes. Replace static injection with workload OIDC before a shared production launch.
 
+## Local-only workstation material
+
+`scripts/start-local.ps1` generates six independent 32-byte values for PostgreSQL, API session state, consistency proofs, BFF actor assertions, web sessions, and the development private-API credential. They are stored as 64-character hexadecimal values in ignored `data/local-runtime/runtime.env`. On Windows, inherited ACLs are removed and the current user receives the file permission. Values are never printed by the startup, status, bounded-log, backup, or security-evidence commands.
+
+On the first Phase 6 start against an existing local stack, the script rotates the existing `ledgersync` PostgreSQL role over container stdin before activating the new environment file. Named-volume data is preserved. If a PostgreSQL volume exists but its matching container is missing, startup fails instead of guessing or resetting data.
+
+Deleting `runtime.env` is a credential-rotation operation, not ordinary cleanup. Stop the stack first and preserve the matching PostgreSQL container so the next start can rotate the database role safely.
+
 ## Rotation procedure
 
 1. Create a new secret version in the managed secret store; do not overwrite the active value in place.

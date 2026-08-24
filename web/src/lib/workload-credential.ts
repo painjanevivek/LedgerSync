@@ -26,7 +26,8 @@ export async function getPrivateAPIWorkloadCredential(): Promise<string> {
   if (tokenFile) return assertUsableToken(await readFile(tokenFile, "utf8"));
 
   const staticToken = process.env.LEDGERSYNC_PRIVATE_API_TOKEN?.trim();
-  if (process.env.LEDGERSYNC_ENV === "production" || process.env.LEDGERSYNC_DEPLOYMENT_ENV === "production") {
+  const environments = [process.env.LEDGERSYNC_ENV, process.env.LEDGERSYNC_DEPLOYMENT_ENV].map((value) => value?.trim().toLowerCase());
+  if (environments.some((value) => value === "production" || value === "prod")) {
     throw new Error("production requires LEDGERSYNC_PRIVATE_API_TOKEN_FILE managed renewal");
   }
   if (!staticToken) throw new Error("private API workload credential is unavailable");

@@ -25,7 +25,7 @@
 - Command executed:
 
 ```powershell
-$env:LEDGERSYNC_TEST_DATABASE_URL = 'postgres://ledgersync:development-only-change-me@127.0.0.1:5432/ledgersync?sslmode=disable'
+$env:LEDGERSYNC_TEST_DATABASE_URL = 'postgres://ledgersync:<generated-local-password>@127.0.0.1:5432/ledgersync?sslmode=disable'
 $env:GOCACHE = 'D:\Work\Project\Dev\LedgerSync\.cache\go-build'
 & 'C:\Program Files\Go\bin\go.exe' test ./tests/integration -run 'Test(Transfer|Competing|Posted)' -count=1 -v
 ```

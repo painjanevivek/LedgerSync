@@ -78,7 +78,19 @@ func TestConsistencyRequirementCannotBeUsedForAnotherAccount(t *testing.T) {
 	}
 }
 
+func TestBalanceCacheNeverBypassesAccountAuthorization(t *testing.T) {
+	reader, err := accounts.NewReader(unauthorizedBalanceRepository{}, &memoryBalanceCache{balance: balance(9)}, nil, accounts.ReaderConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reader.Read(context.Background(), "tenant", "another-actor", "account", ""); !errors.Is(err, accounts.ErrCurrentBalanceUnavailable) {
+		t.Fatalf("warm cache authorization error = %v", err)
+	}
+}
+
 type staticBalanceRepository struct{ value accounts.Balance }
+
+func (s staticBalanceRepository) Authorize(context.Context, string, string, string) error { return nil }
 
 func (s staticBalanceRepository) ReadCurrent(context.Context, string, string, string) (accounts.Balance, error) {
 	return s.value, nil
@@ -86,8 +98,21 @@ func (s staticBalanceRepository) ReadCurrent(context.Context, string, string, st
 
 type failingBalanceRepository struct{}
 
+func (f failingBalanceRepository) Authorize(context.Context, string, string, string) error {
+	return nil
+}
+
 func (f failingBalanceRepository) ReadCurrent(context.Context, string, string, string) (accounts.Balance, error) {
 	return accounts.Balance{}, errors.New("primary unavailable")
+}
+
+type unauthorizedBalanceRepository struct{}
+
+func (unauthorizedBalanceRepository) Authorize(context.Context, string, string, string) error {
+	return errors.New("not authorized")
+}
+func (unauthorizedBalanceRepository) ReadCurrent(context.Context, string, string, string) (accounts.Balance, error) {
+	return accounts.Balance{}, errors.New("must not read")
 }
 
 type memoryBalanceCache struct {

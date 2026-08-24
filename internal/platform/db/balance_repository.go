@@ -21,6 +21,27 @@ func NewBalanceRepository(database *sql.DB) (*BalanceRepository, error) {
 	return &BalanceRepository{database: database}, nil
 }
 
+// Authorize proves account visibility before any shared cache value can be
+// returned. It uses the same non-disclosing result for absent and inaccessible
+// accounts.
+func (r *BalanceRepository) Authorize(ctx context.Context, tenantID, actorID, accountID string) error {
+	var authorized bool
+	err := r.database.QueryRowContext(ctx, `
+SELECT EXISTS(
+  SELECT 1
+  FROM account_owners
+  WHERE tenant_id = $1 AND account_id = $2 AND subject_id = $3
+    AND permission IN ('read', 'debit')
+)`, tenantID, accountID, actorID).Scan(&authorized)
+	if err != nil {
+		return fmt.Errorf("authorize balance read: %w", err)
+	}
+	if !authorized {
+		return ErrBalanceNotAuthorized
+	}
+	return nil
+}
+
 // ReadCurrent checks ownership in the same query as the authoritative
 // projection. It intentionally returns one safe denial for absent/inaccessible
 // accounts so callers do not disclose another account's existence.

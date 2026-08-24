@@ -21,6 +21,12 @@ func TestAccountReadsDenyUnownedAccountsWithoutDisclosure(t *testing.T) {
 	if _, err := balances.ReadCurrent(ctx, testTenantID, "different-subject", testSourceID); !errors.Is(err, db.ErrBalanceNotAuthorized) {
 		t.Fatalf("expected safe authorization denial, got %v", err)
 	}
+	if err := balances.Authorize(ctx, testTenantID, "different-subject", testSourceID); !errors.Is(err, db.ErrBalanceNotAuthorized) {
+		t.Fatalf("expected safe cache authorization denial, got %v", err)
+	}
+	if err := balances.Authorize(ctx, testTenantID, testActorID, testSourceID); err != nil {
+		t.Fatalf("authorized cache read was denied: %v", err)
+	}
 	historyRepo, err := db.NewTransactionHistoryRepository(database)
 	if err != nil {
 		t.Fatal(err)

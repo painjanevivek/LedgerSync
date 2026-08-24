@@ -47,8 +47,11 @@ FROM account_balance_projections WHERE account_id IN ($1,$2)`, testSourceID, tes
 	if sourceMinor != 7_500 || destinationMinor != 4_500 || sourceVersion != 1 || destinationVersion != 1 {
 		t.Fatalf("balances source=%d@%d destination=%d@%d", sourceMinor, sourceVersion, destinationMinor, destinationVersion)
 	}
-	if submission.Result.MinimumBalanceVersions[testSourceID] != 1 || submission.Result.MinimumBalanceVersions[testDestinationID] != 1 {
+	if submission.Result.MinimumBalanceVersions[testSourceID] != 1 || len(submission.Result.MinimumBalanceVersions) != 1 {
 		t.Fatalf("response versions=%v", submission.Result.MinimumBalanceVersions)
+	}
+	if _, disclosed := submission.Result.Balances[testDestinationID]; disclosed {
+		t.Fatal("transfer response disclosed the credit-only destination balance")
 	}
 }
 

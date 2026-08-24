@@ -1,11 +1,11 @@
-FROM node:24-alpine AS builder
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS builder
 WORKDIR /app
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web ./
 RUN npm run build
 
-FROM node:24-alpine
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 RUN addgroup -S ledgersync && adduser -S ledgersync -G ledgersync \

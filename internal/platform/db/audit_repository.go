@@ -62,7 +62,7 @@ func sanitizeAuditMetadata(metadata map[string]string) map[string]string {
 	return clean
 }
 func sensitiveAuditKey(key string) bool {
-	for _, word := range []string{"secret", "token", "authorization", "cookie", "session", "amount", "balance", "email", "phone", "address", "payload"} {
+	for _, word := range []string{"secret", "token", "authorization", "cookie", "session", "csrf", "consistency", "credential", "database_url", "connection_string", "dsn", "private_key", "api_key", "access_key", "amount", "balance", "email", "phone", "address", "ip_address", "payload"} {
 		if strings.Contains(key, word) {
 			return true
 		}

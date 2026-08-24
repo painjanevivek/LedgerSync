@@ -31,12 +31,11 @@ export function addSecurityHeaders(response: NextResponse, nonce?: string): Next
 export function hasSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
   if (origin === null) return false;
-  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? "development").trim().toLowerCase();
   const configuredOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN?.trim();
-  if ((deploymentEnvironment === "production" || deploymentEnvironment === "prod") && !configuredOrigin) return false;
-  if (!configuredOrigin) return origin === request.nextUrl.origin;
+  if (!configuredOrigin) return false;
   try {
-    return origin === new URL(configuredOrigin).origin;
+    const expected = new URL(configuredOrigin);
+    return origin === expected.origin && request.headers.get("host") === expected.host;
   } catch {
     return false;
   }
