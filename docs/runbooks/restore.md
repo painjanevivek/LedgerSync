@@ -1,4 +1,57 @@
-# Isolated PostgreSQL restore drill
+# PostgreSQL backup and isolated restore
+
+PostgreSQL is LedgerSync's financial recovery authority. Redis is disposable
+and must never be used to repair a balance or ledger record.
+
+## Local-only MVP procedure
+
+From a healthy local stack, create a bounded retained backup:
+
+```powershell
+.\scripts\backup-local.ps1 -RetentionCount 5
+```
+
+The default destination is `data/local-backups`, which is excluded from Git.
+Protect that directory as financial data: do not attach its dumps to issues,
+copy them into release evidence, or sync them to an unapproved service.
+
+Validate and restore the newest backup:
+
+```powershell
+$backup = Get-ChildItem .\data\local-backups -Directory |
+  Sort-Object Name -Descending |
+  Select-Object -First 1
+.\scripts\local-restore-drill.ps1 -BackupDirectory $backup.FullName
+```
+
+The backup command binds `pg_dump` and manifest counts to the same exported
+repeatable-read snapshot, so writes committed during a backup cannot create a
+false manifest mismatch. The drill then performs these steps in order:
+
+1. Validate manifest format, required fields, byte length, and SHA-256.
+2. Mutate a temporary copy and require digest rejection before any recovery
+   database or volume is created.
+3. Capture an opaque fingerprint and exact named-volume set from the normal
+   project.
+4. Create a uniquely named Compose recovery project on an internal network with
+   a fresh PostgreSQL volume and memory-only Redis.
+5. Restore the validated dump, apply current migrations, and compare migration,
+   account, transfer, and posting counts to the manifest.
+6. Require balanced two-posting journals, valid posted-transfer journals, and
+   non-negative projections.
+7. Reconcile the selected tenant and rebuild Redis only from restored
+   PostgreSQL projections.
+8. Require zero mismatches and non-empty rebuilt cache evidence.
+9. Prove the normal financial fingerprint and normal volume names did not
+   change.
+10. Remove only the exact isolated recovery project and its new volume.
+
+`-ValidateOnly` stops after integrity/corruption checks. `-SkipCorruptionGuard`
+exists only for focused troubleshooting; it must not be used as release
+evidence. A digest failure, count drift, invariant failure, mismatch, or changed
+normal fingerprint blocks recovery acceptance.
+
+## Shared or production environment procedure
 
 This procedure proves recovery; it must never target production or a network that can reach production credentials.
 
@@ -11,21 +64,6 @@ This procedure proves recovery; it must never target production or a network tha
 7. Run safe idempotency replay and RYEW fault checks against the restored environment. No new posting may be created by a replay.
 8. Record backup age, restore start/end, RPO, RTO, tool/output versions, reconciliation run IDs, lifecycle dry-run ID, and operator approvals in release evidence.
 9. Destroy the isolated restored environment and revoke its temporary credentials/KMS grants.
-
-## Local procedure validation
-
-From an active disposable Compose stack, run:
-
-```powershell
-./scripts/local-restore-drill.ps1 -ComposeProject ledgersync-system
-```
-
-The script creates uniquely named internal Docker network, PostgreSQL, Redis,
-and volume resources; takes a logical dump; restores into the isolated database;
-runs the current migration binary; rebuilds Redis only from PostgreSQL; persists
-a tenant reconciliation run; emits bounded counts/run IDs/timing; and removes
-only the exact resources it created. It refuses to reuse an existing local
-temporary directory.
 
 This local logical exercise validates the procedure and compatibility. It does
 not validate managed continuous WAL archiving, backup age, an achieved recovery

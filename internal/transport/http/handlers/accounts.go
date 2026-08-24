@@ -77,7 +77,7 @@ func (h *AccountsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 		if getErr != nil {
-			httptransport.WriteError(writer, request, getErr)
+			httptransport.WriteError(writer, request, publicAccountError(getErr))
 			return
 		}
 		writeAccountResponse(writer, item)
@@ -97,7 +97,7 @@ func (h *AccountsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusBadRequest, Code: "invalid_request", Message: "The account query is invalid."})
 			return
 		}
-		httptransport.WriteError(writer, request, err)
+		httptransport.WriteError(writer, request, publicAccountError(err))
 		return
 	}
 	response := make([]accountResponse, 0, len(page.Accounts))
@@ -107,6 +107,17 @@ func (h *AccountsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(writer).Encode(map[string]any{"accounts": response, "next_cursor": page.NextCursor})
+}
+
+func publicAccountError(err error) error {
+	if errors.Is(err, accounts.ErrAccountDirectoryUnavailable) {
+		return &httptransport.PublicError{
+			Status:  http.StatusServiceUnavailable,
+			Code:    "account_directory_unavailable",
+			Message: "The account directory is temporarily unavailable. No empty result is being inferred.",
+		}
+	}
+	return err
 }
 
 type accountResponse struct {

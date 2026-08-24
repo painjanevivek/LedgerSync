@@ -8,7 +8,10 @@ This runbook operates the loopback-only Compose project on one workstation. It i
 - Browser surface: `http://localhost:3000` bound to `127.0.0.1`.
 - Private services: PostgreSQL, Redis, API, and worker have no host-published ports.
 - Financial scope: internal same-currency INR demo transfers only.
-- Normal start, stop, and restart preserve PostgreSQL and Redis named volumes.
+- Normal start, stop, and restart preserve the Compose-named volumes
+  `<project>_postgres-data` and `<project>_redis-data`.
+- PostgreSQL is the recovery authority. The Redis volume is only optional cache
+  continuity and may be discarded and rebuilt from PostgreSQL.
 
 An isolated test can set `LEDGERSYNC_LOCAL_COMPOSE_PROJECT` to a validated lowercase project name. Never point these commands at an unrelated project.
 
@@ -41,6 +44,52 @@ The seed is replay-safe: it inserts missing demo records and must never reset pr
 ```
 
 The log command accepts only known services, caps output at 1,000 lines, and redacts common credential patterns. Do not commit copied logs without reviewing them for customer data or business identifiers.
+
+`status-local.ps1` reports the applied migration version/count, bounded outbox
+counts, and the latest reconciliation result. It never prints credentials, raw
+balances, complete transfers, or database contents.
+
+## Back up and prove recovery
+
+Create a finalized logical backup in the Git-ignored
+`data/local-backups` directory:
+
+```powershell
+.\scripts\backup-local.ps1 -RetentionCount 5
+```
+
+Each backup contains `database.dump` and `manifest.json`. The dump and redacted
+counts use the same exported repeatable-read PostgreSQL snapshot. The manifest
+binds the dump to its byte length and SHA-256 digest and records creation UTC,
+source commit, migration version, and counts. A `.partial-*` directory is
+never presented as a valid backup. Rotation removes only validated backup names
+inside the resolved backup root.
+
+Prove a backup can be recovered without touching the normal volumes:
+
+```powershell
+$backup = Get-ChildItem .\data\local-backups -Directory |
+  Sort-Object Name -Descending |
+  Select-Object -First 1
+.\scripts\local-restore-drill.ps1 -BackupDirectory $backup.FullName
+```
+
+The drill first mutates a disposable copy and proves digest rejection before
+creating any database. It then uses a uniquely named internal Compose project,
+applies migrations, compares manifest counts, checks double-entry invariants,
+rebuilds Redis from PostgreSQL, requires zero reconciliation mismatches, proves
+the normal project's fingerprint/volume set is unchanged, and removes only its
+own isolated containers, network, and volume.
+
+Run the controlled dependency suite after runtime/recovery changes:
+
+```powershell
+.\scripts\test-local-fault-recovery.ps1
+```
+
+It proves Redis flush/unavailability, worker and stateless-service restarts,
+sanitized PostgreSQL unavailability, full dependency-order recovery, cache
+rebuild, and a final unchanged authoritative fingerprint.
 
 ## Stop without deleting data
 

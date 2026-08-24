@@ -3,12 +3,14 @@ package accounts
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
 
 var ErrAccountNotFound = errors.New("account not found or not authorized")
 var ErrInvalidQuery = errors.New("invalid account query")
+var ErrAccountDirectoryUnavailable = errors.New("account directory is temporarily unavailable")
 
 type Summary struct {
 	AccountID         string
@@ -70,14 +72,22 @@ func (s *Service) ListOwned(ctx context.Context, tenantID, actorID string, query
 	if query.Limit < 1 || query.Limit > 100 || len(query.Cursor) > 512 || len(query.Search) > 128 || !allowedStatus(query.Status) || !allowedCategory(query.Category) {
 		return Page{}, ErrInvalidQuery
 	}
-	return s.repository.ListOwnedPage(ctx, tenantID, actorID, query)
+	page, err := s.repository.ListOwnedPage(ctx, tenantID, actorID, query)
+	if err == nil || errors.Is(err, ErrInvalidQuery) || errors.Is(err, ErrAccountNotFound) {
+		return page, err
+	}
+	return Page{}, fmt.Errorf("%w: %v", ErrAccountDirectoryUnavailable, err)
 }
 
 func (s *Service) GetOwned(ctx context.Context, tenantID, actorID, accountID string) (Summary, error) {
 	if s == nil || tenantID == "" || actorID == "" || strings.TrimSpace(accountID) == "" {
 		return Summary{}, ErrAccountNotFound
 	}
-	return s.repository.GetOwned(ctx, tenantID, actorID, accountID)
+	item, err := s.repository.GetOwned(ctx, tenantID, actorID, accountID)
+	if err == nil || errors.Is(err, ErrAccountNotFound) {
+		return item, err
+	}
+	return Summary{}, fmt.Errorf("%w: %v", ErrAccountDirectoryUnavailable, err)
 }
 
 func allowedStatus(value string) bool {

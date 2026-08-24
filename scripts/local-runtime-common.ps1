@@ -142,13 +142,61 @@ function Invoke-LedgerSyncWebSmoke {
 }
 
 function Get-LedgerSyncOperationalSummary {
-    $sql = "SELECT json_build_object('outbox_pending',(SELECT count(*) FROM outbox_events WHERE published_at IS NULL AND dead_at IS NULL),'outbox_dead',(SELECT count(*) FROM outbox_events WHERE dead_at IS NOT NULL),'reconciliation_status',COALESCE((SELECT status FROM reconciliation_runs ORDER BY started_at DESC LIMIT 1),'not_run'),'reconciliation_mismatches',COALESCE((SELECT mismatch_count FROM reconciliation_runs ORDER BY started_at DESC LIMIT 1),0));"
+    $sql = "SELECT json_build_object('migration_version',COALESCE((SELECT max(version) FROM schema_migrations),'none'),'migration_count',(SELECT count(*) FROM schema_migrations),'outbox_pending',(SELECT count(*) FROM outbox_events WHERE published_at IS NULL AND dead_at IS NULL),'outbox_dead',(SELECT count(*) FROM outbox_events WHERE dead_at IS NOT NULL),'reconciliation_status',COALESCE((SELECT status FROM reconciliation_runs ORDER BY started_at DESC LIMIT 1),'not_run'),'reconciliation_mismatches',COALESCE((SELECT mismatch_count FROM reconciliation_runs ORDER BY started_at DESC LIMIT 1),0));"
     $result = @(Invoke-LedgerSyncCompose -ComposeArguments @("exec", "-T", "postgres", "psql", "-U", "ledgersync", "-d", "ledgersync", "-Atc", $sql) -CaptureOutput)
     $json = @($result | Where-Object { ([string]$_).TrimStart().StartsWith("{") } | Select-Object -Last 1)
     if ($json.Count -ne 1) {
         throw "Operational summary did not return a bounded result."
     }
     return ([string]$json[0] | ConvertFrom-Json)
+}
+
+function Get-LedgerSyncFinancialFingerprint {
+    $sql = @"
+SELECT json_build_object(
+  'migration_version', COALESCE((SELECT max(version) FROM schema_migrations), 'none'),
+  'migration_count', (SELECT count(*) FROM schema_migrations),
+  'accounts', (SELECT count(*) FROM accounts),
+  'transfers', (SELECT count(*) FROM transfers),
+  'ledger_postings', (SELECT count(*) FROM ledger_postings),
+  'balance_fingerprint', COALESCE((
+    SELECT md5(string_agg(account_id::text || ':' || available_minor::text || ':' || ledger_minor::text || ':' || balance_version::text, ',' ORDER BY account_id))
+    FROM account_balance_projections
+  ), md5('')),
+  'transfer_fingerprint', COALESCE((
+    SELECT md5(string_agg(id::text || ':' || status || ':' || amount_minor::text || ':' || currency, ',' ORDER BY id))
+    FROM transfers
+  ), md5('')),
+  'posting_fingerprint', COALESCE((
+    SELECT md5(string_agg(id::text || ':' || journal_transaction_id::text || ':' || account_id::text || ':' || direction || ':' || amount_minor::text || ':' || currency, ',' ORDER BY id))
+    FROM ledger_postings
+  ), md5(''))
+)::text;
+"@
+    $result = @(Invoke-LedgerSyncCompose -ComposeArguments @(
+        "exec", "-T", "postgres", "psql", "-U", "ledgersync", "-d", "ledgersync", "-Atc", $sql
+    ) -CaptureOutput)
+    $json = @($result | Where-Object { ([string]$_).TrimStart().StartsWith("{") } | Select-Object -Last 1)
+    if ($json.Count -ne 1) {
+        throw "Financial fingerprint did not return one bounded result."
+    }
+    return ([string]$json[0] | ConvertFrom-Json)
+}
+
+function Compare-LedgerSyncFinancialFingerprint {
+    param(
+        [Parameter(Mandatory = $true)][object]$Before,
+        [Parameter(Mandatory = $true)][object]$After
+    )
+
+    foreach ($field in @(
+        "migration_version", "migration_count", "accounts", "transfers", "ledger_postings",
+        "balance_fingerprint", "transfer_fingerprint", "posting_fingerprint"
+    )) {
+        if ([string]$Before.$field -cne [string]$After.$field) {
+            throw "Authoritative financial fingerprint changed at '$field'."
+        }
+    }
 }
 
 function ConvertTo-LedgerSyncRedactedLogLine {

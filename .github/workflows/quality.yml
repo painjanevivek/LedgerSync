@@ -154,6 +154,20 @@ jobs:
           go test ./tests/system -run TestRealBFFAPIAndPostgreSQLRetryPath -count=1 -v
           docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml run --rm --entrypoint /usr/local/bin/reconcile migrate --run --tenant-id 00000000-0000-4000-8000-000000000001
           go test ./tests/system -run TestRealBFFReconciliationEvidence -count=1 -v
+      - name: Prove digest-bound backup and isolated restore
+        shell: pwsh
+        env:
+          LEDGERSYNC_LOCAL_COMPOSE_PROJECT: ledgersync-system
+        run: |
+          ./scripts/backup-local.ps1 -BackupRoot data/ci-backups -RetentionCount 1
+          $backup = Get-ChildItem -LiteralPath data/ci-backups -Directory | Select-Object -First 1
+          if ($null -eq $backup) { throw "Backup command produced no finalized bundle." }
+          ./scripts/local-restore-drill.ps1 -BackupDirectory $backup.FullName
+      - name: Prove dependency faults recover without financial drift
+        shell: pwsh
+        env:
+          LEDGERSYNC_LOCAL_COMPOSE_PROJECT: ledgersync-system
+        run: ./scripts/test-local-fault-recovery.ps1
       - name: Verify non-root read-only workloads and private bindings
         run: |
           test "$(docker inspect -f '{{.Config.User}}' "$(docker compose -p ledgersync-system -f deploy/compose/docker-compose.yml ps -q api)")" = ledgersync

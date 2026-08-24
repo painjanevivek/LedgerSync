@@ -34,6 +34,7 @@ try {
 
     try {
         $summary = Get-LedgerSyncOperationalSummary
+        Write-Host "Database schema: version=$($summary.migration_version), applied=$($summary.migration_count)" -ForegroundColor Green
         $outboxColor = if ([int64]$summary.outbox_dead -eq 0) { "Green" } else { "Yellow" }
         Write-Host "Outbox delivery: pending=$($summary.outbox_pending), dead=$($summary.outbox_dead)" -ForegroundColor $outboxColor
         $healthyReconciliationStatuses = @("completed", "matched", "passed")

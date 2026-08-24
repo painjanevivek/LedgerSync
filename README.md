@@ -408,6 +408,19 @@ flowchart LR
 
 Runbooks: [audit events](docs/runbooks/audit-events.md) · [secret rotation](docs/runbooks/secrets-rotation.md) · [exact money ADR](docs/adr/0001-exact-minor-unit-money.md) · [immutable ledger ADR](docs/adr/0002-immutable-double-entry-ledger.md) · [outbox ADR](docs/adr/0003-transactional-outbox.md) · [RYEW ADR](docs/adr/0004-version-based-ryew.md).
 
+The local recovery path is executable, not aspirational:
+
+```powershell
+.\scripts\backup-local.ps1 -RetentionCount 5
+$backup = Get-ChildItem .\data\local-backups -Directory | Sort-Object Name -Descending | Select-Object -First 1
+.\scripts\local-restore-drill.ps1 -BackupDirectory $backup.FullName
+.\scripts\test-local-fault-recovery.ps1
+```
+
+The backup manifest is SHA-256-bound; restore occurs in a newly named internal
+Compose project; Redis is rebuilt from PostgreSQL; and the drill fails if the
+normal project's opaque financial fingerprint or named-volume set changes.
+
 ---
 
 ## Quick start
@@ -429,8 +442,9 @@ The repository-root `docker-compose.yml` is the canonical local entry point and 
 # 2. Open the product.
 Start-Process http://localhost:3000
 
-# 3. Inspect or stop it without deleting PostgreSQL/Redis volumes.
+# 3. Inspect, back up, or stop it without deleting PostgreSQL/Redis volumes.
 .\scripts\status-local.ps1
+.\scripts\backup-local.ps1 -RetentionCount 5
 .\scripts\logs-local.ps1 -Service api -Tail 100 -Since 15m
 .\scripts\stop-local.ps1
 
@@ -502,7 +516,7 @@ gantt
 | exact internal same-currency ledger transfers | bank rails, card payments, FX, custody |
 | API, BFF foundation, authorization and RYEW | public self-serve onboarding and end-user wallet UI |
 | OIDC token validation, BFF boundary, and authorization-code-with-PKCE callback | provider-specific tenant/role/scope claim mapping approval |
-| outbox/cache recovery and reconciliation command | automated restore drills, full telemetry/SLO dashboards |
+| digest-bound local backup, isolated restore, cache rebuild, and fault drill | provider-backed PITR and full production SLO dashboards |
 
 ### License
 
