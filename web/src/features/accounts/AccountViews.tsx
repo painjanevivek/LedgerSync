@@ -10,6 +10,7 @@ import { TransactionLedger } from "@/features/accounts/TransactionLedger";
 import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
 import { CopyControl, DataTableRegion, PageHeader, Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
+import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { formatMinorUnits } from "@/lib/money";
 
 export type AccountFilters = Readonly<{ query: string; status: string; category: string; cursor?: string }>;
@@ -35,6 +36,7 @@ type Props = Readonly<{
   csrfToken: string;
   canWrite: boolean;
   canTransfer: boolean;
+  canExport: boolean;
   fundingScopeComplete: boolean;
   onRefresh: () => void;
   onApplyFilters: (filters: Omit<AccountFilters, "cursor">) => void;
@@ -63,7 +65,7 @@ export function accountDetailHref(accountID: string, filters: AccountFilters): s
   return `/accounts/${encodeURIComponent(accountID)}?return_to=${encodeURIComponent(accountDirectoryHref(filters, accountID))}`;
 }
 
-export function AccountsView({ accounts, selected, detailRequested, balance, transactions, balanceLoading, historyLoading, directoryLoading, balanceError, historyError, error, online, filters, nextCursor, historyNextCursor, focusAccountId, tenantId, csrfToken, canWrite, canTransfer, fundingScopeComplete, onRefresh, onApplyFilters, onNext, onHistoryNext, onAccountChanged, onRefreshLifecycleEvidence }: Props) {
+export function AccountsView({ accounts, selected, detailRequested, balance, transactions, balanceLoading, historyLoading, directoryLoading, balanceError, historyError, error, online, filters, nextCursor, historyNextCursor, focusAccountId, tenantId, csrfToken, canWrite, canTransfer, canExport, fundingScopeComplete, onRefresh, onApplyFilters, onNext, onHistoryNext, onAccountChanged, onRefreshLifecycleEvidence }: Props) {
   const [query, setQuery] = useState(filters.query);
   const [status, setStatus] = useState(filters.status);
   const [category, setCategory] = useState(filters.category);
@@ -100,7 +102,7 @@ export function AccountsView({ accounts, selected, detailRequested, balance, tra
     {selected && <>
       <section className="identity-strip"><div><span>Account ID</span><CopyControl value={selected.account_id} /></div><div><span>External reference</span><strong>{selected.external_reference || "Not set"}</strong></div><div><span>Category</span><strong>{selected.category?.replaceAll("_", " ") || "Unclassified"}</strong></div><div><span>Status</span><StatusBadge tone={tone(selected.status)}>{selected.status}</StatusBadge></div></section>
       {selected.status === "frozen" && <StatePanel kind="unknown" title="Account is frozen" message="The balance remains visible, but this account cannot be selected for a new debit or credit." />}
-      <div className="account-detail-grid"><BalanceStatus currency={balance?.currency ?? selected.currency} availableMinor={balance?.available_minor} version={balance?.version} asOf={balance?.as_of} loading={balanceLoading} error={balanceError} /><TransactionLedger transactions={transactions} account={selected} loading={historyLoading} error={historyError} nextCursor={historyNextCursor} onNext={onHistoryNext} /></div>
+      <div className="account-detail-grid"><BalanceStatus currency={balance?.currency ?? selected.currency} availableMinor={balance?.available_minor} version={balance?.version} asOf={balance?.as_of} loading={balanceLoading} error={balanceError} /><TransactionLedger transactions={transactions} account={selected} loading={historyLoading} error={historyError} nextCursor={historyNextCursor} onNext={onHistoryNext} exportAction={<EvidenceExportControl label="Export ledger evidence" subject="account ledger history" endpoint={`/api/exports/accounts/${encodeURIComponent(selected.account_id)}/transactions.csv?limit=10000`} scope={`One authorized account · ${selected.account_id}`} filters={[]} columns="Includes the full account, transfer, journal, and posting identifiers with exact quoted minor-unit strings" online={online} canExport={canExport}/>}/></div>
       <AccountLifecycleActions account={selected} balance={balance} balanceLoading={balanceLoading} balanceError={balanceError} tenantId={tenantId} csrfToken={csrfToken} online={online} canWrite={canWrite} canTransfer={canTransfer} fundingScopeComplete={fundingScopeComplete} fundedSourceAvailable={accounts.some((candidate) => candidate.account_id !== selected.account_id && candidate.status === "active" && candidate.currency === "INR" && hasPositiveMinorUnits(candidate.available_minor))} returnTo={accountDetailHref(selected.account_id, filters)} onChanged={onAccountChanged} onRefreshEvidence={onRefreshLifecycleEvidence} />
       <section className="ledger-section" aria-labelledby="account-audit-heading"><div className="section-heading"><div><p className="eyebrow">Permitted audit context</p><h2 id="account-audit-heading">Account audit events</h2><p>Only explicitly persisted account-targeted events are shown; absence is not inferred as approval.</p></div></div>{selected.audit_context?.length ? <div className="ledger-list">{selected.audit_context.map((event) => <article className="ledger-row" key={event.event_id}><div className="ledger-identity"><strong>{event.event_type.replaceAll("_", " ")}</strong><span>{event.actor_subject_id} · {utcDateTime(event.occurred_at)}</span>{event.reason && <span><strong>Audited reason:</strong> {event.reason}</span>}</div><StatusBadge tone={event.outcome === "succeeded" ? "success" : "warning"}>{event.outcome}</StatusBadge><CopyControl value={event.correlation_id} label="Copy audit correlation ID" /></article>)}</div> : <StatePanel title="No account-scoped audit events" message="No account-targeted audit event is available in the current retained evidence. LedgerSync does not invent one from balance or transfer history." />}</section>
       <Link className="text-link back-link" href={accountDirectoryHref(filters, focusAccountId)}>← Back to account directory</Link>

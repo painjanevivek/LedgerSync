@@ -11,7 +11,7 @@ const maximumOperationsResponseBytes = 262_144;
 
 export type OperationsReadAuthorization = Readonly<{ session: Session }>;
 
-export async function authorizeOperationsRead(request: NextRequest, session: Session | null, scope: "local:read" | "events:read" | "developer:read", rateLimit: RateLimitStore): Promise<OperationsReadAuthorization | NextResponse> {
+export async function authorizeOperationsRead(request: NextRequest, session: Session | null, scope: "local:read" | "events:read" | "developer:read" | "recovery:read", rateLimit: RateLimitStore): Promise<OperationsReadAuthorization | NextResponse> {
   if (request.method !== "GET") {
     const response = jsonError("method_not_allowed", 405);
     response.headers.set("Allow", "GET");

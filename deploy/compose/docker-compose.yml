@@ -69,6 +69,7 @@ services:
       LEDGERSYNC_DEVELOPMENT_API_TOKEN: ${LEDGERSYNC_DEVELOPMENT_API_TOKEN:?Local private API token is required}
       LEDGERSYNC_DEVELOPMENT_SUBJECT_ID: demo-operator
       LEDGERSYNC_DEVELOPMENT_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      LEDGERSYNC_RECOVERY_EVIDENCE_ROOT: /run/ledgersync/recovery
     depends_on:
       demo-seed:
         condition: service_completed_successfully
@@ -83,6 +84,10 @@ services:
       start_period: 5s
       retries: 30
     networks: [private]
+    volumes:
+      # The API receives only the sanitized tooling index, never backup dumps or
+      # the host backup directory. start-local initializes this exact file.
+      - ../../data/local-backups/recovery-evidence-index.json:/run/ledgersync/recovery/recovery-evidence-index.json:ro
     read_only: true
     tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
     cap_drop: ["ALL"]

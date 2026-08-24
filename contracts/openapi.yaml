@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.6.0
+  version: 1.7.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -269,6 +269,80 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /recovery/manifests:
+    get:
+      operationId: getRecoveryEvidenceIndex
+      x-required-scope: recovery:read
+      summary: Read the bounded sanitized recovery evidence index produced by local recovery tooling.
+      description: >-
+        Requires recovery:read and a tenant operator or administrator role. The
+        API reads one fixed finalized evidence-index file; it never accepts a
+        path or filename and never exposes dump names, paths, digests,
+        credentials, or host/container details.
+      responses:
+        '200': { description: Latest validated backup and restore evidence plus bounded retention counts., content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryEvidenceIndex' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/RecoveryEvidenceUnavailable' }
+  /exports/transfers.csv:
+    get:
+      operationId: exportTransfersCSV
+      x-required-scope: exports:read
+      summary: Stream a bounded tenant-authorized filtered transfer evidence export.
+      description: Requires exports:read, transfers:read, and a tenant operator or administrator role.
+      parameters:
+        - { in: query, name: accountId, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, posted, rejected] } }
+        - { in: query, name: q, schema: { type: string, maxLength: 256 } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+        - { $ref: '#/components/parameters/ExportLimit' }
+      responses:
+        '200': { $ref: '#/components/responses/CSVExport' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ExportUnavailable' }
+        '504': { $ref: '#/components/responses/ExportTimeout' }
+  /exports/accounts/{accountId}/transactions.csv:
+    get:
+      operationId: exportAccountLedgerCSV
+      x-required-scope: exports:read
+      summary: Stream one object-authorized account ledger as bounded immutable evidence.
+      description: Requires exports:read and transactions:read; inaccessible accounts return the same not-found response as absent accounts.
+      parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/ExportLimit' }]
+      responses:
+        '200': { $ref: '#/components/responses/CSVExport' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ExportUnavailable' }
+        '504': { $ref: '#/components/responses/ExportTimeout' }
+  /exports/reconciliation.csv:
+    get:
+      operationId: exportReconciliationCSV
+      x-required-scope: exports:read
+      summary: Stream bounded tenant reconciliation run and mismatch evidence.
+      description: Requires exports:read, reconciliation:read, and a tenant operator or administrator role.
+      parameters:
+        - { in: query, name: runId, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [matched, mismatch, failed] } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+        - { $ref: '#/components/parameters/ExportLimit' }
+      responses:
+        '200': { $ref: '#/components/responses/CSVExport' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ExportUnavailable' }
+        '504': { $ref: '#/components/responses/ExportTimeout' }
   /developer/metadata:
     get:
       operationId: getDeveloperMetadata
@@ -292,7 +366,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.6.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.7.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -311,6 +385,7 @@ components:
     RunID: { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
     Cursor: { in: query, name: cursor, schema: { type: string, maxLength: 512 } }
     Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+    ExportLimit: { in: query, name: limit, description: Maximum evidence rows; generation stops at this server-enforced bound., schema: { type: integer, minimum: 1, maximum: 10000, default: 10000 } }
     IdempotencyKey: { in: header, name: Idempotency-Key, required: true, schema: { type: string, minLength: 16, maxLength: 255 } }
     CorrelationID: { in: header, name: X-Request-ID, schema: { type: string, format: uuid } }
     ConsistencyRequirement: { in: header, name: X-LedgerSync-Consistency-Requirement, schema: { type: string, maxLength: 2048 } }
@@ -583,6 +658,48 @@ components:
             delivery_attempts_truncated: { type: boolean }
             timeline: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/EventTimelineItem' } }
     EventEvidencePage: { type: object, required: [events, next_cursor], properties: { events: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/EventEvidence' } }, next_cursor: { type: string, maxLength: 512 } } }
+    RecoveryEvidenceIndex:
+      type: object
+      additionalProperties: false
+      required: [format_version, generated_at_utc, latest_backup, latest_restore, retention]
+      properties:
+        format_version: { type: string, enum: [ledgersync-recovery-evidence-index/v1] }
+        generated_at_utc: { type: string, format: date-time }
+        latest_backup: { oneOf: [{ $ref: '#/components/schemas/RecoveryBackupEvidence' }, { type: 'null' }] }
+        latest_restore: { oneOf: [{ $ref: '#/components/schemas/RecoveryRestoreEvidence' }, { type: 'null' }] }
+        retention: { $ref: '#/components/schemas/RecoveryRetentionEvidence' }
+    RecoveryBackupEvidence:
+      type: object
+      additionalProperties: false
+      required: [backup_id, finalized_at_utc, size_bytes, schema_version, digest_status, validation_status, source_commit]
+      properties:
+        backup_id: { type: string, pattern: '^backup-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{7,40}$', maxLength: 64 }
+        finalized_at_utc: { type: string, format: date-time }
+        size_bytes: { type: integer, format: int64, minimum: 1 }
+        schema_version: { type: string, pattern: '^[0-9]{6}_[a-z0-9._-]{1,120}$', maxLength: 127 }
+        digest_status: { type: string, enum: [verified] }
+        validation_status: { type: string, enum: [passed] }
+        source_commit: { type: string, pattern: '^[0-9a-f]{40}$' }
+    RecoveryRestoreEvidence:
+      type: object
+      additionalProperties: false
+      required: [backup_id, completed_at_utc, status, reconciliation_status, mismatch_count, normal_project_unchanged, local_rto_seconds]
+      properties:
+        backup_id: { type: string, pattern: '^backup-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{7,40}$', maxLength: 64 }
+        completed_at_utc: { type: string, format: date-time }
+        status: { type: string, enum: [passed] }
+        reconciliation_status: { type: string, enum: [matched, completed, passed] }
+        mismatch_count: { type: integer, minimum: 0, maximum: 0 }
+        normal_project_unchanged: { type: boolean, enum: [true] }
+        local_rto_seconds: { type: number, minimum: 0, maximum: 86400 }
+    RecoveryRetentionEvidence:
+      type: object
+      additionalProperties: false
+      required: [valid_backup_count, ignored_entry_count, configured_keep_count]
+      properties:
+        valid_backup_count: { type: integer, minimum: 0, maximum: 200 }
+        ignored_entry_count: { type: integer, minimum: 0, maximum: 200 }
+        configured_keep_count: { type: integer, minimum: 1, maximum: 100 }
     DeveloperMetadata:
       type: object
       additionalProperties: false
@@ -733,6 +850,24 @@ components:
     ReconciliationConflict: { description: 'A run is already active, the key belongs to another intent, or the same request is still completing. already_running includes the active run_id when one remains active.', headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Error' }, { type: object, properties: { run_id: { type: string, format: uuid } } }] }, examples: { alreadyRunning: { $ref: '#/components/examples/ReconciliationAlreadyRunning' } } } } }
     ReconciliationUnavailable: { description: Reconciliation could not start safely; retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     ReconciliationResponseUnknown: { description: The caller timed out after submission and must retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { responseUnknown: { $ref: '#/components/examples/ReconciliationResponseUnknown' } } } } }
+    CSVExport:
+      description: >-
+        Versioned UTF-8 CSV with every cell quoted, exact minor-unit strings,
+        deterministic columns, and spreadsheet-active text neutralized. The
+        stream is bounded to 10,000 rows and ten seconds. Completion, row
+        count, and limit-reached evidence are returned as HTTP trailers.
+      headers:
+        Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-transfers-20260825T120000Z-v1.csv"' }
+        X-LedgerSync-Export-Schema: { schema: { type: string, enum: ['1'] } }
+        X-LedgerSync-Export-Row-Limit: { schema: { type: string, pattern: '^[1-9][0-9]{0,4}$' } }
+        Trailer: { schema: { type: string }, example: 'X-LedgerSync-Export-Status, X-LedgerSync-Export-Rows, X-LedgerSync-Export-Limit-Reached' }
+        X-LedgerSync-Export-Status: { description: HTTP trailer set after streaming finishes., schema: { type: string, enum: [complete, failed] } }
+        X-LedgerSync-Export-Rows: { description: HTTP trailer containing the exact emitted data-row count., schema: { type: string, pattern: '^(0|[1-9][0-9]{0,4})$' } }
+        X-LedgerSync-Export-Limit-Reached: { description: HTTP trailer indicating that the selected row bound stopped iteration., schema: { type: string, enum: ['true', 'false'] } }
+      content: { text/csv: { schema: { type: string, contentMediaType: text/csv } } }
+    RecoveryEvidenceUnavailable: { description: 'The fixed sanitized recovery evidence index is absent, unsafe, malformed, incomplete, or unavailable.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ExportUnavailable: { description: 'Authorized evidence, capacity, or required audit persistence is temporarily unavailable.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ExportTimeout: { description: CSV generation exceeded the bounded deadline before response streaming began., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     PolicyDenied: { description: "Tenant amount, velocity, destination, or currency policy denied the transfer.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     RateLimited:
       description: Principal/tenant/route limit exceeded.

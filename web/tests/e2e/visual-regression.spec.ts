@@ -33,6 +33,7 @@ const populatedRoutes = [
   { name: "events-populated", path: "/events", heading: "Event investigation" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
   { name: "developer-contract", path: "/developer", heading: "Developer" },
+  { name: "recovery-evidence", path: "/recovery", heading: "Recovery Center" },
 ] as const;
 
 for (const route of populatedRoutes) {
@@ -56,6 +57,15 @@ test("compact developer contract preserves code and retry hierarchy",async({page
   await page.goto("/developer");
   await expect(page.getByRole("heading",{name:"Developer",exact:true})).toBeVisible();
   await capture(page,"developer-contract-compact",compact);
+});
+
+test("transfer export review preserves the exact evidence hierarchy",async({page})=>{
+  await mockOperatorConsole(page);
+  await page.goto("/transfers");
+  await page.getByRole("button",{name:"Export transfer evidence"}).click();
+  await expect(page.getByRole("heading",{name:"Review transfer history export"})).toBeVisible();
+  await capture(page,"transfer-export-review",desktop);
+  await capture(page,"transfer-export-review-compact",compact);
 });
 
 test("loading state does not imply empty account evidence", async ({ page }) => {

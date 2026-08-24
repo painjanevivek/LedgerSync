@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "1.6.0",
+  "contract_version": "1.7.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -58,6 +58,16 @@
         { "operation_id": "getLocalDiagnostics", "method": "GET", "path": "/local/diagnostics", "scope": "local:read" },
         { "operation_id": "listEventEvidence", "method": "GET", "path": "/events", "scope": "events:read" },
         { "operation_id": "getEventEvidence", "method": "GET", "path": "/events/{eventId}", "scope": "events:read" }
+      ]
+    },
+    {
+      "id": "recovery_exports",
+      "label": "Recovery and exports",
+      "operations": [
+        { "operation_id": "getRecoveryEvidenceIndex", "method": "GET", "path": "/recovery/manifests", "scope": "recovery:read" },
+        { "operation_id": "exportTransfersCSV", "method": "GET", "path": "/exports/transfers.csv", "scope": "exports:read" },
+        { "operation_id": "exportAccountLedgerCSV", "method": "GET", "path": "/exports/accounts/{accountId}/transactions.csv", "scope": "exports:read" },
+        { "operation_id": "exportReconciliationCSV", "method": "GET", "path": "/exports/reconciliation.csv", "scope": "exports:read" }
       ]
     },
     {

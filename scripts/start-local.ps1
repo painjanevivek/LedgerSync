@@ -6,11 +6,13 @@ param(
 )
 
 . (Join-Path $PSScriptRoot "local-runtime-common.ps1")
+. (Join-Path $PSScriptRoot "local-backup-common.ps1")
 
 try {
     Write-Host "Checking Docker and the LedgerSync local boundary..."
     Assert-LedgerSyncDockerAvailable
     Initialize-LedgerSyncLocalSecrets
+    Initialize-LedgerSyncLocalRecoveryEvidenceIndex | Out-Null
     Test-LedgerSyncPortAvailableOrOwned
     Invoke-LedgerSyncCompose -ComposeArguments @("config", "-q")
 

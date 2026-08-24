@@ -9,6 +9,8 @@ param(
 . (Join-Path $PSScriptRoot "local-backup-common.ps1")
 
 $partialDirectory = $null
+$createdFinalDirectory = $null
+$finalizedAccepted = $false
 $postgresContainer = $null
 $snapshotPrefix = $null
 
@@ -18,7 +20,9 @@ try {
     Assert-LedgerSyncLongRunningServicesHealthy
 
     $resolvedBackupRoot = Resolve-LedgerSyncBackupRoot -BackupRoot $BackupRoot
+    Assert-LedgerSyncProspectivePathNoReparsePoints -Path $resolvedBackupRoot
     New-Item -ItemType Directory -Path $resolvedBackupRoot -Force | Out-Null
+    Assert-LedgerSyncNoReparsePoints -Path $resolvedBackupRoot
 
     $postgresContainerOutput = @(Invoke-LedgerSyncCompose -ComposeArguments @("ps", "-q", "postgres") -CaptureOutput)
     $postgresContainer = ([string]($postgresContainerOutput | Select-Object -Last 1)).Trim()
@@ -167,22 +171,25 @@ COMMIT;
             ledger_postings = [int64]$evidence.ledger_postings
         }
     }
-    $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $partialDirectory "manifest.json") -Encoding utf8
-    Assert-LedgerSyncBackupBundle -BackupDirectory $partialDirectory | Out-Null
+    $manifestPath = Join-Path $partialDirectory "manifest.json"
+    $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding utf8
+    Protect-LedgerSyncRecoveryFile -Path $dumpPath
+    Protect-LedgerSyncRecoveryFile -Path $manifestPath
 
     Move-Item -LiteralPath $partialDirectory -Destination $finalDirectory
     $partialDirectory = $null
+    $createdFinalDirectory = $finalDirectory
 
-    $finalized = Assert-LedgerSyncBackupBundle -BackupDirectory $finalDirectory
-    $retainedBackups = @(Get-ChildItem -LiteralPath $resolvedBackupRoot -Directory |
-        Where-Object { $_.Name -cmatch $script:LedgerSyncBackupDirectoryPattern } |
-        Sort-Object Name -Descending)
-    foreach ($expired in @($retainedBackups | Select-Object -Skip $RetentionCount)) {
-        Remove-LedgerSyncValidatedDirectory `
-            -Parent $resolvedBackupRoot `
-            -Directory $expired.FullName `
-            -AllowedLeafPattern $script:LedgerSyncBackupDirectoryPattern
-    }
+    $finalized = Assert-LedgerSyncBackupBundle `
+        -BackupDirectory $finalDirectory -BackupRoot $resolvedBackupRoot
+    # Once the finalized bundle validates, later index/retention reporting
+    # failures must never erase the only newly valid recovery point.
+    $finalizedAccepted = $true
+    $retained = Invoke-LedgerSyncBackupRetention `
+        -BackupRoot $resolvedBackupRoot -RetentionCount $RetentionCount
+    $recoveryIndex = Write-LedgerSyncRecoveryEvidenceIndex `
+        -BackupRoot $resolvedBackupRoot -RetentionCount $RetentionCount
+    $indexJson = $recoveryIndex | ConvertTo-Json -Depth 8 -Compress
 
     Write-Output "BACKUP=PASS"
     Write-Output "BACKUP_DIRECTORY=$($finalized.Directory)"
@@ -191,7 +198,9 @@ COMMIT;
     Write-Output "COUNTS=accounts:$($finalized.Manifest.counts.accounts),transfers:$($finalized.Manifest.counts.transfers),postings:$($finalized.Manifest.counts.ledger_postings)"
     Write-Output "DUMP_BYTES=$($finalized.Manifest.database.byte_length)"
     Write-Output "SHA256=$($finalized.Manifest.database.sha256)"
-    Write-Output "RETAINED=$([Math]::Min($retainedBackups.Count, $RetentionCount))"
+    Write-Output "RETAINED=$(@($retained.Bundles).Count)"
+    Write-Output "RECOVERY_EVIDENCE_INDEX=$script:LedgerSyncRecoveryEvidenceFileName"
+    Write-Output "RECOVERY_EVIDENCE_JSON=$indexJson"
 }
 catch {
     Write-Error $_
@@ -216,5 +225,13 @@ finally {
             -Parent $resolvedBackupRoot `
             -Directory $partialDirectory `
             -AllowedLeafPattern '^\.partial-[0-9a-f]{32}$'
+    }
+    if ($createdFinalDirectory -and -not $finalizedAccepted -and
+        (Test-Path -LiteralPath $createdFinalDirectory)) {
+        $resolvedBackupRoot = Resolve-LedgerSyncBackupRoot -BackupRoot $BackupRoot
+        Remove-LedgerSyncValidatedDirectory `
+            -Parent $resolvedBackupRoot `
+            -Directory $createdFinalDirectory `
+            -AllowedLeafPattern $script:LedgerSyncBackupDirectoryPattern
     }
 }

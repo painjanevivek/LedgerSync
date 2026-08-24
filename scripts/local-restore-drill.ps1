@@ -24,6 +24,7 @@ $restoreProject = "ledgersync-restore-$((Get-Date).ToUniversalTime().ToString('y
 $restoreComposeFile = Join-Path $script:LedgerSyncRepositoryRoot "deploy\compose\docker-compose.restore.yml"
 $restoreCreated = $false
 $startedAt = [DateTimeOffset]::UtcNow
+$resolvedBackupRoot = $null
 
 function Invoke-LedgerSyncRestoreCompose {
     param(
@@ -81,10 +82,39 @@ SELECT json_build_object(
     return ([string]$json[0] | ConvertFrom-Json)
 }
 
+function Get-LedgerSyncComposeStateFingerprint {
+    $rows = @(Get-LedgerSyncComposeRows | Sort-Object Service)
+    return (($rows | ForEach-Object {
+        "$($_.Service)|$($_.ID)|$($_.State)|$($_.Health)|$($_.ExitCode)"
+    }) -join "`n")
+}
+
+function Get-LedgerSyncRestoreProjectResources {
+    $containers = @(& docker ps -a --filter "label=com.docker.compose.project=$restoreProject" --format '{{.ID}}')
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect isolated restore containers." }
+    $volumes = @(& docker volume ls --filter "label=com.docker.compose.project=$restoreProject" --format '{{.Name}}')
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect isolated restore volumes." }
+    $networks = @(& docker network ls --filter "label=com.docker.compose.project=$restoreProject" --format '{{.ID}}')
+    if ($LASTEXITCODE -ne 0) { throw "Could not inspect isolated restore networks." }
+    return [pscustomobject]@{
+        Containers = @($containers | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        Volumes = @($volumes | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+        Networks = @($networks | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    }
+}
+
 try {
     Assert-LedgerSyncDockerAvailable
     Assert-LedgerSyncOneShotServicesCompleted
     Assert-LedgerSyncLongRunningServicesHealthy
+
+    $resolvedBackupRoot = Resolve-LedgerSyncBackupRoot -BackupRoot $BackupRoot
+    if (-not [string]::IsNullOrWhiteSpace($BackupDirectory) -and
+        [string]::IsNullOrWhiteSpace($BackupRoot)) {
+        # Explicit bundles remain bound to the canonical default root unless
+        # the operator explicitly supplies a different dedicated root.
+        $BackupRoot = $resolvedBackupRoot
+    }
 
     if ([string]::IsNullOrWhiteSpace($BackupDirectory)) {
         $backupCommand = @(
@@ -107,18 +137,26 @@ try {
 
     # Integrity validation, including the mutation proof, is completed before an
     # isolated database or volume is created.
-    $backup = Assert-LedgerSyncBackupBundle -BackupDirectory $BackupDirectory
+    $resolvedBackupRoot = Resolve-LedgerSyncBackupRoot -BackupRoot $BackupRoot
+    $backup = Assert-LedgerSyncBackupBundle `
+        -BackupDirectory $BackupDirectory -BackupRoot $resolvedBackupRoot
     if (-not $SkipCorruptionGuard) {
-        Test-LedgerSyncBackupCorruptionGuard -BackupDirectory $backup.Directory | Out-Null
+        Test-LedgerSyncBackupCorruptionGuard `
+            -BackupDirectory $backup.Directory -BackupRoot $resolvedBackupRoot | Out-Null
         Write-Output "CORRUPTION_GUARD=PASS"
     }
     Write-Output "BACKUP_VALIDATION=PASS"
     if ($ValidateOnly) {
+        $validationIndex = Write-LedgerSyncRecoveryEvidenceIndex `
+            -BackupRoot $resolvedBackupRoot -RetentionCount $RetentionCount
+        Write-Output "RECOVERY_EVIDENCE_INDEX=$script:LedgerSyncRecoveryEvidenceFileName"
+        Write-Output "RECOVERY_EVIDENCE_JSON=$($validationIndex | ConvertTo-Json -Depth 8 -Compress)"
         Write-Output "VALIDATE_ONLY=PASS"
         return
     }
 
     $normalBefore = Get-LedgerSyncFinancialFingerprint
+    $normalComposeStateBefore = Get-LedgerSyncComposeStateFingerprint
     $normalVolumesBefore = @(docker volume ls `
         --filter "label=com.docker.compose.project=$script:LedgerSyncComposeProject" `
         --format '{{.Name}}' | Sort-Object)
@@ -137,9 +175,14 @@ try {
     }
     $env:LEDGERSYNC_RECOVERY_IMAGE = $apiImage
 
+    $collision = Get-LedgerSyncRestoreProjectResources
+    if ($collision.Containers.Count -ne 0 -or $collision.Volumes.Count -ne 0 -or $collision.Networks.Count -ne 0) {
+        throw "The uniquely generated isolated restore project collided with existing Docker resources."
+    }
+    Write-Output "RESTORE_PROJECT=$restoreProject"
     Invoke-LedgerSyncRestoreCompose -Arguments @("config", "-q")
-    Invoke-LedgerSyncRestoreCompose -Arguments @("up", "-d", "--wait", "postgres", "redis")
     $restoreCreated = $true
+    Invoke-LedgerSyncRestoreCompose -Arguments @("up", "-d", "--wait", "postgres", "redis")
 
     $postgresOutput = @(Invoke-LedgerSyncRestoreCompose -Arguments @("ps", "-q", "postgres") -CaptureOutput)
     $postgresContainer = ([string]($postgresOutput | Select-Object -Last 1)).Trim()
@@ -195,6 +238,10 @@ try {
 
     $normalAfter = Get-LedgerSyncFinancialFingerprint
     Compare-LedgerSyncFinancialFingerprint -Before $normalBefore -After $normalAfter
+    $normalComposeStateAfter = Get-LedgerSyncComposeStateFingerprint
+    if ($normalComposeStateBefore -cne $normalComposeStateAfter) {
+        throw "The normal Compose service identity or health state changed during the isolated restore."
+    }
     $normalVolumesAfter = @(docker volume ls `
         --filter "label=com.docker.compose.project=$script:LedgerSyncComposeProject" `
         --format '{{.Name}}' | Sort-Object)
@@ -203,6 +250,11 @@ try {
     }
 
     $elapsedSeconds = [Math]::Round(([DateTimeOffset]::UtcNow - $startedAt).TotalSeconds, 2)
+    Write-LedgerSyncRestoreEvidence -Backup $backup `
+        -ReconciliationStatus ([string]$reconciliationParts[0]) `
+        -LocalRTOSeconds $elapsedSeconds | Out-Null
+    $recoveryIndex = Write-LedgerSyncRecoveryEvidenceIndex `
+        -BackupRoot $resolvedBackupRoot -RetentionCount $RetentionCount
     Write-Output "RESTORE_DRILL=PASS"
     Write-Output "RESTORE_PROJECT=$restoreProject"
     Write-Output "BACKUP_DIRECTORY=$($backup.Directory)"
@@ -214,6 +266,8 @@ try {
     Write-Output "NORMAL_PROJECT_UNCHANGED=PASS"
     Write-Output "LOCAL_RTO_SECONDS=$elapsedSeconds"
     Write-Output "RECONCILE=$($reconciliationOutput -join ' ')"
+    Write-Output "RECOVERY_EVIDENCE_INDEX=$script:LedgerSyncRecoveryEvidenceFileName"
+    Write-Output "RECOVERY_EVIDENCE_JSON=$($recoveryIndex | ConvertTo-Json -Depth 8 -Compress)"
 }
 catch {
     Write-Error $_
@@ -228,7 +282,13 @@ finally {
         else {
             & docker compose -p $restoreProject -f $restoreComposeFile down `
                 --volumes --remove-orphans --timeout 10 | Out-Null
-            Write-Output "CLEANUP=COMPLETE"
+            $remaining = Get-LedgerSyncRestoreProjectResources
+            if ($remaining.Containers.Count -ne 0 -or $remaining.Volumes.Count -ne 0 -or $remaining.Networks.Count -ne 0) {
+                Write-Error "Isolated restore cleanup left project-owned Docker resources."
+            }
+            else {
+                Write-Output "CLEANUP=COMPLETE"
+            }
         }
     }
     Remove-Item Env:LEDGERSYNC_RECOVERY_IMAGE -ErrorAction SilentlyContinue

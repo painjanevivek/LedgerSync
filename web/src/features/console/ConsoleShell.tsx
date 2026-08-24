@@ -8,6 +8,7 @@ import {
   Pulse,
   Broadcast,
   Code,
+  Archive,
   ShieldCheck,
   SignOut,
   UserCircle,
@@ -17,7 +18,7 @@ import {
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-export type ConsoleSection = "overview" | "accounts" | "transfers" | "reconciliation" | "local-status" | "events" | "developer";
+export type ConsoleSection = "overview" | "accounts" | "transfers" | "reconciliation" | "local-status" | "events" | "developer" | "recovery";
 
 type Props = Readonly<{
   section: ConsoleSection;
@@ -32,13 +33,18 @@ type Props = Readonly<{
 }>;
 
 const navigation = [
-  { section: "overview" as const, label: "Overview", href: "/", icon: ChartDonut },
-  { section: "accounts" as const, label: "Accounts", href: "/accounts", icon: Bank },
-  { section: "transfers" as const, label: "Transfers", href: "/transfers", icon: ArrowsLeftRight },
-  { section: "reconciliation" as const, label: "Reconciliation", href: "/reconciliation", icon: ShieldCheck },
-  { section: "local-status" as const, label: "Local status", href: "/local-status", icon: Pulse },
-  { section: "events" as const, label: "Events", href: "/events", icon: Broadcast },
-  { section: "developer" as const, label: "Developer", href: "/developer", icon: Code },
+  { label: "Financial workspace", items: [
+    { section: "overview" as const, label: "Overview", href: "/", icon: ChartDonut },
+    { section: "accounts" as const, label: "Accounts", href: "/accounts", icon: Bank },
+    { section: "transfers" as const, label: "Transfers", href: "/transfers", icon: ArrowsLeftRight },
+    { section: "reconciliation" as const, label: "Reconciliation", href: "/reconciliation", icon: ShieldCheck },
+  ] },
+  { label: "Local tools", items: [
+    { section: "local-status" as const, label: "Local status", href: "/local-status", icon: Pulse },
+    { section: "events" as const, label: "Events", href: "/events", icon: Broadcast },
+    { section: "developer" as const, label: "Developer", href: "/developer", icon: Code },
+    { section: "recovery" as const, label: "Recovery", href: "/recovery", icon: Archive },
+  ] },
 ];
 
 export function ConsoleShell({
@@ -80,13 +86,13 @@ export function ConsoleShell({
       </div>
 
       <nav className="primary-nav" aria-label="Primary navigation">
-        {navigation.map((item) => {
-          const Icon = item.icon;
-          return <Link key={item.section} href={item.href} onClick={() => setNavigationOpen(false)} className={section === item.section ? "nav-item active" : "nav-item"} aria-current={section === item.section ? "page" : undefined}>
-            <Icon weight={section === item.section ? "fill" : "regular"} aria-hidden="true" />
-            <span>{item.label}</span>
-          </Link>;
-        })}
+        {navigation.map((group) => <div className="nav-group" key={group.label}><p className="nav-section-label">{group.label}</p>{group.items.map((item) => {
+            const Icon = item.icon;
+            return <Link key={item.section} href={item.href} onClick={() => setNavigationOpen(false)} className={section === item.section ? "nav-item active" : "nav-item"} aria-current={section === item.section ? "page" : undefined}>
+              <Icon weight={section === item.section ? "fill" : "regular"} aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>;
+          })}</div>)}
       </nav>
 
       <div className="nav-footer">

@@ -90,3 +90,16 @@ func TestLoadRequiresExplicitPilotCurrencyOutsideDevelopment(t *testing.T) {
 		t.Fatal("production accepted an implicit pilot currency")
 	}
 }
+
+func TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "data/local-backups")
+	if _, err := Load(); err == nil {
+		t.Fatal("relative recovery evidence root was accepted")
+	}
+	t.Setenv("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "/run/ledgersync/recovery")
+	configuration, err := Load()
+	if err != nil || configuration.RecoveryEvidenceRoot != "/run/ledgersync/recovery" {
+		t.Fatalf("absolute recovery root=%q error=%v", configuration.RecoveryEvidenceRoot, err)
+	}
+}

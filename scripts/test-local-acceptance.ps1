@@ -124,7 +124,8 @@ try {
     if ($backupLine.Count -ne 1) { throw "Acceptance backup returned no exact directory." }
     $backupDirectory = ([string]$backupLine[0]).Substring("BACKUP_DIRECTORY=".Length)
     $restoreOutput = @(& pwsh -NoProfile -File (Join-Path $PSScriptRoot "local-restore-drill.ps1") `
-        -ComposeProject $acceptanceProject -BackupDirectory $backupDirectory -SkipCorruptionGuard)
+        -ComposeProject $acceptanceProject -BackupDirectory $backupDirectory `
+        -BackupRoot $backupRoot -SkipCorruptionGuard)
     if ($LASTEXITCODE -ne 0 -or ($restoreOutput -join " ") -notmatch 'RESTORE_DRILL=PASS' -or
         ($restoreOutput -join " ") -notmatch 'NORMAL_PROJECT_UNCHANGED=PASS') {
         throw "Acceptance isolated restore did not pass."

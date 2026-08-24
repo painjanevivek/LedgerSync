@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
+import type { ReactNode } from "react";
 
 import type { Account, Transaction } from "@/features/accounts/types";
 import { Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
@@ -14,11 +15,12 @@ type Props = Readonly<{
   error: string | null;
   nextCursor?: string;
   onNext: () => void;
+  exportAction?: ReactNode;
 }>;
 
-export function TransactionLedger({ transactions, account, loading, error, nextCursor, onNext }: Props) {
+export function TransactionLedger({ transactions, account, loading, error, nextCursor, onNext, exportAction }: Props) {
   return <section className="ledger-section" aria-labelledby="transactions-heading" aria-busy={loading}>
-    <div className="section-heading"><div><p className="eyebrow">Immutable activity</p><h2 id="transactions-heading">Ledger entries</h2><p>{account ? `${accountLabel(account)} · ${account.currency}` : "Select an account to inspect its postings."}</p></div></div>
+    <div className="section-heading"><div><p className="eyebrow">Immutable activity</p><h2 id="transactions-heading">Ledger entries</h2><p>{account ? `${accountLabel(account)} · ${account.currency}` : "Select an account to inspect its postings."}</p></div>{exportAction}</div>
     {loading && transactions.length === 0 && <StatePanel title="Loading ledger history" message="Reading immutable postings from the authorized account scope." />}
     {error && <StatePanel kind="error" title="Ledger history unavailable" message={error} />}
     {!loading && !error && transactions.length === 0 && <StatePanel title="No ledger entries" message="This account has no posted transfer history in the available window." />}
