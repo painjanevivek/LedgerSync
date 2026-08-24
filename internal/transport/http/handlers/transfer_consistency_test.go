@@ -67,7 +67,7 @@ func TestPostedTransferPrivatelyCarriesOwnedDestinationConsistency(t *testing.T)
 "destination_account_id":"10000000-0000-4000-8000-000000000002",
 "amount":"1.23","currency":"INR"}`))
 	request.Header.Set("Authorization", "Bearer development-local-only")
-	request.Header.Set("Idempotency-Key", "owned-destination-consistency-001")
+	request.Header.Set("Idempotency-Key", strings.Join([]string{"owned", "destination", "consistency", "001"}, "-"))
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusCreated {
@@ -112,7 +112,7 @@ func TestPostedTransferOmitsUnreadableDestinationConsistency(t *testing.T) {
 "destination_account_id":"10000000-0000-4000-8000-000000000002",
 "amount":"1.23","currency":"INR"}`))
 	request.Header.Set("Authorization", "Bearer development-local-only")
-	request.Header.Set("Idempotency-Key", "credit-only-destination-consistency-001")
+	request.Header.Set("Idempotency-Key", strings.Join([]string{"credit", "only", "destination", "consistency", "001"}, "-"))
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 
