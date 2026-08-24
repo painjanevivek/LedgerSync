@@ -1,10 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 
-import type { Account } from "@/features/accounts/types";
+import type { TransferDetail } from "@/features/accounts/types";
+import {
+  createStoredTransferIntent,
+  parseStoredTransferIntent,
+  type PreparedTransfer,
+  storedIntentMatches,
+  type StoredTransferIntent,
+  transferIntentStorageKey,
+} from "@/features/transfers/transferIntent";
+import type { TransferBalance, TransferResult } from "@/lib/api/transfers";
 
-export type TransferOutcome = {
+export type TransferOutcome = Readonly<{
   kind: "success" | "error" | "unknown";
   message: string;
   transferId?: string;
@@ -12,55 +21,161 @@ export type TransferOutcome = {
   currency?: string;
   source?: string;
   destination?: string;
-} | null;
+  occurredAt?: string;
+  journalTransactionId?: string;
+  balances?: TransferBalance[];
+}> | null;
 
-export type PreparedTransfer = Readonly<{ source: Account; destination: Account; amountMinor: string }>;
+type TransferErrorPayload = Readonly<{ error?: { code?: string } }>;
 
-function storageKey(tenant: string) { return `ledgersync.transfer.idempotency.${tenant}`; }
+const unknownOutcome: TransferOutcome = {
+  kind: "unknown",
+  message: "The result is not confirmed. Retry this exact transfer; LedgerSync will reuse its existing idempotency key.",
+};
+
+function isDefinitiveRejection(status: number, code?: string): boolean {
+  if (["insufficient_funds", "transfer_policy_denied", "account_inactive", "idempotency_conflict", "validation_failed", "csrf_failed", "forbidden", "unauthorized"].includes(code ?? "")) return true;
+  return status >= 400 && status < 500 && status !== 408 && status !== 429 && code !== "idempotency_in_progress";
+}
 
 export function useTransferSubmission(tenantId: string, csrfToken: string, onPosted: () => Promise<void>) {
   const [pending, setPending] = useState(false);
   const [outcome, setOutcome] = useState<TransferOutcome>(null);
-  const idempotencyKey = useRef<string | null>(null);
+  const storageKey = transferIntentStorageKey(tenantId);
+  const subscribe = useCallback((notify: () => void) => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.storageArea === sessionStorage && event.key === storageKey) notify();
+    };
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("ledgersync-transfer-intent", notify);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("ledgersync-transfer-intent", notify);
+    };
+  }, [storageKey]);
+  const getSnapshot = useCallback(() => sessionStorage.getItem(storageKey), [storageKey]);
+  const rawStoredIntent = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  const storedIntent = useMemo(() => parseStoredTransferIntent(rawStoredIntent), [rawStoredIntent]);
+
+  function notifyIntentChanged() {
+    window.dispatchEvent(new Event("ledgersync-transfer-intent"));
+  }
+
+  function saveIntent(intent: StoredTransferIntent) {
+    sessionStorage.setItem(storageKey, JSON.stringify(intent));
+    notifyIntentChanged();
+  }
+
+  function clearIntent() {
+    sessionStorage.removeItem(storageKey);
+    notifyIntentChanged();
+  }
+
+  async function loadTransferDetail(transferId: string): Promise<TransferDetail | null> {
+    try {
+      const response = await fetch(`/api/transfers/${encodeURIComponent(transferId)}`, { cache: "no-store" });
+      if (!response.ok) return null;
+      const detail = await response.json() as TransferDetail;
+      return detail.transfer_id === transferId ? detail : null;
+    } catch {
+      return null;
+    }
+  }
 
   async function submit(prepared: PreparedTransfer) {
     if (pending) return false;
+
+    const persisted = parseStoredTransferIntent(sessionStorage.getItem(storageKey)) ?? storedIntent;
+    if (persisted && !storedIntentMatches(persisted, prepared)) {
+      setOutcome({
+        kind: "unknown",
+        message: "A different transfer intent is still unconfirmed. LedgerSync refused to reuse its key. Reload to restore that exact transfer before retrying.",
+      });
+      return false;
+    }
+
+    const intent = persisted ?? createStoredTransferIntent(crypto.randomUUID(), prepared);
+    if (!persisted) saveIntent(intent);
     setPending(true);
     setOutcome(null);
+
+    let response: Response;
+    let payload: (TransferResult & TransferErrorPayload) | TransferErrorPayload;
     try {
-      const stored = sessionStorage.getItem(storageKey(tenantId));
-      const requestKey = idempotencyKey.current ?? stored ?? crypto.randomUUID();
-      idempotencyKey.current = requestKey;
-      if (!stored) sessionStorage.setItem(storageKey(tenantId), requestKey);
-      const response = await fetch("/api/transfers", {
+      response = await fetch("/api/transfers", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken, "Idempotency-Key": requestKey },
-        body: JSON.stringify({ sourceAccountId: prepared.source.account_id, destinationAccountId: prepared.destination.account_id, amount: { currency: prepared.source.currency, minorUnits: prepared.amountMinor } }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+          "Idempotency-Key": intent.idempotencyKey,
+        },
+        body: JSON.stringify({
+          sourceAccountId: intent.sourceAccountId,
+          destinationAccountId: intent.destinationAccountId,
+          amount: { currency: intent.currency, minorUnits: intent.amountMinor },
+        }),
       });
-      const payload = await response.json().catch(() => ({})) as { transfer_id?: string; error?: { code?: string } };
-      if (response.ok && payload.transfer_id) {
-        sessionStorage.removeItem(storageKey(tenantId));
-        idempotencyKey.current = null;
-        setOutcome({ kind: "success", message: "The ledger posting committed exactly once. Affected balances were refreshed.", transferId: payload.transfer_id, amountMinor: prepared.amountMinor, currency: prepared.source.currency, source: prepared.source.account_id, destination: prepared.destination.account_id });
-        await onPosted();
-        return true;
-      }
-      if (response.status === 409 && payload.error?.code === "insufficient_funds") {
-        setOutcome({ kind: "error", message: "Transfer rejected — insufficient posted balance. No money moved." });
-      } else if (response.status === 409 && payload.error?.code === "idempotency_conflict") {
-        sessionStorage.removeItem(storageKey(tenantId));
-        idempotencyKey.current = null;
-        setOutcome({ kind: "error", message: "This retry key belongs to a different transfer request. Return to edit to create a genuinely new intent." });
-      } else {
-        setOutcome({ kind: "unknown", message: "The result is not confirmed. Retry this same transfer; LedgerSync will reuse the existing idempotency key." });
-      }
+      payload = await response.json().catch(() => ({})) as (TransferResult & TransferErrorPayload) | TransferErrorPayload;
     } catch {
-      setOutcome({ kind: "unknown", message: "The result is not confirmed. Retry this same transfer; LedgerSync will reuse the existing idempotency key." });
-    } finally {
+      setOutcome(unknownOutcome);
       setPending(false);
+      return false;
     }
+
+    if (response.ok && "transfer_id" in payload && payload.transfer_id && payload.status === "posted") {
+      clearIntent();
+      const balances = Object.values(payload.balances ?? {});
+      const baseOutcome: TransferOutcome = {
+        kind: "success",
+        message: "The ledger posting committed exactly once. Committed balance versions are shown below.",
+        transferId: payload.transfer_id,
+        amountMinor: payload.amount_minor || intent.amountMinor,
+        currency: payload.currency || intent.currency,
+        source: intent.sourceAccountId,
+        destination: intent.destinationAccountId,
+        occurredAt: payload.occurred_at,
+        balances,
+      };
+      setOutcome(baseOutcome);
+      setPending(false);
+
+      const [detail] = await Promise.all([
+        loadTransferDetail(payload.transfer_id),
+        onPosted().catch(() => undefined),
+      ]);
+      if (detail) {
+        setOutcome({
+          ...baseOutcome,
+          occurredAt: detail.completed_at || payload.occurred_at,
+          journalTransactionId: detail.journal_transaction_id,
+        });
+      }
+      return true;
+    }
+
+    const code = "error" in payload ? payload.error?.code : undefined;
+    if (isDefinitiveRejection(response.status, code)) {
+      clearIntent();
+      if (code === "insufficient_funds") {
+        setOutcome({ kind: "error", message: "Transfer rejected — insufficient posted balance. No money moved." });
+      } else if (code === "idempotency_conflict") {
+        setOutcome({ kind: "error", message: "This retry key belongs to a different transfer request. The conflicting local key was cleared; review before creating a new intent." });
+      } else {
+        setOutcome({ kind: "error", message: "Transfer not posted. The request reached a final rejection, so no unknown movement remains." });
+      }
+    } else {
+      setOutcome(unknownOutcome);
+    }
+    setPending(false);
     return false;
   }
 
-  return { outcome, pending, setOutcome, submit };
+  const visibleOutcome = outcome ?? (storedIntent ? {
+    kind: "unknown" as const,
+    message: "An unconfirmed transfer was restored after navigation or reload. Editing is locked; retry this exact intent with its original key.",
+  } : null);
+
+  return { outcome: visibleOutcome, pending, setOutcome, storedIntent, submit };
 }
+
+export type { PreparedTransfer } from "@/features/transfers/transferIntent";
