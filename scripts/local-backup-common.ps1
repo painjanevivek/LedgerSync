@@ -4,6 +4,123 @@ $ErrorActionPreference = "Stop"
 $script:LedgerSyncBackupFormatVersion = "ledgersync-local-backup/v1"
 $script:LedgerSyncBackupDirectoryPattern = '^backup-\d{8}T\d{6}Z-[0-9a-f]{7,40}$'
 
+function Invoke-LedgerSyncFileToContainerCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourcePath,
+        [Parameter(Mandatory = $true)][string]$ContainerID,
+        [Parameter(Mandatory = $true)][string[]]$CommandArguments
+    )
+
+    $resolvedSource = [IO.Path]::GetFullPath($SourcePath)
+    if (-not (Test-Path -LiteralPath $resolvedSource -PathType Leaf)) {
+        throw "The bounded container-copy source does not exist."
+    }
+    if ($ContainerID -cnotmatch '^[0-9a-f]{12,64}$') {
+        throw "The bounded container-copy target is not an exact container ID."
+    }
+    if ($CommandArguments.Count -lt 1 -or @($CommandArguments | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -ne 0) {
+        throw "The bounded container command is empty or malformed."
+    }
+
+    # `docker cp` rejects writes to containers whose root filesystem is marked
+    # read-only, even when the destination is a writable tmpfs. Stream through
+    # the container process instead; byte copying avoids PowerShell text
+    # transcoding and keeps the hardened rootfs contract intact.
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = "docker"
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardInput = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    foreach ($argument in @("exec", "-i", $ContainerID) + $CommandArguments) {
+        [void]$startInfo.ArgumentList.Add($argument)
+    }
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    $source = $null
+    try {
+        if (-not $process.Start()) { throw "Could not start the bounded container copy." }
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $source = [IO.File]::OpenRead($resolvedSource)
+        $source.CopyTo($process.StandardInput.BaseStream)
+        $process.StandardInput.Close()
+        $process.WaitForExit()
+        $stdoutTask.GetAwaiter().GetResult() | Out-Null
+        $stderr = $stderrTask.GetAwaiter().GetResult()
+        if ($process.ExitCode -ne 0) {
+            throw "The bounded container copy failed: $($stderr.Trim())"
+        }
+    }
+    finally {
+        if ($null -ne $source) { $source.Dispose() }
+        $process.Dispose()
+    }
+}
+
+function Copy-LedgerSyncFileToContainer {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourcePath,
+        [Parameter(Mandatory = $true)][string]$ContainerID,
+        [Parameter(Mandatory = $true)][string]$ContainerPath
+    )
+    if ($ContainerPath -cnotmatch '^/tmp/[a-zA-Z0-9._-]+$') {
+        throw "The bounded container-copy destination is not an approved /tmp path."
+    }
+    Invoke-LedgerSyncFileToContainerCommand -SourcePath $SourcePath -ContainerID $ContainerID `
+        -CommandArguments @("sh", "-c", "cat > '$ContainerPath'")
+}
+
+function Invoke-LedgerSyncContainerCommandToFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerID,
+        [Parameter(Mandatory = $true)][string[]]$CommandArguments,
+        [Parameter(Mandatory = $true)][string]$DestinationPath
+    )
+    if ($ContainerID -cnotmatch '^[0-9a-f]{12,64}$') {
+        throw "The bounded container-stream source is not an exact container ID."
+    }
+    if ($CommandArguments.Count -lt 1 -or @($CommandArguments | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -ne 0) {
+        throw "The bounded container-stream command is empty or malformed."
+    }
+    $resolvedDestination = [IO.Path]::GetFullPath($DestinationPath)
+    $destinationParent = Split-Path -Parent $resolvedDestination
+    if (-not (Test-Path -LiteralPath $destinationParent -PathType Container)) {
+        throw "The bounded container-stream destination parent does not exist."
+    }
+
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = "docker"
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    foreach ($argument in @("exec", $ContainerID) + $CommandArguments) {
+        [void]$startInfo.ArgumentList.Add($argument)
+    }
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    $destination = $null
+    try {
+        if (-not $process.Start()) { throw "Could not start the bounded container stream." }
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $destination = [IO.File]::Open($resolvedDestination, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        $process.StandardOutput.BaseStream.CopyTo($destination)
+        $destination.Flush($true)
+        $destination.Dispose()
+        $destination = $null
+        $process.WaitForExit()
+        $stderr = $stderrTask.GetAwaiter().GetResult()
+        if ($process.ExitCode -ne 0) {
+            Remove-Item -LiteralPath $resolvedDestination -Force -ErrorAction SilentlyContinue
+            throw "The bounded container stream failed: $($stderr.Trim())"
+        }
+    }
+    finally {
+        if ($null -ne $destination) { $destination.Dispose() }
+        $process.Dispose()
+    }
+}
+
 function Resolve-LedgerSyncBackupRoot {
     param([string]$BackupRoot)
 

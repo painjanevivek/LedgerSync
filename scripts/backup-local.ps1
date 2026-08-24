@@ -43,7 +43,6 @@ try {
     New-Item -ItemType Directory -Path $partialDirectory | Out-Null
     $dumpPath = Join-Path $partialDirectory "database.dump"
     $snapshotPrefix = "/tmp/ledgersync-backup-$([Guid]::NewGuid().ToString('N'))"
-    $remoteDumpPath = "$snapshotPrefix.dump"
     $remoteControllerPath = "$snapshotPrefix.sql"
     $remoteSnapshotPath = "$snapshotPrefix.snapshot"
     $remoteEvidencePath = "$snapshotPrefix.evidence"
@@ -77,10 +76,8 @@ COMMIT;
 \! touch $remoteDonePath
 "@
     $controllerSql.Replace("`r", "") | Set-Content -LiteralPath $localControllerPath -Encoding utf8 -NoNewline
-    & docker cp $localControllerPath "${postgresContainer}:${remoteControllerPath}" | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not stage the consistent-snapshot controller."
-    }
+    Copy-LedgerSyncFileToContainer -SourcePath $localControllerPath `
+        -ContainerID $postgresContainer -ContainerPath $remoteControllerPath
     Remove-Item -LiteralPath $localControllerPath -Force
 
     $controllerCommand = "psql -XAt -v ON_ERROR_STOP=1 -U ledgersync -d ledgersync -f $remoteControllerPath >/dev/null 2>$remoteErrorPath"
@@ -111,12 +108,11 @@ COMMIT;
         throw "PostgreSQL returned a malformed exported snapshot identifier."
     }
 
-    & docker exec $postgresContainer pg_dump `
-        -U ledgersync -d ledgersync -Fc --no-owner --no-privileges `
-        --snapshot=$snapshotId -f $remoteDumpPath
-    if ($LASTEXITCODE -ne 0) {
-        throw "PostgreSQL logical backup failed."
-    }
+    Invoke-LedgerSyncContainerCommandToFile -ContainerID $postgresContainer `
+        -CommandArguments @(
+            "pg_dump", "-U", "ledgersync", "-d", "ledgersync", "-Fc",
+            "--no-owner", "--no-privileges", "--snapshot=$snapshotId"
+        ) -DestinationPath $dumpPath
     & docker exec $postgresContainer touch $remoteReleasePath
     if ($LASTEXITCODE -ne 0) {
         throw "Could not release the consistent backup snapshot."
@@ -138,10 +134,6 @@ COMMIT;
         throw "PostgreSQL snapshot evidence did not finish within 30 seconds. $($controllerError -join ' ')"
     }
 
-    & docker cp "${postgresContainer}:${remoteDumpPath}" $dumpPath | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not copy the completed PostgreSQL backup into local protected storage."
-    }
     $evidenceJson = @(& docker exec $postgresContainer sh -c "cat $remoteEvidencePath")
     if ($LASTEXITCODE -ne 0 -or $evidenceJson.Count -ne 1 -or -not ([string]$evidenceJson[0]).TrimStart().StartsWith("{")) {
         throw "Backup snapshot evidence did not return one bounded result."

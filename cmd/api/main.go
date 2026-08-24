@@ -167,7 +167,7 @@ func main() {
 				slog.Error("history service initialization failed", "error", err)
 				os.Exit(1)
 			}
-			transferHandler := handlers.NewTransferHandler(service, provider, issuer)
+			transferHandler := handlers.NewTransferHandler(service, provider, issuer).WithConsistencyBalanceReader(balanceRepository)
 			balanceHandler := handlers.NewBalanceHandler(balanceReader, provider)
 			accountsHandler := handlers.NewAccountsHandler(accountService, provider)
 			transactionsHandler := handlers.NewTransactionsHandler(history, provider)

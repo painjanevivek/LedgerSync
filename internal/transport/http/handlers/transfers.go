@@ -4,12 +4,14 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
@@ -26,10 +28,15 @@ type TransferHandler struct {
 	identity      identity.Provider
 	authenticator *identity.RequestAuthenticator
 	issuer        *consistency.Issuer
+	balanceReader consistencyBalanceReader
 	rateLimiter   RateLimiter
 	rateLimit     int
 	capacityLimit int
 	audit         AuditRecorder
+}
+
+type consistencyBalanceReader interface {
+	ReadCurrent(context.Context, string, string, string) (accounts.Balance, error)
 }
 
 func NewTransferHandler(service *transfers.Service, provider identity.Provider, issuers ...*consistency.Issuer) *TransferHandler {
@@ -49,6 +56,15 @@ func (h *TransferHandler) WithBFFAssertionSecret(secret string) *TransferHandler
 
 func (h *TransferHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransferHandler {
 	h.authenticator = authenticator
+	return h
+}
+
+// WithConsistencyBalanceReader lets the handler add a private read-your-writes
+// requirement for an owned destination account. The destination balance and
+// version remain absent from the public transfer result; credit-only actors do
+// not receive a requirement for accounts they cannot read.
+func (h *TransferHandler) WithConsistencyBalanceReader(reader consistencyBalanceReader) *TransferHandler {
+	h.balanceReader = reader
 	return h
 }
 
@@ -130,8 +146,17 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		writer.Header().Set("Idempotent-Replay", "true")
 	}
 	if h.issuer != nil && submission.Result.Status == "posted" {
-		requirements := make(map[string]string, len(submission.Result.MinimumBalanceVersions))
+		versions := make(map[string]int64, len(submission.Result.MinimumBalanceVersions)+1)
 		for accountID, version := range submission.Result.MinimumBalanceVersions {
+			versions[accountID] = version
+		}
+		if h.balanceReader != nil {
+			if destination, readErr := h.balanceReader.ReadCurrent(request.Context(), principal.TenantID, principal.SubjectID, input.DestinationAccountID); readErr == nil {
+				versions[destination.AccountID] = destination.Version
+			}
+		}
+		requirements := make(map[string]string, len(versions))
+		for accountID, version := range versions {
 			requirement, err := h.issuer.Issue(principal.TenantID, accountID, version)
 			if err != nil {
 				httptransport.WriteError(writer, request, err)

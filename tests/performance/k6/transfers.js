@@ -4,6 +4,7 @@ import { Counter, Trend } from "k6/metrics";
 
 const baseURL = (__ENV.LEDGERSYNC_PERF_BFF_URL || "").replace(/\/$/, "");
 const publicOrigin = (__ENV.LEDGERSYNC_PERF_PUBLIC_ORIGIN || baseURL).replace(/\/$/, "");
+const publicHost = publicOrigin.replace(/^https?:\/\//, "").split("/")[0];
 const sourceAccountId = __ENV.LEDGERSYNC_PERF_SOURCE_ACCOUNT;
 const destinationAccountId = __ENV.LEDGERSYNC_PERF_DESTINATION_ACCOUNT;
 const workloadShape = (__ENV.LEDGERSYNC_PERF_WORKLOAD_SHAPE || "hot").toLowerCase();
@@ -103,6 +104,11 @@ function sendTransfer(key, pair, journey = "transfer", timeout = undefined) {
       "Idempotency-Key": key,
       "X-CSRF-Token": csrfToken,
       Origin: publicOrigin,
+      // Docker reaches the loopback-published BFF through host.docker.internal,
+      // but a browser presents the configured public Host. Preserve that
+      // contract so the load client exercises, rather than bypasses, the
+      // DNS-rebinding defense.
+      Host: publicHost,
     },
     tags: { journey, workload_shape: workloadShape },
   };

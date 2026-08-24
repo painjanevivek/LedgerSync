@@ -149,15 +149,11 @@ try {
         throw "Could not resolve the isolated recovery containers."
     }
 
-    & docker cp $backup.DumpPath "${postgresContainer}:/tmp/ledgersync.dump" | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not copy the validated dump into the isolated restore database."
-    }
-    & docker exec $postgresContainer pg_restore -U ledgersync -d ledgersync `
-        --no-owner --no-privileges --exit-on-error /tmp/ledgersync.dump
-    if ($LASTEXITCODE -ne 0) {
-        throw "PostgreSQL restore failed."
-    }
+    Invoke-LedgerSyncFileToContainerCommand -SourcePath $backup.DumpPath `
+        -ContainerID $postgresContainer -CommandArguments @(
+            "pg_restore", "-U", "ledgersync", "-d", "ledgersync",
+            "--no-owner", "--no-privileges", "--exit-on-error"
+        )
 
     Invoke-LedgerSyncRestoreCompose -Arguments @("--profile", "tooling", "run", "--rm", "migrate")
     $restored = Get-LedgerSyncRestoreEvidence -PostgresContainer $postgresContainer

@@ -3,8 +3,6 @@ $ErrorActionPreference = "Stop"
 
 $script:LedgerSyncRepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $script:LedgerSyncComposeFile = Join-Path $script:LedgerSyncRepositoryRoot "deploy\compose\docker-compose.yml"
-$script:LedgerSyncRuntimeStateDirectory = Join-Path $script:LedgerSyncRepositoryRoot "data\local-runtime"
-$script:LedgerSyncRuntimeEnvironmentFile = Join-Path $script:LedgerSyncRuntimeStateDirectory "runtime.env"
 $script:LedgerSyncWebUrl = "http://127.0.0.1:3000"
 $script:LedgerSyncLongRunningServices = @("postgres", "redis", "api", "outbox-worker", "web")
 $script:LedgerSyncOneShotServices = @("migrate", "demo-seed")
@@ -17,6 +15,26 @@ if ($requestedProject -cnotmatch '^[a-z0-9][a-z0-9_-]{0,62}$') {
     throw "LEDGERSYNC_LOCAL_COMPOSE_PROJECT must contain only lowercase letters, digits, underscores, or hyphens."
 }
 $script:LedgerSyncComposeProject = $requestedProject
+
+$script:LedgerSyncRuntimeStateDirectory = Join-Path $script:LedgerSyncRepositoryRoot "data\local-runtime"
+$requestedStateDirectory = [Environment]::GetEnvironmentVariable("LEDGERSYNC_LOCAL_STATE_DIRECTORY")
+if (-not [string]::IsNullOrWhiteSpace($requestedStateDirectory)) {
+    if ($script:LedgerSyncComposeProject -cnotmatch '^ledgersync-acceptance-\d{14}-[0-9a-f]{8}$') {
+        throw "An isolated state directory is permitted only for an exact LedgerSync acceptance project."
+    }
+    $acceptanceRoot = [IO.Path]::GetFullPath((Join-Path $script:LedgerSyncRepositoryRoot "data\local-acceptance"))
+    $expectedStateDirectory = [IO.Path]::GetFullPath((Join-Path $acceptanceRoot $script:LedgerSyncComposeProject))
+    $resolvedStateDirectory = if ([IO.Path]::IsPathRooted($requestedStateDirectory)) {
+        [IO.Path]::GetFullPath($requestedStateDirectory)
+    } else {
+        [IO.Path]::GetFullPath((Join-Path $script:LedgerSyncRepositoryRoot $requestedStateDirectory))
+    }
+    if (-not $resolvedStateDirectory.Equals($expectedStateDirectory, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "The isolated state directory must exactly match data/local-acceptance/<acceptance-project>."
+    }
+    $script:LedgerSyncRuntimeStateDirectory = $resolvedStateDirectory
+}
+$script:LedgerSyncRuntimeEnvironmentFile = Join-Path $script:LedgerSyncRuntimeStateDirectory "runtime.env"
 
 function New-LedgerSyncLocalSecret {
     $bytes = New-Object byte[] 32

@@ -11,6 +11,9 @@ param(
 
     [string]$OutputPath = '',
 
+    [ValidatePattern('^(compose|ledgersync-acceptance-\d{14}-[0-9a-f]{8})$')]
+    [string]$ComposeProject = 'compose',
+
     [string]$K6Image = 'grafana/k6@sha256:1f40432b1cbe7234e977f96c362c9bc550a2d2b583d014dd8669fe40d3e9e755'
 )
 
@@ -30,6 +33,24 @@ if (-not $capacityOutput.StartsWith($capacityPrefix, [System.StringComparison]::
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $capacityOutput) | Out-Null
 
 $capacityComposeFile = Join-Path $capacityRepository 'deploy/compose/docker-compose.yml'
+$capacityStateDirectory = [Environment]::GetEnvironmentVariable('LEDGERSYNC_LOCAL_STATE_DIRECTORY')
+$capacityEnvironmentFile = if ([string]::IsNullOrWhiteSpace($capacityStateDirectory)) {
+    Join-Path $capacityRepository 'data/local-runtime/runtime.env'
+} else {
+    Join-Path ([IO.Path]::GetFullPath($capacityStateDirectory)) 'runtime.env'
+}
+if (-not (Test-Path -LiteralPath $capacityEnvironmentFile -PathType Leaf)) {
+    throw 'Capacity qualification requires the generated runtime environment file for its exact Compose project.'
+}
+$capacityPostgresContainer = "$ComposeProject-postgres-1"
+$capacityRedisContainer = "$ComposeProject-redis-1"
+$capacityContainerNames = @(
+    "$ComposeProject-api-1",
+    "$ComposeProject-web-1",
+    $capacityPostgresContainer,
+    $capacityRedisContainer,
+    "$ComposeProject-outbox-worker-1"
+)
 $capacitySource = '10000000-0000-4000-8000-000000000001'
 $capacityDestination = '10000000-0000-4000-8000-000000000004'
 $capacityTenant = '00000000-0000-4000-8000-000000000001'
@@ -43,21 +64,21 @@ $capacityPairs = @(
 
 function Invoke-CapacityPostgresScalar {
     param([Parameter(Mandatory)][string]$Query)
-    $capacityValue = & docker exec compose-postgres-1 psql -v ON_ERROR_STOP=1 -U ledgersync -d ledgersync -At -c $Query
+    $capacityValue = & docker exec $capacityPostgresContainer psql -v ON_ERROR_STOP=1 -U ledgersync -d ledgersync -At -c $Query
     if ($LASTEXITCODE -ne 0) { throw "PostgreSQL evidence query failed: $Query" }
     return ($capacityValue | Select-Object -Last 1).Trim()
 }
 
 function Get-CapacityRedisInfo {
     $capacityInfo = @{}
-    $capacityLines = & docker exec compose-redis-1 redis-cli INFO stats
+    $capacityLines = & docker exec $capacityRedisContainer redis-cli INFO stats
     if ($LASTEXITCODE -ne 0) { throw 'Redis evidence query failed.' }
     foreach ($capacityLine in $capacityLines) {
         if ($capacityLine -match '^(total_commands_processed|instantaneous_ops_per_sec|total_error_replies):(.+)$') {
             $capacityInfo[$Matches[1]] = $Matches[2].Trim()
         }
     }
-    $capacityMemory = & docker exec compose-redis-1 redis-cli INFO memory
+    $capacityMemory = & docker exec $capacityRedisContainer redis-cli INFO memory
     if ($LASTEXITCODE -ne 0) { throw 'Redis memory evidence query failed.' }
     foreach ($capacityLine in $capacityMemory) {
         if ($capacityLine -match '^(used_memory|used_memory_peak):(.+)$') {
@@ -67,7 +88,7 @@ function Get-CapacityRedisInfo {
     return $capacityInfo
 }
 
-foreach ($capacityContainer in 'compose-api-1', 'compose-web-1', 'compose-postgres-1', 'compose-redis-1', 'compose-outbox-worker-1') {
+foreach ($capacityContainer in $capacityContainerNames) {
     $capacityRunning = & docker inspect --format '{{.State.Running}}' $capacityContainer 2>$null
     if ($LASTEXITCODE -ne 0 -or $capacityRunning -ne 'true') {
         throw "Required local container is not running: $capacityContainer"
@@ -82,7 +103,7 @@ Invoke-CapacityPostgresScalar -Query 'SELECT pg_stat_reset()' | Out-Null
 $capacityMonitor = Start-Job -ScriptBlock {
     while ($true) {
         $capacityAt = (Get-Date).ToUniversalTime().ToString('O')
-        $capacityDockerRows = & docker stats compose-api-1 compose-web-1 compose-postgres-1 compose-redis-1 compose-outbox-worker-1 --no-stream --format '{{json .}}'
+        $capacityDockerRows = & docker stats $using:capacityContainerNames --no-stream --format '{{json .}}'
         foreach ($capacityDockerRow in $capacityDockerRows) {
             $capacityDocker = $capacityDockerRow | ConvertFrom-Json
             [pscustomobject]@{
@@ -92,11 +113,11 @@ $capacityMonitor = Start-Job -ScriptBlock {
                 Connections = $null; WaitingLocks = $null
             }
         }
-        $capacityDatabase = & docker exec compose-postgres-1 psql -U ledgersync -d ledgersync -At -F '|' -c "SELECT numbackends,(SELECT count(*) FROM pg_stat_activity WHERE datname='ledgersync' AND state='active'),(SELECT count(*) FROM pg_locks WHERE NOT granted) FROM pg_stat_database WHERE datname='ledgersync'"
+        $capacityDatabase = & docker exec $using:capacityPostgresContainer psql -U ledgersync -d ledgersync -At -F '|' -c "SELECT numbackends,(SELECT count(*) FROM pg_stat_activity WHERE datname='ledgersync' AND state='active'),(SELECT count(*) FROM pg_locks WHERE NOT granted) FROM pg_stat_database WHERE datname='ledgersync'"
         if ($LASTEXITCODE -eq 0 -and $capacityDatabase) {
             $capacityFields = ($capacityDatabase | Select-Object -Last 1).Split('|')
             [pscustomobject]@{
-                Kind = 'postgres'; At = $capacityAt; Name = 'compose-postgres-1'
+                Kind = 'postgres'; At = $capacityAt; Name = $using:capacityPostgresContainer
                 CpuPercent = $null; MemoryPercent = $null
                 Connections = [int]$capacityFields[0]
                 ActiveConnections = [int]$capacityFields[1]
@@ -143,6 +164,7 @@ if (-not (Test-Path -LiteralPath $capacityOutput)) {
 
 $capacityCompletedAt = (Get-Date).ToUniversalTime()
 $capacitySummary = Get-Content -LiteralPath $capacityOutput -Raw | ConvertFrom-Json
+$capacityDiagnostics = @($capacityK6Output | Where-Object { [string]$_ -match 'unexpected_[a-z_]+_status=\d+ code=[a-z0-9_]+' } | Select-Object -First 10)
 $capacityFailedChecks = [ordered]@{}
 foreach ($capacityCheck in $capacitySummary.root_group.checks.PSObject.Properties) {
     if ([int]$capacityCheck.Value.fails -gt 0) {
@@ -156,7 +178,7 @@ $capacitySafety = (Invoke-CapacityPostgresScalar -Query "SELECT (SELECT count(*)
 $capacityVelocityDrift = [int](Invoke-CapacityPostgresScalar -Query "WITH expected AS (SELECT tenant_id,SUM(amount_minor) total_minor FROM transfer_velocity_events GROUP BY tenant_id) SELECT count(*) FROM expected e JOIN transfer_velocity_totals t ON t.tenant_id=e.tenant_id AND t.dimension_type='tenant' AND t.dimension_reference=e.tenant_id::text WHERE e.total_minor<>t.total_minor")
 $capacityRedisAfter = Get-CapacityRedisInfo
 
-$capacityReconcileOutput = & docker compose -p compose -f $capacityComposeFile run --rm --entrypoint /usr/local/bin/reconcile migrate --run --tenant-id $capacityTenant 2>&1
+$capacityReconcileOutput = & docker compose --env-file $capacityEnvironmentFile -p $ComposeProject -f $capacityComposeFile run --rm --entrypoint /usr/local/bin/reconcile migrate --run --tenant-id $capacityTenant 2>&1
 if ($LASTEXITCODE -ne 0) {
     $capacityReconcileOutput | Write-Error
     throw 'Post-load reconciliation command failed.'
@@ -198,6 +220,7 @@ $capacityEvidence = [ordered]@{
         exit_code = $capacityK6ExitCode
         dropped_iterations = $capacityDroppedIterations
         unexpected_outcomes = $capacitySummary.metrics.ledgersync_unexpected_outcomes.count
+        bounded_diagnostics = $capacityDiagnostics
         failed_checks = $capacityFailedChecks
         http_failure_rate = $capacitySummary.metrics.http_req_failed.value
         simulated_lost_responses = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_simulated_lost_responses') { $capacitySummary.metrics.ledgersync_simulated_lost_responses.count } else { 0 }

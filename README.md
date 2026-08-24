@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Release status:** the engineering core is implemented. A ready-to-use **local-only MVP** is being completed for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. This is separate from the shared production pilot, which remains blocked on physical-device review, signed finance/security/legal decisions, managed OIDC and infrastructure, provider-backed PITR, named operational ownership, and a consenting design partner. See the [two gate registers](docs/pilot/local-mvp-gates.md).
+**Release status:** the ready-to-use **local-only MVP has passed consolidated acceptance** for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. The complete result is recorded in the [Phase 7 release evidence](docs/release-evidence/local-mvp-phase-7-acceptance.md). This is separate from the shared production pilot, which remains blocked on physical-device review, signed finance/security/legal decisions, managed OIDC and infrastructure, provider-backed PITR, named operational ownership, and a consenting design partner. See the [local gate register](docs/pilot/local-mvp-gates.md).
 
 ## Contents
 
@@ -426,6 +426,25 @@ normal project's opaque financial fingerprint or named-volume set changes.
 ## Quick start
 
 The repository-root `docker-compose.yml` is the canonical local entry point and delegates to the supported topology in `deploy/compose/docker-compose.yml`. The archived `docker-compose.legacy-demo.yml` is retained only for historical reference; it is not a supported development, test, or production path.
+
+### Five-minute local operator path
+
+1. Start Docker Desktop and wait until its engine is ready.
+2. From this repository in PowerShell, run `.\scripts\start-local.ps1`.
+3. Open `http://127.0.0.1:3000`. The local-only demo goes directly to the operator overview; it does not require a password or external identity provider.
+4. Select **Move money**, choose two active INR accounts, enter the exact amount, review it, and submit. Open the confirmation to inspect its transfer ID, journal ID, balanced postings, UTC time, and committed source-balance version. A retry after an uncertain response must reuse the same intent; LedgerSync prevents a second debit.
+5. Open **Accounts** for balances and immutable history, **Transfers** for movement status, and **Reconciliation** for the latest zero-mismatch proof. Run `.\scripts\status-local.ps1` for service health, `.\scripts\backup-local.ps1 -RetentionCount 5` for a verified local backup, and `.\scripts\stop-local.ps1` when finished.
+
+Normal stop preserves PostgreSQL and Redis volumes. `.\scripts\reset-local.ps1` is intentionally destructive and requires the exact confirmation documented in the [local runtime runbook](docs/runbooks/local-runtime-smoke.md).
+
+| If this happens | What it means | Safe action |
+|---|---|---|
+| Docker unavailable | Docker Desktop is stopped or still starting | Start Docker Desktop, wait for the engine, then rerun `start-local.ps1` |
+| Port 3000 occupied | Another process owns LedgerSync's IPv4 loopback port | Keep that process untouched; stop it yourself or change its port, then rerun startup |
+| Dependency still starting | PostgreSQL, Redis, API, worker, or web has not reached health | Run `status-local.ps1`, wait briefly, then read bounded output with `logs-local.ps1 -Service <name>` |
+| Migration failed | The schema setup job did not complete | Read `logs-local.ps1 -Service migrate`; do not edit financial tables manually |
+| Balance looks stale | Redis may be behind or disposable cache data was lost | Run `test-local-fault-recovery.ps1`; PostgreSQL remains authoritative and reconciliation rebuilds cache |
+| Database unavailable | Financial truth cannot be read or changed safely | Do not retry with a new transfer key; restore PostgreSQL health, then retry the exact intent with its original key |
 
 | Dependency | Minimum |
 |---|---:|
