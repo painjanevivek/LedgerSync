@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { readPublicOrigin } from "@/lib/security";
+
 export const sessionCookieName = "ledgersync_session";
 
 export type Session = Readonly<{
@@ -69,6 +71,7 @@ function validStringList(value: unknown): value is string[] {
 }
 
 export function sessionCookie(value: string) {
+  readPublicOrigin();
   const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? process.env.NODE_ENV ?? "development").trim().toLowerCase();
   const production = deploymentEnvironment === "production" || deploymentEnvironment === "prod";
   const explicitlyInsecureLocal = process.env.LEDGERSYNC_COOKIE_SECURE === "false" && !production;

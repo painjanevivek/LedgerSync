@@ -87,7 +87,7 @@ func (r *Reader) Read(ctx context.Context, tenantID, actorID, accountID, rawRequ
 	// selecting PostgreSQL as the data source. Enforce it before a shared cache
 	// can disclose an account projection.
 	if err := r.primary.Authorize(ctx, tenantID, actorID, accountID); err != nil {
-		return Result{}, fmt.Errorf("%w: %v", ErrCurrentBalanceUnavailable, err)
+		return Result{}, fmt.Errorf("%w: %w", ErrCurrentBalanceUnavailable, err)
 	}
 	minimum, err := r.minimumVersion(tenantID, accountID, rawRequirement)
 	if err != nil {
@@ -126,7 +126,7 @@ fallback:
 	}
 	balance, err := r.primary.ReadCurrent(ctx, tenantID, actorID, accountID)
 	if err != nil {
-		return Result{}, fmt.Errorf("%w: %v", ErrCurrentBalanceUnavailable, err)
+		return Result{}, fmt.Errorf("%w: %w", ErrCurrentBalanceUnavailable, err)
 	}
 	if balance.Version < minimum {
 		if r.metrics != nil {

@@ -83,7 +83,7 @@ func TestBalanceCacheNeverBypassesAccountAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := reader.Read(context.Background(), "tenant", "another-actor", "account", ""); !errors.Is(err, accounts.ErrCurrentBalanceUnavailable) {
+	if _, err := reader.Read(context.Background(), "tenant", "another-actor", "account", ""); !errors.Is(err, errBalanceNotAuthorized) || !errors.Is(err, accounts.ErrCurrentBalanceUnavailable) {
 		t.Fatalf("warm cache authorization error = %v", err)
 	}
 }
@@ -108,8 +108,10 @@ func (f failingBalanceRepository) ReadCurrent(context.Context, string, string, s
 
 type unauthorizedBalanceRepository struct{}
 
+var errBalanceNotAuthorized = errors.New("balance account not found or not authorized")
+
 func (unauthorizedBalanceRepository) Authorize(context.Context, string, string, string) error {
-	return errors.New("not authorized")
+	return errBalanceNotAuthorized
 }
 func (unauthorizedBalanceRepository) ReadCurrent(context.Context, string, string, string) (accounts.Balance, error) {
 	return accounts.Balance{}, errors.New("must not read")

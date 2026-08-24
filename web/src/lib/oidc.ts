@@ -2,6 +2,8 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
+import { readPublicOrigin } from "@/lib/security";
+
 const transactionCookieName = "ledgersync_oidc_transaction";
 const transactionLifetimeMs = 10 * 60 * 1000;
 
@@ -115,5 +117,6 @@ export async function completeAuthorization(code: string, state: string, transac
 export { transactionCookieName };
 
 export function transactionCookie(value: string) {
+  readPublicOrigin();
   return { name: transactionCookieName, value, httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/api/auth", maxAge: transactionLifetimeMs / 1000 };
 }

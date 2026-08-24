@@ -4,9 +4,10 @@ import test from "node:test";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF } from "../../src/lib/security";
+import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF, hasValidHost, readPublicOrigin } from "../../src/lib/security";
 import { createSession, readSession, sessionCookie, type Session } from "../../src/lib/session";
-import { readTransaction } from "../../src/lib/oidc";
+import { readTransaction, transactionCookie } from "../../src/lib/oidc";
+import { proxy } from "../../src/proxy";
 
 process.env.LEDGERSYNC_WEB_SESSION_SECRET = "phase-five-test-secret-that-is-long-enough";
 
@@ -28,14 +29,37 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
     const good = new NextRequest("https://ledger.example/api/transfers", { method: "POST", headers: { host: "ledger.example", origin: "https://ledger.example", "x-csrf-token": session.csrfToken } });
     const crossOrigin = new NextRequest("https://ledger.example/api/transfers", { method: "POST", headers: { host: "ledger.example", origin: "https://attacker.example", "x-csrf-token": session.csrfToken } });
     const reboundHost = new NextRequest("https://attacker.example/api/transfers", { method: "POST", headers: { host: "attacker.example", origin: "https://ledger.example", "x-csrf-token": session.csrfToken } });
+    const reboundOriginAndHost = new NextRequest("https://attacker.example/api/transfers", { method: "POST", headers: { host: "attacker.example", origin: "https://attacker.example", "x-csrf-token": session.csrfToken } });
     assert.equal(hasValidCSRF(good, session), true);
     assert.equal(hasValidCSRF(crossOrigin, session), false);
     assert.equal(hasValidCSRF(reboundHost, session), false);
+    assert.equal(hasValidCSRF(reboundOriginAndHost, session), false);
+    assert.equal(hasValidHost(reboundOriginAndHost), false);
     delete process.env.LEDGERSYNC_PUBLIC_ORIGIN;
     assert.equal(hasValidCSRF(good, session), false);
   } finally {
     if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
     if (previousDeployment === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV; else process.env.LEDGERSYNC_DEPLOYMENT_ENV = previousDeployment;
+  }
+});
+
+test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts", () => {
+  const previousOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN;
+  try {
+    delete process.env.LEDGERSYNC_PUBLIC_ORIGIN;
+    assert.throws(() => readPublicOrigin(), /PUBLIC_ORIGIN is required/);
+    assert.throws(() => sessionCookie("session"), /PUBLIC_ORIGIN is required/);
+    assert.throws(() => transactionCookie("transaction"), /PUBLIC_ORIGIN is required/);
+    process.env.LEDGERSYNC_PUBLIC_ORIGIN = "http://127.0.0.1:3000";
+    const accepted = new NextRequest("http://127.0.0.1:3000/api/session", { headers: { host: "127.0.0.1:3000" } });
+    const rebound = new NextRequest("http://attacker.example:3000/api/session", { headers: { host: "attacker.example:3000" } });
+    assert.equal(hasValidHost(accepted), true);
+    assert.equal(proxy(accepted).status, 200);
+    const rejected = proxy(rebound);
+    assert.equal(rejected.status, 421);
+    assert.equal(rejected.headers.get("Cache-Control"), "no-store");
+  } finally {
+    if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
   }
 });
 
@@ -47,7 +71,9 @@ test("session signatures verify the exact encoded payload regardless of property
 test("insecure cookies are explicit-local only and cannot weaken production", () => {
   const previousDeployment = process.env.LEDGERSYNC_DEPLOYMENT_ENV;
   const previousSecure = process.env.LEDGERSYNC_COOKIE_SECURE;
+  const previousOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN;
   try {
+    process.env.LEDGERSYNC_PUBLIC_ORIGIN = "http://127.0.0.1:3000";
     process.env.LEDGERSYNC_COOKIE_SECURE = "false";
     process.env.LEDGERSYNC_DEPLOYMENT_ENV = "development";
     assert.equal(sessionCookie("value").secure, false);
@@ -56,6 +82,7 @@ test("insecure cookies are explicit-local only and cannot weaken production", ()
   } finally {
     if (previousDeployment === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV; else process.env.LEDGERSYNC_DEPLOYMENT_ENV = previousDeployment;
     if (previousSecure === undefined) delete process.env.LEDGERSYNC_COOKIE_SECURE; else process.env.LEDGERSYNC_COOKIE_SECURE = previousSecure;
+    if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
   }
 });
 
