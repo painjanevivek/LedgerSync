@@ -22,13 +22,6 @@ type AccountsHandler struct {
 	audit         AuditRecorder
 }
 
-func (h *AccountsHandler) WithBFFAssertionSecret(secret string) *AccountsHandler {
-	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
-		h.authenticator = authenticator
-	}
-	return h
-}
-
 func (h *AccountsHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *AccountsHandler {
 	h.authenticator = authenticator
 	return h

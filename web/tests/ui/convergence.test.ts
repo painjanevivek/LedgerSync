@@ -5,8 +5,15 @@ import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { ConsoleFooter } from "../../src/features/console/ConsoleShell";
 import { EvidenceFreshness } from "../../src/features/console/components";
 import { TransferList } from "../../src/features/transfers/TransferViews";
+
+test("console footer identifies PostgreSQL as balance authority and Redis as disposable", () => {
+  const markup = renderToStaticMarkup(createElement(ConsoleFooter));
+  assert.match(markup, /PostgreSQL alone supplies customer-visible balances\. Redis is disposable\./);
+  assert.doesNotMatch(markup, /Cached reads|version-checked/);
+});
 
 test("evidence freshness distinguishes verified, refreshing, and historical facts", () => {
   const current = renderToStaticMarkup(createElement(EvidenceFreshness, { state: "current", verifiedAt: "2026-08-25T10:00:00Z", label: "Balance evidence" }));

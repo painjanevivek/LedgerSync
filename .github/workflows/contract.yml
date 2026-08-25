@@ -2,10 +2,10 @@ name: Contract validation
 
 on:
   pull_request:
-    paths: [contracts/**, cmd/api/**, internal/application/**, internal/transport/http/**, tests/contract/**, deploy/compose/docker-compose.restore.yml, deploy/compose/docker-compose.fault.yml, web/package.json, web/package-lock.json, .github/workflows/contract.yml, .github/workflows/quality.yml, .github/workflows/release-evidence.yml]
+    paths: [contracts/**, cmd/api/**, internal/application/**, internal/transport/http/**, tests/contract/**, deploy/compose/docker-compose.yml, deploy/compose/docker-compose.restore.yml, deploy/compose/docker-compose.fault.yml, scripts/run-security-supply-chain-qualification.ps1, web/package.json, web/package-lock.json, .github/workflows/contract.yml, .github/workflows/quality.yml, .github/workflows/release-evidence.yml, .github/workflows/security.yml]
   push:
     branches: [main]
-    paths: [contracts/**, cmd/api/**, internal/application/**, internal/transport/http/**, tests/contract/**, deploy/compose/docker-compose.restore.yml, deploy/compose/docker-compose.fault.yml, web/package.json, web/package-lock.json, .github/workflows/contract.yml, .github/workflows/quality.yml, .github/workflows/release-evidence.yml]
+    paths: [contracts/**, cmd/api/**, internal/application/**, internal/transport/http/**, tests/contract/**, deploy/compose/docker-compose.yml, deploy/compose/docker-compose.restore.yml, deploy/compose/docker-compose.fault.yml, scripts/run-security-supply-chain-qualification.ps1, web/package.json, web/package-lock.json, .github/workflows/contract.yml, .github/workflows/quality.yml, .github/workflows/release-evidence.yml, .github/workflows/security.yml]
 
 permissions:
   contents: read

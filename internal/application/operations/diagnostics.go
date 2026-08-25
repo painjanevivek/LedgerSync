@@ -39,10 +39,6 @@ type DependencyProbe interface {
 	Ping(context.Context) error
 }
 
-type DependencyStatus struct {
-	State string `json:"state"`
-}
-
 type PostgreSQLStatus struct {
 	State         string `json:"state"`
 	SchemaVersion string `json:"schema_version,omitempty"`

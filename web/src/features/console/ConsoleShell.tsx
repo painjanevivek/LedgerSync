@@ -135,7 +135,7 @@ export function ConsoleShell({
 
 export function ConsoleFooter({ pending = false }: { pending?: boolean } = {}) {
   return <footer className={`console-footer${pending ? " is-pending" : ""}`} aria-hidden={pending || undefined}>
-    <span>PostgreSQL is the financial source of truth. Cached reads are version-checked.</span>
+    <span>PostgreSQL alone supplies customer-visible balances. Redis is disposable.</span>
     <span>All times shown in UTC.</span>
     <span>© 2026 LedgerSync, Inc.</span>
   </footer>;

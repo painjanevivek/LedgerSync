@@ -10,7 +10,3 @@ export function utcDateTime(value?: string) {
   if (Number.isNaN(date.valueOf())) return "Unavailable";
   return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: "UTC", timeZoneName: "short" }).format(date);
 }
-
-export function shortIdentifier(value: string, visible = 8) {
-  return value.length > visible + 4 ? `${value.slice(0, visible)}…${value.slice(-4)}` : value;
-}

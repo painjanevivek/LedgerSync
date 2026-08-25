@@ -96,15 +96,6 @@ func New(id, tenantID, currencyCode string, owners []Owner, createdAt time.Time)
 	return Account{ID: id, TenantID: tenantID, Currency: currency, Status: StatusActive, Version: 1, Owners: owners, CreatedAt: createdAt, UpdatedAt: createdAt}, nil
 }
 
-func (a Account) CanRead(subjectID string) bool {
-	for _, owner := range a.Owners {
-		if owner.SubjectID == subjectID {
-			return true
-		}
-	}
-	return false
-}
-
 func (a Account) CanDebit(subjectID string) bool {
 	for _, owner := range a.Owners {
 		if owner.SubjectID == subjectID && owner.Permission == PermissionDebit {

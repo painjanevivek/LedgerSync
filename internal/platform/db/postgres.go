@@ -45,13 +45,6 @@ func OpenPool(ctx context.Context, cfg PoolConfig) (*sql.DB, error) {
 	return database, nil
 }
 
-// WithSerializableRetry runs a complete financial transaction under PostgreSQL
-// serializable isolation. Only proven transient conflicts are retried; callers
-// must make every attempted operation idempotent inside the transaction.
-func WithSerializableRetry(ctx context.Context, database *sql.DB, attempts int, fn func(*sql.Tx) error) error {
-	return withSerializableRetry(ctx, database, attempts, fn)
-}
-
 type transactionBeginner interface {
 	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
 }

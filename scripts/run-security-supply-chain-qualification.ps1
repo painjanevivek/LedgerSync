@@ -23,6 +23,8 @@ $securityRepository = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $securityHead = (& git -C $securityRepository rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $securityHead -notmatch '^[0-9a-f]{40}$') { throw 'Unable to resolve the source commit.' }
 $securityIsShallow = ((& git -C $securityRepository rev-parse --is-shallow-repository).Trim() -eq 'true')
+$securityGoPackages = @('./cmd/...', './contracts/...', './internal/...', './tests/...')
+$securityGoPackageCommand = $securityGoPackages -join ' '
 
 function Assert-SecurityPinnedImage {
     param([Parameter(Mandatory)][string]$Reference)
@@ -79,11 +81,11 @@ $securityPlan = [ordered]@{
         trivy_image = $TrivyImage
     }
     source_checks = @(
-        'go test ./... -count=1',
-        'go vet ./...',
+        "go test $securityGoPackageCommand -count=1",
+        "go vet $securityGoPackageCommand",
         'go test -run=^$ -fuzz=FuzzParseExactMoney -fuzztime=10s ./tests/unit',
         'go test -race ./cmd/... ./internal/... ./tests/unit ./tests/contract (when local CGO race support is available; otherwise pinned Linux CI is mandatory)',
-        'go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...',
+        "go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 $securityGoPackageCommand",
         'npm audit --omit=dev --audit-level=high',
         'digest-pinned gitleaks git --redact over full history',
         'digest-pinned Trivy config scan over deploy/'
@@ -124,8 +126,8 @@ $securitySteps = [System.Collections.Generic.List[object]]::new()
 $securityRaceDisposition = 'not_requested'
 
 if ($Mode -eq 'Source' -or $Mode -eq 'All') {
-    Invoke-SecurityNativeStep -Name 'full Go tests' -Executable 'go' -Arguments @('test', './...', '-count=1') -WorkingDirectory $securityRepository
-    Invoke-SecurityNativeStep -Name 'Go vet' -Executable 'go' -Arguments @('vet', './...') -WorkingDirectory $securityRepository
+    Invoke-SecurityNativeStep -Name 'full Go tests' -Executable 'go' -Arguments (@('test') + $securityGoPackages + @('-count=1')) -WorkingDirectory $securityRepository
+    Invoke-SecurityNativeStep -Name 'Go vet' -Executable 'go' -Arguments (@('vet') + $securityGoPackages) -WorkingDirectory $securityRepository
     $securityCoveragePath = (Join-Path $securityEvidenceRoot 'critical-coverage.out')
     Invoke-SecurityNativeStep -Name 'critical financial coverage' -Executable 'go' -Arguments @('test', '-count=1', '-covermode=atomic', '-coverpkg=./internal/domain/...,./internal/application/transfers/...', "-coverprofile=$securityCoveragePath", './internal/domain/...', './internal/application/transfers/...', './tests/unit', './tests/contract') -WorkingDirectory $securityRepository
     $securityCoverageSummary = @(& go tool cover "-func=$securityCoveragePath")
@@ -150,7 +152,7 @@ if ($Mode -eq 'Source' -or $Mode -eq 'All') {
         $securityRaceDisposition = 'delegated_to_pinned_linux_ci_local_cgo_unavailable'
     }
 
-    Invoke-SecurityNativeStep -Name 'Go vulnerability scan' -Executable 'go' -Arguments @('run', 'golang.org/x/vuln/cmd/govulncheck@v1.7.0', './...') -WorkingDirectory $securityRepository
+    Invoke-SecurityNativeStep -Name 'Go vulnerability scan' -Executable 'go' -Arguments (@('run', 'golang.org/x/vuln/cmd/govulncheck@v1.7.0') + $securityGoPackages) -WorkingDirectory $securityRepository
     Invoke-SecurityNativeStep -Name 'npm production dependency audit' -Executable 'npm' -Arguments @('audit', '--omit=dev', '--audit-level=high') -WorkingDirectory (Join-Path $securityRepository 'web')
 
     if ($securityIsShallow) {

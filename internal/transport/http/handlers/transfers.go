@@ -47,13 +47,6 @@ func NewTransferHandler(service *transfers.Service, provider identity.Provider, 
 	return &TransferHandler{service: service, identity: provider, issuer: issuer}
 }
 
-func (h *TransferHandler) WithBFFAssertionSecret(secret string) *TransferHandler {
-	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
-		h.authenticator = authenticator
-	}
-	return h
-}
-
 func (h *TransferHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransferHandler {
 	h.authenticator = authenticator
 	return h

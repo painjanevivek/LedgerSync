@@ -30,13 +30,6 @@ type InvestigationHandler struct {
 func NewInvestigationHandler(repository investigation.Repository, provider identity.Provider) *InvestigationHandler {
 	return &InvestigationHandler{repository: repository, identity: provider}
 }
-func (h *InvestigationHandler) WithBFFAssertionSecret(secret string) *InvestigationHandler {
-	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
-		h.authenticator = authenticator
-	}
-	return h
-}
-
 func (h *InvestigationHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *InvestigationHandler {
 	h.authenticator = authenticator
 	return h

@@ -212,19 +212,6 @@ services:
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
 
-  legacy-simulation:
-    # This intentionally remains a diagnostics-only profile and never joins the
-    # edge network or publishes a port. It is excluded from pilot deployment.
-    profiles: [diagnostic]
-    image: python:3.11-slim@sha256:9c900dea9e8fb7e16277c179b555cc72d29a352dbc33cff48ad5a0412fd5bfc7
-    command: ["sh", "-c", "echo 'Legacy simulation is deliberately excluded from the production runtime'; sleep infinity"]
-    networks: [private]
-    user: "65532:65532"
-    read_only: true
-    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m"]
-    cap_drop: ["ALL"]
-    security_opt: ["no-new-privileges:true"]
-
 networks:
   edge:
   private:

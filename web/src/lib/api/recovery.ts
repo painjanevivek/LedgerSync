@@ -62,8 +62,3 @@ export function sanitizeRecoveryIndex(status: number, value: unknown): Sanitized
   if ((root.latest_backup !== null && !latestBackup) || (root.latest_restore !== null && !latestRestore) || (latestRestore && !latestBackup)) return { status: 503, body: { error: { code: "recovery_evidence_unavailable" } } };
   return { status: 200, body: { format_version: root.format_version, generated_at_utc: root.generated_at_utc, latest_backup: latestBackup, latest_restore: latestRestore, retention } };
 }
-
-export function sanitizeRecoveryBody(status: number, raw: string): SanitizedRecoveryResponse {
-  try { return sanitizeRecoveryIndex(status, JSON.parse(raw)); }
-  catch { return { status: 503, body: { error: { code: "recovery_evidence_unavailable" } } }; }
-}
