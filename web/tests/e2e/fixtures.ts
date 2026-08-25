@@ -33,8 +33,11 @@ function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-export async function mockOperatorConsole(page: Page) {
-  await page.route("**/api/session", (route) => json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" }));
+export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
+  await page.route("**/api/session", async (route) => {
+    if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
+    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" });
+  });
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
     const account = route.request().url().includes(sourceAccount.account_id) ? sourceAccount : destinationAccount;

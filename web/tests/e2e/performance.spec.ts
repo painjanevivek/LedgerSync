@@ -80,7 +80,7 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
   });
   await session.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   await installWebVitalObservers(page);
-  await mockOperatorConsole(page);
+  await mockOperatorConsole(page, { sessionDelayMilliseconds: 300 });
   const boundedRequests: string[] = [];
   const apiRequests: string[] = [];
   page.on("request", (request) => {

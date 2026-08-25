@@ -196,6 +196,7 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
         <PageHeader eyebrow={`${title} · LedgerSync operator workspace`} title="Verifying access" description="Verifying the authorized tenant scope before financial evidence is displayed." />
         <StatePanel title="Loading verified evidence" message="Balances, transfer history, and reconciliation evidence are loading from their authoritative sources." />
       </div>
+      <ConsoleFooter pending />
     </ConsoleShell>;
   }
   if (!session) return <main className="boot-screen"><p className="eyebrow">Authentication required</p><h1>Operator workspace unavailable</h1><StatePanel kind="denied" title="No authorized session" message="Configure the approved OIDC provider, or explicitly enable the isolated local demo environment. No financial data is displayed." /></main>;
