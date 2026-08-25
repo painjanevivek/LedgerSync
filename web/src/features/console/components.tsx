@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, CheckCircle, Copy, Info, WarningCircle, XCircle } from "@phosphor-icons/react";
+import { ArrowClockwise, ArrowRight, Check, CheckCircle, Clock, Copy, Info, WarningCircle, XCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
@@ -31,4 +31,23 @@ export function DataTableRegion({ label, children }: Readonly<{ label: string; c
 
 export function PageHeader({ eyebrow, title, description, children }: Readonly<{ eyebrow: string; title: string; description: string; children?: ReactNode }>) {
   return <header className="page-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div>{children}</header>;
+}
+
+type EvidenceFreshnessProps = Readonly<{ state: "current" | "refreshing" | "historical"; verifiedAt?: string; label?: string; reason?: string }>;
+
+/** Explicit evidence state: historical facts are never presented as a current zero or empty result. */
+export function EvidenceFreshness(props: EvidenceFreshnessProps) {
+  const label = props.label ?? "Evidence";
+  const timestamp = props.verifiedAt ? new Date(props.verifiedAt).toLocaleString("en-GB", { timeZone: "UTC", hour12: false }) : undefined;
+  const icon = props.state === "current" ? <CheckCircle weight="fill" aria-hidden="true" /> : props.state === "refreshing" ? <ArrowClockwise aria-hidden="true" /> : <Clock weight="fill" aria-hidden="true" />;
+  const copy = props.state === "current"
+    ? `${label} verified ${timestamp} UTC`
+    : props.state === "refreshing"
+      ? timestamp ? `Refreshing; prior ${label.toLowerCase()} verified ${timestamp} UTC` : `Loading ${label.toLowerCase()}`
+      : `${label} not refreshed; last verified ${timestamp} UTC${props.reason ? `. ${props.reason}` : ""}`;
+  return <p className={`evidence-freshness ${props.state}`} role="status">{icon}<span>{copy}</span></p>;
+}
+
+export function EvidenceStepMarker({ sequence, state }: Readonly<{ sequence: number; state: "available" | "bounded" | "missing" | "unavailable" }>) {
+  return <div className={`evidence-stage-marker evidence-step-marker ${state}`} aria-hidden="true"><span>{sequence}</span>{state === "available" ? <CheckCircle weight="fill" /> : state === "unavailable" ? <WarningCircle weight="fill" /> : <Clock weight="fill" />}</div>;
 }

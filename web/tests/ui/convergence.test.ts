@@ -1,0 +1,52 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { EvidenceFreshness } from "../../src/features/console/components";
+import { TransferList } from "../../src/features/transfers/TransferViews";
+
+test("evidence freshness distinguishes verified, refreshing, and historical facts", () => {
+  const current = renderToStaticMarkup(createElement(EvidenceFreshness, { state: "current", verifiedAt: "2026-08-25T10:00:00Z", label: "Balance evidence" }));
+  const refreshing = renderToStaticMarkup(createElement(EvidenceFreshness, { state: "refreshing", verifiedAt: "2026-08-25T10:00:00Z", label: "Balance evidence" }));
+  const historical = renderToStaticMarkup(createElement(EvidenceFreshness, { state: "historical", verifiedAt: "2026-08-25T10:00:00Z", label: "Balance evidence", reason: "Refresh failed." }));
+  assert.match(current, /current/);
+  assert.match(current, /Balance evidence verified/);
+  assert.match(refreshing, /Refreshing; prior balance evidence verified/);
+  assert.match(historical, /historical/);
+  assert.match(historical, /not refreshed/);
+  assert.match(historical, /Refresh failed/);
+});
+
+test("overview recent-transfer variant never claims the end of history", () => {
+  const markup = renderToStaticMarkup(createElement(TransferList, {
+    variant: "recent",
+    transfers: [{
+      transfer_id: "11111111-1111-4111-8111-111111111111",
+      source_account_id: "22222222-2222-4222-8222-222222222222",
+      destination_account_id: "33333333-3333-4333-8333-333333333333",
+      amount_minor: "1250",
+      currency: "INR",
+      financial_status: "posted",
+      delivery_status: "delivered",
+      created_at: "2026-08-25T09:59:59Z",
+      completed_at: "2026-08-25T10:00:00Z",
+    }],
+  }));
+  assert.match(markup, /Latest transfer records/);
+  assert.match(markup, /View all transfers/);
+  assert.doesNotMatch(markup, /End of available records/);
+});
+
+test("converged controls, boundaries, and reduced motion use the shared design contract", () => {
+  const tokens = readFileSync(new URL("../../src/styles/tokens.css", import.meta.url), "utf8");
+  const globals = readFileSync(new URL("../../src/app/globals.css", import.meta.url), "utf8");
+  const responsive = readFileSync(new URL("../../src/styles/responsive.css", import.meta.url), "utf8");
+  assert.match(tokens, /--line-strong:\s*#89968e/);
+  assert.match(globals, /\.button\s*\{[^}]*min-height:\s*var\(--target-compact\)/);
+  assert.match(globals, /\.data-table\s*\{[^}]*font-size:\s*var\(--type-body\)/);
+  assert.match(responsive, /transition-duration:\s*\.01ms !important/);
+  assert.match(responsive, /transition-delay:\s*0ms !important/);
+});

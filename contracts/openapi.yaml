@@ -130,8 +130,8 @@ paths:
         - { $ref: '#/components/parameters/Cursor' }
         - { $ref: '#/components/parameters/Limit' }
         - { in: query, name: accountId, schema: { type: string, format: uuid } }
-        - { in: query, name: status, schema: { type: string, enum: [pending, posted, rejected] } }
-        - { in: query, name: q, schema: { type: string, maxLength: 256 } }
+        - { in: query, name: status, description: 'Server-side financial-status filter applied before pagination.', schema: { type: string, enum: [pending, posted, rejected] } }
+        - { in: query, name: q, description: 'Server-side case-insensitive substring search over transfer, source-account, and destination-account UUIDs; hexadecimal and hyphen characters only. The cursor is bound to this and every other filter.', schema: { type: string, minLength: 1, maxLength: 128, pattern: '^[0-9A-Fa-f-]+$' } }
         - { in: query, name: from, schema: { type: string, format: date-time } }
         - { in: query, name: to, schema: { type: string, format: date-time } }
       responses:

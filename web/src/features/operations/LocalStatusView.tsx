@@ -2,7 +2,7 @@
 
 import { ArrowClockwise, CheckCircle, Database, HardDrives, Lightning, WarningCircle } from "@phosphor-icons/react";
 
-import { CopyControl, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl, EvidenceFreshness, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
 import type { DependencyState, LocalDiagnostics, OperationalState } from "@/lib/api/operations";
 
 function stateTone(state: OperationalState | DependencyState) {
@@ -17,7 +17,7 @@ function utc(value?: string) {
   return Number.isNaN(date.valueOf()) ? "Not available" : `${date.toISOString().replace("T", " ").replace(".000Z", " UTC")}`;
 }
 
-export function LocalStatusView({ evidence, loading, error, online, canRead, onRefresh }: Readonly<{ evidence: LocalDiagnostics | null; loading: boolean; error: string | null; online: boolean; canRead: boolean; onRefresh: () => void }>) {
+export function LocalStatusView({ evidence, verifiedAt, loading, error, online, canRead, onRefresh }: Readonly<{ evidence: LocalDiagnostics | null; verifiedAt?: string; loading: boolean; error: string | null; online: boolean; canRead: boolean; onRefresh: () => void }>) {
   return <>
     <PageHeader eyebrow="Local operations / Read-only evidence" title="Local status" description="Identify the affected truth domain before taking a local recovery step.">
       <button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true" />{loading ? "Refreshing evidence…" : "Refresh evidence"}</button>
@@ -25,6 +25,7 @@ export function LocalStatusView({ evidence, loading, error, online, canRead, onR
     {!canRead && <StatePanel kind="denied" title="Local diagnostics not authorized" message="This session does not include local:read. No dependency evidence has been requested." />}
     {!online && <StatePanel kind="offline" title="Offline — evidence is not current" message={evidence ? "The last verified snapshot remains visible with its generation time. Reconnect before treating it as current." : "Reconnect to request a verified local status snapshot."} />}
     {error && <StatePanel kind="error" title="Local status unavailable" message={error} />}
+    {verifiedAt && evidence && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Diagnostic snapshot" reason={error ?? (!online ? "Reconnect before treating dependency state as current." : undefined)} />}
     {loading && !evidence && <StatePanel title="Loading truth domains" message="Requesting a bounded diagnostics snapshot. No dependency state is being inferred." />}
     {evidence && <section className="operations-status" aria-labelledby="operations-status-heading" aria-busy={loading}>
       <div className={`operations-verdict ${evidence.overall_state}`}>

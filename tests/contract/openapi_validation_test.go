@@ -135,6 +135,32 @@ func TestOpenAPIRoutesExactlyMatchRegisteredPrivateAPI(t *testing.T) {
 	assertStringSetsEqual(t, "OpenAPI/runtime routes", contractRoutes, runtimeRoutes)
 }
 
+func TestTransferHistoryFiltersAreServerSideBoundedAndCursorBound(t *testing.T) {
+	document := loadOpenAPIDocument(t)
+	operation := objectAt(t, asObject(t, objectAt(t, document, "paths")["/transfers"]), "get")
+	parameters := map[string]map[string]any{}
+	for _, raw := range arrayAt(t, operation, "parameters") {
+		parameter := asObject(t, raw)
+		if name, ok := parameter["name"].(string); ok {
+			parameters[name] = parameter
+		}
+	}
+	query := parameters["q"]
+	querySchema := objectAt(t, query, "schema")
+	if querySchema["maxLength"] != 128 || querySchema["pattern"] != "^[0-9A-Fa-f-]+$" || !strings.Contains(stringAt(t, query, "description"), "cursor is bound") {
+		t.Fatalf("transfer q contract is not bounded/cursor-bound: %#v", query)
+	}
+	status := parameters["status"]
+	statusSchema := objectAt(t, status, "schema")
+	gotStatuses := map[string]bool{}
+	for _, raw := range arrayAt(t, statusSchema, "enum") {
+		gotStatuses[fmt.Sprint(raw)] = true
+	}
+	if !reflect.DeepEqual(gotStatuses, map[string]bool{"pending": true, "posted": true, "rejected": true}) || !strings.Contains(stringAt(t, status, "description"), "before pagination") {
+		t.Fatalf("transfer status contract is not server-side and exact: %#v", status)
+	}
+}
+
 func TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs(t *testing.T) {
 	document := loadOpenAPIDocument(t)
 	tests := []struct{ file, structName, schema string }{

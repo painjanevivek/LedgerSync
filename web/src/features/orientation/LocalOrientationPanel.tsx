@@ -4,7 +4,7 @@ import { CheckCircle, Compass, Info, WarningCircle, X } from "@phosphor-icons/re
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { CopyControl, StatusBadge } from "@/features/console/components";
+import { CopyControl, EvidenceFreshness, StatusBadge } from "@/features/console/components";
 import { utcDateTime } from "@/features/console/format";
 import type { LocalOrientation, OrientationStep } from "@/lib/api/orientation";
 
@@ -55,17 +55,17 @@ export function LocalOrientationPanel({ tenantId, evidence, loading, error, onli
       <div><strong>Persistence</strong><span>Data survives a safe stop</span></div>
     </div>
     {!canRead ? <div className="orientation-state"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Checklist permission required</strong><span>The guide remains readable, but durable progress needs the local:read scope.</span></p></div>
-      : !online ? <div className="orientation-state"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Checklist unavailable offline</strong><span>No locally cached completion is presented as durable evidence.</span></p></div>
+      : !evidence ? !online ? <div className="orientation-state"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Checklist unavailable offline</strong><span>No locally cached completion is presented as durable evidence.</span></p></div>
       : error ? <div className="orientation-state" role="alert"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Durable checklist unavailable</strong><span>{error}</span></p><button className="button secondary" type="button" onClick={onRefresh}>Retry evidence</button></div>
-      : loading || !evidence ? <div className="orientation-state" aria-busy="true"><Info weight="fill" aria-hidden="true"/><p><strong>Loading durable progress</strong><span>LedgerSync is checking stored tenant evidence; browser history is not used.</span></p></div>
-      : <ol className="orientation-checklist">
+      : <div className="orientation-state" aria-busy="true"><Info weight="fill" aria-hidden="true"/><p><strong>Loading durable progress</strong><span>LedgerSync is checking stored tenant evidence; browser history is not used.</span></p></div>
+      : <><EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={evidence.generated_at} label="Orientation checklist" reason={error ?? (!online ? "Reconnect before relying on checklist state." : undefined)} /><ol className="orientation-checklist">
         {evidence.steps.map((step) => <li key={step.id}>
           <span className={`orientation-check ${step.state}`} aria-hidden="true">{step.state === "completed" ? <CheckCircle weight="fill" /> : step.state === "evidence_available" ? <Info weight="fill" /> : <WarningCircle weight="fill" />}</span>
           <div><strong>{stepCopy[step.id].title}</strong><p>{stepCopy[step.id].description}</p>{step.occurred_at && <small>Stored evidence · {utcDateTime(step.occurred_at)}</small>}</div>
           <StatusBadge tone={tone(step)}>{stateLabel(step)}</StatusBadge>
           <Link className="record-link" href={evidenceHref(step)}>{step.evidence_id ? "Open evidence" : "Open step"}</Link>
         </li>)}
-      </ol>}
+      </ol></>}
     <footer><div><strong>Stop safely without deleting persisted data</strong><p>Run the fixed host command outside the browser. Reset and reseed controls are intentionally absent.</p></div><CopyControl value="powershell -File .\scripts\stop-local.ps1" label="Copy safe stop command" /></footer>
   </section>;
 }

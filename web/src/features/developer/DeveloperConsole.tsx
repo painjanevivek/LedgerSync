@@ -1,15 +1,19 @@
 "use client";
 
 import { WarningCircle } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ConsoleSession } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
 import { PageHeader, StatePanel } from "@/features/console/components";
-import { DeveloperView } from "@/features/developer/DeveloperViews";
 import type { DeveloperMetadata } from "@/lib/api/developer";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
+
+const DeveloperView = dynamic(() => import("@/features/developer/DeveloperViews").then((module) => module.DeveloperView), {
+  loading: () => <StatePanel title="Loading developer reference" message="Preparing the bounded contract examples without delaying the operator shell." />,
+});
 
 export function DeveloperConsole() {
   const router = useRouter();

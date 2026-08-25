@@ -88,6 +88,36 @@ func TestBalanceCacheNeverBypassesAccountAuthorization(t *testing.T) {
 	}
 }
 
+func TestWarmBalanceCachePerformsOneAuthorizationAndNoProjectionFetch(t *testing.T) {
+	repository := &countingBalanceRepository{value: balance(9)}
+	reader, err := accounts.NewReader(repository, &memoryBalanceCache{balance: balance(9)}, nil, accounts.ReaderConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := reader.Read(context.Background(), "tenant", "actor", "account", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Source != accounts.SourceCache || repository.authorizations != 1 || repository.projectionReads != 0 {
+		t.Fatalf("result=%#v authorizations=%d projection_reads=%d", result, repository.authorizations, repository.projectionReads)
+	}
+}
+
+type countingBalanceRepository struct {
+	value                           accounts.Balance
+	authorizations, projectionReads int
+}
+
+func (r *countingBalanceRepository) Authorize(context.Context, string, string, string) error {
+	r.authorizations++
+	return nil
+}
+
+func (r *countingBalanceRepository) ReadCurrent(context.Context, string, string, string) (accounts.Balance, error) {
+	r.projectionReads++
+	return r.value, nil
+}
+
 type staticBalanceRepository struct{ value accounts.Balance }
 
 func (s staticBalanceRepository) Authorize(context.Context, string, string, string) error { return nil }

@@ -33,7 +33,8 @@ test("Recovery Center shows truthful empty and partial evidence without inventin
 
 test("transfer export review discloses exact filters and uses one native bounded download",async({page})=>{
   await mockOperatorConsole(page); await page.goto("/transfers");
-  await page.getByLabel("Search transfers").fill("11111111"); await page.getByLabel("Financial status").selectOption("posted");
+  await page.getByLabel("Search transfers").fill("11111111"); await page.getByLabel("Financial status").selectOption("posted"); await page.getByRole("button",{name:"Apply filters"}).click();
+  await expect(page).toHaveURL(/q=11111111.*status=posted/);
   const trigger=page.getByRole("button",{name:"Export transfer evidence"}); await trigger.click();
   const dialog=page.getByRole("dialog",{name:"Review transfer history export"}); await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("heading",{name:"Review transfer history export"})).toBeFocused();

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +14,9 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 )
+
+var canonicalInvestigationUUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+var boundedTransferIDQuery = regexp.MustCompile(`^[0-9A-Fa-f-]{1,128}$`)
 
 type InvestigationHandler struct {
 	repository    investigation.Repository
@@ -61,11 +65,27 @@ func (h *InvestigationHandler) Transfers(writer http.ResponseWriter, request *ht
 	if !ok {
 		return
 	}
+	if !onlyQueryParameters(request, "cursor", "limit", "accountId", "status", "q", "from", "to") {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
 	limit, ok := boundedLimit(writer, request, 25)
 	if !ok {
 		return
 	}
-	filter := investigation.TransferFilter{Cursor: request.URL.Query().Get("cursor"), AccountID: request.URL.Query().Get("accountId"), Status: request.URL.Query().Get("status"), Query: request.URL.Query().Get("q"), Limit: limit}
+	filter := investigation.TransferFilter{
+		Cursor:    strings.TrimSpace(request.URL.Query().Get("cursor")),
+		AccountID: strings.ToLower(strings.TrimSpace(request.URL.Query().Get("accountId"))),
+		Status:    strings.TrimSpace(request.URL.Query().Get("status")),
+		Query:     strings.TrimSpace(request.URL.Query().Get("q")),
+		Limit:     limit,
+	}
+	if filter.AccountID != "" && !canonicalInvestigationUUID.MatchString(filter.AccountID) ||
+		filter.Status != "" && filter.Status != "pending" && filter.Status != "posted" && filter.Status != "rejected" ||
+		filter.Query != "" && !boundedTransferIDQuery.MatchString(filter.Query) {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
 	var err error
 	if raw := request.URL.Query().Get("from"); raw != "" {
 		filter.From, err = time.Parse(time.RFC3339, raw)
@@ -75,7 +95,7 @@ func (h *InvestigationHandler) Transfers(writer http.ResponseWriter, request *ht
 			filter.To, err = time.Parse(time.RFC3339, raw)
 		}
 	}
-	if err != nil {
+	if err != nil || !filter.From.IsZero() && !filter.To.IsZero() && filter.From.After(filter.To) {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}

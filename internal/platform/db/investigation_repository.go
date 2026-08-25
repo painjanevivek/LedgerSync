@@ -2,8 +2,10 @@ package db
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -29,6 +31,12 @@ type investigationCursor struct {
 	ID string
 }
 
+type transferCursor struct {
+	At          time.Time `json:"at"`
+	ID          string    `json:"id"`
+	Fingerprint string    `json:"fp"`
+}
+
 func decodeInvestigationCursor(raw string) (investigationCursor, error) {
 	if raw == "" {
 		return investigationCursor{}, nil
@@ -52,8 +60,54 @@ func encodeInvestigationCursor(at time.Time, id string) string {
 	return base64.RawURLEncoding.EncodeToString([]byte(at.UTC().Format(time.RFC3339Nano) + "|" + id))
 }
 
+func decodeTransferCursor(raw, fingerprint string) (transferCursor, error) {
+	if raw == "" {
+		return transferCursor{}, nil
+	}
+	if len(raw) > 768 {
+		return transferCursor{}, errors.New("invalid transfer cursor")
+	}
+	value, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil || len(value) > 512 {
+		return transferCursor{}, errors.New("invalid transfer cursor")
+	}
+	parts := strings.Split(string(value), "|")
+	if len(parts) == 2 && fingerprint == transferFilterFingerprint(investigation.TransferFilter{}) {
+		at, parseErr := time.Parse(time.RFC3339Nano, parts[0])
+		if parseErr == nil && safeEvidenceUUID.MatchString(strings.ToLower(parts[1])) {
+			return transferCursor{At: at.UTC(), ID: strings.ToLower(parts[1]), Fingerprint: fingerprint}, nil
+		}
+	}
+	if len(parts) != 3 || parts[2] != fingerprint || !safeEvidenceUUID.MatchString(strings.ToLower(parts[1])) {
+		return transferCursor{}, errors.New("invalid transfer cursor")
+	}
+	at, err := time.Parse(time.RFC3339Nano, parts[0])
+	if err != nil || at.IsZero() {
+		return transferCursor{}, errors.New("invalid transfer cursor")
+	}
+	return transferCursor{At: at.UTC(), ID: strings.ToLower(parts[1]), Fingerprint: fingerprint}, nil
+}
+
+func encodeTransferCursor(at time.Time, id, fingerprint string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(at.UTC().Format(time.RFC3339Nano) + "|" + strings.ToLower(id) + "|" + fingerprint))
+}
+
+func transferFilterFingerprint(filter investigation.TransferFilter) string {
+	from, to := "", ""
+	if !filter.From.IsZero() {
+		from = filter.From.UTC().Format(time.RFC3339Nano)
+	}
+	if !filter.To.IsZero() {
+		to = filter.To.UTC().Format(time.RFC3339Nano)
+	}
+	canonical := strings.Join([]string{strings.ToLower(strings.TrimSpace(filter.AccountID)), strings.ToLower(strings.TrimSpace(filter.Status)), strings.ToLower(strings.TrimSpace(filter.Query)), from, to}, "\x00")
+	sum := sha256.Sum256([]byte(canonical))
+	return hex.EncodeToString(sum[:])
+}
+
 func (r *InvestigationRepository) ListTransfers(ctx context.Context, tenantID string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
-	cursor, err := decodeInvestigationCursor(filter.Cursor)
+	fingerprint := transferFilterFingerprint(filter)
+	cursor, err := decodeTransferCursor(filter.Cursor, fingerprint)
 	if err != nil {
 		return nil, "", err
 	}
@@ -62,7 +116,7 @@ SELECT t.id,t.debit_account_id,t.credit_account_id,t.amount_minor,t.currency,t.s
  CASE WHEN t.status<>'posted' THEN 'not_applicable' ELSE COALESCE((SELECT d.status FROM delivery_attempts d WHERE d.tenant_id=t.tenant_id AND d.transfer_id=t.id ORDER BY d.created_at DESC,d.id DESC LIMIT 1),'not_applicable') END,
  t.created_at,COALESCE(t.completed_at,t.created_at),COALESCE(t.journal_transaction_id::text,''),COALESCE(t.rejection_code,'')
 FROM transfers t WHERE t.tenant_id=$1
- AND ($2='' OR t.status=$2) AND ($3='' OR t.debit_account_id::text=$3 OR t.credit_account_id::text=$3)
+	 AND ($2='' OR t.status=$2) AND ($3='' OR t.debit_account_id=NULLIF($3,'')::uuid OR t.credit_account_id=NULLIF($3,'')::uuid)
  AND ($4='' OR t.id::text ILIKE '%'||$4||'%' OR t.debit_account_id::text ILIKE '%'||$4||'%' OR t.credit_account_id::text ILIKE '%'||$4||'%')
  AND ($5::timestamptz IS NULL OR COALESCE(t.completed_at,t.created_at) >= $5)
  AND ($6::timestamptz IS NULL OR COALESCE(t.completed_at,t.created_at) <= $6)
@@ -88,7 +142,7 @@ ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT $9`, tenantI
 	next := ""
 	if len(items) > filter.Limit {
 		last := items[filter.Limit-1]
-		next = encodeInvestigationCursor(last.CompletedAt, last.ID)
+		next = encodeTransferCursor(last.CompletedAt, last.ID, fingerprint)
 		items = items[:filter.Limit]
 	}
 	return items, next, nil

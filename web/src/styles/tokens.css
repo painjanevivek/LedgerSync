@@ -8,7 +8,7 @@
   --paper: #ffffff;
   --paper-subtle: #f2f5f1;
   --line: #d8dfda;
-  --line-strong: #b9c4bd;
+  --line-strong: #89968e;
   --rail: #071a36;
   --rail-deep: #0a2a50;
   --rail-text: #f3f7f4;
@@ -26,6 +26,13 @@
   --brand-accent: #8ce0c1;
   --surface-success: #f5fbf8;
   --line-success: #b8d7c7;
+  --success-ink-soft: #587368;
+  --amber-line: #d0ae69;
+  --red-line: #d39b94;
+  --surface-hover: #f0f5f1;
+  --surface-control: #edf0f4;
+  --skeleton: #e4e9e5;
+  --skeleton-highlight: #f1f4f2;
   --white: #ffffff;
 
   --space-1: 4px;
@@ -39,10 +46,14 @@
   --space-9: 48px;
   --space-10: 64px;
 
-  --type-caption: 8px;
-  --type-label: 10px;
-  --type-body: 12px;
-  --type-heading: 25px;
+  --type-display: 32px;
+  --type-h1: 24px;
+  --type-h2: 18px;
+  --type-h3: 15px;
+  --type-body-lg: 16px;
+  --type-body: 14px;
+  --type-label: 12px;
+  --type-meta: 12px;
 
   --radius-control: 3px;
   --radius-surface: 6px;
@@ -64,7 +75,7 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { min-width: 0; margin: 0; background: var(--canvas); color: var(--ink); }
+body { min-width: 0; margin: 0; background: var(--canvas); color: var(--ink); font-size: 14px; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .52; }

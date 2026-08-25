@@ -1,16 +1,20 @@
 "use client";
 
 import { WarningCircle } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ConsoleSession } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
 import { PageHeader, StatePanel } from "@/features/console/components";
-import { RecoveryView } from "@/features/recovery/RecoveryView";
 import type { LocalDiagnostics } from "@/lib/api/operations";
 import type { RecoveryEvidenceIndex } from "@/lib/api/recovery";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
+
+const RecoveryView = dynamic(() => import("@/features/recovery/RecoveryView").then((module) => module.RecoveryView), {
+  loading: () => <StatePanel title="Loading recovery reference" message="Preparing the protected evidence view without delaying the operator shell." />,
+});
 
 export function RecoveryConsole() {
   const router = useRouter();

@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCircle, Clock, LinkSimple, WarningCircle } from "@phosphor-icons/react";
+import { LinkSimple, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 
-import { CopyControl, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl, EvidenceFreshness, EvidenceStepMarker, StatePanel, StatusBadge } from "@/features/console/components";
 import { utcDateTime } from "@/features/console/format";
 import type { ExplainabilityEvidence, ExplainabilityStage, TransferExplainability } from "@/lib/api/orientation";
 import { formatMinorUnits } from "@/lib/money";
@@ -33,18 +33,21 @@ function stageTimes(stage: ExplainabilityStage) { return stage.evidence.map((ite
 
 export function TransferEvidenceTimeline({ evidence, loading, error, online, canRead, transferId, backTo, onRefresh }: Readonly<{ evidence: TransferExplainability | null; loading: boolean; error: string | null; online: boolean; canRead: boolean; transferId: string; backTo: string; onRefresh: () => void }>) {
   if (!canRead) return <StatePanel kind="denied" title="Stored evidence timeline not authorized" message="This linked view requires explainability, transfer, event, and reconciliation read scopes. The financial transfer detail above remains unchanged." />;
-  if (!online) return <StatePanel kind="offline" title="Stored evidence timeline unavailable offline" message="LedgerSync will not present retained browser data as current linked evidence." />;
-  if (error) return <StatePanel kind="error" title="Stored evidence timeline unavailable" message={error} action={<button className="button secondary" type="button" onClick={onRefresh}>Retry timeline</button>} />;
-  if (loading || !evidence) return <StatePanel title="Loading stored evidence timeline" message="Seven independently stored stages are being verified without inferring missing links." />;
+  if (!online && !evidence) return <StatePanel kind="offline" title="Stored evidence timeline unavailable offline" message="No retained browser data is presented as current linked evidence." />;
+  if (error && !evidence) return <StatePanel kind="error" title="Stored evidence timeline unavailable" message={error} action={<button className="button secondary" type="button" onClick={onRefresh}>Retry timeline</button>} />;
+  if (!evidence) return <StatePanel title="Loading stored evidence timeline" message="Seven independently stored stages are being verified without inferring missing links." />;
 
   let latest = Number.NEGATIVE_INFINITY; let outOfOrder = false;
   for (const stage of evidence.stages) { const times = stageTimes(stage); if (times.some((time) => time < latest)) outOfOrder = true; if (times.length) latest = Math.max(latest, ...times); }
-  return <section className="transfer-evidence-chain" aria-labelledby="stored-evidence-title">
-    <header><div><p className="eyebrow">Unified explainability / Read model</p><h2 id="stored-evidence-title">Stored evidence chain</h2><p>Semantic order is fixed. Missing, unavailable, and truncated stages remain visible and are never promoted into financial, delivery, or reconciliation truth.</p></div><button className="button secondary" type="button" onClick={onRefresh}>Refresh linked evidence</button></header>
+  return <section className="transfer-evidence-chain" aria-labelledby="stored-evidence-title" aria-busy={loading}>
+    <header><div><p className="eyebrow">Unified explainability / Read model</p><h2 id="stored-evidence-title">Stored evidence chain</h2><p>Semantic order is fixed. Missing, unavailable, and truncated stages remain visible and are never promoted into financial, delivery, or reconciliation truth.</p></div><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh linked evidence</button></header>
+    {!online && <StatePanel kind="offline" title="Linked evidence is historical" message="The last verified chain remains visible. Reconnect before relying on delivery or reconciliation coverage." />}
+    {error && <StatePanel kind="error" title="Linked evidence was not refreshed" message={error} />}
+    <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={evidence.generated_at} label="Stored evidence chain" reason={error ?? (!online ? "Reconnect before relying on linked state." : undefined)} />
     {outOfOrder && <StatePanel kind="unknown" title="Stored timestamps are out of sequence" message="The records remain in semantic evidence order. LedgerSync has not reordered or reconciled their timestamps." />}
     <ol>
       {evidence.stages.map((stage) => <li key={stage.sequence} className={`evidence-stage ${stage.state}`}>
-        <div className="evidence-stage-marker"><span>{stage.sequence}</span>{stage.state === "available" && !stage.truncated ? <CheckCircle weight="fill" aria-hidden="true" /> : stage.state === "unavailable" ? <WarningCircle weight="fill" aria-hidden="true" /> : <Clock weight="fill" aria-hidden="true" />}</div>
+        <EvidenceStepMarker sequence={stage.sequence} state={stage.state === "available" && stage.truncated ? "bounded" : stage.state} />
         <article>
           <header><div><h3>{stageCopy[stage.kind].title}</h3><p>{stageCopy[stage.kind].description}</p></div><StatusBadge tone={stageTone(stage)}>{stage.state === "available" ? stage.truncated ? "Available · bounded" : "Available" : stage.state === "missing" ? "Missing" : "Unavailable"}</StatusBadge></header>
           {stage.evidence.length > 0 ? <ul className="stage-evidence-list">{stage.evidence.map((item, index) => {

@@ -32,25 +32,29 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
   const [events, setEvents] = useState<DeliveryEvent[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
   const [event, setEvent] = useState<DeliveryEventDetail | null>(null);
+  const [verifiedAt, setVerifiedAt] = useState<string>();
   const requestGeneration = useRef(0);
+  const evidenceKey = useRef<string | undefined>(undefined);
 
   const loadDiagnostics = useCallback(async () => {
     setLoading(true);
     const response = await readJSON<LocalDiagnostics>("/api/local/diagnostics");
-    if (response.ok && response.data.overall_state) { setDiagnostics(response.data); setError(null); }
+    if (response.ok && response.data.overall_state) { setDiagnostics(response.data); setVerifiedAt(response.data.generated_at); setError(null); }
     else setError(unavailableMessage(response.status, "local diagnostics"));
     setLoading(false);
   }, []);
 
   const loadEvents = useCallback(async () => {
     const generation = ++requestGeneration.current;
+    const key = eventQuery(filters);
+    const sameQuery = evidenceKey.current === key;
+    evidenceKey.current = key;
     setLoading(true);
     setError(null);
-    setEvents([]);
-    setNextCursor(undefined);
-    const response = await readJSON<EventPage>(`/api/events?${eventQuery(filters)}`);
+    if (!sameQuery) { setEvents([]); setNextCursor(undefined); setVerifiedAt(undefined); }
+    const response = await readJSON<EventPage>(`/api/events?${key}`);
     if (generation !== requestGeneration.current) return;
-    if (response.ok && Array.isArray(response.data.events)) { setEvents(response.data.events); setNextCursor(response.data.next_cursor || undefined); setError(null); }
+    if (response.ok && Array.isArray(response.data.events)) { setEvents(response.data.events); setNextCursor(response.data.next_cursor || undefined); setVerifiedAt(new Date().toISOString()); setError(null); }
     else setError(unavailableMessage(response.status, "event evidence"));
     setLoading(false);
   }, [filters]);
@@ -58,12 +62,15 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
   const loadEvent = useCallback(async () => {
     if (!eventId) return;
     const generation = ++requestGeneration.current;
+    const key = `event:${eventId}`;
+    const sameEvent = evidenceKey.current === key;
+    evidenceKey.current = key;
     setLoading(true);
     setError(null);
-    setEvent(null);
+    if (!sameEvent) { setEvent(null); setVerifiedAt(undefined); }
     const response = await readJSON<DeliveryEventDetail>(`/api/events/${encodeURIComponent(eventId)}`);
     if (generation !== requestGeneration.current) return;
-    if (response.ok && response.data.event_id) { setEvent(response.data); setError(null); }
+    if (response.ok && response.data.event_id) { setEvent(response.data); setVerifiedAt(new Date().toISOString()); setError(null); }
     else setError(response.status === 404 ? "The selected event was not found in this authorized tenant scope." : unavailableMessage(response.status, "event detail"));
     setLoading(false);
   }, [eventId]);
@@ -108,9 +115,9 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
   const canRead = section === "local-status" ? session.scopes.includes("local:read") : session.scopes.includes("events:read");
   return <ConsoleShell section={section} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "demo" ? "Non-production data" : "Authorized operator"} preview={session.environment === "demo"} onSignOut={() => void signOut()}>
     {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true"/><span><strong>You are offline.</strong> Read evidence is retained only with its last verified timestamp.</span></div>}
-    {section === "local-status" && <LocalStatusView evidence={diagnostics} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadDiagnostics()} />}
-    {section === "events" && eventId && <EventDetailView event={event} loading={loading} error={error} online={online} canRead={canRead} returnTo={returnTo} onRefresh={() => void loadEvent()} />}
-    {section === "events" && !eventId && <EventsListView events={events} filters={filters} nextCursor={nextCursor} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadEvents()} />}
+    {section === "local-status" && <LocalStatusView evidence={diagnostics} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadDiagnostics()} />}
+    {section === "events" && eventId && <EventDetailView event={event} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canRead={canRead} returnTo={returnTo} onRefresh={() => void loadEvent()} />}
+    {section === "events" && !eventId && <EventsListView events={events} filters={filters} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadEvents()} />}
     <ConsoleFooter/>
   </ConsoleShell>;
 }
