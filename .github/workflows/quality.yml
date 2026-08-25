@@ -29,7 +29,7 @@ jobs:
         run: go test -run=^$ -fuzz=FuzzParseExactMoney -fuzztime=10s ./tests/unit
       - name: Enforce 60% critical financial core coverage floor
         run: |
-          go test -count=1 -covermode=atomic -coverpkg=./internal/domain/...,./internal/application/transfers/... -coverprofile=critical-coverage.out ./tests/unit ./tests/contract
+          go test -count=1 -covermode=atomic -coverpkg=./internal/domain/...,./internal/application/transfers/... -coverprofile=critical-coverage.out ./internal/domain/... ./internal/application/transfers/... ./tests/unit ./tests/contract
           go tool cover -func=critical-coverage.out | tee critical-coverage.txt
           awk '/^total:/{ sub("%", "", $3); exit ($3 + 0 < 60) }' critical-coverage.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
