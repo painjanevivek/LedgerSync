@@ -1,6 +1,7 @@
 package contract_test
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"io/fs"
@@ -12,12 +13,12 @@ import (
 
 func TestBaselineFinancialMigrationsRemainImmutable(t *testing.T) {
 	expected := map[string]string{
-		"000001_financial_schema.up.sql":                "07672cd26365b7b1ded8c26b9268d6e899d07c87ed344bb4800b06c32043acee",
-		"000002_transfer_ledger.up.sql":                 "c11d1511daea10eed6d707bce674df5b7b84e0b6cd2b4132e0516c4c27e33cba",
-		"000003_ledger_integrity.up.sql":                "81e2a1043138bef2774889de6308dce7d3e526ae5d64e25f8809e2988fe0b538",
-		"000004_outbox_delivery_leases.up.sql":          "44143c798c606e9db193b33fef792950378ccf9d9c88876d448ba31a891bff29",
-		"000005_operational_evidence.up.sql":            "7e8310911d13e569cd733107fd5b98905a176e141ee5dda5495afbf368a9fa8d",
-		"000006_reconciliation_opening_balances.up.sql": "ea599bacbe6a0a71cbc1889810ac1aa8eda7ca8821daa2991f03bd67987bf359",
+		"000001_financial_schema.up.sql":                "238f61ad3bd39bba15e9bda2d3eb4a4bc43d69279be48939ae311859249aa27d",
+		"000002_transfer_ledger.up.sql":                 "8175ccb071bf3a456cebdde271425c4b25d6e7f8d029407ac812fff950e626a6",
+		"000003_ledger_integrity.up.sql":                "d133244f42644c9dbd4b1eb59adeacead85dc046d1ebe2a45b44f230bc3268ce",
+		"000004_outbox_delivery_leases.up.sql":          "c41a7cf78b89989ee676998e850f90603432dbf782c277f4230e51515498470b",
+		"000005_operational_evidence.up.sql":            "45136cb40fc7edcd304d437dfb080305dc7d2e869ce9bb94f3f615e1fbe5e309",
+		"000006_reconciliation_opening_balances.up.sql": "6ef3da3080bb65a4a4ac2376cf670fa482cac5ee9b7c19bfc010099d935d8976",
 		"000007_operator_investigation.up.sql":          "ac195eb1752f0380a9d3e89cf534092e239dfe08c706c5d32a5caffdbb5f88aa",
 		"000008_reconciliation_delivery_truth.up.sql":   "9bbdd9ea20798767af11bc313b99c06025588a376557da818e4f8b307801c520",
 		"000009_pilot_security_controls.up.sql":         "2929f0c8667879983f8d5d77b15201434174242b420a83618af4908ce0782a87",
@@ -32,7 +33,11 @@ func TestBaselineFinancialMigrationsRemainImmutable(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read frozen migration %s: %v", name, err)
 		}
-		if got := fmt.Sprintf("%x", sha256.Sum256(content)); got != want {
+		// Git may materialize text files with CRLF on Windows. Hash canonical LF
+		// bytes so the immutability contract protects SQL content identically on
+		// Windows and Linux without rewriting a frozen migration.
+		canonical := bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
+		if got := fmt.Sprintf("%x", sha256.Sum256(canonical)); got != want {
 			t.Errorf("frozen migration %s changed: got %s want %s; add a forward-only migration instead", name, got, want)
 		}
 	}

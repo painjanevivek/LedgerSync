@@ -6,7 +6,7 @@
 
 **Gate:** [LPC-100](../pilot/local-product-completion-gates.md)
 
-**Executable candidate:** `67d0b59a4265429e13b03194b289bcbbccba145d`. The resulting Phase 10 commit adds only this bounded evidence and its documentation links; it does not change the qualified executable tree.
+**Executable candidate:** `67d0b59a4265429e13b03194b289bcbbccba145d`. The resulting Phase 10 commit adds this bounded evidence/documentation and makes the migration immutability test line-ending-neutral for Linux CI; it does not change the qualified runtime executable tree or any frozen migration.
 
 **Boundary:** one Windows workstation, Docker Desktop, the loopback-only product at `http://127.0.0.1:3000`, one deterministic demo tenant, INR, internal LedgerSync accounts, and disposable isolated Compose projects. This is local-product evidence, not LAN, cloud, shared-host, production, bank-rail, custody, FX, or regulatory approval.
 
