@@ -133,8 +133,8 @@ export function ConsoleShell({
   </div>;
 }
 
-export function ConsoleFooter() {
-  return <footer className="console-footer">
+export function ConsoleFooter({ pending = false }: { pending?: boolean } = {}) {
+  return <footer className={`console-footer${pending ? " is-pending" : ""}`} aria-hidden={pending || undefined}>
     <span>PostgreSQL is the financial source of truth. Cached reads are version-checked.</span>
     <span>All times shown in UTC.</span>
     <span>© 2026 LedgerSync, Inc.</span>
