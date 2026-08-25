@@ -186,7 +186,7 @@ jobs:
           ./scripts/backup-local.ps1 -BackupRoot data/ci-backups -RetentionCount 1
           $backup = Get-ChildItem -LiteralPath data/ci-backups -Directory | Select-Object -First 1
           if ($null -eq $backup) { throw "Backup command produced no finalized bundle." }
-          ./scripts/local-restore-drill.ps1 -BackupDirectory $backup.FullName
+          ./scripts/local-restore-drill.ps1 -BackupDirectory $backup.FullName -BackupRoot data/ci-backups
       - name: Prove dependency faults recover without financial drift
         shell: pwsh
         env:

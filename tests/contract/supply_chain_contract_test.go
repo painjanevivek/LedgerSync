@@ -47,6 +47,15 @@ func TestEvidenceContainerImagesAreDigestPinned(t *testing.T) {
 	}
 }
 
+func TestQualityRestoreRetainsTheExplicitBackupRoot(t *testing.T) {
+	workflow := readContractFile(t, filepath.Join(repositoryRoot(t), ".github", "workflows", "quality.yml"))
+	backupCommand := "./scripts/backup-local.ps1 -BackupRoot data/ci-backups -RetentionCount 1"
+	restoreCommand := "./scripts/local-restore-drill.ps1 -BackupDirectory $backup.FullName -BackupRoot data/ci-backups"
+	if strings.Count(workflow, backupCommand) != 1 || strings.Count(workflow, restoreCommand) != 1 {
+		t.Fatal("quality restore must validate the selected bundle against the same explicit dedicated backup root")
+	}
+}
+
 func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 	root := repositoryRoot(t)
 	workflow := readContractFile(t, filepath.Join(root, ".github", "workflows", "contract.yml"))
