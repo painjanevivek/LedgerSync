@@ -50,13 +50,13 @@ func TestHealthyPostgreSQLCriticalPathsStayWithinLocalP95Targets(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read performance balance %d: %v", index, err)
 		}
-		if result.Source != accounts.SourceCache || result.Balance.Version != current.Version {
+		if result.Source != accounts.SourcePrimary || result.Balance.Version != current.Version || result.Balance.AvailableMinor != current.AvailableMinor || result.Balance.LedgerMinor != current.LedgerMinor {
 			t.Fatalf("balance performance path returned %#v", result)
 		}
 		balanceDurations = append(balanceDurations, time.Since(started))
 	}
 	balanceP95 := nearestRankP95(balanceDurations)
-	t.Logf("healthy authorized cached balance p95=%s target=<200ms", balanceP95)
+	t.Logf("healthy authoritative PostgreSQL balance p95=%s target=<200ms", balanceP95)
 	if measured := balanceP95; measured >= 200*time.Millisecond {
 		t.Fatalf("healthy authorized balance p95=%s, target <200ms", measured)
 	}

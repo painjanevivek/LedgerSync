@@ -277,9 +277,14 @@ test("account mutation dispatch timeout is an explicit unknown outcome", () => {
 test("existing account GET routes retain their paths and query allowlists", async () => {
   const listRoute = await readFile(new URL("../../src/app/api/me/accounts/route.ts", import.meta.url), "utf8");
   const detailRoute = await readFile(new URL("../../src/app/api/accounts/[accountId]/route.ts", import.meta.url), "utf8");
+  const privateProxy = await readFile(new URL("../../src/lib/private-api.ts", import.meta.url), "utf8");
   assert.match(listRoute, /export async function GET/);
   assert.match(listRoute, /proxyPrivateGET\(request, session, "\/api\/me\/accounts", \["cursor", "limit", "q", "status", "category"\]\)/);
   assert.match(detailRoute, /export async function GET/);
   assert.match(detailRoute, /proxyPrivateGET\(request, session, `\/api\/accounts\/\$\{encodeURIComponent\(accountId\)\}`, \[\]\)/);
   assert.match(detailRoute, /proxyAccountMutation\(session, "PATCH", `\/api\/accounts\/\$\{encodeURIComponent\(accountId\)\}`/);
+  assert.match(privateProxy, /new Set\(allowedQuery\)/);
+  assert.match(privateProxy, /searchParams\.getAll\(key\)\.length !== 1/);
+  assert.match(privateProxy, /!permitted\.has\(key\)/);
+  assert.match(privateProxy, /jsonError\("invalid_request", 400\)/);
 });

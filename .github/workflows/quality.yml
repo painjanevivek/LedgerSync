@@ -43,8 +43,8 @@ jobs:
         with: { go-version-file: go.mod, check-latest: true }
       - name: Start disposable PostgreSQL and Redis
         run: |
-          docker run -d --rm --name ledgersync-quality-postgres -e POSTGRES_DB=ledgersync -e POSTGRES_USER=ledgersync -e POSTGRES_PASSWORD=quality -p 127.0.0.1:5432:5432 postgres:16-alpine
-          docker run -d --rm --name ledgersync-quality-redis -p 127.0.0.1:6379:6379 redis:7.4-alpine
+          docker run -d --rm --name ledgersync-quality-postgres -e POSTGRES_DB=ledgersync -e POSTGRES_USER=ledgersync -e POSTGRES_PASSWORD=quality -p 127.0.0.1:5432:5432 postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+          docker run -d --rm --name ledgersync-quality-redis -p 127.0.0.1:6379:6379 redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
           until docker exec ledgersync-quality-postgres pg_isready -U ledgersync -d ledgersync; do sleep 1; done
           until docker exec ledgersync-quality-redis redis-cli ping; do sleep 1; done
       - name: Run Testcontainers-equivalent live database evidence serially
@@ -115,6 +115,8 @@ jobs:
           chmod 600 "$runtime_env"
           for variable in \
             POSTGRES_PASSWORD \
+            LEDGERSYNC_API_DATABASE_PASSWORD \
+            LEDGERSYNC_WORKER_DATABASE_PASSWORD \
             LEDGERSYNC_SESSION_SECRET \
             LEDGERSYNC_CONSISTENCY_SIGNING_KEY \
             LEDGERSYNC_BFF_ASSERTION_SECRET \

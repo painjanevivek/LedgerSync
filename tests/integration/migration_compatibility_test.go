@@ -16,6 +16,7 @@ import (
 
 	accountapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	reconciliationapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
+	transferapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
@@ -249,11 +250,36 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		_ = limitedDatabase.Close()
 		t.Fatalf("reconciliation command with migrated API grants: result=%#v error=%v", reconciled, err)
 	}
-	if err := limitedDatabase.Close(); err != nil {
-		t.Fatal(err)
-	}
 	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1`, created.Result.AccountID) != 1 {
 		t.Fatalf("limited-role account create result=%#v", created.Result)
+	}
+	if err := seedTransferFixture(context.Background(), upgradeDatabase, 10_000); err != nil {
+		t.Fatalf("seed limited-role transfer fixture: %v", err)
+	}
+	transferRepository, err := db.NewTransferRepository(limitedDatabase, func() time.Time { return createdAt.Add(3 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	transferService, err := transferapp.NewService(transferRepository, func() time.Time { return createdAt.Add(3 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstTransfer, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-0001", "25.00"))
+	if err != nil {
+		t.Fatalf("atomic transfer with migrated API grants: %v", err)
+	}
+	replayedTransfer, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-0001", "25.00"))
+	if err != nil {
+		t.Fatalf("atomic transfer replay with migrated API grants: %v", err)
+	}
+	if firstTransfer.Replayed || !replayedTransfer.Replayed || firstTransfer.Result.TransferID == "" || firstTransfer.Result.TransferID != replayedTransfer.Result.TransferID ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM transfers WHERE id=$1 AND status='posted'`, firstTransfer.Result.TransferID) != 1 ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM journal_transactions WHERE transfer_id=$1`, firstTransfer.Result.TransferID) != 1 ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.transfer_id=$1`, firstTransfer.Result.TransferID) != 2 {
+		t.Fatalf("limited-role transfer/replay did not commit exactly one balanced movement: first=%#v replay=%#v", firstTransfer, replayedTransfer)
+	}
+	if err := limitedDatabase.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 

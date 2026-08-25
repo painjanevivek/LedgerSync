@@ -39,8 +39,8 @@ jobs:
           [[ "$RYEW_VIOLATIONS" == "0" ]]
       - name: Start isolated PostgreSQL and Redis
         run: |
-          docker run -d --rm --name ledgersync-release-postgres -e POSTGRES_DB=ledgersync -e POSTGRES_USER=ledgersync -e POSTGRES_PASSWORD=release-evidence -p 127.0.0.1:5432:5432 postgres:16-alpine
-          docker run -d --rm --name ledgersync-release-redis -p 127.0.0.1:6379:6379 redis:7.4-alpine
+          docker run -d --rm --name ledgersync-release-postgres -e POSTGRES_DB=ledgersync -e POSTGRES_USER=ledgersync -e POSTGRES_PASSWORD=release-evidence -p 127.0.0.1:5432:5432 postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+          docker run -d --rm --name ledgersync-release-redis -p 127.0.0.1:6379:6379 redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
           until docker exec ledgersync-release-postgres pg_isready -U ledgersync -d ledgersync; do sleep 1; done
           until docker exec ledgersync-release-redis redis-cli ping; do sleep 1; done
       - name: Run live migration, transfer, authorization, visibility, and recovery evidence serially

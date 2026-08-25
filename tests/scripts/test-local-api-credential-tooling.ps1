@@ -17,11 +17,13 @@ function New-IsolatedRuntimeEnvironment {
     param([Parameter(Mandatory = $true)][string]$Path)
     $values = [ordered]@{
         POSTGRES_PASSWORD = ("01" * 32)
-        LEDGERSYNC_SESSION_SECRET = ("02" * 32)
-        LEDGERSYNC_CONSISTENCY_SIGNING_KEY = ("03" * 32)
-        LEDGERSYNC_BFF_ASSERTION_SECRET = ("04" * 32)
-        LEDGERSYNC_WEB_SESSION_SECRET = ("05" * 32)
-        LEDGERSYNC_DEVELOPMENT_API_TOKEN = ("06" * 32)
+        LEDGERSYNC_API_DATABASE_PASSWORD = ("02" * 32)
+        LEDGERSYNC_WORKER_DATABASE_PASSWORD = ("03" * 32)
+        LEDGERSYNC_SESSION_SECRET = ("04" * 32)
+        LEDGERSYNC_CONSISTENCY_SIGNING_KEY = ("05" * 32)
+        LEDGERSYNC_BFF_ASSERTION_SECRET = ("06" * 32)
+        LEDGERSYNC_WEB_SESSION_SECRET = ("07" * 32)
+        LEDGERSYNC_DEVELOPMENT_API_TOKEN = ("08" * 32)
     }
     $lines = @($values.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" })
     [IO.File]::WriteAllLines($Path, $lines, [Text.UTF8Encoding]::new($false))
@@ -85,7 +87,7 @@ try {
 
     $script:activationCalls = @()
     $script:smokeCalls = 0
-    $newCredential = "07" * 32
+    $newCredential = "09" * 32
     $rotationOutput = @(
         Invoke-LedgerSyncPrivateAPICredentialRotation `
             -Path $runtimePath `
@@ -112,7 +114,7 @@ try {
 
     $script:activationCalls = @()
     $script:smokeCalls = 0
-    $rollbackCredential = "08" * 32
+    $rollbackCredential = "0a" * 32
     $rollbackFailed = $false
     try {
         Invoke-LedgerSyncPrivateAPICredentialRotation `

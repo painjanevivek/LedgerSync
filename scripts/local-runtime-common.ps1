@@ -35,6 +35,24 @@ if (-not [string]::IsNullOrWhiteSpace($requestedStateDirectory)) {
     $script:LedgerSyncRuntimeStateDirectory = $resolvedStateDirectory
 }
 $script:LedgerSyncRuntimeEnvironmentFile = Join-Path $script:LedgerSyncRuntimeStateDirectory "runtime.env"
+$script:LedgerSyncRuntimeSecretNames = @(
+    "POSTGRES_PASSWORD",
+    "LEDGERSYNC_API_DATABASE_PASSWORD",
+    "LEDGERSYNC_WORKER_DATABASE_PASSWORD",
+    "LEDGERSYNC_SESSION_SECRET",
+    "LEDGERSYNC_CONSISTENCY_SIGNING_KEY",
+    "LEDGERSYNC_BFF_ASSERTION_SECRET",
+    "LEDGERSYNC_WEB_SESSION_SECRET",
+    "LEDGERSYNC_DEVELOPMENT_API_TOKEN"
+)
+$script:LedgerSyncLegacyRuntimeSecretNames = @(
+    "POSTGRES_PASSWORD",
+    "LEDGERSYNC_SESSION_SECRET",
+    "LEDGERSYNC_CONSISTENCY_SIGNING_KEY",
+    "LEDGERSYNC_BFF_ASSERTION_SECRET",
+    "LEDGERSYNC_WEB_SESSION_SECRET",
+    "LEDGERSYNC_DEVELOPMENT_API_TOKEN"
+)
 
 function New-LedgerSyncLocalSecret {
     $bytes = New-Object byte[] 32
@@ -48,21 +66,46 @@ function Test-LedgerSyncRuntimeEnvironmentFile {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         return $false
     }
-    $required = @(
-        "POSTGRES_PASSWORD",
-        "LEDGERSYNC_SESSION_SECRET",
-        "LEDGERSYNC_CONSISTENCY_SIGNING_KEY",
-        "LEDGERSYNC_BFF_ASSERTION_SECRET",
-        "LEDGERSYNC_WEB_SESSION_SECRET",
-        "LEDGERSYNC_DEVELOPMENT_API_TOKEN"
-    )
     $values = @{}
     foreach ($line in Get-Content -LiteralPath $Path) {
-        if ($line -match '^([A-Z0-9_]+)=([a-f0-9]{64})$') {
-            $values[$Matches[1]] = $Matches[2]
+        if ($line -cnotmatch '^([A-Z0-9_]+)=([a-f0-9]{64})$' -or $values.ContainsKey([string]$Matches[1])) {
+            return $false
+        }
+        $values[[string]$Matches[1]] = [string]$Matches[2]
+    }
+    return @($script:LedgerSyncRuntimeSecretNames | Where-Object { -not $values.ContainsKey($_) }).Count -eq 0
+}
+
+function New-LedgerSyncRuntimeEnvironmentLines {
+    param([string]$ExistingPath)
+
+    $lines = [Collections.Generic.List[string]]::new()
+    $values = @{}
+    if (-not [string]::IsNullOrWhiteSpace($ExistingPath) -and (Test-Path -LiteralPath $ExistingPath -PathType Leaf)) {
+        foreach ($line in Get-Content -LiteralPath $ExistingPath) {
+            if ($line -cnotmatch '^([A-Z0-9_]+)=([a-f0-9]{64})$') {
+                throw "Existing local runtime secret state is malformed; it was not replaced."
+            }
+            $name = [string]$Matches[1]
+            if ($values.ContainsKey($name)) {
+                throw "Existing local runtime secret state contains a duplicate entry; it was not replaced."
+            }
+            $values[$name] = [string]$Matches[2]
+            $lines.Add([string]$line)
+        }
+        if (@($script:LedgerSyncLegacyRuntimeSecretNames | Where-Object { -not $values.ContainsKey($_) }).Count -ne 0) {
+            throw "Existing local runtime secret state is incomplete; it was not replaced."
         }
     }
-    return @($required | Where-Object { -not $values.ContainsKey($_) }).Count -eq 0
+
+    foreach ($name in $script:LedgerSyncRuntimeSecretNames) {
+        if (-not $values.ContainsKey($name)) {
+            $value = New-LedgerSyncLocalSecret
+            $values[$name] = $value
+            $lines.Add("$name=$value")
+        }
+    }
+    return @($lines)
 }
 
 function Get-LedgerSyncRuntimeEnvironmentValue {
@@ -98,20 +141,20 @@ function Initialize-LedgerSyncLocalSecrets {
     New-Item -ItemType Directory -Force -Path $script:LedgerSyncRuntimeStateDirectory | Out-Null
     $pendingPath = "$($script:LedgerSyncRuntimeEnvironmentFile).pending"
     if (-not (Test-LedgerSyncRuntimeEnvironmentFile -Path $pendingPath)) {
-        $lines = @(
-            "POSTGRES_PASSWORD=$(New-LedgerSyncLocalSecret)",
-            "LEDGERSYNC_SESSION_SECRET=$(New-LedgerSyncLocalSecret)",
-            "LEDGERSYNC_CONSISTENCY_SIGNING_KEY=$(New-LedgerSyncLocalSecret)",
-            "LEDGERSYNC_BFF_ASSERTION_SECRET=$(New-LedgerSyncLocalSecret)",
-            "LEDGERSYNC_WEB_SESSION_SECRET=$(New-LedgerSyncLocalSecret)",
-            "LEDGERSYNC_DEVELOPMENT_API_TOKEN=$(New-LedgerSyncLocalSecret)"
-        )
+        $upgradeSource = if (Test-Path -LiteralPath $script:LedgerSyncRuntimeEnvironmentFile -PathType Leaf) {
+            $script:LedgerSyncRuntimeEnvironmentFile
+        } elseif (Test-Path -LiteralPath $pendingPath -PathType Leaf) {
+            $pendingPath
+        } else {
+            $null
+        }
+        $lines = @(New-LedgerSyncRuntimeEnvironmentLines -ExistingPath $upgradeSource)
         [IO.File]::WriteAllLines($pendingPath, $lines, [Text.UTF8Encoding]::new($false))
         Protect-LedgerSyncLocalSecretFile -Path $pendingPath
     }
 
-    # Upgrade an existing pre-Phase-6 database without resetting its named
-    # volume. The new secret travels only over stdin to the local container.
+    # Activate new or upgraded protected state without resetting the named
+    # volume. The owner secret travels only over stdin to the local container.
     $postgresContainer = @(& docker ps -a `
         --filter "label=com.docker.compose.project=$script:LedgerSyncComposeProject" `
         --filter "label=com.docker.compose.service=postgres" `

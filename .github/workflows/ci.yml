@@ -68,6 +68,8 @@ jobs:
         run: |
           for variable in \
             POSTGRES_PASSWORD \
+            LEDGERSYNC_API_DATABASE_PASSWORD \
+            LEDGERSYNC_WORKER_DATABASE_PASSWORD \
             LEDGERSYNC_SESSION_SECRET \
             LEDGERSYNC_CONSISTENCY_SIGNING_KEY \
             LEDGERSYNC_BFF_ASSERTION_SECRET \

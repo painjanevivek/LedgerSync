@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test, type APIResponse, type Page } from "@playwright/test";
 
 import {
   extractAccountID,
@@ -23,6 +24,66 @@ type ReconciliationProof = Readonly<{
   idempotencyKey: string;
 }>;
 
+type LifecycleEvidence = Readonly<{
+  accountID: string;
+  externalReference: string;
+  fundingTransfer: TransferProof;
+  returnTransfer: TransferProof;
+  reconciliation: ReconciliationProof;
+}>;
+
+let lifecycleEvidence: LifecycleEvidence | undefined;
+
+async function expectSafeCSV(response: APIResponse, family: "transfers" | "account-ledger" | "reconciliation", header: string, identifiers: string[]) {
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toContain("no-store");
+  expect(response.headers()["content-type"]).toBe("text/csv; charset=utf-8");
+  expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(response.headers()["x-ledgersync-export-schema"]).toBe("1");
+  expect(response.headers()["content-disposition"]).toMatch(new RegExp(`^attachment; filename="ledgersync-${family}-[0-9]{8}T[0-9]{6}Z-v1\\.csv"$`));
+  const body = await response.text();
+  expect(body.startsWith(header), `${family} export header`).toBe(true);
+  for (const identifier of identifiers) expect(body, `${family} export identifier ${identifier}`).toContain(`"${identifier}"`);
+  for (const line of body.trim().split("\r\n")) {
+    expect(line.startsWith('"') && line.endsWith('"'), `${family} export fully quoted row`).toBe(true);
+  }
+}
+
+async function expectAccessibleReflow(page: Page, width: number, height: number) {
+  await page.setViewportSize({ width, height });
+  await expect(page.locator("main h1")).toBeVisible();
+  const reflow = await page.evaluate(() => {
+    const root = document.documentElement;
+    const offenders = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        return {
+          element: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${Array.from(element.classList).slice(0, 3).map((name) => `.${name}`).join("")}`,
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          overflowX: style.overflowX,
+        };
+      })
+      .filter((candidate) => {
+        const containsOwnOverflow = candidate.scrollWidth > candidate.clientWidth + 1 && !["auto", "scroll", "hidden", "clip"].includes(candidate.overflowX);
+        const extendsPastViewport = candidate.left >= -1 && candidate.right > root.clientWidth + 1;
+        return containsOwnOverflow || extendsPastViewport;
+      })
+      .slice(0, 12);
+    return { scrollWidth: root.scrollWidth, clientWidth: root.clientWidth, offenders };
+  });
+  expect(
+    reflow.scrollWidth,
+    `${page.url()} must not overflow at ${width} CSS pixels; offenders=${JSON.stringify(reflow.offenders)}`,
+  ).toBe(reflow.clientWidth);
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(results.violations, `${page.url()}: ${results.violations.map((violation) => violation.id).join(", ")}`).toEqual([]);
+}
+
 async function postTransfer(page: Page, sourceAccountID: string, destinationAccountID: string): Promise<TransferProof> {
   await page.getByLabel("From account").selectOption(sourceAccountID);
   await page.getByLabel("To account").selectOption(destinationAccountID);
@@ -43,6 +104,10 @@ async function postTransfer(page: Page, sourceAccountID: string, destinationAcco
   expect(result.transfer_id).toEqual(expect.any(String));
   const idempotencyKey = request.headers()["idempotency-key"];
   expect(idempotencyKey).toMatch(/^[\x21-\x7e]{16,255}$/);
+  const replay = await replayCapturedMutation(page, request);
+  expect(replay.status()).toBe(201);
+  expect(replay.headers()["idempotent-replay"]).toBe("true");
+  expect(await replay.json()).toMatchObject({ transfer_id: result.transfer_id, status: "posted", amount_minor: "100", currency: "INR" });
   await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeFocused();
   return { transferID: result.transfer_id as string, idempotencyKey, sourceAccountID, destinationAccountID };
 }
@@ -190,7 +255,7 @@ async function runAuthoritativeReconciliation(page: Page, run: RealStackRun): Pr
   return { runID, idempotencyKey };
 }
 
-test.describe("@real-stack account product lifecycle", () => {
+test.describe.serial("@real-stack account product lifecycle", () => {
   test("creates, replays, funds, freezes, reactivates, returns to zero, and closes through normal commands", async ({ page }) => {
     const run = requireIsolatedRealStack();
     const displayName = `System lifecycle ${run.runID}`;
@@ -223,6 +288,20 @@ test.describe("@real-stack account product lifecycle", () => {
     expect(replayResult.account_id).toBe(createdAccountID);
     const createIdempotencyKey = createRequest.headers()["idempotency-key"];
     expect(createIdempotencyKey).toMatch(/^[\x21-\x7e]{16,255}$/);
+    const createHeaders = createRequest.headers();
+    const changedIntent = await page.request.fetch(createRequest.url(), {
+      method: "POST",
+      headers: {
+        "Content-Type": createHeaders["content-type"] ?? "application/json",
+        Origin: createHeaders.origin ?? run.baseURL,
+        "X-CSRF-Token": createHeaders["x-csrf-token"],
+        "Idempotency-Key": createIdempotencyKey,
+      },
+      data: { ...(createRequest.postDataJSON() as Record<string, unknown>), display_name: `${displayName} changed` },
+      failOnStatusCode: false,
+    });
+    expect(changedIntent.status()).toBe(409);
+    expect(await changedIntent.json()).toMatchObject({ error: { code: "idempotency_conflict" } });
 
     await result.getByRole("link", { name: "Fund account" }).click();
     await expect(page).toHaveURL(new RegExp(`destination=${createdAccountID}`));
@@ -295,6 +374,14 @@ test.describe("@real-stack account product lifecycle", () => {
       active_reconciliation_command_count: 0,
     });
 
+    lifecycleEvidence = {
+      accountID: createdAccountID,
+      externalReference,
+      fundingTransfer,
+      returnTransfer,
+      reconciliation,
+    };
+
     console.log([
       "PHASE3_FIXTURES",
       `run=${run.runID}`,
@@ -303,5 +390,144 @@ test.describe("@real-stack account product lifecycle", () => {
       `return_transfer=${returnTransfer.transferID}`,
       `reconciliation_run=${reconciliation.runID}`,
     ].join(" "));
+  });
+
+  test("investigates the accepted records across filters, exports, local tools, and responsive accessibility", async ({ page }) => {
+    test.setTimeout(180_000);
+    const run = requireIsolatedRealStack();
+    if (!lifecycleEvidence) throw new Error("the read-only acceptance surfaces require the preceding isolated lifecycle proof");
+    const { accountID, fundingTransfer, returnTransfer, reconciliation } = lifecycleEvidence;
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    // Each Playwright test receives a fresh browser context. Enter through the
+    // real dashboard first so local demo mode establishes this context's
+    // signed, scoped session before direct request-context assertions.
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+    const orientationResponse = await page.request.get(`${run.baseURL}/api/local/orientation`);
+    expect(orientationResponse.status()).toBe(200);
+    expect(orientationResponse.headers()["cache-control"]).toContain("no-store");
+    const orientation = await orientationResponse.json() as { evidence_state?: unknown; steps?: Array<{ id?: unknown; state?: unknown }> };
+    expect(orientation.steps).toHaveLength(7);
+    expect(orientation.steps?.map((step) => step.id)).toEqual(["inspect_account", "create_account", "fund_account", "inspect_transfer", "run_reconciliation", "inspect_delivery", "create_backup"]);
+    expect(orientation.steps?.every((step) => ["completed", "evidence_available", "missing", "unavailable"].includes(String(step.state)))).toBe(true);
+
+    await page.goto("/?guide=1");
+    await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Follow one INR ledger record from intent to evidence" })).toBeVisible();
+    await expect(page.locator(".orientation-checklist > li")).toHaveCount(7);
+    await expectAccessibleReflow(page, 320, 800);
+
+    await page.goto(`/transfers?q=${encodeURIComponent(fundingTransfer.transferID)}&status=posted`);
+    await expect(page.getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
+    await expect(page.getByLabel("Search transfers")).toHaveValue(fundingTransfer.transferID);
+    await expect(page.getByLabel("Financial status")).toHaveValue("posted");
+    await expect(page.getByText(fundingTransfer.transferID, { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(returnTransfer.transferID, { exact: true })).toHaveCount(0);
+    const exportReview = page.getByRole("dialog", { name: "Review transfer history export" });
+    await page.getByRole("button", { name: "Export transfer evidence" }).click();
+    await expect(exportReview).toBeVisible();
+    await expect(exportReview).toContainText(`Search: ${fundingTransfer.transferID}`);
+    await expect(exportReview).toContainText("Financial status: posted");
+    await expect(exportReview).toContainText("This export is not a backup");
+    await exportReview.getByRole("button", { name: "Cancel" }).click();
+    await expectAccessibleReflow(page, 390, 844);
+
+    const duplicateFilter = await page.request.get(`${run.baseURL}/api/transfers?status=posted&status=rejected`, { failOnStatusCode: false });
+    expect(duplicateFilter.status()).toBe(400);
+    expect(duplicateFilter.headers()["cache-control"]).toContain("no-store");
+    expect(await duplicateFilter.json()).toMatchObject({ error: { code: "invalid_request" } });
+
+    const explainabilityResponse = await page.request.get(`${run.baseURL}/api/transfers/${fundingTransfer.transferID}/explainability`);
+    expect(explainabilityResponse.status()).toBe(200);
+    expect(explainabilityResponse.headers()["cache-control"]).toContain("no-store");
+    const explainability = await explainabilityResponse.json() as { transfer_id?: unknown; stages?: Array<{ sequence?: unknown; kind?: unknown; state?: unknown }> };
+    expect(explainability.transfer_id).toBe(fundingTransfer.transferID);
+    expect(explainability.stages?.map((stage) => stage.kind)).toEqual(["request", "transfer", "journal_postings", "balance_versions", "outbox", "delivery", "reconciliation"]);
+    expect(explainability.stages?.map((stage) => stage.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(explainability.stages?.every((stage) => ["available", "missing", "unavailable"].includes(String(stage.state)))).toBe(true);
+
+    await page.goto(`/transfers/${fundingTransfer.transferID}?return_to=${encodeURIComponent(`/transfers?q=${fundingTransfer.transferID}&status=posted`)}`);
+    await expect(page.getByRole("heading", { name: "Transfer detail", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Stored evidence chain" })).toBeVisible();
+    await expect(page.locator(".evidence-stage")).toHaveCount(7);
+    await expectAccessibleReflow(page, 768, 1024);
+
+    const eventsResponse = await page.request.get(`${run.baseURL}/api/events?relatedId=${fundingTransfer.transferID}&limit=25`);
+    expect(eventsResponse.status()).toBe(200);
+    expect(eventsResponse.headers()["cache-control"]).toContain("no-store");
+    const eventPage = await eventsResponse.json() as { events?: Array<{ event_id?: unknown; transfer_id?: unknown; state?: unknown }> };
+    expect(eventPage.events?.length).toBeGreaterThan(0);
+    expect(eventPage.events?.every((event) => event.transfer_id === fundingTransfer.transferID)).toBe(true);
+    const eventID = String(eventPage.events?.[0]?.event_id ?? "");
+    expect(eventID).toMatch(/^[0-9a-f-]{36}$/i);
+    const invalidEventRange = await page.request.get(`${run.baseURL}/api/events?from=2026-08-26T00%3A00%3A00Z&to=2026-08-25T00%3A00%3A00Z`, { failOnStatusCode: false });
+    expect(invalidEventRange.status()).toBe(400);
+
+    await page.goto(`/events?relatedId=${fundingTransfer.transferID}`);
+    await expect(page.getByRole("heading", { name: "Event investigation", exact: true })).toBeVisible();
+    await expect(page.getByLabel("Related ID")).toHaveValue(fundingTransfer.transferID);
+    await expect(page.getByText(eventID, { exact: true }).first()).toBeVisible();
+    await expectAccessibleReflow(page, 1366, 768);
+    await page.getByRole("link", { name: "Open event" }).first().click();
+    await expect(page.getByRole("heading", { name: "Event detail", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Event timeline" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Delivery attempts" })).toBeVisible();
+    await expectAccessibleReflow(page, 390, 844);
+
+    const diagnosticsResponse = await page.request.get(`${run.baseURL}/api/local/diagnostics`);
+    expect(diagnosticsResponse.status()).toBe(200);
+    expect(diagnosticsResponse.headers()["cache-control"]).toContain("no-store");
+    expect(await diagnosticsResponse.json()).toMatchObject({
+      overall_state: "ready",
+      financial_authority: { postgres: { state: "reachable" }, latest_reconciliation: { state: "available", status: "matched", run_id: reconciliation.runID } },
+      delivery_cache: { outbox: { state: "reachable", dead_count: "0" }, redis: { state: "reachable", label: "disposable_cache" } },
+    });
+    await page.goto("/local-status");
+    await expect(page.getByRole("heading", { name: "Local status", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "PostgreSQL ledger" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Transactional outbox" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Redis cache" })).toBeVisible();
+    await expectAccessibleReflow(page, 1024, 768);
+
+    await page.goto("/developer");
+    await expect(page.getByRole("heading", { name: "Developer", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Authentication" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Exact request proofs" })).toBeVisible();
+    const openAPI = await page.request.get(`${run.baseURL}/api/developer/openapi`);
+    expect(openAPI.status()).toBe(200);
+    expect(openAPI.headers()["cache-control"]).toContain("no-store");
+    expect(openAPI.headers()["content-type"]).toMatch(/ya?ml/);
+    expect(await openAPI.text()).toMatch(/^openapi:\s*3\./m);
+    await expectAccessibleReflow(page, 640, 900);
+
+    const recoveryResponse = await page.request.get(`${run.baseURL}/api/recovery/manifests`);
+    expect(recoveryResponse.status()).toBe(200);
+    expect(recoveryResponse.headers()["cache-control"]).toContain("no-store");
+    expect(await recoveryResponse.json()).toMatchObject({ format_version: "ledgersync-recovery-evidence-index/v1" });
+    await page.goto("/recovery");
+    await expect(page.getByRole("heading", { name: "Recovery Center", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Recovery custody chain" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Restore and reset are intentionally absent" })).toBeVisible();
+    await expectAccessibleReflow(page, 390, 844);
+
+    await expectSafeCSV(
+      await page.request.get(`${run.baseURL}/api/exports/transfers.csv?q=${fundingTransfer.transferID}&status=posted&limit=10`),
+      "transfers",
+      '"schema_version","transfer_id","source_account_id","destination_account_id","amount_minor","currency","financial_status","delivery_status","created_at_utc","completed_at_utc","journal_transaction_id","rejection_code"',
+      [fundingTransfer.transferID, fundingTransfer.sourceAccountID, fundingTransfer.destinationAccountID, "100", "INR"],
+    );
+    await expectSafeCSV(
+      await page.request.get(`${run.baseURL}/api/exports/accounts/${accountID}/transactions.csv?limit=100`),
+      "account-ledger",
+      '"schema_version","transfer_id","direction","amount_minor","currency","status","occurred_at_utc"',
+      [fundingTransfer.transferID, returnTransfer.transferID, "100", "INR"],
+    );
+    await expectSafeCSV(
+      await page.request.get(`${run.baseURL}/api/exports/reconciliation.csv?runId=${reconciliation.runID}&limit=100`),
+      "reconciliation",
+      '"schema_version","record_type","run_id","status","correlation_id","scope","ledger_watermark","application_version","database_schema_version","checked_account_count","posting_count","mismatch_count","started_at_utc","completed_at_utc","mismatch_id","account_id","classification","currency","expected_minor","observed_minor","observed_available_minor","balance_version","created_at_utc"',
+      [reconciliation.runID, "matched", "0"],
+    );
   });
 });

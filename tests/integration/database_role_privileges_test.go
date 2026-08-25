@@ -27,6 +27,8 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		{"ledgersync_api", "api_rate_limit_windows", "SELECT", true},
 		{"ledgersync_api", "transfer_velocity_events", "DELETE", true},
 		{"ledgersync_api", "transfer_velocity_totals", "UPDATE", true},
+		{"ledgersync_api", "tenant_transfer_policies", "SELECT", true},
+		{"ledgersync_api", "tenant_transfer_policies", "UPDATE", false},
 		{"ledgersync_api", "delivery_attempts", "SELECT", true},
 		{"ledgersync_api", "ledger_postings", "SELECT", true},
 		{"ledgersync_api", "reconciliation_runs", "SELECT", true},
@@ -36,10 +38,13 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		{"ledgersync_api", "reconciliation_run_commands", "INSERT", true},
 		{"ledgersync_api", "reconciliation_run_commands", "DELETE", true},
 		{"ledgersync_api", "outbox_events", "SELECT", true},
+		{"ledgersync_api", "outbox_events", "UPDATE", false},
 		{"ledgersync_api", "audit_events", "SELECT", true},
 		{"ledgersync_api", "schema_migrations", "SELECT", true},
 		{"ledgersync_api", "ledger_postings", "DELETE", false},
 		{"ledgersync_worker", "ledger_postings", "INSERT", false},
+		{"ledgersync_worker", "transfers", "INSERT", false},
+		{"ledgersync_worker", "accounts", "UPDATE", false},
 		{"ledgersync_reconciliation", "reconciliation_runs", "INSERT", true},
 		{"ledgersync_provisioning", "partner_provisioning_requests", "INSERT", true},
 		{"ledgersync_provisioning", "ledger_postings", "INSERT", false},
@@ -55,6 +60,53 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		}
 		if allowed != check.expected {
 			t.Errorf("%s %s on %s=%t, want %t", check.role, check.privilege, check.table, allowed, check.expected)
+		}
+	}
+
+	var localLoginsExist bool
+	if err := database.QueryRowContext(context.Background(), `
+SELECT to_regrole('ledgersync_local_api') IS NOT NULL
+   AND to_regrole('ledgersync_local_worker') IS NOT NULL`).Scan(&localLoginsExist); err != nil {
+		t.Fatal(err)
+	}
+	if !localLoginsExist {
+		return
+	}
+	loginChecks := []struct {
+		login, expectedGroup, forbiddenGroup string
+	}{
+		{"ledgersync_local_api", "ledgersync_api", "ledgersync_worker"},
+		{"ledgersync_local_worker", "ledgersync_worker", "ledgersync_api"},
+	}
+	for _, check := range loginChecks {
+		var canLogin, superuser, createDB, createRole, replication, bypassRLS bool
+		if err := database.QueryRowContext(context.Background(), `
+SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
+FROM pg_roles WHERE rolname=$1`, check.login).Scan(&canLogin, &superuser, &createDB, &createRole, &replication, &bypassRLS); err != nil {
+			t.Fatal(err)
+		}
+		if !canLogin || superuser || createDB || createRole || replication || bypassRLS {
+			t.Errorf("unsafe local login attributes for %s", check.login)
+		}
+		var intendedMemberships, otherMemberships int
+		if err := database.QueryRowContext(context.Background(), `
+SELECT count(*) FILTER (WHERE granted.rolname=$2),
+       count(*) FILTER (WHERE granted.rolname<>$2)
+FROM pg_auth_members memberships
+JOIN pg_roles member ON member.oid=memberships.member
+JOIN pg_roles granted ON granted.oid=memberships.roleid
+WHERE member.rolname=$1`, check.login, check.expectedGroup).Scan(&intendedMemberships, &otherMemberships); err != nil {
+			t.Fatal(err)
+		}
+		if intendedMemberships != 1 || otherMemberships != 0 {
+			t.Errorf("%s memberships intended=%d other=%d", check.login, intendedMemberships, otherMemberships)
+		}
+		var siblingMember bool
+		if err := database.QueryRowContext(context.Background(), `SELECT pg_has_role($1,$2,'MEMBER')`, check.login, check.forbiddenGroup).Scan(&siblingMember); err != nil {
+			t.Fatal(err)
+		}
+		if siblingMember {
+			t.Errorf("%s inherited sibling workload role %s", check.login, check.forbiddenGroup)
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 )
@@ -54,7 +55,7 @@ func contains(values map[string]struct{}, key string) bool { _, ok := values[key
 type workloadProvider struct{}
 
 func (workloadProvider) Authenticate(context.Context, string) (Principal, error) {
-	return Principal{SubjectID: "bff", TenantID: "system", Scopes: map[string]struct{}{BFFActorScope: {}}}, nil
+	return Principal{SubjectID: "bff", TenantID: "tenant-a", Scopes: map[string]struct{}{BFFActorScope: {}}}, nil
 }
 
 func TestBFFActorAssertionRequiresSignedShortLivedActorContext(t *testing.T) {
@@ -73,11 +74,36 @@ func TestBFFActorAssertionRequiresSignedShortLivedActorContext(t *testing.T) {
 	if err != nil || principal.SubjectID != "customer-user" || !principal.HasScope("accounts:read") || !principal.HasScope("accounts:write") {
 		t.Fatalf("expected verified actor context, principal=%#v err=%v", principal, err)
 	}
+	if principal.TenantID != "tenant-a" {
+		t.Fatalf("expected workload-bound tenant tenant-a, got %q", principal.TenantID)
+	}
 	if _, err := authenticator.Authenticate(context.Background(), "workload-token", assertion+"x"); err == nil {
 		t.Fatal("tampered actor assertion was accepted")
 	}
 	if _, err := authenticator.Authenticate(context.Background(), "workload-token", assertion); err == nil {
 		t.Fatal("replayed actor assertion was accepted")
+	}
+}
+
+func TestBFFActorAssertionRejectsTenantDifferentFromWorkload(t *testing.T) {
+	key := "this-is-a-phase-five-test-secret-long-enough"
+	now := time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC)
+	payload, err := json.Marshal(actorAssertionPayload{Issuer: DefaultActorAssertionIssuer, Audience: DefaultActorAssertionAudience, KeyID: DefaultActorAssertionKeyID, AssertionID: "assertion-cross-tenant", SubjectID: "customer-user", TenantID: "tenant-b", Scopes: []string{"accounts:read"}, IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mac := hmac.New(sha256.New, []byte(key))
+	_, _ = mac.Write(payload)
+	assertion := base64.RawURLEncoding.EncodeToString(payload) + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	authenticator, err := NewRequestAuthenticator(workloadProvider{}, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authenticator.now = func() time.Time { return now }
+
+	_, err = authenticator.Authenticate(context.Background(), "workload-token", assertion)
+	if !errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("expected tenant-a workload to reject correctly signed tenant-b assertion, got %v", err)
 	}
 }
 
@@ -101,8 +127,8 @@ func TestBFFActorAssertionRejectsWrongAudienceAndOverScopedActor(t *testing.T) {
 	authenticator.now = func() time.Time { return now }
 
 	for name, payload := range map[string]actorAssertionPayload{
-		"wrong audience": {Issuer: DefaultActorAssertionIssuer, Audience: "another-api", KeyID: DefaultActorAssertionKeyID, AssertionID: "assertion-aud", SubjectID: "user", TenantID: "tenant", IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix()},
-		"unknown scope":  {Issuer: DefaultActorAssertionIssuer, Audience: DefaultActorAssertionAudience, KeyID: DefaultActorAssertionKeyID, AssertionID: "assertion-scope", SubjectID: "user", TenantID: "tenant", Scopes: []string{"platform:root"}, IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix()},
+		"wrong audience": {Issuer: DefaultActorAssertionIssuer, Audience: "another-api", KeyID: DefaultActorAssertionKeyID, AssertionID: "assertion-aud", SubjectID: "user", TenantID: "tenant-a", IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix()},
+		"unknown scope":  {Issuer: DefaultActorAssertionIssuer, Audience: DefaultActorAssertionAudience, KeyID: DefaultActorAssertionKeyID, AssertionID: "assertion-scope", SubjectID: "user", TenantID: "tenant-a", Scopes: []string{"platform:root"}, IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix()},
 	} {
 		t.Run(name, func(t *testing.T) {
 			encoded, _ := json.Marshal(payload)

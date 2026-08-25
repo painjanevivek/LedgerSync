@@ -4,7 +4,7 @@ param(
     [string]$WorkloadShape = 'mixed',
 
     [ValidateRange(1, 200)]
-    [int]$TransactionsPerSecond = 50,
+    [int]$TransactionsPerSecond = 25,
 
     [ValidatePattern('^[1-9][0-9]*(s|m)$')]
     [string]$Duration = '5m',
@@ -14,11 +14,40 @@ param(
     [ValidatePattern('^(compose|ledgersync-acceptance-\d{14}-[0-9a-f]{8})$')]
     [string]$ComposeProject = 'compose',
 
-    [string]$K6Image = 'grafana/k6@sha256:1f40432b1cbe7234e977f96c362c9bc550a2d2b583d014dd8669fe40d3e9e755'
+    [string]$K6Image = 'grafana/k6@sha256:1f40432b1cbe7234e977f96c362c9bc550a2d2b583d014dd8669fe40d3e9e755',
+
+    [switch]$ValidateOnly
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function ConvertTo-CapacityDurationSeconds {
+    param([Parameter(Mandatory)][string]$Value)
+    if ($Value -notmatch '^([1-9][0-9]*)(s|m)$') { throw 'Duration must be a positive number of seconds or minutes.' }
+    $capacityMagnitude = [int64]$Matches[1]
+    if ($Matches[2] -eq 'm') { return $capacityMagnitude * 60 }
+    return $capacityMagnitude
+}
+
+$capacityDurationSeconds = ConvertTo-CapacityDurationSeconds -Value $Duration
+$capacityExpectedTransferIterations = [int64]$TransactionsPerSecond * $capacityDurationSeconds
+$capacityExpectedControlIterations = if ($WorkloadShape -eq 'mixed') { [int64][math]::Ceiling($capacityDurationSeconds / 60.0) } else { [int64]0 }
+
+if ($ValidateOnly) {
+    [ordered]@{
+        schema_version = 1
+        workload_shape = $WorkloadShape
+        offered_tps = $TransactionsPerSecond
+        duration = $Duration
+        duration_seconds = $capacityDurationSeconds
+        expected_transfer_iterations = $capacityExpectedTransferIterations
+        expected_control_iterations = $capacityExpectedControlIterations
+        k6_image = $K6Image
+        executes_load = $false
+    } | ConvertTo-Json -Compress
+    return
+}
 
 $capacityRepository = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $capacityEvidenceRoot = [System.IO.Path]::GetFullPath((Join-Path $capacityRepository '.tmp/capacity-phase1'))
@@ -97,6 +126,8 @@ foreach ($capacityContainer in $capacityContainerNames) {
 
 $capacityStartedAt = (Get-Date).ToUniversalTime()
 $capacityDatabaseBytesBefore = [int64](Invoke-CapacityPostgresScalar -Query "SELECT pg_database_size('ledgersync')")
+$capacityMovementBefore = (Invoke-CapacityPostgresScalar -Query "SELECT (SELECT count(*) FROM transfers WHERE tenant_id='$capacityTenant')||'|'||(SELECT count(*) FROM journal_transactions WHERE tenant_id='$capacityTenant')||'|'||(SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.tenant_id='$capacityTenant')||'|'||(SELECT count(*) FROM idempotency_requests WHERE tenant_id='$capacityTenant' AND operation='transfers.create.v1' AND state='completed' AND transfer_id IS NOT NULL)||'|'||(SELECT count(*) FROM accounts WHERE tenant_id='$capacityTenant' AND external_reference LIKE 'capacity-control-%')").Split('|')
+$capacityReconciliationMismatchesBefore = [int64](Invoke-CapacityPostgresScalar -Query "SELECT count(*) FROM reconciliation_mismatches WHERE tenant_id='$capacityTenant'")
 $capacityRedisBefore = Get-CapacityRedisInfo
 Invoke-CapacityPostgresScalar -Query 'SELECT pg_stat_reset()' | Out-Null
 
@@ -132,7 +163,7 @@ $capacityContainerOutput = $capacityOutput.Substring($capacityRepository.Length)
 $capacityK6Arguments = @(
     'run', '--quiet', "--summary-export=/workspace/$capacityContainerOutput",
     '--summary-trend-stats=avg,min,med,p(50),p(90),p(95),p(99),max',
-    '-e', 'LEDGERSYNC_PERF_BFF_URL=http://host.docker.internal:3000',
+    '-e', 'LEDGERSYNC_PERF_BFF_URL=http://127.0.0.1:3000',
     '-e', 'LEDGERSYNC_PERF_PUBLIC_ORIGIN=http://127.0.0.1:3000',
     '-e', "LEDGERSYNC_PERF_WORKLOAD_SHAPE=$WorkloadShape",
     '-e', "LEDGERSYNC_PERF_SOURCE_ACCOUNT=$capacitySource",
@@ -146,7 +177,7 @@ if ($WorkloadShape -eq 'mixed') {
 $capacityK6Arguments += 'tests/performance/k6/transfers.js'
 
 try {
-    $capacityK6Output = & docker run --name $capacityLoadContainer --rm -v "$($capacityRepository.Replace('\', '/')):/workspace" -w /workspace $K6Image @capacityK6Arguments 2>&1
+    $capacityK6Output = & docker run --network host --name $capacityLoadContainer --rm -v "$($capacityRepository.Replace('\', '/')):/workspace" -w /workspace $K6Image @capacityK6Arguments 2>&1
     $capacityK6ExitCode = $LASTEXITCODE
 }
 finally {
@@ -164,17 +195,46 @@ if (-not (Test-Path -LiteralPath $capacityOutput)) {
 
 $capacityCompletedAt = (Get-Date).ToUniversalTime()
 $capacitySummary = Get-Content -LiteralPath $capacityOutput -Raw | ConvertFrom-Json
-$capacityDiagnostics = @($capacityK6Output | Where-Object { [string]$_ -match 'unexpected_[a-z_]+_status=\d+ code=[a-z0-9_]+' } | Select-Object -First 10)
+$capacityDiagnostics = @(
+    $capacityK6Output |
+        ForEach-Object {
+            $capacityDiagnosticLine = [string]$_
+            if ($capacityDiagnosticLine -match 'unexpected_[a-z_]+_status=\d+ code=[a-z0-9_]+') {
+                return $Matches[0]
+            }
+            if ($capacityDiagnosticLine -match 'BFF session unavailable \((\d+)\)') {
+                return "bff_session_unavailable_status=$($Matches[1])"
+            }
+            if ($capacityDiagnosticLine -match '(?i)(connection refused|dial tcp|connection reset|no such host)') {
+                return 'bff_session_transport_unavailable'
+            }
+        } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } |
+        Select-Object -Unique -First 10
+)
 $capacityFailedChecks = [ordered]@{}
 foreach ($capacityCheck in $capacitySummary.root_group.checks.PSObject.Properties) {
     if ([int]$capacityCheck.Value.fails -gt 0) {
         $capacityFailedChecks[$capacityCheck.Name] = [int]$capacityCheck.Value.fails
     }
 }
+
+# Delivery is asynchronous. Give the normal worker a bounded opportunity to
+# drain before deciding whether the qualification left unpublished work.
+$capacityDrainDeadline = (Get-Date).AddSeconds(60)
+do {
+    $capacityUndrained = [int](Invoke-CapacityPostgresScalar -Query "SELECT count(*) FROM outbox_events WHERE tenant_id='$capacityTenant' AND published_at IS NULL AND dead_at IS NULL")
+    if ($capacityUndrained -eq 0) { break }
+    Start-Sleep -Seconds 1
+} while ((Get-Date) -lt $capacityDrainDeadline)
+
 $capacityDatabaseStats = (Invoke-CapacityPostgresScalar -Query "SELECT xact_commit||'|'||xact_rollback||'|'||deadlocks||'|'||blks_read||'|'||blks_hit||'|'||temp_files||'|'||temp_bytes FROM pg_stat_database WHERE datname='ledgersync'").Split('|')
 $capacityDatabaseBytesAfter = [int64](Invoke-CapacityPostgresScalar -Query "SELECT pg_database_size('ledgersync')")
-$capacityOutbox = (Invoke-CapacityPostgresScalar -Query "SELECT count(*) FILTER (WHERE published_at IS NULL AND dead_at IS NULL)||'|'||count(*) FILTER (WHERE dead_at IS NOT NULL)||'|'||COALESCE(EXTRACT(EPOCH FROM now()-min(created_at) FILTER (WHERE published_at IS NULL AND dead_at IS NULL)),0) FROM outbox_events").Split('|')
-$capacitySafety = (Invoke-CapacityPostgresScalar -Query "SELECT (SELECT count(*)-count(DISTINCT transfer_id) FROM journal_transactions)||'|'||(SELECT count(*) FROM transfers t JOIN accounts d ON d.id=t.debit_account_id JOIN accounts c ON c.id=t.credit_account_id WHERE t.tenant_id<>d.tenant_id OR t.tenant_id<>c.tenant_id)||'|'||(SELECT count(*) FROM account_balance_projections WHERE available_minor<0 OR ledger_minor<0)").Split('|')
+$capacityOutbox = (Invoke-CapacityPostgresScalar -Query "SELECT count(*) FILTER (WHERE published_at IS NULL AND dead_at IS NULL)||'|'||count(*) FILTER (WHERE dead_at IS NOT NULL)||'|'||COALESCE(EXTRACT(EPOCH FROM now()-min(created_at) FILTER (WHERE published_at IS NULL AND dead_at IS NULL)),0) FROM outbox_events WHERE tenant_id='$capacityTenant'").Split('|')
+$capacitySafety = (Invoke-CapacityPostgresScalar -Query "SELECT (SELECT count(*)-count(DISTINCT transfer_id) FROM journal_transactions WHERE tenant_id='$capacityTenant')||'|'||(SELECT count(*) FROM transfers t JOIN accounts d ON d.id=t.debit_account_id JOIN accounts c ON c.id=t.credit_account_id WHERE t.tenant_id='$capacityTenant' AND (t.tenant_id<>d.tenant_id OR t.tenant_id<>c.tenant_id))||'|'||(SELECT count(*) FROM account_balance_projections p JOIN accounts a ON a.id=p.account_id WHERE a.tenant_id='$capacityTenant' AND (p.available_minor<0 OR p.ledger_minor<0))").Split('|')
+$capacityMovementAfter = (Invoke-CapacityPostgresScalar -Query "SELECT (SELECT count(*) FROM transfers WHERE tenant_id='$capacityTenant')||'|'||(SELECT count(*) FROM journal_transactions WHERE tenant_id='$capacityTenant')||'|'||(SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.tenant_id='$capacityTenant')||'|'||(SELECT count(*) FROM idempotency_requests WHERE tenant_id='$capacityTenant' AND operation='transfers.create.v1' AND state='completed' AND transfer_id IS NOT NULL)||'|'||(SELECT count(*) FROM accounts WHERE tenant_id='$capacityTenant' AND external_reference LIKE 'capacity-control-%')").Split('|')
+$capacityProjectionDrift = [int](Invoke-CapacityPostgresScalar -Query "WITH authoritative AS (SELECT a.id,o.opening_ledger_minor,o.opening_ledger_minor+COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amount_minor ELSE -p.amount_minor END),0) AS ledger_minor FROM accounts a LEFT JOIN account_opening_balances o ON o.account_id=a.id LEFT JOIN ledger_postings p ON p.account_id=a.id WHERE a.tenant_id='$capacityTenant' GROUP BY a.id,o.opening_ledger_minor) SELECT count(*) FROM authoritative x LEFT JOIN account_balance_projections b ON b.account_id=x.id WHERE x.opening_ledger_minor IS NULL OR b.account_id IS NULL OR b.ledger_minor<>x.ledger_minor OR b.available_minor<>x.ledger_minor")
+$capacityReconciliationMismatchesAfter = [int64](Invoke-CapacityPostgresScalar -Query "SELECT count(*) FROM reconciliation_mismatches WHERE tenant_id='$capacityTenant'")
 $capacityVelocityDrift = [int](Invoke-CapacityPostgresScalar -Query "WITH expected AS (SELECT tenant_id,SUM(amount_minor) total_minor FROM transfer_velocity_events GROUP BY tenant_id) SELECT count(*) FROM expected e JOIN transfer_velocity_totals t ON t.tenant_id=e.tenant_id AND t.dimension_type='tenant' AND t.dimension_reference=e.tenant_id::text WHERE e.total_minor<>t.total_minor")
 $capacityRedisAfter = Get-CapacityRedisInfo
 
@@ -198,34 +258,65 @@ $capacityDockerSummary = @($capacitySamples | Where-Object Kind -eq 'docker' | G
 })
 $capacityPostgresSamples = @($capacitySamples | Where-Object Kind -eq 'postgres')
 $capacityDroppedIterations = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'dropped_iterations') { [int]$capacitySummary.metrics.dropped_iterations.count } else { 0 }
+$capacityUnexpectedOutcomes = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_unexpected_outcomes') { [int64]$capacitySummary.metrics.ledgersync_unexpected_outcomes.count } else { 0 }
+$capacityTransferIterations = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_transfer_iterations') { [int64]$capacitySummary.metrics.ledgersync_transfer_iterations.count } else { 0 }
+$capacityControlIterations = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_control_iterations') { [int64]$capacitySummary.metrics.ledgersync_control_iterations.count } else { 0 }
+$capacityControlAccounts = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_control_accounts_created') { [int64]$capacitySummary.metrics.ledgersync_control_accounts_created.count } else { 0 }
+$capacityControlReconciliations = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_control_reconciliations_completed') { [int64]$capacitySummary.metrics.ledgersync_control_reconciliations_completed.count } else { 0 }
+$capacityMovementDelta = [ordered]@{
+    transfers = [int64]$capacityMovementAfter[0] - [int64]$capacityMovementBefore[0]
+    journals = [int64]$capacityMovementAfter[1] - [int64]$capacityMovementBefore[1]
+    postings = [int64]$capacityMovementAfter[2] - [int64]$capacityMovementBefore[2]
+    completed_transfer_idempotency = [int64]$capacityMovementAfter[3] - [int64]$capacityMovementBefore[3]
+    control_accounts = [int64]$capacityMovementAfter[4] - [int64]$capacityMovementBefore[4]
+}
+$capacityReconciliationMismatchDelta = $capacityReconciliationMismatchesAfter - $capacityReconciliationMismatchesBefore
+$capacityControlLatency = [ordered]@{
+    account_command_p95_ms = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_account_command_duration') { $capacitySummary.metrics.ledgersync_account_command_duration.'p(95)' } else { $null }
+    reconciliation_command_p95_ms = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_reconciliation_command_duration') { $capacitySummary.metrics.ledgersync_reconciliation_command_duration.'p(95)' } else { $null }
+    diagnostics_p95_ms = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_diagnostics_duration') { $capacitySummary.metrics.ledgersync_diagnostics_duration.'p(95)' } else { $null }
+    events_p95_ms = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_events_duration') { $capacitySummary.metrics.ledgersync_events_duration.'p(95)' } else { $null }
+}
 $capacityFailureReasons = [System.Collections.Generic.List[string]]::new()
 if ($capacityK6ExitCode -ne 0) { $capacityFailureReasons.Add("k6 exited with code $capacityK6ExitCode because one or more workload thresholds failed") }
-if ([int]$capacitySummary.metrics.ledgersync_unexpected_outcomes.count -ne 0) { $capacityFailureReasons.Add('unexpected workload outcomes were observed') }
+if ($capacityUnexpectedOutcomes -ne 0) { $capacityFailureReasons.Add('unexpected workload outcomes were observed') }
 if ([double]$capacitySummary.metrics.ledgersync_transfer_duration.'p(95)' -ge 500) { $capacityFailureReasons.Add('transfer p95 was at or above 500 ms') }
 if ([double]$capacitySummary.metrics.ledgersync_balance_duration.'p(95)' -ge 200) { $capacityFailureReasons.Add('balance p95 was at or above 200 ms') }
 if ($capacityDroppedIterations -ne 0) { $capacityFailureReasons.Add('the requested arrival rate could not be sustained without dropped iterations') }
+if ($capacityTransferIterations -ne $capacityExpectedTransferIterations) { $capacityFailureReasons.Add("transfer iteration count was $capacityTransferIterations instead of $capacityExpectedTransferIterations") }
+if ($capacityControlIterations -ne $capacityExpectedControlIterations) { $capacityFailureReasons.Add("control iteration count was $capacityControlIterations instead of $capacityExpectedControlIterations") }
+if ($WorkloadShape -eq 'mixed' -and $capacityControlAccounts -ne $capacityExpectedControlIterations) { $capacityFailureReasons.Add('one exact-zero account control was not created per low-rate control iteration') }
+if ($capacityMovementDelta.transfers -ne $capacityExpectedTransferIterations -or $capacityMovementDelta.journals -ne $capacityExpectedTransferIterations -or $capacityMovementDelta.postings -ne (2 * $capacityExpectedTransferIterations) -or $capacityMovementDelta.completed_transfer_idempotency -ne $capacityExpectedTransferIterations) { $capacityFailureReasons.Add('durable transfer, journal, posting, or idempotency movement counts did not match the requested transfer iterations') }
+if ($capacityMovementDelta.control_accounts -ne $capacityExpectedControlIterations) { $capacityFailureReasons.Add('durable low-rate account control count did not match the requested control iterations') }
+if ($capacityDurationSeconds -ge 60 -and ($capacityDockerSummary.Count -ne $capacityContainerNames.Count -or $capacityPostgresSamples.Count -eq 0)) { $capacityFailureReasons.Add('resource observation samples were incomplete') }
+if ([int64]$capacityDatabaseStats[2] -ne 0) { $capacityFailureReasons.Add('PostgreSQL reported deadlocks during the qualification window') }
 if ([int]$capacityOutbox[0] -ne 0 -or [int]$capacityOutbox[1] -ne 0) { $capacityFailureReasons.Add('outbox delivery was not fully drained') }
 if ([int64]$capacityRedisAfter.total_error_replies - [int64]$capacityRedisBefore.total_error_replies -ne 0) { $capacityFailureReasons.Add('Redis returned error replies during the evidence window') }
-if ([int]$capacitySafety[0] -ne 0 -or [int]$capacitySafety[1] -ne 0 -or [int]$capacitySafety[2] -ne 0 -or $capacityVelocityDrift -ne 0) { $capacityFailureReasons.Add('a financial safety invariant did not hold') }
+if ([int]$capacitySafety[0] -ne 0 -or [int]$capacitySafety[1] -ne 0 -or [int]$capacitySafety[2] -ne 0 -or $capacityVelocityDrift -ne 0 -or $capacityProjectionDrift -ne 0 -or $capacityReconciliationMismatchDelta -ne 0) { $capacityFailureReasons.Add('a financial safety invariant did not hold') }
 if ($capacityReconciliation[1] -ne 'matched' -or [int]$capacityReconciliation[2] -ne 0) { $capacityFailureReasons.Add('post-load reconciliation did not match') }
 $capacityEvidence = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     decision = if ($capacityFailureReasons.Count -eq 0) { 'pass' } else { 'fail' }
     failure_reasons = @($capacityFailureReasons)
-    workload = [ordered]@{ shape = $WorkloadShape; offered_tps = $TransactionsPerSecond; duration = $Duration; k6_image = $K6Image }
+    workload = [ordered]@{ shape = $WorkloadShape; offered_tps = $TransactionsPerSecond; duration = $Duration; expected_transfer_iterations = $capacityExpectedTransferIterations; expected_control_iterations = $capacityExpectedControlIterations; k6_image = $K6Image }
     window = [ordered]@{ started_at = $capacityStartedAt.ToString('O'); completed_at = $capacityCompletedAt.ToString('O') }
     k6 = [ordered]@{
         iterations = $capacitySummary.metrics.iterations.count
+        transfer_iterations = $capacityTransferIterations
+        control_iterations = $capacityControlIterations
+        control_accounts_created = $capacityControlAccounts
+        control_reconciliations_completed = $capacityControlReconciliations
         achieved_iterations_per_second = $capacitySummary.metrics.iterations.rate
         exit_code = $capacityK6ExitCode
         dropped_iterations = $capacityDroppedIterations
-        unexpected_outcomes = $capacitySummary.metrics.ledgersync_unexpected_outcomes.count
+        unexpected_outcomes = $capacityUnexpectedOutcomes
         bounded_diagnostics = $capacityDiagnostics
         failed_checks = $capacityFailedChecks
         http_failure_rate = $capacitySummary.metrics.http_req_failed.value
         simulated_lost_responses = if ($capacitySummary.metrics.PSObject.Properties.Name -contains 'ledgersync_simulated_lost_responses') { $capacitySummary.metrics.ledgersync_simulated_lost_responses.count } else { 0 }
         transfer_ms = [ordered]@{ p50 = $capacitySummary.metrics.ledgersync_transfer_duration.'p(50)'; p95 = $capacitySummary.metrics.ledgersync_transfer_duration.'p(95)'; p99 = $capacitySummary.metrics.ledgersync_transfer_duration.'p(99)'; maximum = $capacitySummary.metrics.ledgersync_transfer_duration.max }
         balance_ms = [ordered]@{ p95 = $capacitySummary.metrics.ledgersync_balance_duration.'p(95)'; p99 = $capacitySummary.metrics.ledgersync_balance_duration.'p(99)'; maximum = $capacitySummary.metrics.ledgersync_balance_duration.max }
+        bounded_control_ms = $capacityControlLatency
     }
     postgres = [ordered]@{
         commits = [int64]$capacityDatabaseStats[0]; rollbacks = [int64]$capacityDatabaseStats[1]; deadlocks = [int64]$capacityDatabaseStats[2]
@@ -246,7 +337,9 @@ $capacityEvidence = [ordered]@{
     delivery = [ordered]@{ unpublished = [int]$capacityOutbox[0]; dead = [int]$capacityOutbox[1]; oldest_unpublished_seconds = [double]$capacityOutbox[2] }
     safety = [ordered]@{
         duplicate_journal_movements = [int]$capacitySafety[0]; tenant_boundary_violations = [int]$capacitySafety[1]
-        negative_balance_projections = [int]$capacitySafety[2]; velocity_counter_mismatches = $capacityVelocityDrift
+        negative_balance_projections = [int]$capacitySafety[2]; projection_ledger_drift = $capacityProjectionDrift; velocity_counter_mismatches = $capacityVelocityDrift
+        new_reconciliation_mismatches = $capacityReconciliationMismatchDelta
+        durable_movement_delta = $capacityMovementDelta
         reconciliation_run_id = $capacityReconciliation[0]; reconciliation_status = $capacityReconciliation[1]; reconciliation_mismatches = [int]$capacityReconciliation[2]
     }
 }

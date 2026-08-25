@@ -60,3 +60,42 @@ func TestRedisLossUsesPrimaryAndRebuildsTheBalanceCache(t *testing.T) {
 		t.Fatalf("rebuilt cache version=%d, want %d", rebuilt.Version, result.Balance.Version)
 	}
 }
+
+func TestForgedHighVersionRedisBalanceCannotOverridePostgreSQLTruth(t *testing.T) {
+	_, database, redisClient := requireFaultDependencies(t, 10000)
+	cache, err := cacheplatform.NewBalanceCache(redisClient, "fault:forged-balances", time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := cacheplatform.NewAccountAdapter(cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	forged := accounts.Balance{
+		TenantID: faultTenantID, AccountID: faultSourceID, Currency: "EUR",
+		AvailableMinor: 999_999_999, LedgerMinor: 999_999_999, Version: 999_999,
+		AsOf: time.Now().UTC(),
+	}
+	if written, err := adapter.Put(context.Background(), forged); err != nil || !written {
+		t.Fatalf("seed forged redis balance: written=%t err=%v", written, err)
+	}
+	primary, err := db.NewBalanceRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authoritative, err := primary.ReadCurrent(context.Background(), faultTenantID, faultActorID, faultSourceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader, err := accounts.NewReader(primary, adapter, nil, accounts.ReaderConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := reader.Read(context.Background(), faultTenantID, faultActorID, faultSourceID, "")
+	if err != nil {
+		t.Fatalf("read with forged redis balance: %v", err)
+	}
+	if result.Source != accounts.SourcePrimary || result.Balance != authoritative {
+		t.Fatalf("result=%#v, want PostgreSQL %#v; forged Redis=%#v", result, authoritative, forged)
+	}
+}

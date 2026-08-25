@@ -41,7 +41,8 @@ type ActorAssertionConfig struct {
 
 // RequestAuthenticator accepts delegated user context only after the caller
 // authenticates as the dedicated BFF workload identity. The assertion has its
-// own issuer/audience/key/lifetime contract and cannot grant unknown scopes.
+// own issuer/audience/key/lifetime contract, is bound to the workload's tenant,
+// and cannot grant unknown scopes.
 type RequestAuthenticator struct {
 	provider Provider
 	config   ActorAssertionConfig
@@ -91,6 +92,9 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 	}
 	payload, err := verifyActorAssertion(assertion, a.config, a.now())
 	if err != nil || !allAllowed(payload.Roles, allowedRoles) || !allAllowed(payload.Scopes, allowedScopes) {
+		return Principal{}, ErrUnauthenticated
+	}
+	if payload.TenantID != principal.TenantID {
 		return Principal{}, ErrUnauthenticated
 	}
 	if err := a.config.ReplayGuard.Use(ctx, payload.AssertionID, time.Unix(payload.ExpiresAt, 0)); err != nil {

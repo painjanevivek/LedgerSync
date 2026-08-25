@@ -1,6 +1,6 @@
 // Package cache implements disposable balance projections. It never becomes a
-// source of truth: every record carries the PostgreSQL projection version and
-// callers must fall back to the primary database when freshness is required.
+// source of truth: customer-visible financial reads are always obtained from
+// PostgreSQL, while these records are only disposable projections.
 package cache
 
 import (

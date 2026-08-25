@@ -13,9 +13,9 @@ LedgerSync uses managed secret references in production. Environment variables a
 
 ## Local-only workstation material
 
-`scripts/start-local.ps1` generates six independent 32-byte values for PostgreSQL, API session state, consistency proofs, BFF actor assertions, web sessions, and the development private-API credential. They are stored as 64-character hexadecimal values in ignored `data/local-runtime/runtime.env`. On Windows, inherited ACLs are removed and the current user receives the file permission. Values are never printed by the startup, status, bounded-log, backup, or security-evidence commands.
+`scripts/start-local.ps1` generates eight independent 32-byte values for the PostgreSQL owner, the least-privilege API and worker database logins, API session state, consistency proofs, BFF actor assertions, web sessions, and the development private-API credential. They are stored as 64-character hexadecimal values in ignored `data/local-runtime/runtime.env`. On Windows, inherited ACLs are removed and the current user receives the file permission. Values are never printed by the startup, status, bounded-log, backup, or security-evidence commands.
 
-On the first Phase 6 start against an existing local stack, the script rotates the existing `ledgersync` PostgreSQL role over container stdin before activating the new environment file. Named-volume data is preserved. If a PostgreSQL volume exists but its matching container is missing, startup fails instead of guessing or resetting data.
+On the first start against an older local stack, the script preserves every existing credential and appends independent API and worker database passwords before the migration job idempotently creates or rotates their LOGIN roles. The owner remains confined to one-shot migration, role provisioning, demo seed, and host recovery. Named-volume data is preserved. If a PostgreSQL volume exists but its matching container is missing, startup fails instead of guessing or resetting data.
 
 Deleting `runtime.env` is a credential-rotation operation, not ordinary cleanup. Stop the stack first and preserve the matching PostgreSQL container so the next start can rotate the database role safely.
 

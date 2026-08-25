@@ -61,7 +61,7 @@ services:
       LEDGERSYNC_WRITE_RATE_LIMIT_PER_MINUTE: ${LEDGERSYNC_WRITE_RATE_LIMIT_PER_MINUTE:-1800}
       LEDGERSYNC_WRITE_CAPACITY_PER_SECOND: ${LEDGERSYNC_WRITE_CAPACITY_PER_SECOND:-30}
       LEDGERSYNC_REDIS_STREAM_MAX_LENGTH: 5000000
-      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_api:${LEDGERSYNC_API_DATABASE_PASSWORD:?Local API database secret is required}@postgres:5432/ledgersync?sslmode=disable
       LEDGERSYNC_REDIS_ADDR: redis:6379
       LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:?Local API session secret is required}
       LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:?Local consistency signing key is required}
@@ -99,14 +99,14 @@ services:
       dockerfile: deploy/docker/outbox-worker.Dockerfile
     environment:
       LEDGERSYNC_ENV: development
-      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_worker:${LEDGERSYNC_WORKER_DATABASE_PASSWORD:?Local worker database secret is required}@postgres:5432/ledgersync?sslmode=disable
       LEDGERSYNC_REDIS_ADDR: redis:6379
       LEDGERSYNC_STARTUP_TIMEOUT: 90s
       LEDGERSYNC_STARTUP_INITIAL_BACKOFF: 250ms
       LEDGERSYNC_STARTUP_MAX_BACKOFF: 5s
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -161,15 +161,25 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
-    entrypoint: ["/usr/local/bin/migrate"]
+      target: database-tooling
+    entrypoint: ["sh", "-ec"]
+    command:
+      - >-
+        /usr/local/bin/migrate &&
+        exec psql -v ON_ERROR_STOP=1 -h postgres -U ledgersync -d ledgersync
+        -f /database-roles/roles.sql -f /database-roles/local-workload-logins.sql
     environment:
       LEDGERSYNC_ENV: development
       LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}@postgres:5432/ledgersync?sslmode=disable
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}
+      LEDGERSYNC_API_DATABASE_PASSWORD: ${LEDGERSYNC_API_DATABASE_PASSWORD:?Local API database secret is required}
+      LEDGERSYNC_WORKER_DATABASE_PASSWORD: ${LEDGERSYNC_WORKER_DATABASE_PASSWORD:?Local worker database secret is required}
     depends_on:
       postgres:
         condition: service_healthy
     networks: [private]
     restart: "no"
+    user: postgres
     read_only: true
     tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
     cap_drop: ["ALL"]

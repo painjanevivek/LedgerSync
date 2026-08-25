@@ -20,7 +20,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	provider := identity.DevelopmentProvider{SubjectID: "bff-contract-probe", TenantID: "system", Scopes: []string{identity.BFFActorScope}}
+	provider := identity.DevelopmentProvider{SubjectID: "bff-contract-probe", TenantID: "tenant-a", Scopes: []string{identity.BFFActorScope}}
 	authenticator, err := identity.NewRequestAuthenticator(provider, secret)
 	if err != nil {
 		fail(err)
