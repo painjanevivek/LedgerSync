@@ -2,6 +2,13 @@
 
 All dates are UTC. Contract artifacts are reviewed and released together.
 
+## 1.13.0 — 2026-08-28
+
+- Added tenant-scoped credential metadata create, list, detail, rotate, and revoke operations.
+- Added optimistic versions, exact retry identity, expiry, revocation, and rate-bounded last-used evidence without accepting or returning raw credentials.
+- Added dedicated `credentials:read` and `credentials:write` scopes and recent production step-up protection for mutations.
+- No operation is deprecated and no sunset is scheduled.
+
 ## 1.12.0 — 2026-08-28
 
 - Added server-owned `X-LedgerSync-Mode` and `X-LedgerSync-API-Version` headers to every API response.

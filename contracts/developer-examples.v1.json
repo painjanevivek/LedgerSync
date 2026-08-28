@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "1.12.0",
+  "contract_version": "1.13.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -98,6 +98,17 @@
         { "operation_id": "exportTransfersCSV", "method": "GET", "path": "/exports/transfers.csv", "scope": "exports:read" },
         { "operation_id": "exportAccountLedgerCSV", "method": "GET", "path": "/exports/accounts/{accountId}/transactions.csv", "scope": "exports:read" },
         { "operation_id": "exportReconciliationCSV", "method": "GET", "path": "/exports/reconciliation.csv", "scope": "exports:read" }
+      ]
+    },
+    {
+      "id": "credentials",
+      "label": "Credential lifecycle",
+      "operations": [
+        { "operation_id": "listDeveloperCredentials", "method": "GET", "path": "/developer/credentials", "scope": "credentials:read" },
+        { "operation_id": "createDeveloperCredential", "method": "POST", "path": "/developer/credentials", "scope": "credentials:write" },
+        { "operation_id": "getDeveloperCredential", "method": "GET", "path": "/developer/credentials/{credentialId}", "scope": "credentials:read" },
+        { "operation_id": "rotateDeveloperCredential", "method": "POST", "path": "/developer/credentials/{credentialId}/rotations", "scope": "credentials:write" },
+        { "operation_id": "revokeDeveloperCredential", "method": "POST", "path": "/developer/credentials/{credentialId}/revocations", "scope": "credentials:write" }
       ]
     },
     {

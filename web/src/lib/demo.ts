@@ -29,6 +29,6 @@ export function createDemoSession(configuration: DemoConfiguration, now = Date.n
     expiresAt: now + 30 * 60 * 1000,
     authenticatedAt: now,
     roles: ["tenant:operator"],
-    scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve"],
+    scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve"],
   };
 }

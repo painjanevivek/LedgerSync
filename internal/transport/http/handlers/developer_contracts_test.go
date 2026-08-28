@@ -24,7 +24,7 @@ func TestDeveloperContractsReturnCanonicalEmbeddedBytesWithoutCredentials(t *tes
 		want                           string
 	}{
 		{path: "/api/developer/metadata", contentType: "application/json; charset=utf-8", want: contractassets.DeveloperExamplesV1()},
-		{path: "/api/openapi.yaml", contentType: "application/yaml; charset=utf-8", disposition: `attachment; filename="ledgersync-openapi-1.11.0.yaml"`, want: contractassets.OpenAPIYAML()},
+		{path: "/api/openapi.yaml", contentType: "application/yaml; charset=utf-8", disposition: `attachment; filename="ledgersync-openapi-` + contractassets.Version + `.yaml"`, want: contractassets.OpenAPIYAML()},
 	} {
 		request := httptest.NewRequest(http.MethodGet, testCase.path, nil)
 		request.Header.Set("Authorization", "Bearer development-local-only")
