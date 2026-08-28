@@ -63,7 +63,7 @@ test("funding intake keeps its financial controls readable from desktop to ultra
   await mockOperatorConsole(page);
   await page.goto("/funding");
   await page.getByRole("button", { name: "Record funding" }).click();
-  await expect(page.getByRole("heading", { name: "Record external value", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Add a funding record", exact: true })).toBeVisible();
   await capture(page, "funding-intake-desktop", desktop);
   await capture(page, "funding-intake-ultrawide", ultrawide);
 });

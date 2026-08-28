@@ -57,7 +57,7 @@ test("funding uses the full operator workspace without widening exact-value cont
   await page.setViewportSize({ width: 2560, height: 1440 });
   await page.goto("/funding");
   await page.getByRole("button", { name: "Record funding" }).click();
-  await expect(page.getByRole("heading", { name: "Record external value", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Add a funding record", exact: true })).toBeVisible();
   const controls = await page.locator(".funding-evidence-form input, .funding-evidence-form select").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().width));
   expect(Math.max(...controls)).toBeLessThanOrEqual(600);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
@@ -70,9 +70,23 @@ test("funding collapses its contextual rail at zoom-equivalent reflow widths", a
     await page.setViewportSize(viewport);
     await page.goto("/funding");
     await page.getByRole("button", { name: "Record funding" }).click();
-    await expect(page.getByRole("heading", { name: "Record external value", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add a funding record", exact: true })).toBeVisible();
     expect(await page.locator(".operator-workspace-rail").isVisible()).toBe(false);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
-    await expect(page.getByLabel("Exact amount")).toBeVisible();
+    await expect(page.locator("#funding-amount")).toBeVisible();
   }
+});
+
+test("funding explains why its four inputs are required", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/funding");
+  await page.getByRole("button", { name: "Record funding" }).click();
+  const fields = ["#funding-destination-account", "#funding-amount", "#funding-reference", "#funding-supporting-document"];
+  for (const selector of fields) {
+    const field = page.locator(selector);
+    await expect(field).toBeVisible();
+    await expect(field).toHaveAttribute("required", "");
+  }
+  await expect(page.getByText("Why all four?", { exact: true })).toBeVisible();
+  await expect(page.getByText("Another operator needs them to check the record before your balance can change.")).toBeVisible();
 });

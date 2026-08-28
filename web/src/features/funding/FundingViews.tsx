@@ -32,47 +32,47 @@ export function FundingWorkspaceRail({
 }>) {
   const record = event ?? events[0];
   const reviewSummary = loading
-    ? "Refreshing the authorized funding page. A missing result is never inferred while this check is running."
+    ? "Checking the latest records. LedgerSync will not show an empty result until the check finishes."
     : error
-      ? "The latest check did not complete. Keep any loaded record historical until it can be refreshed."
+      ? "The latest check did not complete. Refresh before relying on a record that is already on screen."
       : record
-        ? `${events.length || 1} authorized funding ${events.length === 1 ? "record is" : "records are"} in the current review scope. The latest status is ${record.status}.`
-        : "No funding records are in the current authorized scope.";
+        ? `${events.length || 1} funding ${events.length === 1 ? "record is" : "records are"} ready to review. The latest is ${record.status}.`
+        : "There are no funding records to review yet.";
   const nextSafeAction = !online
     ? "Reconnect before recording, deciding, or posting a funding record."
     : record?.status === "requested"
-      ? "Independently match the external reference and supporting location before an approver records a decision."
+      ? "Check the reference number and supporting document before approving or rejecting this record."
       : record?.status === "approved"
-        ? "Post only after the approved record still matches the external reference and exact amount."
+        ? "Before adding it, confirm that the approved record still matches the reference number and amount."
         : record?.status === "posted" || record?.status === "compensated"
-          ? "Use the record history to inspect the immutable decision and balanced journal."
-          : "Record an external reference and controlled supporting location before it can enter ledger review.";
+          ? "Open the record history if you need to check what was approved and added."
+          : "Add a reference number and supporting document to start a review.";
 
   return (
     <div className="funding-context-rail-content">
       <section className="funding-context-card">
-        <p className="eyebrow">Funding boundary</p>
-        <h2>Reference, not custody</h2>
+        <p className="eyebrow">What this does</p>
+        <h2>Keeps a clear record</h2>
         <p>
-          LedgerSync records customer-authorized external value references. It
-          does not describe these records as deposits, bank settlement, or
-          custody.
+          LedgerSync keeps a customer-authorized external value reference. It
+          does not mean LedgerSync holds the money or that a bank transfer has
+          settled.
         </p>
       </section>
       <section className="funding-context-card">
-        <p className="eyebrow">Approval requirement</p>
-        <h2>Independent review protects posting</h2>
+        <p className="eyebrow">What happens next</p>
+        <h2>Another operator checks it</h2>
         <p>
-          A funding record is reviewable first. In production, a separate
-          finance operator must approve it before a balanced journal can post.
+          In production, a different finance operator must approve this record
+          before it can change a balance.
         </p>
       </section>
       <section className="funding-context-card">
-        <p className="eyebrow">Exact money</p>
-        <h2>Minor units stay authoritative</h2>
+        <p className="eyebrow">About the amount</p>
+        <h2>The amount stays exact</h2>
         <p>
-          Amounts are stored as exact minor units. A record does not change a
-          balance until its approved journal is posted.
+          LedgerSync stores the exact amount you enter. Your balance does not
+          change until the record has been approved.
         </p>
       </section>
       <section className="funding-context-card funding-context-current">
@@ -91,14 +91,14 @@ export function FundingListView({ events, accounts, nextCursor, verifiedAt, load
 }>) {
   const labels = new Map(accounts.map((account) => [account.account_id, accountLabel(account)]));
   return <>
-    <PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Recorded external value references, independent decisions, and the balanced journals they authorize.">
+    <PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Keep track of money confirmed outside LedgerSync. Each record is checked before it can change a balance.">
       <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh records</button>{canWrite && <button className="button primary guarded-control" type="button" onClick={onOpenRequest}>Record funding</button>}</div>
     </PageHeader>
     {verifiedAt && events.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Funding records" reason={error ?? (!online ? "Reconnect before acting on these records." : undefined)} />}
     {error && <StatePanel kind="error" title="Funding records unavailable" message={error} action={<FocusedRetry label="Retry funding records" onRetry={onRefresh} disabled={!online} busy={loading} />} />}
-    {loading && events.length === 0 ? <StatePanel title="Loading funding records" message="LedgerSync is verifying one bounded tenant page; an empty result is not inferred while the request is pending." /> : events.length === 0 && !error ? <StatePanel title="No funding records yet" message="Record an external reference when value is confirmed outside LedgerSync and must enter the internal ledger under controlled review." action={canWrite ? <button className="button primary" type="button" onClick={onOpenRequest}>Record first funding</button> : undefined} /> : events.length > 0 && <section className="ledger-section funding-ledger" aria-labelledby="funding-ledger-heading" aria-busy={loading}>
-      <div className="section-heading"><div><p className="eyebrow">Immutable tenant record</p><h2 id="funding-ledger-heading">Funding history</h2><p>Newest requests first. Each row remains inspectable after rejection, posting, or compensation.</p></div></div>
-      <DataTableRegion label="Funding record comparison"><table className="data-table"><thead><tr><th>External reference</th><th>Destination</th><th>Exact amount</th><th>State</th><th>Recorded</th><th>Action</th></tr></thead><tbody>{events.map((event) => <tr key={event.funding_event_id}><td><strong>{event.compensation_of_event_id ? "Compensation" : "Funding"}</strong><code>{event.external_reference}</code></td><td><strong>{labels.get(event.destination_account_id) ?? "Authorized account"}</strong><code>{event.destination_account_id}</code></td><td className="number-cell">{formatMinorUnits(event.currency, event.amount_minor)}</td><td><StatusBadge tone={fundingTone(event.status)}>{event.status}</StatusBadge>{event.demo_policy && <small>Local single-operator policy</small>}</td><td><time>{utcDateTime(event.requested_at)}</time><small>By {event.requester_subject_id}</small></td><td><Link className="record-link" href={`/funding/${encodeURIComponent(event.funding_event_id)}`}>Open record <span aria-hidden="true">→</span></Link></td></tr>)}</tbody></table></DataTableRegion>
+    {loading && events.length === 0 ? <StatePanel title="Loading funding records" message="Checking your funding records now. An empty result will appear only after the check finishes." /> : events.length === 0 && !error ? <StatePanel title="No funding records yet" message="When money is confirmed outside LedgerSync, add its reference number and supporting document here. It will be checked before your balance changes." action={canWrite ? <button className="button primary" type="button" onClick={onOpenRequest}>Add first record</button> : undefined} /> : events.length > 0 && <section className="ledger-section funding-ledger" aria-labelledby="funding-ledger-heading" aria-busy={loading}>
+      <div className="section-heading"><div><p className="eyebrow">Your records</p><h2 id="funding-ledger-heading">Funding history</h2><p>Newest records appear first. You can open any record to see what happened next.</p></div></div>
+      <DataTableRegion label="Funding record comparison"><table className="data-table"><thead><tr><th>Reference number</th><th>Account</th><th>Amount</th><th>Status</th><th>Added</th><th>View</th></tr></thead><tbody>{events.map((event) => <tr key={event.funding_event_id}><td><strong>{event.compensation_of_event_id ? "Correction" : "Funding"}</strong><code>{event.external_reference}</code></td><td><strong>{labels.get(event.destination_account_id) ?? "Authorized account"}</strong><code>{event.destination_account_id}</code></td><td className="number-cell">{formatMinorUnits(event.currency, event.amount_minor)}</td><td><StatusBadge tone={fundingTone(event.status)}>{event.status}</StatusBadge>{event.demo_policy && <small>Local single-operator policy</small>}</td><td><time>{utcDateTime(event.requested_at)}</time><small>By {event.requester_subject_id}</small></td><td><Link className="record-link" href={`/funding/${encodeURIComponent(event.funding_event_id)}`}>Open record <span aria-hidden="true">→</span></Link></td></tr>)}</tbody></table></DataTableRegion>
       <Pagination nextCursor={nextCursor} busy={loading} onNext={onNext} label="Next records page" />
     </section>}
   </>;
