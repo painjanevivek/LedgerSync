@@ -14,7 +14,7 @@ export const orientationEvidence = { generated_at:"2026-08-19T12:05:00Z",evidenc
   {id:"understand_authority",state:"missing",evidence_type:"authority_acknowledgement",reason_code:"operator_confirmation_required"},
   {id:"inspect_accounts",state:"evidence_available",evidence_type:"account_record",evidence_id:sourceAccount.account_id,occurred_at:sourceAccount.as_of,reason_code:"operator_confirmation_required"},
   {id:"create_account",state:"completed",evidence_type:"account_created_audit",evidence_id:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",occurred_at:"2026-08-19T10:00:00Z"},
-  {id:"fund_account",state:"unavailable",evidence_type:"funding_journal",reason_code:"funding_workflow_unavailable"},
+  {id:"fund_account",state:"completed",evidence_type:"funding_journal",evidence_id:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",occurred_at:"2026-08-19T10:30:00Z"},
   {id:"post_transfer",state:"completed",evidence_type:"posted_transfer",evidence_id:transfer.transfer_id,occurred_at:transfer.completed_at},
   {id:"retry_transfer",state:"evidence_available",evidence_type:"idempotency_outcome",evidence_id:transfer.transfer_id,occurred_at:transfer.completed_at,reason_code:"operator_confirmation_required"},
   {id:"inspect_postings",state:"evidence_available",evidence_type:"journal_postings",evidence_id:transfer.transfer_id,occurred_at:transfer.completed_at,reason_code:"operator_confirmation_required"},
@@ -41,7 +41,7 @@ function json(route: Route, body: unknown, status = 200) {
 export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
-    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" });
+    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" });
   });
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {

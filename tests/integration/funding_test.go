@@ -9,6 +9,7 @@ import (
 
 	appaccounts "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	appfunding "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
+	appguidance "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/guidance"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
@@ -83,6 +84,18 @@ INSERT INTO tenant_funding_policies(
 	})
 	if err != nil || !postReplay.Replayed || postReplay.Event.JournalTransactionID != posted.Event.JournalTransactionID {
 		t.Fatalf("post replay=%#v err=%v", postReplay, err)
+	}
+	guidanceRepository, err := db.NewGuidanceRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	guidanceService, err := appguidance.NewService(guidanceRepository, integrationGuidanceRecovery{}, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	orientation, err := guidanceService.Orientation(ctx, testTenantID, testActorID)
+	if err != nil || orientation.Steps[4].State != "completed" || orientation.Steps[4].EvidenceID != created.Event.FundingEventID {
+		t.Fatalf("posted funding onboarding evidence=%+v err=%v", orientation.Steps[4], err)
 	}
 	if countRows(t, database, `SELECT count(*) FROM funding_events WHERE tenant_id=$1`, testTenantID) != 1 ||
 		countRows(t, database, `SELECT count(*) FROM journal_transactions WHERE funding_event_id=$1`, created.Event.FundingEventID) != 1 ||

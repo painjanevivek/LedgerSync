@@ -14,7 +14,7 @@ const stepCopy: Record<OrientationStep["id"], StepCopy> = {
   understand_authority: { title: "Understand the authority boundary", description: "PostgreSQL owns ledger truth. Redis is disposable acceleration, never financial authority.", confirmation: "I understand the boundary" },
   inspect_accounts: { title: "Inspect demo accounts", description: "Read an authorized account's exact INR balance and immutable history.", href: "/accounts", confirmation: "I inspected the account" },
   create_account: { title: "Create a zero-balance account", description: "Create an active INR account; value must enter through an approved ledger event.", href: "/accounts/new?return_to=%2Faccounts" },
-  fund_account: { title: "Fund through an approved ledger event", description: "Controlled funding journals are not available until the finance policy and Phase 5 workflow are implemented." },
+  fund_account: { title: "Fund through an approved ledger event", description: "Record external value evidence, obtain the required finance decision, and post one balanced journal.", href: "/funding" },
   post_transfer: { title: "Transfer an exact amount", description: "Move integer minor units between eligible same-currency accounts.", href: "/transfers" },
   retry_transfer: { title: "Retry the same request safely", description: "Reuse the exact intent and idempotency key after an unknown response.", href: "/transfers", confirmation: "I verified the safe retry" },
   inspect_postings: { title: "Inspect postings and balance versions", description: "Follow the journal's equal debit and credit postings into versioned balance evidence.", href: "/transfers", confirmation: "I inspected the ledger proof" },
@@ -29,6 +29,7 @@ const preferenceSteps = new Set<OrientationStep["id"]>(["confirm_health", "under
 function evidenceHref(step: OrientationStep) {
   if (!step.evidence_id) return stepCopy[step.id].href;
   if (step.id === "inspect_accounts") return `/accounts/${encodeURIComponent(step.evidence_id)}`;
+  if (step.id === "fund_account") return `/funding/${encodeURIComponent(step.evidence_id)}`;
   if (["post_transfer", "retry_transfer", "inspect_postings"].includes(step.id)) return `/transfers/${encodeURIComponent(step.evidence_id)}`;
   if (step.id === "run_reconciliation") return `/reconciliation/${encodeURIComponent(step.evidence_id)}`;
   if (step.id === "inspect_delivery") return `/events/${encodeURIComponent(step.evidence_id)}`;
@@ -39,7 +40,7 @@ function complete(step: OrientationStep) { return step.state === "completed" || 
 function tone(step: OrientationStep) { return complete(step) ? "success" as const : step.state === "evidence_available" ? "info" as const : "warning" as const; }
 function stateLabel(step: OrientationStep) { return step.state === "completed" ? "Stored evidence" : step.state === "operator_confirmed" ? "Operator confirmed" : step.state === "evidence_available" ? "Ready to inspect" : step.state === "unavailable" ? "Unavailable" : "Not yet evidenced"; }
 function reason(step: OrientationStep) {
-  if (step.reason_code === "funding_workflow_unavailable") return "Funding remains blocked until the controlled journal and approval workflow exists.";
+  if (step.reason_code === "no_posted_funding_journal") return "No approved funding journal has been posted for this operator yet.";
   if (step.reason_code === "operator_confirmation_required") return "Open the evidence, then save an explicit operator confirmation.";
   if (step.reason_code === "no_authorized_account") return "No authorized account evidence is available yet.";
   if (step.reason_code === "no_posted_transfer") return "A posted transfer is required before this step can be verified.";

@@ -39,8 +39,11 @@ func (r *GuidanceRepository) Orientation(ctx context.Context, tenantID, actorID 
 	if facts.CreatedAccount, err = r.reference(ctx, `SELECT a.id::text,audit.occurred_at FROM audit_events audit JOIN accounts a ON a.tenant_id=audit.tenant_id AND a.id::text=audit.target_id WHERE audit.tenant_id=$1 AND audit.actor_subject_id=$2 AND audit.event_type='account.created' AND audit.outcome='succeeded' ORDER BY audit.occurred_at DESC,audit.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation account creation: %w", err)
 	}
-	if facts.PostedTransfer, err = r.reference(ctx, `SELECT id::text,completed_at FROM transfers WHERE tenant_id=$1 AND actor_subject_id=$2 AND status='posted' ORDER BY completed_at DESC,id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.FundingJournal, err = r.reference(ctx, `SELECT event.id::text,COALESCE(event.posted_at,event.updated_at) FROM funding_events event WHERE event.tenant_id=$1 AND event.requester_subject_id=$2 AND event.compensation_of_event_id IS NULL AND event.status IN ('posted','compensated') ORDER BY COALESCE(event.posted_at,event.updated_at) DESC,event.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation funding: %w", err)
+	}
+	if facts.PostedTransfer, err = r.reference(ctx, `SELECT id::text,completed_at FROM transfers WHERE tenant_id=$1 AND actor_subject_id=$2 AND status='posted' ORDER BY completed_at DESC,id DESC LIMIT 1`, tenantID, actorID); err != nil {
+		return facts, fmt.Errorf("read orientation posted transfer: %w", err)
 	}
 	if facts.AuthorizedTransfer, err = r.reference(ctx, `SELECT t.id::text,COALESCE(t.completed_at,t.created_at) FROM transfers t WHERE t.tenant_id=$1 AND (t.actor_subject_id=$2 OR EXISTS(SELECT 1 FROM account_owners owner WHERE owner.tenant_id=t.tenant_id AND owner.subject_id=$2 AND owner.account_id IN(t.debit_account_id,t.credit_account_id) AND owner.permission IN ('read','debit'))) ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation transfer: %w", err)

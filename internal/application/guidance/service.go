@@ -35,6 +35,7 @@ type DurableReference struct {
 type OrientationFacts struct {
 	AuthorizedAccount  *DurableReference
 	CreatedAccount     *DurableReference
+	FundingJournal     *DurableReference
 	PostedTransfer     *DurableReference
 	AuthorizedTransfer *DurableReference
 	ReconciliationRun  *DurableReference
@@ -190,7 +191,7 @@ func (s *Service) orientationSummary(ctx context.Context, facts OrientationFacts
 		preferenceStep("understand_authority", "authority_acknowledgement", completed["understand_authority"], nil, "operator_confirmation_required"),
 		preferenceStep("inspect_accounts", "account_record", completed["inspect_accounts"], facts.AuthorizedAccount, "no_authorized_account"),
 		orientationStep("create_account", "account_created_audit", facts.CreatedAccount, true, "no_account_creation_evidence", ""),
-		{ID: "fund_account", State: "unavailable", EvidenceType: "funding_journal", ReasonCode: "funding_workflow_unavailable"},
+		orientationStep("fund_account", "funding_journal", facts.FundingJournal, true, "no_posted_funding_journal", ""),
 		orientationStep("post_transfer", "posted_transfer", facts.PostedTransfer, true, "no_posted_transfer", ""),
 		preferenceStep("retry_transfer", "idempotency_outcome", completed["retry_transfer"], facts.PostedTransfer, "no_posted_transfer"),
 		preferenceStep("inspect_postings", "journal_postings", completed["inspect_postings"], facts.PostedTransfer, "no_posted_transfer"),
@@ -258,7 +259,7 @@ func validReference(reference *DurableReference) bool {
 }
 
 func bestOrientationReference(facts OrientationFacts) *DurableReference {
-	for _, reference := range []*DurableReference{facts.PostedTransfer, facts.ReconciliationRun, facts.CreatedAccount, facts.AuthorizedAccount} {
+	for _, reference := range []*DurableReference{facts.PostedTransfer, facts.FundingJournal, facts.ReconciliationRun, facts.CreatedAccount, facts.AuthorizedAccount} {
 		if validReference(reference) {
 			return reference
 		}

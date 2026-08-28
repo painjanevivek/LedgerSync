@@ -54,7 +54,7 @@ func TestOrientationDistinguishesCompletedActionsFromAvailableInspectionEvidence
 		return &DurableReference{ID: "70000000-0000-4000-8000-0000000000" + suffix, OccurredAt: when}
 	}
 	service, err := NewService(guidanceRepositoryStub{orientation: OrientationFacts{
-		AuthorizedAccount: reference("01"), CreatedAccount: reference("02"), PostedTransfer: reference("03"), AuthorizedTransfer: reference("04"), ReconciliationRun: reference("05"), DeliveryAttempt: reference("06"),
+		AuthorizedAccount: reference("01"), CreatedAccount: reference("02"), FundingJournal: reference("07"), PostedTransfer: reference("03"), AuthorizedTransfer: reference("04"), ReconciliationRun: reference("05"), DeliveryAttempt: reference("06"),
 	}}, guidanceRecoveryStub{snapshot: apprecovery.ManifestSnapshot{LatestBackup: &apprecovery.BackupManifestEvidence{BackupID: "backup-20260825T120000Z-abcdef0", FinalizedAtUTC: when.Format(time.RFC3339)}}}, func() time.Time { return when })
 	if err != nil {
 		t.Fatal(err)
@@ -68,13 +68,10 @@ func TestOrientationDistinguishesCompletedActionsFromAvailableInspectionEvidence
 			t.Fatalf("inspection step fabricated completion: %+v", summary.Steps[index])
 		}
 	}
-	for _, index := range []int{3, 5, 8, 11} {
+	for _, index := range []int{3, 4, 5, 8, 11} {
 		if summary.Steps[index].State != "completed" || summary.Steps[index].OccurredAt == nil {
 			t.Fatalf("durable action not completed: %+v", summary.Steps[index])
 		}
-	}
-	if summary.Steps[4].State != "unavailable" || summary.Steps[4].ReasonCode != "funding_workflow_unavailable" {
-		t.Fatalf("funding availability was overstated: %+v", summary.Steps[4])
 	}
 }
 
@@ -86,6 +83,9 @@ func TestOrientationKeepsMissingAndUnavailableEvidenceExplicit(t *testing.T) {
 	}
 	if summary.Steps[2].State != "missing" || summary.Steps[2].ReasonCode != "no_authorized_account" || summary.Steps[11].State != "unavailable" || summary.Steps[11].ReasonCode != "recovery_evidence_unavailable" {
 		t.Fatalf("missing/unavailable truth drifted: %+v", summary.Steps)
+	}
+	if summary.Steps[4].State != "missing" || summary.Steps[4].ReasonCode != "no_posted_funding_journal" {
+		t.Fatalf("missing funding evidence was overstated: %+v", summary.Steps[4])
 	}
 }
 

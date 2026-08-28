@@ -110,7 +110,7 @@ func TestGuidancePostgreSQLAuthorizationAndOrientationTruth(t *testing.T) {
 	if orientation.Steps[2].State != "evidence_available" || orientation.Steps[5].State != "completed" || orientation.Steps[6].State != "evidence_available" || orientation.Steps[7].State != "evidence_available" || orientation.Steps[10].State != "evidence_available" || orientation.Steps[11].State != "completed" {
 		t.Fatalf("orientation fabricated or omitted durable progress: %+v", orientation.Steps)
 	}
-	if orientation.Steps[0].State != "missing" || orientation.Steps[1].State != "missing" || orientation.Steps[3].State != "missing" || orientation.Steps[4].State != "unavailable" || orientation.Steps[8].State != "missing" || orientation.Steps[9].State != "missing" {
+	if orientation.Steps[0].State != "missing" || orientation.Steps[1].State != "missing" || orientation.Steps[3].State != "missing" || orientation.Steps[4].State != "missing" || orientation.Steps[4].ReasonCode != "no_posted_funding_journal" || orientation.Steps[8].State != "missing" || orientation.Steps[9].State != "missing" {
 		t.Fatalf("unstored actions were marked complete: %+v", orientation.Steps)
 	}
 	concurrentResults := make(chan error, 2)

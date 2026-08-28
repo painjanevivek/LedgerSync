@@ -8,7 +8,7 @@ export type OrientationStep = Readonly<{
   evidence_type: "local_health_confirmation" | "authority_acknowledgement" | "account_record" | "account_created_audit" | "funding_journal" | "posted_transfer" | "idempotency_outcome" | "journal_postings" | "reconciliation_run" | "delivery_attempt" | "evidence_export" | "recovery_backup";
   evidence_id?: string;
   occurred_at?: string;
-  reason_code?: "operator_confirmation_required" | "no_authorized_account" | "no_account_creation_evidence" | "funding_workflow_unavailable" | "no_posted_transfer" | "no_reconciliation_run" | "no_delivery_attempt" | "no_exportable_evidence" | "no_validated_backup" | "recovery_evidence_unavailable";
+  reason_code?: "operator_confirmation_required" | "no_authorized_account" | "no_account_creation_evidence" | "no_posted_funding_journal" | "no_posted_transfer" | "no_reconciliation_run" | "no_delivery_attempt" | "no_exportable_evidence" | "no_validated_backup" | "recovery_evidence_unavailable";
 }>;
 export type LocalOrientation = Readonly<{
   generated_at: string;
@@ -54,7 +54,7 @@ const stepEvidence = ["local_health_confirmation", "authority_acknowledgement", 
 const preferenceStepIDs = ["confirm_health", "understand_authority", "inspect_accounts", "retry_transfer", "inspect_postings", "inspect_delivery", "export_evidence"] as const;
 const preferenceStepSet = new Set<string>(preferenceStepIDs);
 const orientationStates = new Set(["completed", "operator_confirmed", "evidence_available", "missing", "unavailable"]);
-const orientationReasons = new Set(["operator_confirmation_required", "no_authorized_account", "no_account_creation_evidence", "funding_workflow_unavailable", "no_posted_transfer", "no_reconciliation_run", "no_delivery_attempt", "no_exportable_evidence", "no_validated_backup", "recovery_evidence_unavailable"]);
+const orientationReasons = new Set(["operator_confirmation_required", "no_authorized_account", "no_account_creation_evidence", "no_posted_funding_journal", "no_posted_transfer", "no_reconciliation_run", "no_delivery_attempt", "no_exportable_evidence", "no_validated_backup", "recovery_evidence_unavailable"]);
 const stageKinds = ["request", "transfer", "journal_postings", "balance_versions", "outbox", "delivery", "reconciliation"] as const;
 const stageReasons = new Set(["no_retained_idempotency_outcome", "no_journal", "no_postings", "no_balance_version_evidence", "no_outbox_events", "no_delivery_attempts", "coverage_not_provable", "dependency_unavailable", "evidence_truncated"]);
 const evidenceTypes = new Set(["idempotency_outcome", "transfer", "journal", "posting", "balance_version", "outbox_event", "delivery_attempt", "reconciliation_run"]);

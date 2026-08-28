@@ -33,6 +33,105 @@ type balancePayload struct {
 	AvailableMinor string `json:"available_minor"`
 }
 
+type fundingEventPayload struct {
+	FundingEventID       string `json:"funding_event_id"`
+	Status               string `json:"status"`
+	DestinationAccountID string `json:"destination_account_id"`
+	AmountMinor          string `json:"amount_minor"`
+	Currency             string `json:"currency"`
+	ExternalReference    string `json:"external_reference"`
+	JournalTransactionID string `json:"journal_transaction_id"`
+	BalanceVersion       string `json:"balance_version"`
+}
+
+type fundingSubmissionPayload struct {
+	Event    fundingEventPayload `json:"event"`
+	Replayed bool                `json:"replayed"`
+}
+
+func TestRealBFFControlledFundingLifecycle(t *testing.T) {
+	baseURL := strings.TrimRight(os.Getenv("LEDGERSYNC_SYSTEM_WEB_URL"), "/")
+	if baseURL == "" {
+		t.Skip("LEDGERSYNC_SYSTEM_WEB_URL is required for the real-stack funding test")
+	}
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
+	var session sessionPayload
+	getJSON(t, client, baseURL+"/api/session", &session)
+	if session.CSRFToken == "" {
+		t.Fatal("real BFF did not establish the server-gated demo session")
+	}
+
+	const destinationID = "10000000-0000-4000-8000-000000000006"
+	const key = "system-funding-idempotency-000001"
+	const amountMinor = "250"
+	var before balancePayload
+	getJSON(t, client, baseURL+"/api/accounts/"+destinationID+"/balance", &before)
+	requestBody := []byte(`{"destinationAccountId":"10000000-0000-4000-8000-000000000006","amountMinor":"250","currency":"INR","externalReference":"system-funding-evidence-000001","evidenceReference":"customer-evidence://system/funding/000001"}`)
+	var created fundingSubmissionPayload
+	postJSON(t, client, baseURL+"/api/funding-requests", baseURL, session.CSRFToken, key, requestBody, &created)
+	if created.Replayed || created.Event.FundingEventID == "" || created.Event.Status != "requested" || created.Event.DestinationAccountID != destinationID || created.Event.AmountMinor != amountMinor || created.Event.Currency != "INR" {
+		t.Fatalf("funding request evidence=%+v", created)
+	}
+	var replay fundingSubmissionPayload
+	postJSON(t, client, baseURL+"/api/funding-requests", baseURL, session.CSRFToken, key, requestBody, &replay)
+	if !replay.Replayed || replay.Event.FundingEventID != created.Event.FundingEventID {
+		t.Fatalf("same-key funding retry did not resolve to one event: created=%+v replay=%+v", created, replay)
+	}
+
+	eventURL := baseURL + "/api/funding-events/" + created.Event.FundingEventID
+	var approved fundingEventPayload
+	postJSON(t, client, eventURL+"/approve", baseURL, session.CSRFToken, "", []byte(`{"reason":"verified local customer evidence"}`), &approved)
+	if approved.Status != "approved" {
+		t.Fatalf("demo funding approval=%+v", approved)
+	}
+	var posted fundingSubmissionPayload
+	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, "", nil, &posted)
+	if posted.Event.Status != "posted" || posted.Event.JournalTransactionID == "" || posted.Event.BalanceVersion == "" {
+		t.Fatalf("posted funding journal=%+v", posted)
+	}
+	var postReplay fundingSubmissionPayload
+	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, "", nil, &postReplay)
+	if !postReplay.Replayed || postReplay.Event.JournalTransactionID != posted.Event.JournalTransactionID {
+		t.Fatalf("funding post replay=%+v", postReplay)
+	}
+
+	var after balancePayload
+	getJSON(t, client, baseURL+"/api/accounts/"+destinationID+"/balance?require_version="+posted.Event.BalanceVersion, &after)
+	beforeMinor, parseErr := strconv.ParseInt(before.AvailableMinor, 10, 64)
+	if parseErr != nil {
+		t.Fatal(parseErr)
+	}
+	afterMinor, parseErr := strconv.ParseInt(after.AvailableMinor, 10, 64)
+	if parseErr != nil || afterMinor != beforeMinor+250 {
+		t.Fatalf("funding balance did not advance exactly once: before=%s after=%s error=%v", before.AvailableMinor, after.AvailableMinor, parseErr)
+	}
+	var reconciliation struct {
+		Status            string `json:"status"`
+		ExpectedMinor     string `json:"expected_minor"`
+		PostedDebitMinor  string `json:"posted_debit_minor"`
+		PostedCreditMinor string `json:"posted_credit_minor"`
+	}
+	getJSON(t, client, eventURL+"/reconciliation", &reconciliation)
+	if reconciliation.Status != "matched" || reconciliation.ExpectedMinor != amountMinor || reconciliation.PostedDebitMinor != amountMinor || reconciliation.PostedCreditMinor != amountMinor {
+		t.Fatalf("funding reconciliation=%+v", reconciliation)
+	}
+	var orientation struct {
+		Steps []struct {
+			ID         string `json:"id"`
+			State      string `json:"state"`
+			EvidenceID string `json:"evidence_id"`
+		} `json:"steps"`
+	}
+	getJSON(t, client, baseURL+"/api/local/orientation", &orientation)
+	if len(orientation.Steps) != 12 || orientation.Steps[4].ID != "fund_account" || orientation.Steps[4].State != "completed" || orientation.Steps[4].EvidenceID != created.Event.FundingEventID {
+		t.Fatalf("funding onboarding evidence=%+v", orientation.Steps)
+	}
+}
+
 func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 	baseURL := strings.TrimRight(os.Getenv("LEDGERSYNC_SYSTEM_WEB_URL"), "/")
 	if baseURL == "" {
@@ -169,6 +268,28 @@ func TestRealBFFReconciliationEvidence(t *testing.T) {
 func getJSON(t *testing.T, client *http.Client, url string, target any) {
 	t.Helper()
 	response, err := client.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	decodeResponse(t, response, target)
+}
+
+func postJSON(t *testing.T, client *http.Client, url, origin, csrfToken, idempotencyKey string, body []byte, target any) {
+	t.Helper()
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Origin", origin)
+	request.Header.Set("X-CSRF-Token", csrfToken)
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	if idempotencyKey != "" {
+		request.Header.Set("Idempotency-Key", idempotencyKey)
+	}
+	response, err := client.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}

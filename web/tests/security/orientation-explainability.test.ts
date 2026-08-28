@@ -18,7 +18,7 @@ const steps=[
   {id:"understand_authority",state:"missing",evidence_type:"authority_acknowledgement",reason_code:"operator_confirmation_required"},
   {id:"inspect_accounts",state:"evidence_available",evidence_type:"account_record",evidence_id:id("1"),occurred_at:"2026-08-19T12:00:00Z",reason_code:"operator_confirmation_required"},
   {id:"create_account",state:"completed",evidence_type:"account_created_audit",evidence_id:id("2"),occurred_at:"2026-08-19T12:00:00Z"},
-  {id:"fund_account",state:"unavailable",evidence_type:"funding_journal",reason_code:"funding_workflow_unavailable"},
+  {id:"fund_account",state:"completed",evidence_type:"funding_journal",evidence_id:id("6"),occurred_at:"2026-08-19T12:00:00Z"},
   {id:"post_transfer",state:"completed",evidence_type:"posted_transfer",evidence_id:id("3"),occurred_at:"2026-08-19T12:00:00Z"},
   {id:"retry_transfer",state:"evidence_available",evidence_type:"idempotency_outcome",evidence_id:id("3"),occurred_at:"2026-08-19T12:00:00Z",reason_code:"operator_confirmation_required"},
   {id:"inspect_postings",state:"evidence_available",evidence_type:"journal_postings",evidence_id:id("3"),occurred_at:"2026-08-19T12:00:00Z",reason_code:"operator_confirmation_required"},
