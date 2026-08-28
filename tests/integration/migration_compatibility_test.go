@@ -109,7 +109,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") || strings.HasPrefix(entry.Name(), "000019_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") || strings.HasPrefix(entry.Name(), "000019_") || strings.HasPrefix(entry.Name(), "000022_") || strings.HasPrefix(entry.Name(), "000023_") {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
