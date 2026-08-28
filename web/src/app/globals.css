@@ -24,6 +24,46 @@ body:has(dialog[open]) .skip-link {
   min-height: 100dvh;
   grid-template-columns: 280px minmax(0, 1fr);
 }
+.workspace-column {
+  min-width: 0;
+}
+.workspace-topbar {
+  display: flex;
+  position: sticky;
+  z-index: var(--z-sticky);
+  top: 0;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  padding: 0 clamp(30px, 3vw, 44px);
+  background: rgb(247 248 250 / 96%);
+  color: var(--muted);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-mono);
+  font-size: var(--type-meta);
+}
+.topbar-link {
+  display: inline-flex;
+  min-height: var(--target-compact);
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-weight: 750;
+  text-decoration: none;
+}
+.topbar-link:hover,
+.topbar-link.active {
+  border-bottom-color: var(--green);
+  color: var(--green-dark);
+}
+.topbar-link svg {
+  width: 18px;
+  height: 18px;
+}
 
 .side-nav {
   display: flex;
@@ -233,7 +273,339 @@ body:has(dialog[open]) .skip-link {
   width: 100%;
   min-width: 0;
   max-width: none;
-  padding: 58px clamp(30px, 3vw, 44px) 22px;
+  padding: 38px clamp(30px, 3vw, 44px) 22px;
+}
+
+/* A first workspace is presented as a ledger path, not an empty analytics
+   dashboard. The ordered rail mirrors the evidence sequence users will create. */
+.new-workspace {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 20px;
+  width: min(1080px, 100%);
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--green);
+  padding: clamp(22px, 3vw, 34px);
+  background: var(--paper);
+  box-shadow: var(--shadow-surface);
+}
+.new-workspace-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.new-workspace-mark svg {
+  width: 24px;
+  height: 24px;
+}
+.new-workspace-copy h2 {
+  margin-top: 6px;
+  font-size: clamp(24px, 3vw, 36px);
+}
+.new-workspace-copy > p:not(.eyebrow) {
+  max-width: 720px;
+  color: var(--muted);
+  font-size: var(--type-body-lg);
+  line-height: 1.55;
+}
+.new-workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.new-workspace-actions .button svg {
+  width: 17px;
+  height: 17px;
+}
+.new-workspace-path {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 12px 0 0;
+  border: 1px solid var(--line);
+  padding: 0;
+  list-style: none;
+}
+.new-workspace-path li {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  border-right: 1px solid var(--line);
+  padding: 17px;
+}
+.new-workspace-path li:last-child {
+  border-right: 0;
+}
+.new-workspace-path span {
+  color: var(--green);
+  font: 800 var(--type-label) var(--font-mono);
+}
+.new-workspace-path small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* The guide uses one continuous evidence rail because order is operationally
+   meaningful: later actions depend on records created by earlier actions. */
+.guide-principle,
+.guide-safety {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 18px;
+  width: min(1080px, 100%);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--green);
+  padding: 22px;
+  background: var(--green-soft);
+}
+.guide-principle > svg,
+.guide-safety > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--green);
+}
+.guide-principle h2,
+.guide-safety h2 {
+  margin: 4px 0 7px;
+}
+.guide-principle p:not(.eyebrow),
+.guide-safety p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+.guide-steps {
+  display: grid;
+  width: min(1080px, 100%);
+  margin: 26px 0;
+  padding: 0;
+  list-style: none;
+}
+.guide-steps > li {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 16px;
+}
+.guide-index {
+  display: grid;
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--green);
+  border-radius: 50%;
+  background: var(--canvas);
+  color: var(--green);
+  font: 800 var(--type-label) var(--font-mono);
+}
+.guide-index::after {
+  position: absolute;
+  z-index: -1;
+  top: 39px;
+  left: 19px;
+  width: 1px;
+  height: calc(100% + 56px);
+  background: var(--line-strong);
+  content: "";
+}
+.guide-steps > li:last-child .guide-index::after {
+  display: none;
+}
+.guide-steps article {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  padding: 20px;
+  background: var(--paper);
+}
+.guide-steps article > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--green);
+}
+.guide-steps h2 {
+  margin: 0 0 5px;
+}
+.guide-steps p {
+  max-width: 700px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.guide-steps .text-link {
+  align-self: center;
+  white-space: nowrap;
+}
+.guide-safety {
+  border-left-color: var(--blue);
+  background: var(--paper-subtle);
+}
+.guide-safety > svg {
+  color: var(--blue);
+}
+
+/* Login borrows the ruled-entry language of a ledger without exposing any
+   financial data before a session exists. */
+.login-shell {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  grid-template-rows: 72px 1fr;
+  background: var(--canvas);
+}
+.login-topbar {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding: 0 clamp(24px, 5vw, 72px);
+}
+.login-brand {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  text-decoration: none;
+}
+.login-brand span {
+  color: var(--green);
+}
+.login-context {
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--type-meta);
+  font-weight: 750;
+}
+.login-intro {
+  display: grid;
+  align-content: center;
+  padding: clamp(40px, 8vw, 112px);
+}
+.login-intro h1 {
+  max-width: 720px;
+  margin: 12px 0 18px;
+  font-family: var(--font-display);
+  font-size: clamp(42px, 6vw, 78px);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+.login-lede {
+  max-width: 640px;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(17px, 2vw, 21px);
+  line-height: 1.55;
+}
+.login-boundary {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 14px;
+  max-width: 620px;
+  margin-top: 38px;
+  border-top: 1px solid var(--line-strong);
+  padding-top: 20px;
+}
+.login-boundary > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--green);
+}
+.login-boundary p {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.login-boundary strong {
+  color: var(--ink);
+}
+.login-entry {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  margin: clamp(28px, 6vw, 72px);
+  align-self: center;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--green);
+  background: var(--paper);
+  box-shadow: 0 18px 48px rgb(11 30 60 / 10%);
+}
+.login-entry-rule {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  border-right: 1px solid var(--line);
+  background: var(--paper-subtle);
+}
+.login-entry-rule span {
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid var(--line);
+  color: var(--green);
+  font: 800 var(--type-label) var(--font-mono);
+}
+.login-entry-rule span:last-child {
+  border-bottom: 0;
+}
+.login-entry-content {
+  padding: clamp(30px, 5vw, 54px);
+}
+.login-entry-content > svg {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 28px;
+  color: var(--green);
+}
+.login-entry-content h2 {
+  margin: 7px 0 12px;
+  font-size: clamp(25px, 3vw, 36px);
+}
+.login-entry-content > p:not(.eyebrow, .login-error) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.login-error {
+  margin: 18px 0 0;
+  border-left: 3px solid var(--red);
+  padding: 12px;
+  background: var(--red-soft);
+  color: var(--red);
+}
+.login-button {
+  width: 100%;
+  min-height: 50px;
+  justify-content: center;
+  margin-top: 28px;
+}
+.login-button svg {
+  width: 18px;
+  height: 18px;
+}
+.login-assurance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.login-assurance svg {
+  flex: 0 0 auto;
+  color: var(--green);
 }
 .console-main.section-overview,
 .console-main:has(.session-loading) {

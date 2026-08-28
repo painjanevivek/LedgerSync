@@ -85,7 +85,7 @@ test("empty account scope is explicit", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [], next_cursor: "" }));
   await page.goto("/accounts");
-  await expect(page.getByText("No matching accounts")).toBeVisible();
+  await expect(page.getByText("No accounts yet")).toBeVisible();
   await capture(page, "accounts-empty", compact);
 });
 
@@ -147,16 +147,16 @@ test("reconciliation mismatch is visually stop-ship", async ({ page }) => {
   await capture(page, "reconciliation-mismatch", compact);
 });
 
-test("missing session renders no financial evidence", async ({ page }) => {
+test("missing session renders the login layer with no financial evidence", async ({ page }) => {
   await page.route("**/api/session", (route) => json(route, { error: { code: "unauthorized" } }, 401));
   await page.goto("/");
-  await expect(page.getByText("No authorized session")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your ledger starts empty." })).toBeVisible();
   await capture(page, "shell-permission-denied", tablet);
 });
 
 test("read-only transfer role explains why posting is disabled", async ({ page }) => {
   await mockOperatorConsole(page);
-  await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: [], environment: "demo", tenant_label: "Meridian Labs · Test", operator_label: "Read-only auditor" }));
+  await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: [], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
   await page.goto("/transfers");
   await expect(
     page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),

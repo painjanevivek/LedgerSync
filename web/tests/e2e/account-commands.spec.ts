@@ -195,7 +195,7 @@ test("account and transfer scopes independently govern create, lifecycle, and fu
   await mockOperatorConsole(page);
   async function useScopes(scopes: string[]) {
     await page.unroute("**/api/session");
-    await page.route("**/api/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes, environment: "demo", tenant_label: "Meridian Labs · Test", operator_label: "Scoped operator" }) }));
+    await page.route("**/api/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes, environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Scoped operator" }) }));
   }
 
   await useScopes(["accounts:write"]);

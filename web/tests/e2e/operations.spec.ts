@@ -82,7 +82,7 @@ test("event list exposes authorized related evidence links", async ({ page }) =>
 test("missing operations scopes are distinct from empty evidence and do not call the BFF", async ({ page }) => {
   await mockOperatorConsole(page);
   let requested = false;
-  await page.route("**/api/session", (route) => json(route, { subject_id:"auditor",tenant_id:"tenant-1",csrf_token:"csrf",scopes:[],environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Read-only auditor" }));
+  await page.route("**/api/session", (route) => json(route, { subject_id:"auditor",tenant_id:"tenant-1",csrf_token:"csrf",scopes:[],environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Read-only auditor" }));
   await page.route("**/api/local/diagnostics", (route) => { requested = true; return json(route, diagnostics); });
   await page.goto("/local-status");
   await expect(page.getByText("Local diagnostics not authorized")).toBeVisible();

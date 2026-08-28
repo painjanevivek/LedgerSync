@@ -69,7 +69,7 @@ services:
       LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:?Local consistency signing key is required}
       LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:?Local BFF assertion secret is required}
       LEDGERSYNC_DEVELOPMENT_API_TOKEN: ${LEDGERSYNC_DEVELOPMENT_API_TOKEN:?Local private API token is required}
-      LEDGERSYNC_DEVELOPMENT_SUBJECT_ID: demo-operator
+      LEDGERSYNC_DEVELOPMENT_SUBJECT_ID: local-user
       LEDGERSYNC_DEVELOPMENT_TENANT_ID: 00000000-0000-4000-8000-000000000001
       LEDGERSYNC_RECOVERY_EVIDENCE_ROOT: /run/ledgersync/recovery
     depends_on:
@@ -140,9 +140,9 @@ services:
       LEDGERSYNC_DEPLOYMENT_ENV: development
       LEDGERSYNC_COOKIE_SECURE: "false"
       LEDGERSYNC_PUBLIC_ORIGIN: http://127.0.0.1:3000
-      LEDGERSYNC_DEMO_MODE: "true"
-      LEDGERSYNC_DEMO_SUBJECT_ID: demo-operator
-      LEDGERSYNC_DEMO_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      LEDGERSYNC_LOCAL_LOGIN_ENABLED: "true"
+      LEDGERSYNC_LOCAL_SUBJECT_ID: local-user
+      LEDGERSYNC_LOCAL_TENANT_ID: 00000000-0000-4000-8000-000000000001
     depends_on:
       api:
         condition: service_healthy
@@ -194,17 +194,19 @@ services:
     image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}
-      LEDGERSYNC_INITIALIZATION_MODE: ${LEDGERSYNC_INITIALIZATION_MODE:-demo}
+      LEDGERSYNC_INITIALIZATION_MODE: ${LEDGERSYNC_INITIALIZATION_MODE:-empty}
     command:
       - "sh"
       - "-ec"
       - >-
+        psql -h postgres -U ledgersync -d ledgersync -f /seed/local-bootstrap.sql &&
         case "$${LEDGERSYNC_INITIALIZATION_MODE}" in
           demo) exec psql -h postgres -U ledgersync -d ledgersync -f /seed/demo-seed.sql ;;
-          empty) echo 'Fresh empty initialization selected; deterministic demo seed skipped.' ;;
+          empty) echo 'Fresh workspace initialized without sample financial records.' ;;
           *) echo 'Unsupported LedgerSync initialization mode.' >&2; exit 64 ;;
         esac
     volumes:
+      - ./local-bootstrap.sql:/seed/local-bootstrap.sql:ro
       - ./demo-seed.sql:/seed/demo-seed.sql:ro
     depends_on:
       migrate:

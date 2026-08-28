@@ -122,7 +122,7 @@ function Resolve-LedgerSyncInitializationModeDecision {
         # local volume. A different choice requires explicit destructive reset.
         return "demo"
     }
-    if ([string]::IsNullOrWhiteSpace($RequestedMode)) { return "demo" }
+    if ([string]::IsNullOrWhiteSpace($RequestedMode)) { return "empty" }
     return $RequestedMode
 }
 

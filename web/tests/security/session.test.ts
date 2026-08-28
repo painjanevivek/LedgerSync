@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { createDemoSession } from "../../src/lib/demo";
+import { createLocalSession } from "../../src/lib/local-access";
 import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF, hasValidHost, readPublicOrigin } from "../../src/lib/security";
 import { createSession, readSession, sessionCookie, type Session } from "../../src/lib/session";
 import { readTransaction, transactionCookie } from "../../src/lib/oidc";
@@ -45,9 +45,9 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
 });
 
 test("signed sessions preserve the complete bounded operator scope set", () => {
-  const demoSession = createDemoSession({ enabled: true, environment: "development", subjectId: "operator-a", tenantId: "tenant-a" });
-  assert.equal(demoSession.scopes?.length, 25);
-  assert.deepEqual(readSession(createSession(demoSession))?.scopes, demoSession.scopes);
+  const localSession = createLocalSession({ enabled: true, environment: "development", subjectId: "operator-a", tenantId: "tenant-a" });
+  assert.equal(localSession.scopes?.length, 25);
+  assert.deepEqual(readSession(createSession(localSession))?.scopes, localSession.scopes);
   assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 33 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
 });
 

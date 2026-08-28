@@ -60,7 +60,7 @@ test("account and reconciliation exports retain their exact contextual scope",as
 test("recovery and export controls reflow, deny missing scopes, and fail closed offline",async({page,context})=>{
   await mockOperatorConsole(page); await page.setViewportSize({width:320,height:760}); await page.goto("/recovery");
   await expect(page.locator("body")).toHaveJSProperty("scrollWidth",320); await expectAccessible(page);
-  await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["local:read"],environment:"demo"}));
+  await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["local:read"],environment:"local"}));
   await page.goto("/recovery"); await expect(page.getByText("Recovery evidence not authorized",{exact:true})).toBeVisible();
   await mockOperatorConsole(page); await page.goto("/transfers"); await context.setOffline(true);
   await expect(page.getByRole("button",{name:"Export transfer evidence"})).toBeDisabled(); await context.setOffline(false);

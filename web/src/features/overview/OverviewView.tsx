@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck } from "@phosphor-icons/react";
+import { ArrowRight, Bank, ShieldCheck } from "@phosphor-icons/react";
 import Link from "next/link";
 
 import type { Account, ReconciliationRun, TransferSummary } from "@/features/accounts/types";
@@ -34,7 +34,7 @@ type Props = Readonly<{
   orientationPreferenceSaving: boolean;
   canReadOrientation: boolean;
   canWriteOrientation: boolean;
-  localDemo: boolean;
+  localWorkspace: boolean;
   forceOrientation?: boolean;
   onRefreshAccounts: () => void;
   onRefreshTransfers: () => void;
@@ -44,16 +44,44 @@ type Props = Readonly<{
   onUpdateOrientationPreferences: (change: Readonly<{ dismissed: boolean; completedStepIDs: OperatorPreferenceStepID[] }>) => Promise<boolean>;
 }>;
 
-export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, orientation, orientationLoading, orientationError, orientationPreferenceError, orientationPreferenceSaving, canReadOrientation, canWriteOrientation, localDemo, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation, onUpdateOrientationPreferences }: Props) {
+export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, orientation, orientationLoading, orientationError, orientationPreferenceError, orientationPreferenceSaving, canReadOrientation, canWriteOrientation, localWorkspace, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation, onUpdateOrientationPreferences }: Props) {
   const { currency, mixedCurrency, operatingMinor: operating, customerFundsMinor: customerFunds }=approvedCurrencyGroups(accounts);
   const asOf=accounts.map((account)=>account.as_of).filter(Boolean).sort().at(0);
   const busy = accountsLoading || transfersLoading || reconciliationLoading;
   const accountState = uiDataState({ loading: accountsLoading, hasData: accounts.length > 0, hasError: Boolean(accountsError), online, partial: Boolean(accountsError?.includes("partial")) });
   const transferState = uiDataState({ loading: transfersLoading, hasData: transfers.length > 0, hasError: Boolean(transfersError), online });
   const reconciliationState = uiDataState({ loading: reconciliationLoading, hasData: Boolean(reconciliation), hasError: Boolean(reconciliationError), online });
+  const newWorkspace =
+    !accountsLoading &&
+    !transfersLoading &&
+    !reconciliationLoading &&
+    !accountsError &&
+    !transfersError &&
+    !reconciliationError &&
+    accounts.length === 0 &&
+    transfers.length === 0 &&
+    !reconciliation;
   return <>
-    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description="Fresh financial evidence and exceptions for the current tenant."><button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing evidence…" : "Refresh evidence"}</button></PageHeader>
-    {localDemo&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} forceOpen={forceOrientation} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
+    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from ledger evidence." : "Fresh financial evidence and exceptions for the current tenant."}><button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing evidence…" : "Refresh evidence"}</button></PageHeader>
+    {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
+    {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
+      <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
+      <div className="new-workspace-copy">
+        <p className="eyebrow">Zero records · ready for first use</p>
+        <h2 id="new-workspace-title">Build your first ledger path</h2>
+        <p>Create an account, record incoming funds, create a destination, then post and reconcile the first internal transfer.</p>
+        <div className="new-workspace-actions">
+          <Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>
+          <Link className="button secondary" href="/guide">Follow the guide</Link>
+        </div>
+      </div>
+      <ol className="new-workspace-path" aria-label="First ledger path">
+        <li><span>01</span><strong>Account</strong><small>Define where value belongs</small></li>
+        <li><span>02</span><strong>Funding</strong><small>Record external value evidence</small></li>
+        <li><span>03</span><strong>Transfer</strong><small>Move exact internal value</small></li>
+        <li><span>04</span><strong>Reconcile</strong><small>Prove the ledger result</small></li>
+      </ol>
+    </section>}
     <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account evidence state">
       {accountsError && <StatePanel
         kind="error"
@@ -63,11 +91,11 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
       />}
       {accountsVerifiedAt&&accounts.length>0&&<EvidenceFreshness state={accountsError||!online?"historical":accountsLoading?"refreshing":"current"} verifiedAt={accountsVerifiedAt} label="Account totals" reason={accountsError??(!online?"Reconnect before relying on totals.":undefined)}/>}
       {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account evidence" message="Authoritative account balances are loading. No zero balance or empty tenant is inferred."/>}
-      {!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title="No authorized accounts" message="The verified authorized scope is empty. An administrator must grant account access before balances can be inspected."/>}
+      {!newWorkspace&&!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title="No authorized accounts" message="The verified authorized scope is empty. Create an account or ask an administrator to grant account access."/>}
       {accounts.length>0&&mixedCurrency&&<StatePanel kind="error" title="Mixed-currency pilot data blocked" message="Loaded accounts are preserved, but LedgerSync will not combine balances across currencies. Investigate tenant provisioning before relying on overview totals."/>}
       {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of {utcDateTime(asOf)}</span></div><strong className="hero-amount">{formatMinorUnits(currency,operating)}</strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account evidence →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount">{formatMinorUnits(currency,customerFunds)}</strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
     </section>
-    <section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation evidence state">
+    {!newWorkspace&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation evidence state">
       {reconciliationError && <StatePanel
         kind="error"
         title="Reconciliation evidence unavailable"
@@ -88,8 +116,8 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
       ) : !reconciliationError && !reconciliationLoading ? (
         <StatePanel kind="unknown" title="No reconciliation evidence" message="The verified history contains no authoritative run. No passing result is inferred." action={<Link className="text-link" href="/reconciliation">Inspect evidence</Link>} />
       ) : null}
-    </section>
-    <section className="overview-data-state overview-transfer-state" data-data-state={transferState} aria-label="Transfer evidence state">
+    </section>}
+    {!newWorkspace&&<section className="overview-data-state overview-transfer-state" data-data-state={transferState} aria-label="Transfer evidence state">
       {transfersError && <StatePanel
         kind="error"
         title="Transfer history unavailable"
@@ -100,6 +128,6 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
       {transfersLoading&&transfers.length===0&&<StatePanel title="Loading transfer history" message="No empty transfer history is inferred while immutable records load."/>}
       {!transfersError&&!transfersLoading&&transfers.length===0&&<StatePanel title="No transfer records" message="The verified authorized history is empty."/>}
       {transfers.length>0&&<TransferList variant="recent" transfers={transfers.slice(0,5)} returnTo="/"/>}
-    </section>
+    </section>}
   </>;
 }

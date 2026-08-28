@@ -26,6 +26,8 @@ import {
   type ConsoleSection,
 } from "@/features/console/ConsoleShell";
 import { PageHeader, StatePanel } from "@/features/console/components";
+import { LoginScreen } from "@/features/auth/LoginScreen";
+import { GuideView } from "@/features/guide/GuideView";
 import { OverviewView } from "@/features/overview/OverviewView";
 import { ReconciliationView } from "@/features/reconciliation/ReconciliationViews";
 import { TransfersView } from "@/features/transfers/TransferViews";
@@ -371,7 +373,7 @@ export function OperatorConsole({
             loadAccounts(emptyAccountFilters, 100),
             loadTransfers(),
             loadRuns(),
-            response.data.environment === "demo" &&
+            response.data.environment === "local" &&
             response.data.scopes.includes("local:read")
               ? loadOrientation()
               : Promise.resolve(),
@@ -451,6 +453,7 @@ export function OperatorConsole({
       method: "POST",
       headers: { "X-CSRF-Token": session.csrf_token },
     });
+    router.push("/sign-in");
     router.refresh();
   }
 
@@ -462,6 +465,8 @@ export function OperatorConsole({
           ? "Transfers"
           : initialSection === "reconciliation"
             ? "Reconciliation"
+            : initialSection === "guide"
+              ? "Guide"
             : "Overview";
     return (
       <ConsoleShell
@@ -487,25 +492,7 @@ export function OperatorConsole({
       </ConsoleShell>
     );
   }
-  if (!session)
-    return (
-      <main className="boot-screen">
-        <p className="eyebrow">Access not verified</p>
-        <h1>Operator workspace unavailable</h1>
-        <StatePanel
-          kind={sessionError ? "error" : "denied"}
-          title={
-            sessionError
-              ? "Session evidence unavailable"
-              : "No authorized session"
-          }
-          message={
-            sessionError ??
-            "Configure the approved OIDC provider, or explicitly enable the isolated local demo environment. No financial data is displayed."
-          }
-        />
-      </main>
-    );
+  if (!session) return <LoginScreen unavailableMessage={sessionError} />;
 
   return (
     <ConsoleShell
@@ -513,15 +500,14 @@ export function OperatorConsole({
       tenantLabel={session.tenant_label ?? "Ledger tenant"}
       tenantMeta={session.tenant_id}
       environmentLabel={
-        session.environment === "demo" ? "Isolated demo" : "Verified production"
+        session.environment === "local" ? "Local workspace" : "Verified production"
       }
       operatorLabel={session.operator_label ?? session.subject_id}
       operatorMeta={
-        session.environment === "demo"
-          ? "Non-production data"
+        session.environment === "local"
+          ? "This workstation"
           : "Authorized operator"
       }
-      preview={session.environment === "demo"}
       onSignOut={() => void signOut()}
     >
       {!online && (
@@ -559,14 +545,14 @@ export function OperatorConsole({
           orientationPreferenceError={orientationPreferenceError}
           orientationPreferenceSaving={orientationPreferenceSaving}
           canReadOrientation={
-            session.environment === "demo" &&
+            session.environment === "local" &&
             session.scopes.includes("local:read")
           }
           canWriteOrientation={
-            session.environment === "demo" &&
+            session.environment === "local" &&
             session.scopes.includes("local:write")
           }
-          localDemo={session.environment === "demo"}
+          localWorkspace={session.environment === "local"}
           forceOrientation={initialShowOrientation}
           onRefreshAccounts={() => void loadAccounts(emptyAccountFilters, 100)}
           onRefreshTransfers={() => void loadTransfers()}
@@ -582,8 +568,8 @@ export function OperatorConsole({
             tenantId={session.tenant_id}
             tenantLabel={session.tenant_label ?? "Ledger tenant"}
             environmentLabel={
-              session.environment === "demo"
-                ? "Isolated demo"
+              session.environment === "local"
+                ? "Local workspace"
                 : "Verified production"
             }
             csrfToken={session.csrf_token}
@@ -743,6 +729,7 @@ export function OperatorConsole({
           }}
         />
       )}
+      {initialSection === "guide" && <GuideView />}
       <ConsoleFooter pending={!initialEvidenceSettled} />
     </ConsoleShell>
   );

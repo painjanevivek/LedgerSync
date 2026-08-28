@@ -38,7 +38,7 @@ test("account directory distinguishes empty, unavailable, and offline states", a
   await page.unroute("**/api/me/accounts?*");
   await page.route("**/api/me/accounts?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ accounts: [], next_cursor: "" }) }));
   await page.goto("/accounts");
-  await expect(page.getByText("No matching accounts")).toBeVisible();
+  await expect(page.getByText("No accounts yet")).toBeVisible();
 
   await page.unroute("**/api/me/accounts?*");
   await page.route("**/api/me/accounts?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "unavailable" } }) }));

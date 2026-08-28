@@ -125,7 +125,7 @@ export type ConsoleSession = Readonly<{
   tenant_id: string;
   csrf_token: string;
   scopes: string[];
-  environment?: "demo" | "production";
+  environment?: "local" | "production";
   operator_label?: string;
   tenant_label?: string;
 }>;

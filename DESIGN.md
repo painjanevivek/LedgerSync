@@ -42,7 +42,7 @@ The selected overview direction is now the canonical implementation reference fo
 5. **Exact-money alignment:** prominent totals and table amounts use tabular numerals, stable currency formatting, and right alignment. Every live amount includes an authoritative timestamp or an unavailable state.
 6. **One shared status grammar:** `Posted`, `Delivery delayed`, `Rejected`, `Unavailable`, and `Pending evidence` use the same chip, icon, wording, and color rules everywhere.
 7. **Responsive continuity:** the rail becomes a compact labelled top navigation on small screens; evidence keeps document order; tables scroll within their region; no financial context is hidden merely to fit the viewport.
-8. **Preview truthfulness:** local unauthenticated mode may demonstrate the selected visual with fictional data only when the page and operator context explicitly identify it as preview data. Authenticated mode never invents balances, reconciliation results, or transfer outcomes.
+8. **Signed-out truthfulness:** local unauthenticated mode renders only the login layer and no financial evidence. A newly authenticated local operator begins with an empty ledger; the interface never invents balances, reconciliation results, or transfer outcomes.
 
 ## 0.2 Supporting visual target — high-fidelity transfer detail
 

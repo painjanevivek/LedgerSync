@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { beginAuthorization, transactionCookie } from "@/lib/oidc";
+import { createLocalSession, readLocalAccessConfiguration } from "@/lib/local-access";
+import { beginAuthorization, safeReturnTo, transactionCookie } from "@/lib/oidc";
 import { jsonError } from "@/lib/security";
+import { createSession, sessionCookie } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
   try {
+    const localAccess = readLocalAccessConfiguration();
+    if (localAccess.enabled) {
+      const returnTo = safeReturnTo(
+        request.nextUrl.searchParams.get("return_to"),
+      );
+      const response = NextResponse.redirect(new URL(returnTo, request.url));
+      response.cookies.set(
+        sessionCookie(createSession(createLocalSession(localAccess))),
+      );
+      return response;
+    }
     const authorization = await beginAuthorization({
       prompt:
         request.nextUrl.searchParams.get("prompt") === "login"

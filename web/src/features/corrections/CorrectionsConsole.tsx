@@ -286,11 +286,10 @@ export function CorrectionsConsole({
       tenantLabel={session.tenant_label ?? "Ledger tenant"}
       tenantMeta={session.tenant_id}
       environmentLabel={
-        session.environment === "demo" ? "Isolated demo" : "Verified production"
+        session.environment === "local" ? "Local workspace" : "Verified production"
       }
       operatorLabel={session.operator_label ?? session.subject_id}
       operatorMeta="Authorized control operator"
-      preview={session.environment === "demo"}
       onSignOut={() => void signOut()}
     >
       {!online && (

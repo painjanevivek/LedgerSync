@@ -14,9 +14,9 @@ import {
   SignOut,
   UserCircle,
   List,
-  Compass,
   Receipt,
   X,
+  BookOpenText,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import {
@@ -37,7 +37,8 @@ export type ConsoleSection =
   | "local-status"
   | "events"
   | "developer"
-  | "recovery";
+  | "recovery"
+  | "guide";
 
 type Props = Readonly<{
   section: ConsoleSection;
@@ -47,7 +48,6 @@ type Props = Readonly<{
   environmentLabel: string;
   operatorLabel: string;
   operatorMeta: string;
-  preview?: boolean;
   onSignOut?: () => void;
 }>;
 
@@ -132,7 +132,6 @@ export function ConsoleShell({
   environmentLabel,
   operatorLabel,
   operatorMeta,
-  preview = false,
   onSignOut,
 }: Props) {
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -263,16 +262,6 @@ export function ConsoleShell({
           {navigation.map((group) => (
             <div className="nav-group" key={group.label}>
               <p className="nav-section-label">{group.label}</p>
-              {group.label === "Local tools" && preview && (
-                <Link
-                  href="/?guide=1"
-                  onClick={() => setNavigationOpen(false)}
-                  className="nav-item"
-                >
-                  <Compass aria-hidden="true" />
-                  <span>Local guide</span>
-                </Link>
-              )}
               {group.items.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -302,7 +291,6 @@ export function ConsoleShell({
           <div className="environment-row">
             <CheckCircle weight="fill" aria-hidden="true" />
             <span>{environmentLabel}</span>
-            {preview && <span className="preview-chip">Preview</span>}
           </div>
           <div className="operator-row">
             <UserCircle weight="fill" aria-hidden="true" />
@@ -323,13 +311,30 @@ export function ConsoleShell({
           </div>
         </div>
       </aside>
-      <main
-        id="main-content"
-        className={`console-main section-${section}`}
-        inert={navigationOpen ? true : undefined}
-      >
-        {children}
-      </main>
+      <div className="workspace-column">
+        <nav
+          className="workspace-topbar"
+          aria-label="Workspace utilities"
+          inert={navigationOpen ? true : undefined}
+        >
+          <span>LedgerSync workspace</span>
+          <Link
+            href="/guide"
+            className={section === "guide" ? "topbar-link active" : "topbar-link"}
+            aria-current={section === "guide" ? "page" : undefined}
+          >
+            <BookOpenText aria-hidden="true" />
+            Guide
+          </Link>
+        </nav>
+        <main
+          id="main-content"
+          className={`console-main section-${section}`}
+          inert={navigationOpen ? true : undefined}
+        >
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

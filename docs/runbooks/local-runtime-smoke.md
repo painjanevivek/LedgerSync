@@ -1,13 +1,13 @@
 # Local full-stack startup, restart, and cleanup
 
-This runbook operates the loopback-only Compose project on one workstation. It is not a production deployment procedure. Demo credentials, cookies, database contents, and logs must not be reused or published.
+This runbook operates the loopback-only Compose project on one workstation. It is not a production deployment procedure. Local credentials, cookies, database contents, and logs must not be reused or published.
 
 ## Supported boundary
 
 - Project name: `compose` by default, matching existing local volumes.
 - Browser surface: `http://127.0.0.1:3000`, bound only to IPv4 loopback.
 - Private services: PostgreSQL, Redis, API, and worker have no host-published ports.
-- Financial scope: internal same-currency INR demo transfers only.
+- Financial scope: internal same-currency INR transfers only.
 - Normal start, stop, and restart preserve the Compose-named volumes
   `<project>_postgres-data` and `<project>_redis-data`.
 - PostgreSQL is the recovery authority. The Redis volume is only optional cache
@@ -50,14 +50,15 @@ Startup performs these checks before it prints the URL:
 3. Port 3000 is free or already belongs to this exact LedgerSync web container.
 4. The protected runtime environment and effective Compose configuration are valid.
 5. PostgreSQL and Redis become healthy.
-6. Migration and demo-seed jobs exit successfully.
+6. Migration and local-workspace bootstrap jobs exit successfully.
 7. API, worker, and web are running and healthy.
 8. Session, authorized account, and reconciliation reads succeed through the web/BFF.
 
-The seed is replay-safe and explicitly versioned. Version 1 inserts missing demo
-records and never resets projections, versions, opening evidence, postings, or
-transfers. An older checkout refuses a database carrying a newer seed version;
-back up and use a compatible checkout or the explicit reset workflow.
+Fresh startup runs a replay-safe non-financial bootstrap for the tenant,
+operator permissions, and funding/transfer policies. It creates no account,
+balance, journal, transfer, or reconciliation record. The optional legacy sample
+seed remains available only through explicit `-InitializationMode demo` for the
+isolated retry lab; it never resets existing financial evidence.
 
 ## Walk the complete browser evidence path
 
