@@ -118,6 +118,24 @@ INSERT INTO tenant_funding_policies(
 	if err = database.QueryRowContext(ctx, `SELECT ledger_minor,allow_negative FROM account_balance_projections WHERE account_id=$1`, posted.Event.SystemAccountID).Scan(&systemBalance, &systemAllowsNegative); err != nil || systemBalance != -5_000 || !systemAllowsNegative {
 		t.Fatalf("funding clearing balance=%d allows_negative=%t err=%v", systemBalance, systemAllowsNegative, err)
 	}
+	cacheRepository, err := db.NewBalanceRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cacheBalances, err := cacheRepository.ListCurrentForTenant(ctx, testTenantID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundDestination := false
+	for _, balance := range cacheBalances {
+		if balance.AccountID == posted.Event.SystemAccountID {
+			t.Fatal("funding clearing account leaked into the customer cache rebuild")
+		}
+		foundDestination = foundDestination || balance.AccountID == testDestinationID
+	}
+	if !foundDestination {
+		t.Fatal("customer account was omitted from the customer cache rebuild")
+	}
 	if _, err = database.ExecContext(ctx, `INSERT INTO account_owners(tenant_id,account_id,subject_id,permission,created_at) VALUES($1,$2,$3,'read',$4)`, testTenantID, posted.Event.SystemAccountID, testActorID, clock()); err != nil {
 		t.Fatal(err)
 	}
