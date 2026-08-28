@@ -18,15 +18,16 @@ GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, a
   tenant_transfer_policies, tenant_subject_roles, partner_credential_events, transfers, idempotency_requests, api_rate_limit_windows,
   transfer_velocity_events, transfer_velocity_totals,
   journal_transactions, ledger_postings, delivery_attempts, delivery_replay_actions,
-  reconciliation_runs, reconciliation_mismatches, outbox_events, audit_events, schema_migrations TO ledgersync_api;
+  reconciliation_runs, reconciliation_mismatches, outbox_events, audit_events, schema_migrations,
+  operator_onboarding_preferences TO ledgersync_api;
 GRANT INSERT ON accounts, account_balance_projections, account_opening_balances, account_owners, account_credit_permissions,
   transfers, idempotency_requests, journal_transactions, ledger_postings,
   reconciliation_runs, reconciliation_mismatches,
   outbox_events, audit_events, api_rate_limit_windows, retention_runs,
   transfer_velocity_events, transfer_velocity_totals,
-  outbox_replay_actions, delivery_replay_actions TO ledgersync_api;
+  outbox_replay_actions, delivery_replay_actions, operator_onboarding_preferences TO ledgersync_api;
 GRANT UPDATE ON accounts, transfers, idempotency_requests, account_balance_projections,
-  api_rate_limit_windows, transfer_velocity_totals TO ledgersync_api;
+  api_rate_limit_windows, transfer_velocity_totals, operator_onboarding_preferences TO ledgersync_api;
 GRANT DELETE ON transfer_velocity_events TO ledgersync_api;
 
 DO $$
