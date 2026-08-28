@@ -6,6 +6,15 @@ ALTER TABLE accounts
   ADD COLUMN account_kind TEXT NOT NULL DEFAULT 'customer'
   CHECK (account_kind IN ('customer','funding_clearing'));
 
+-- Category remains a presentation/operating classification, while
+-- account_kind owns the financial authorization boundary. The controlled
+-- clearing aggregate needs one explicit non-customer category on fresh and
+-- upgraded schemas.
+ALTER TABLE accounts
+  DROP CONSTRAINT accounts_category_check,
+  ADD CONSTRAINT accounts_category_check
+    CHECK (category IN ('operating','customer_funds','payroll','payables','expenses','reserve','system'));
+
 CREATE UNIQUE INDEX accounts_funding_clearing_currency_idx
   ON accounts (tenant_id,currency)
   WHERE account_kind='funding_clearing';
