@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { createDemoSession } from "../../src/lib/demo";
 import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF, hasValidHost, readPublicOrigin } from "../../src/lib/security";
 import { createSession, readSession, sessionCookie, type Session } from "../../src/lib/session";
 import { readTransaction, transactionCookie } from "../../src/lib/oidc";
@@ -41,6 +42,13 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
     if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
     if (previousDeployment === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV; else process.env.LEDGERSYNC_DEPLOYMENT_ENV = previousDeployment;
   }
+});
+
+test("signed sessions preserve the complete bounded operator scope set", () => {
+  const demoSession = createDemoSession({ enabled: true, environment: "development", subjectId: "operator-a", tenantId: "tenant-a" });
+  assert.equal(demoSession.scopes?.length, 17);
+  assert.deepEqual(readSession(createSession(demoSession))?.scopes, demoSession.scopes);
+  assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 33 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
 });
 
 test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts", () => {

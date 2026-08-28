@@ -4,6 +4,9 @@ import { readPublicOrigin } from "@/lib/security";
 
 export const sessionCookieName = "ledgersync_session";
 
+const maxSessionRoles = 16;
+const maxSessionScopes = 32;
+
 export type Session = Readonly<{
   subjectId: string;
   tenantId: string;
@@ -56,8 +59,8 @@ export function readSession(raw: string | undefined): Session | null {
       tenantId: parsed.tenantId,
       csrfToken: parsed.csrfToken,
       expiresAt: parsed.expiresAt,
-      roles: validStringList(parsed.roles) ? parsed.roles : undefined,
-      scopes: validStringList(parsed.scopes) ? parsed.scopes : undefined,
+      roles: validStringList(parsed.roles, maxSessionRoles) ? parsed.roles : undefined,
+      scopes: validStringList(parsed.scopes, maxSessionScopes) ? parsed.scopes : undefined,
       consistencyRequirements: requirements as Readonly<Record<string, string>> | undefined,
     };
     return payload;
@@ -66,8 +69,8 @@ export function readSession(raw: string | undefined): Session | null {
   }
 }
 
-function validStringList(value: unknown): value is string[] {
-  return Array.isArray(value) && value.length <= 16 && value.every((item) => typeof item === "string" && item.length > 0 && item.length <= 64);
+function validStringList(value: unknown, maximumItems: number): value is string[] {
+  return Array.isArray(value) && value.length <= maximumItems && value.every((item) => typeof item === "string" && item.length > 0 && item.length <= 64);
 }
 
 export function sessionCookie(value: string) {

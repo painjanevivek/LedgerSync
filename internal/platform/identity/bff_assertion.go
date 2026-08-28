@@ -18,6 +18,8 @@ const (
 	DefaultActorAssertionIssuer   = "ledgersync-bff"
 	DefaultActorAssertionAudience = "ledgersync-private-api"
 	DefaultActorAssertionKeyID    = "current"
+	maxActorAssertionRoles        = 16
+	maxActorAssertionScopes       = 32
 )
 
 type ActorAssertionKey struct {
@@ -146,7 +148,7 @@ func verifyActorAssertion(raw string, config ActorAssertionConfig, now time.Time
 	if strings.TrimSpace(payload.SubjectID) == "" || strings.TrimSpace(payload.TenantID) == "" || strings.TrimSpace(payload.AssertionID) == "" || len(payload.AssertionID) > 128 ||
 		payload.Issuer != config.Issuer || payload.Audience != config.Audience || payload.IssuedAt > nowUnix+int64(config.ClockSkew.Seconds()) ||
 		payload.ExpiresAt <= nowUnix-int64(config.ClockSkew.Seconds()) || payload.ExpiresAt <= payload.IssuedAt ||
-		time.Duration(payload.ExpiresAt-payload.IssuedAt)*time.Second > config.MaxLifetime || len(payload.Roles) > 16 || len(payload.Scopes) > 16 {
+		time.Duration(payload.ExpiresAt-payload.IssuedAt)*time.Second > config.MaxLifetime || len(payload.Roles) > maxActorAssertionRoles || len(payload.Scopes) > maxActorAssertionScopes {
 		return actorAssertionPayload{}, ErrUnauthenticated
 	}
 	return payload, nil
