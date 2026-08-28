@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -15,8 +17,16 @@ import (
 
 const (
 	orientationDeadline    = 3 * time.Second
+	preferenceDeadline     = 3 * time.Second
 	explainabilityDeadline = 5 * time.Second
+	maxPreferenceBodyBytes = 4 << 10
 )
+
+type orientationPreferenceRequest struct {
+	ExpectedVersion  string   `json:"expected_version"`
+	Dismissed        bool     `json:"dismissed"`
+	CompletedStepIDs []string `json:"completed_step_ids"`
+}
 
 type GuidanceHandler struct {
 	service       *guidance.Service
@@ -47,7 +57,7 @@ func (h *GuidanceHandler) WithAuditRecorder(audit AuditRecorder) *GuidanceHandle
 }
 
 func (h *GuidanceHandler) Orientation(writer http.ResponseWriter, request *http.Request) {
-	principal, ok := h.authorize(writer, request, []string{"local:read"}, true, "local:orientation")
+	principal, ok := h.authorize(writer, request, http.MethodGet, []string{"local:read"}, true, "local:orientation")
 	if !ok {
 		return
 	}
@@ -65,8 +75,36 @@ func (h *GuidanceHandler) Orientation(writer http.ResponseWriter, request *http.
 	writeGuidanceJSON(writer, summary)
 }
 
+func (h *GuidanceHandler) UpdateOrientationPreferences(writer http.ResponseWriter, request *http.Request) {
+	principal, ok := h.authorize(writer, request, http.MethodPut, []string{"local:write"}, true, "local:orientation-preferences")
+	if !ok {
+		return
+	}
+	input, err := decodeOrientationPreferenceRequest(writer, request)
+	if err != nil {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(request.Context(), preferenceDeadline)
+	defer cancel()
+	summary, err := h.service.UpdateOrientationPreferences(ctx, principal.TenantID, principal.SubjectID, input.ExpectedVersion, input.Dismissed, input.CompletedStepIDs)
+	if errors.Is(err, guidance.ErrPreferenceConflict) {
+		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusConflict, Code: "preference_version_conflict", Message: "The onboarding preference changed in another session. Refresh and try again."})
+		return
+	}
+	if errors.Is(err, guidance.ErrInvalidPreference) {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	if err != nil {
+		writeGuidanceUnavailable(writer, request)
+		return
+	}
+	writeGuidanceJSON(writer, summary)
+}
+
 func (h *GuidanceHandler) ExplainTransfer(writer http.ResponseWriter, request *http.Request) {
-	principal, ok := h.authorize(writer, request, []string{"explainability:read", "transfers:read", "events:read", "reconciliation:read"}, false, "transfers:explainability")
+	principal, ok := h.authorize(writer, request, http.MethodGet, []string{"explainability:read", "transfers:read", "events:read", "reconciliation:read"}, false, "transfers:explainability")
 	if !ok {
 		return
 	}
@@ -88,9 +126,10 @@ func (h *GuidanceHandler) ExplainTransfer(writer http.ResponseWriter, request *h
 	writeGuidanceJSON(writer, timeline)
 }
 
-func (h *GuidanceHandler) authorize(writer http.ResponseWriter, request *http.Request, scopes []string, requireOperator bool, route string) (identity.Principal, bool) {
-	if request.Method != http.MethodGet {
-		writeGETOnly(writer, request)
+func (h *GuidanceHandler) authorize(writer http.ResponseWriter, request *http.Request, method string, scopes []string, requireOperator bool, route string) (identity.Principal, bool) {
+	if request.Method != method {
+		writer.Header().Set("Allow", method)
+		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusMethodNotAllowed, Code: "method_not_allowed", Message: fmt.Sprintf("Only %s is allowed.", method)})
 		return identity.Principal{}, false
 	}
 	if h == nil || h.service == nil || h.identity == nil {
@@ -116,6 +155,20 @@ func (h *GuidanceHandler) authorize(writer http.ResponseWriter, request *http.Re
 		return identity.Principal{}, false
 	}
 	return principal, true
+}
+
+func decodeOrientationPreferenceRequest(writer http.ResponseWriter, request *http.Request) (orientationPreferenceRequest, error) {
+	request.Body = http.MaxBytesReader(writer, request.Body, maxPreferenceBodyBytes)
+	decoder := json.NewDecoder(request.Body)
+	decoder.DisallowUnknownFields()
+	var input orientationPreferenceRequest
+	if err := decoder.Decode(&input); err != nil {
+		return orientationPreferenceRequest{}, err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return orientationPreferenceRequest{}, errors.New("request contains more than one JSON value")
+	}
+	return input, nil
 }
 
 func (h *GuidanceHandler) authenticate(request *http.Request) (identity.Principal, error) {

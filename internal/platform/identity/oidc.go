@@ -117,6 +117,7 @@ var allowedScopes = map[string]struct{}{
 	"reconciliation:read":  {},
 	"reconciliation:write": {},
 	"local:read":           {},
+	"local:write":          {},
 	"events:read":          {},
 	"developer:read":       {},
 	"recovery:read":        {},

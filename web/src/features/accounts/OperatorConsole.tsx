@@ -2,7 +2,7 @@
 
 import { WarningCircle } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AccountsView, type AccountFilters } from "@/features/accounts/AccountViews";
 import { AccountCreateFlow } from "@/features/accounts/AccountCreateFlow";
@@ -14,8 +14,8 @@ import { PageHeader, StatePanel } from "@/features/console/components";
 import { OverviewView } from "@/features/overview/OverviewView";
 import { ReconciliationView } from "@/features/reconciliation/ReconciliationViews";
 import { TransfersView } from "@/features/transfers/TransferViews";
-import { readJSON, unavailableMessage } from "@/lib/api/client";
-import type { LocalOrientation, TransferExplainability } from "@/lib/api/orientation";
+import { readJSON, unavailableMessage, writeJSON } from "@/lib/api/client";
+import type { LocalOrientation, OperatorPreferenceStepID, TransferExplainability } from "@/lib/api/orientation";
 
 type Props = Readonly<{
   initialSection?: ConsoleSection;
@@ -61,6 +61,9 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
   const [orientation, setOrientation] = useState<LocalOrientation | null>(null);
   const [orientationLoading, setOrientationLoading] = useState(false);
   const [orientationError, setOrientationError] = useState<string | null>(null);
+  const [orientationPreferenceSaving, setOrientationPreferenceSaving] = useState(false);
+  const [orientationPreferenceError, setOrientationPreferenceError] = useState<string | null>(null);
+  const orientationPreferenceInFlight = useRef(false);
   const [explainability, setExplainability] = useState<TransferExplainability | null>(null);
   const [explainabilityLoading, setExplainabilityLoading] = useState(false);
   const [explainabilityError, setExplainabilityError] = useState<string | null>(null);
@@ -101,6 +104,30 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
     else setOrientationError(unavailableMessage(response.status, "local orientation evidence", response.requestReference));
     setOrientationLoading(false);
   }, []);
+
+  const updateOrientationPreferences = useCallback(async (change: Readonly<{ dismissed: boolean; completedStepIDs: OperatorPreferenceStepID[] }>) => {
+    if (!session || !orientation || orientationPreferenceInFlight.current) return false;
+    orientationPreferenceInFlight.current = true;
+    setOrientationPreferenceSaving(true);
+    setOrientationPreferenceError(null);
+    const response = await writeJSON<LocalOrientation>("/api/local/orientation/preferences", "PUT", session.csrf_token, {
+      expected_version: orientation.preference_version,
+      dismissed: change.dismissed,
+      completed_step_ids: change.completedStepIDs,
+    });
+    if (response.ok && Array.isArray(response.data.steps)) {
+      setOrientation(response.data);
+      setOrientationError(null);
+    } else {
+      const responseUnknown = response.status === 0 || response.errorCode === "upstream_timeout" || response.errorCode === "temporary_unavailable";
+      if (responseUnknown || response.status === 409) await loadOrientation();
+      const action = response.status === 409 ? "The preference changed in another session, so the latest server state was loaded." : responseUnknown ? "The response was unknown, so current server state was refreshed without assuming the change succeeded." : "The previous server-owned preference was preserved.";
+      setOrientationPreferenceError(`${action} Request reference: ${response.requestReference}.`);
+    }
+    orientationPreferenceInFlight.current = false;
+    setOrientationPreferenceSaving(false);
+    return response.ok;
+  }, [loadOrientation, orientation, session]);
 
   const loadExplainability = useCallback(async (id: string) => {
     setExplainabilityLoading(true);
@@ -210,7 +237,7 @@ export function OperatorConsole({ initialSection = "overview", initialAccountId,
 
   return <ConsoleShell section={initialSection} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "demo" ? "Non-production data" : "Authorized operator"} preview={session.environment === "demo"} onSignOut={() => void signOut()}>
     {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Writes are disabled and no unverified result is shown.</span></div>}
-    {initialSection === "overview" && <OverviewView accounts={accountWorkspace.accounts} transfers={transfers} reconciliation={runs[0] ?? null} accountsLoading={accountWorkspace.directoryLoading} transfersLoading={transfersLoading} reconciliationLoading={runsLoading} accountsError={accountWorkspace.error ?? (!accountWorkspace.scopeComplete ? "The authorized account scope exceeds one bounded page. Previously verified accounts remain visible, but totals are partial and cannot be treated as tenant-wide." : null)} transfersError={transferError} reconciliationError={reconciliationError} accountsVerifiedAt={accountWorkspace.directoryVerifiedAt} transfersVerifiedAt={transfersVerifiedAt} reconciliationVerifiedAt={reconciliationVerifiedAt} online={online} tenantId={session.tenant_id} orientation={orientation} orientationLoading={orientationLoading} orientationError={orientationError} canReadOrientation={session.environment === "demo" && session.scopes.includes("local:read")} localDemo={session.environment === "demo"} forceOrientation={initialShowOrientation} onRefreshAccounts={() => void loadAccounts(emptyAccountFilters, 100)} onRefreshTransfers={() => void loadTransfers()} onRefreshReconciliation={() => void loadRuns()} onRefreshAll={() => void refresh()} onRefreshOrientation={() => void loadOrientation()} />}
+    {initialSection === "overview" && <OverviewView accounts={accountWorkspace.accounts} transfers={transfers} reconciliation={runs[0] ?? null} accountsLoading={accountWorkspace.directoryLoading} transfersLoading={transfersLoading} reconciliationLoading={runsLoading} accountsError={accountWorkspace.error ?? (!accountWorkspace.scopeComplete ? "The authorized account scope exceeds one bounded page. Previously verified accounts remain visible, but totals are partial and cannot be treated as tenant-wide." : null)} transfersError={transferError} reconciliationError={reconciliationError} accountsVerifiedAt={accountWorkspace.directoryVerifiedAt} transfersVerifiedAt={transfersVerifiedAt} reconciliationVerifiedAt={reconciliationVerifiedAt} online={online} orientation={orientation} orientationLoading={orientationLoading} orientationError={orientationError} orientationPreferenceError={orientationPreferenceError} orientationPreferenceSaving={orientationPreferenceSaving} canReadOrientation={session.environment === "demo" && session.scopes.includes("local:read")} canWriteOrientation={session.environment === "demo" && session.scopes.includes("local:write")} localDemo={session.environment === "demo"} forceOrientation={initialShowOrientation} onRefreshAccounts={() => void loadAccounts(emptyAccountFilters, 100)} onRefreshTransfers={() => void loadTransfers()} onRefreshReconciliation={() => void loadRuns()} onRefreshAll={() => void refresh()} onRefreshOrientation={() => void loadOrientation()} onUpdateOrientationPreferences={updateOrientationPreferences} />}
     {initialSection === "accounts" && (initialAccountCreate ? <AccountCreateFlow tenantId={session.tenant_id} tenantLabel={session.tenant_label ?? "Ledger tenant"} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} csrfToken={session.csrf_token} online={online} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} fundingScopeComplete={accountWorkspace.scopeComplete} fundedSourceAvailable={accountWorkspace.accounts.some((candidate) => candidate.status === "active" && candidate.currency === "INR" && hasPositiveMinorUnits(candidate.available_minor))} returnTo={initialAccountReturnTo} onCreated={async () => { await loadAccounts(accountWorkspace.filters, 100); }} /> : <AccountsView accounts={accountWorkspace.accounts} selected={accountWorkspace.selected} detailRequested={Boolean(initialAccountId)} balance={accountWorkspace.balance} transactions={accountWorkspace.transactions} balanceLoading={accountWorkspace.balanceLoading} historyLoading={accountWorkspace.historyLoading} directoryLoading={accountWorkspace.directoryLoading} balanceError={accountWorkspace.balanceError} historyError={accountWorkspace.historyError} balanceVerifiedAt={accountWorkspace.balanceVerifiedAt} historyVerifiedAt={accountWorkspace.historyVerifiedAt} directoryVerifiedAt={accountWorkspace.directoryVerifiedAt} error={accountWorkspace.error} online={online} filters={accountWorkspace.filters} nextCursor={accountWorkspace.nextCursor} historyNextCursor={accountWorkspace.historyCursor} focusAccountId={initialAccountFocusId} tenantId={session.tenant_id} csrfToken={session.csrf_token} canWrite={session.scopes.includes("accounts:write")} canTransfer={session.scopes.includes("transfers:write")} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("transactions:read")} fundingScopeComplete={accountWorkspace.scopeComplete} detailReturnTo={initialAccountId ? initialAccountReturnTo : undefined} onRefresh={() => void refresh()} onApplyFilters={accountWorkspace.applyFilters} onNext={accountWorkspace.loadNextPage} onHistoryNext={() => void accountWorkspace.loadMoreHistory()} onRefreshBalance={() => { if (initialAccountId) void loadAccountBalance(initialAccountId); }} onRefreshHistory={() => { if (initialAccountId) void loadAccountHistory(initialAccountId); }} onAccountChanged={async () => { if (initialAccountId) await loadAccountDetail(initialAccountId); await loadAccounts(accountWorkspace.filters, 100); }} onRefreshLifecycleEvidence={async () => initialAccountId ? loadAccountDetail(initialAccountId) : { account: null, balance: null }} />)}
     {initialSection === "transfers" && <TransfersView accounts={accountWorkspace.accounts} accountsLoading={accountWorkspace.directoryLoading} accountsError={accountWorkspace.error} accountsVerifiedAt={accountWorkspace.directoryVerifiedAt} transfers={transfers} transfersVerifiedAt={transfersVerifiedAt} detail={transferDetail} detailRequested={Boolean(initialTransferId)} explainability={explainability} explainabilityLoading={explainabilityLoading} explainabilityError={explainabilityError} error={transferError} loading={initialTransferId ? transferDetailLoading : transfersLoading} nextCursor={transferCursor} online={online} canWrite={session.scopes.includes("transfers:write") && accountWorkspace.scopeComplete} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("transfers:read")} canReadExplainability={["explainability:read", "transfers:read", "events:read", "reconciliation:read"].every((scope) => session.scopes.includes(scope))} writeUnavailableReason={!accountWorkspace.scopeComplete ? "Transfer creation is disabled because the authorized account picker is larger than one bounded page. Use the API until server-backed account selection is configured." : undefined} tenantId={session.tenant_id} csrfToken={session.csrf_token} preferredDestinationId={initialTransferDestinationId} returnTo={initialTransferReturnTo} initialFilters={initialTransferFilters} onRefreshAccounts={async () => { await loadAccounts(emptyAccountFilters, 100); }} onRefresh={async () => { if (initialTransferId) await loadTransferDetail(initialTransferId); else await loadTransfers(); }} onRefreshExplainability={() => { if (initialTransferId) void loadExplainability(initialTransferId); }} onMore={() => { if (transferCursor) void loadTransfers(transferCursor, true); }} />}
     {initialSection === "reconciliation" && <ReconciliationView runs={runs} detail={runDetail} detailRequested={Boolean(initialReconciliationRunId)} error={reconciliationError} loading={initialReconciliationRunId ? runDetailLoading : runsLoading} verifiedAt={reconciliationVerifiedAt} nextCursor={runCursor} tenantId={session.tenant_id} csrfToken={session.csrf_token} online={online} canWrite={session.scopes.includes("reconciliation:write")} canExport={session.scopes.includes("exports:read")&&session.scopes.includes("reconciliation:read")} returnTo={initialReconciliationReturnTo} onObserved={observeRun} onRefresh={() => initialReconciliationRunId ? loadRunDetail(initialReconciliationRunId) : loadRuns()} onMore={() => { if (runCursor) void loadRuns(runCursor, true); }} />}

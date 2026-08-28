@@ -17,12 +17,22 @@ import (
 const handlerGuidanceTransferID = "70000000-0000-4000-8000-000000000001"
 
 type handlerGuidanceRepository struct {
-	facts guidance.TransferFacts
-	err   error
+	facts      guidance.TransferFacts
+	preference guidance.OrientationPreference
+	err        error
+	updateErr  error
 }
 
 func (s handlerGuidanceRepository) Orientation(context.Context, string, string) (guidance.OrientationFacts, error) {
 	return guidance.OrientationFacts{}, s.err
+}
+
+func (s handlerGuidanceRepository) OrientationPreference(context.Context, string, string) (guidance.OrientationPreference, error) {
+	return s.preference, s.err
+}
+
+func (s handlerGuidanceRepository) UpdateOrientationPreference(context.Context, string, string, guidance.PreferenceUpdate) (guidance.OrientationPreference, error) {
+	return s.preference, s.updateErr
 }
 
 func (s handlerGuidanceRepository) ExplainTransfer(context.Context, string, string, string) (guidance.TransferFacts, error) {
@@ -44,8 +54,16 @@ func guidanceTestHandler(t *testing.T, scopes, roles []string, repository handle
 	handler := NewGuidanceHandler(service, identity.DevelopmentProvider{SubjectID: "operator", TenantID: "tenant", Scopes: scopes, Roles: roles})
 	router := http.NewServeMux()
 	router.HandleFunc("GET /api/local/orientation", handler.Orientation)
+	router.HandleFunc("PUT /api/local/orientation/preferences", handler.UpdateOrientationPreferences)
 	router.HandleFunc("GET /api/transfers/{transferID}/explainability", handler.ExplainTransfer)
 	return middleware.Correlation(router)
+}
+
+func guidancePreferenceRequest(body string) *http.Request {
+	request := httptest.NewRequest(http.MethodPut, "/api/local/orientation/preferences", strings.NewReader(body))
+	request.Header.Set("Authorization", "Bearer development-local-only")
+	request.Header.Set("Content-Type", "application/json")
+	return request
 }
 
 func guidanceRequest(target string) *http.Request {
@@ -97,5 +115,26 @@ func TestOrientationRequiresOperatorAndBothRoutesRejectQueries(t *testing.T) {
 	guidanceTestHandler(t, []string{"local:read"}, []string{"tenant:operator"}, handlerGuidanceRepository{}).ServeHTTP(response, guidanceRequest("/api/local/orientation?completed=true"))
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("unknown query status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestOrientationPreferenceUpdateRequiresWriteScopeAndReturnsConflict(t *testing.T) {
+	body := `{"expected_version":"0","dismissed":true,"completed_step_ids":[]}`
+	denied := httptest.NewRecorder()
+	guidanceTestHandler(t, []string{"local:read"}, []string{"tenant:operator"}, handlerGuidanceRepository{}).ServeHTTP(denied, guidancePreferenceRequest(body))
+	if denied.Code != http.StatusForbidden {
+		t.Fatalf("write scope status=%d body=%s", denied.Code, denied.Body.String())
+	}
+
+	conflict := httptest.NewRecorder()
+	guidanceTestHandler(t, []string{"local:write"}, []string{"tenant:operator"}, handlerGuidanceRepository{updateErr: guidance.ErrPreferenceConflict}).ServeHTTP(conflict, guidancePreferenceRequest(body))
+	if conflict.Code != http.StatusConflict || !strings.Contains(conflict.Body.String(), "preference_version_conflict") {
+		t.Fatalf("conflict status=%d body=%s", conflict.Code, conflict.Body.String())
+	}
+
+	malformed := httptest.NewRecorder()
+	guidanceTestHandler(t, []string{"local:write"}, []string{"tenant:operator"}, handlerGuidanceRepository{}).ServeHTTP(malformed, guidancePreferenceRequest(`{"expected_version":"0","dismissed":false,"completed_step_ids":[],"extra":true}`))
+	if malformed.Code != http.StatusBadRequest {
+		t.Fatalf("malformed status=%d body=%s", malformed.Code, malformed.Body.String())
 	}
 }

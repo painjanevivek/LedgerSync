@@ -238,16 +238,37 @@ paths:
     get:
       operationId: getLocalOrientationEvidence
       x-required-scope: local:read
-      summary: Read a truthful seven-step local orientation progress summary backed by durable evidence.
+      summary: Read a truthful twelve-step local operator journey backed by durable evidence and server-owned preferences.
       description: >-
         Requires local:read and a tenant operator or administrator role.
-        Browser inspection actions are not durably recorded, so related records
-        are reported only as evidence_available rather than completed.
+        Financial and recovery actions are completed only from authoritative
+        evidence. Explicit operator acknowledgements are reported separately as
+        operator_confirmed and never promoted to financial proof.
       responses:
         '200': { description: Durable local progress evidence with missing and unavailable states kept distinct., content: { application/json: { schema: { $ref: '#/components/schemas/OrientationSummary' } } } }
         '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /local/orientation/preferences:
+    put:
+      operationId: updateLocalOrientationPreferences
+      x-required-scope: local:write
+      summary: Persist dismissible and manually confirmed operator-journey progress.
+      description: >-
+        Requires local:write and a tenant operator or administrator role. The
+        expected version prevents lost updates between browser sessions. Only
+        non-financial acknowledgement steps may be confirmed manually.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/OrientationPreferenceUpdate' } } }
+      responses:
+        '200': { description: Updated journey with durable and operator-confirmed states kept distinct., content: { application/json: { schema: { $ref: '#/components/schemas/OrientationSummary' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/PreferenceConflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /events:
@@ -695,22 +716,34 @@ components:
     OrientationSummary:
       type: object
       additionalProperties: false
-      required: [generated_at, evidence_state, steps]
+      required: [generated_at, evidence_state, dismissed, preference_version, operator_completed_step_ids, steps]
       properties:
         generated_at: { type: string, format: date-time }
         evidence_state: { type: string, enum: [complete, partial] }
-        steps: { type: array, minItems: 7, maxItems: 7, items: { $ref: '#/components/schemas/OrientationStep' } }
+        dismissed: { type: boolean }
+        preference_version: { type: string, pattern: '^(0|[1-9][0-9]{0,18})$' }
+        preference_updated_at: { type: string, format: date-time }
+        operator_completed_step_ids: { type: array, maxItems: 7, uniqueItems: true, items: { type: string, enum: [confirm_health, understand_authority, inspect_accounts, retry_transfer, inspect_postings, inspect_delivery, export_evidence] } }
+        steps: { type: array, minItems: 12, maxItems: 12, items: { $ref: '#/components/schemas/OrientationStep' } }
     OrientationStep:
       type: object
       additionalProperties: false
       required: [id, state, evidence_type]
       properties:
-        id: { type: string, enum: [inspect_account, create_account, fund_account, inspect_transfer, run_reconciliation, inspect_delivery, create_backup] }
-        state: { type: string, enum: [completed, evidence_available, missing, unavailable] }
-        evidence_type: { type: string, enum: [account_record, account_created_audit, posted_transfer, transfer_record, reconciliation_run, delivery_attempt, recovery_backup] }
+        id: { type: string, enum: [confirm_health, understand_authority, inspect_accounts, create_account, fund_account, post_transfer, retry_transfer, inspect_postings, run_reconciliation, inspect_delivery, export_evidence, create_backup] }
+        state: { type: string, enum: [completed, operator_confirmed, evidence_available, missing, unavailable] }
+        evidence_type: { type: string, enum: [local_health_confirmation, authority_acknowledgement, account_record, account_created_audit, funding_journal, posted_transfer, idempotency_outcome, journal_postings, reconciliation_run, delivery_attempt, evidence_export, recovery_backup] }
         evidence_id: { type: string, minLength: 1, maxLength: 128 }
         occurred_at: { type: string, format: date-time }
-        reason_code: { type: string, enum: [browser_action_not_recorded, no_authorized_account, no_account_creation_evidence, no_posted_transfer, no_authorized_transfer, no_reconciliation_run, no_delivery_attempt, no_validated_backup, recovery_evidence_unavailable] }
+        reason_code: { type: string, enum: [operator_confirmation_required, no_authorized_account, no_account_creation_evidence, funding_workflow_unavailable, no_posted_transfer, no_reconciliation_run, no_delivery_attempt, no_exportable_evidence, no_validated_backup, recovery_evidence_unavailable] }
+    OrientationPreferenceUpdate:
+      type: object
+      additionalProperties: false
+      required: [expected_version, dismissed, completed_step_ids]
+      properties:
+        expected_version: { type: string, pattern: '^(0|[1-9][0-9]{0,18})$' }
+        dismissed: { type: boolean }
+        completed_step_ids: { type: array, maxItems: 7, uniqueItems: true, items: { type: string, enum: [confirm_health, understand_authority, inspect_accounts, retry_transfer, inspect_postings, inspect_delivery, export_evidence] } }
     ExplainabilityTimeline:
       type: object
       additionalProperties: false
@@ -836,7 +869,7 @@ components:
       required: [operation_id, method, path, scope]
       properties:
         operation_id: { type: string, pattern: '^[A-Za-z][A-Za-z0-9]*$', maxLength: 80 }
-        method: { type: string, enum: [GET, POST, PATCH] }
+        method: { type: string, enum: [GET, POST, PUT, PATCH] }
         path: { type: string, pattern: '^/[A-Za-z0-9{}._/-]+$', maxLength: 160 }
         scope: { type: string, pattern: '^[a-z]+:[a-z]+$', maxLength: 64 }
     DeveloperRequestExample:
@@ -922,6 +955,7 @@ components:
     Forbidden: { description: Access denied without resource disclosure., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { readOnlyDenial: { $ref: '#/components/examples/ReadOnlyDenial' } } } } }
     NotFound: { description: Authorized resource not found., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Conflict: { description: Idempotency conflict or in-progress request., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    PreferenceConflict: { description: The onboarding preference version changed in another session; read the current summary before retrying., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     AccountConflict:
       description: External-reference, optimistic-version, lifecycle, idempotency, or in-progress conflict.
       content:

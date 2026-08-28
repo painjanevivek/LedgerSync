@@ -2,32 +2,62 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect,test,type Page,type Route } from "@playwright/test";
 
 import { mockOperatorConsole,orientationEvidence,transfer,transferExplainability } from "./fixtures";
+import type { LocalOrientation, OperatorPreferenceStepID } from "../../src/lib/api/orientation";
 
 function json(route:Route,body:unknown,status=200){return route.fulfill({status,contentType:"application/json",body:JSON.stringify(body)});}
 async function expectAccessible(page:Page){const result=await new AxeBuilder({page}).exclude(".app-shell > aside").analyze();expect(result.violations.filter((item)=>["serious","critical"].includes(item.impact??""))).toEqual([]);}
 
-test("local guide reads durable evidence, dismisses without blocking, and reopens from Local tools",async({page,context})=>{
-  await context.grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page); await page.goto("/");
-  await expect(page.getByRole("heading",{name:"Follow one INR ledger record from intent to evidence"})).toBeVisible();
+test("local guide persists confirmation, dismissal, and reopening in server-owned preferences",async({page,context})=>{
+  await context.grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page);
+  let current=structuredClone(orientationEvidence) as LocalOrientation; const updates:unknown[]=[];
+  await page.route("**/api/local/orientation",route=>json(route,current));
+  await page.route("**/api/local/orientation/preferences",async route=>{
+    const body=route.request().postDataJSON() as {expected_version:string;dismissed:boolean;completed_step_ids:string[]}; updates.push(body);
+    current={...current,dismissed:body.dismissed,preference_version:String(Number(body.expected_version)+1),preference_updated_at:"2026-08-19T12:06:00Z",operator_completed_step_ids:body.completed_step_ids as OperatorPreferenceStepID[],steps:current.steps.map(step=>body.completed_step_ids.includes(step.id)?{...step,state:"operator_confirmed" as const,reason_code:undefined}:step)};
+    return json(route,current);
+  });
+  await page.goto("/");
+  await expect(page.getByRole("heading",{name:"Follow one INR ledger record from system health to recovery"})).toBeVisible();
   await expect(page.getByText("PostgreSQL ledger",{exact:true})).toBeVisible();
-  await expect(page.getByText("Evidence available",{exact:true}).first()).toBeVisible();
+  await expect(page.getByText("Ready to inspect",{exact:true}).first()).toBeVisible();
+  await page.getByRole("button",{name:"I checked current health"}).first().click();
+  await expect(page.getByText("Operator confirmed",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Copy safe stop command"}).click();
   expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe("powershell -File .\\scripts\\stop-local.ps1");
-  await page.getByRole("button",{name:"Dismiss local guide"}).click();
-  await expect(page.getByRole("heading",{name:"Follow one INR ledger record from intent to evidence"})).toHaveCount(0);
-  await page.getByRole("link",{name:"Local guide"}).click();
-  await expect(page).toHaveURL(/\?guide=1/);
-  await expect(page.getByRole("heading",{name:"Follow one INR ledger record from intent to evidence"})).toBeVisible();
+  await page.getByRole("button",{name:"Dismiss setup guide"}).click();
+  await expect(page.getByRole("heading",{name:/Recommended next:/})).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading",{name:/Recommended next:/})).toBeVisible();
+  await page.getByRole("button",{name:"Reopen setup guide"}).click();
+  await expect(page.getByRole("heading",{name:"Follow one INR ledger record from system health to recovery"})).toBeVisible();
+  expect(updates).toEqual([
+    {expected_version:"0",dismissed:false,completed_step_ids:["confirm_health"]},
+    {expected_version:"1",dismissed:true,completed_step_ids:["confirm_health"]},
+    {expected_version:"2",dismissed:false,completed_step_ids:["confirm_health"]},
+  ]);
   await expectAccessible(page);
+});
+
+test("unknown preference response refreshes server truth without optimistic completion",async({page})=>{
+  await mockOperatorConsole(page);
+  let reads=0; let writes=0;
+  await page.route("**/api/local/orientation",route=>{reads+=1;return json(route,orientationEvidence);});
+  await page.route("**/api/local/orientation/preferences",route=>{writes+=1;return json(route,{error:{code:"upstream_timeout"}},504);});
+  await page.goto("/");
+  await page.getByRole("button",{name:"I checked current health"}).first().click();
+  await expect(page.getByText(/The response was unknown, so current server state was refreshed without assuming the change succeeded/)).toBeVisible();
+  await expect(page.getByText("Not yet evidenced",{exact:true}).first()).toBeVisible();
+  expect(writes).toBe(1); expect(reads).toBeGreaterThanOrEqual(2);
 });
 
 test("orientation reports empty and unavailable durable evidence without browser-only completion claims",async({page})=>{
   await mockOperatorConsole(page);
-  const partial={...orientationEvidence,evidence_state:"partial",steps:orientationEvidence.steps.map((step,index)=>index===0?{id:"inspect_account",state:"missing",evidence_type:"account_record",reason_code:"no_authorized_account"}:index===6?{id:"create_backup",state:"unavailable",evidence_type:"recovery_backup",reason_code:"recovery_evidence_unavailable"}:step)};
+  const partial={...orientationEvidence,evidence_state:"partial",steps:orientationEvidence.steps.map((step,index)=>index===2?{id:"inspect_accounts",state:"missing",evidence_type:"account_record",reason_code:"no_authorized_account"}:index===11?{id:"create_backup",state:"unavailable",evidence_type:"recovery_backup",reason_code:"recovery_evidence_unavailable"}:step)};
   await page.route("**/api/local/orientation",route=>json(route,partial)); await page.goto("/?guide=1");
-  await expect(page.getByText("Not yet evidenced",{exact:true})).toBeVisible();
-  await expect(page.getByText("Evidence unavailable",{exact:true})).toBeVisible();
-  await expect(page.getByText("Completed",{exact:true})).toHaveCount(3);
+  await expect(page.getByText("Not yet evidenced",{exact:true})).toHaveCount(3);
+  await expect(page.getByText("Unavailable",{exact:true})).toHaveCount(2);
+  await expect(page.getByText("Funding remains blocked until the controlled journal and approval workflow exists.",{exact:true})).toBeVisible();
+  await expect(page.getByText("Stored evidence",{exact:true})).toHaveCount(3);
 });
 
 test("workspace and local guide fill the browser canvas on phone, tablet, and desktop",async({page})=>{
@@ -35,7 +65,7 @@ test("workspace and local guide fill the browser canvas on phone, tablet, and de
   for (const viewport of [{width:390,height:844},{width:768,height:1024},{width:1440,height:900}]) {
     await page.setViewportSize(viewport);
     await page.goto("/?guide=1");
-    await expect(page.getByRole("heading",{name:"Follow one INR ledger record from intent to evidence"})).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Follow one INR ledger record from system health to recovery"})).toBeVisible();
     const geometry=await page.evaluate(()=>{
       const root=document.documentElement;
       const shell=document.querySelector<HTMLElement>(".app-shell")?.getBoundingClientRect();
