@@ -3,6 +3,19 @@
 -- permits at-least-once dispatch while retaining evidence for every observed
 -- result and protecting the original event payload from mutation.
 
+-- A canonical transfer event is distinct from an account-balance event: it has
+-- exactly one transfer aggregate and no account/funding aggregate. Keep every
+-- prior shape explicit so the broader outbox invariant remains fail-closed.
+ALTER TABLE outbox_events DROP CONSTRAINT outbox_command_aggregate_consistency;
+ALTER TABLE outbox_events ADD CONSTRAINT outbox_command_aggregate_consistency CHECK (
+  (aggregate_type='account_balance' AND account_id IS NOT NULL AND aggregate_id=account_id
+    AND ((transfer_id IS NOT NULL AND funding_event_id IS NULL) OR (transfer_id IS NULL AND funding_event_id IS NOT NULL)))
+  OR (aggregate_type='account' AND transfer_id IS NULL AND funding_event_id IS NULL AND account_id IS NOT NULL AND aggregate_id=account_id)
+  OR (aggregate_type='funding_event' AND transfer_id IS NULL AND funding_event_id IS NOT NULL AND aggregate_id=funding_event_id)
+  OR (aggregate_type='transfer' AND transfer_id IS NOT NULL AND funding_event_id IS NULL AND account_id IS NULL AND aggregate_id=transfer_id)
+  OR (aggregate_type NOT IN ('account_balance','account','funding_event','transfer') AND transfer_id IS NULL AND funding_event_id IS NULL)
+);
+
 CREATE TABLE webhook_delivery_jobs (
   id UUID PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES tenants(id),
