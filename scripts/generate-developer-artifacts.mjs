@@ -74,7 +74,7 @@ ${entries}
 
 function postmanCollection(version, sourceHash, operations) {
   return `${JSON.stringify({
-    info: { name: "LedgerSync Private API", schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json", version, _postman_id: `ledgersync-${sourceHash.slice(0, 24)}` },
+    info: { name: "LedgerSync Private API", schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json", version, _postman_id: `ledgersync-${sourceHash.slice(0, 8)}-${sourceHash.slice(8, 16)}-${sourceHash.slice(16, 24)}` },
     variable: [{ key: "baseUrl", value: "http://127.0.0.1:3000/api" }, { key: "bearerToken", value: "REPLACE_WITH_PROTECTED_TOKEN" }, { key: "actorAssertion", value: "REPLACE_WITH_SERVER_ASSERTION" }],
     item: operations.map((operation) => ({ name: operation.id, request: { method: operation.method, header: [{ key: "Authorization", value: "Bearer {{bearerToken}}" }, { key: "X-LedgerSync-Actor-Assertion", value: "{{actorAssertion}}" }].concat(operation.idempotent ? [{ key: "Idempotency-Key", value: `example-${operation.id}-key` }] : []), url: "{{baseUrl}}" + operation.path } })),
   }, null, 2)}\n`;
@@ -99,9 +99,10 @@ if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) throw new E
 const operations = normalizeOperations(document);
 if (operations.length === 0 || operations.some((operation) => !operation.scope)) throw new Error("every generated operation must declare x-required-scope");
 const sourceHash = createHash("sha256").update(source).digest("hex");
+const sourceHashChunks = sourceHash.match(/.{1,8}/g);
 
 await Promise.all([
-  materialize(resolve(outputRoot, "sdk-manifest.json"), JSON.stringify({ schema_version: 1, api_version: version, source: "contracts/openapi.yaml", openapi_sha256: sourceHash, operations }, null, 2) + "\n"),
+  materialize(resolve(outputRoot, "sdk-manifest.json"), JSON.stringify({ schema_version: 1, api_version: version, source: "contracts/openapi.yaml", openapi_sha256_chunks: sourceHashChunks, operations }, null, 2) + "\n"),
   materialize(resolve(outputRoot, "typescript/ledgersync.ts"), typeScriptClient(version, sourceHash, operations)),
   materialize(resolve(outputRoot, "go/ledgersync.go"), goClient(version, sourceHash, operations)),
   materialize(resolve(outputRoot, "ledgersync.postman_collection.json"), postmanCollection(version, sourceHash, operations)),

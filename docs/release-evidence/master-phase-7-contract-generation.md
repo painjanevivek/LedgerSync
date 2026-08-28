@@ -5,7 +5,7 @@
 ## Control implemented
 
 - `contracts/openapi.yaml` is parsed as the only generator input.
-- The generator emits a versioned TypeScript operation catalogue, Go operation catalogue, manifest with OpenAPI SHA-256, and Postman-compatible collection under `contracts/generated/`.
+- The generator emits a versioned TypeScript operation catalogue, Go operation catalogue, manifest with the complete OpenAPI SHA-256 split into fixed-size provenance chunks, and Postman-compatible collection under `contracts/generated/`.
 - `npm --prefix web run check:developer-artifacts` regenerates in check mode; the contract workflow runs it before OpenAPI lint and Go contract tests.
 - Generated transports require caller-provided credentials and actor assertions. They contain no credential storage, request runner UI, or claim to move external funds.
 
