@@ -354,3 +354,38 @@ export function ConsoleFooter({ pending = false }: { pending?: boolean } = {}) {
     </footer>
   );
 }
+
+type OperatorWorkspaceProps = Readonly<{
+  children: ReactNode;
+  className?: string;
+  footer?: ReactNode;
+  rail?: ReactNode;
+  railLabel?: string;
+}>;
+
+/**
+ * A page-level composition contract for operational screens. The primary
+ * document stays readable while an optional, non-interactive context rail can
+ * occupy otherwise accidental wide-screen whitespace.
+ */
+export function OperatorWorkspace({
+  children,
+  className = "",
+  footer,
+  rail,
+  railLabel = "Contextual information",
+}: OperatorWorkspaceProps) {
+  return (
+    <div className={`operator-workspace ${className}`.trim()}>
+      <div className="operator-workspace-primary">{children}</div>
+      {rail ? (
+        <aside className="operator-workspace-rail" aria-label={railLabel}>
+          {rail}
+        </aside>
+      ) : null}
+      {footer ? (
+        <div className="operator-workspace-footer">{footer}</div>
+      ) : null}
+    </div>
+  );
+}

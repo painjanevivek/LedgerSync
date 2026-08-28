@@ -84,7 +84,7 @@ test("account balance and ledger history report independent truth states", async
 
 test("every populated MVP route has no automatically detectable WCAG A or AA violation", async ({ page }) => {
   await mockOperatorConsole(page);
-  const routes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
+  const routes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/funding", "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
   for (const route of routes) {
     await page.goto(route);
     await expect(page.locator("main h1")).toBeVisible();

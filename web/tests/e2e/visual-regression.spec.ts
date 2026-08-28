@@ -5,6 +5,7 @@ import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAcco
 const compact = { width: 390, height: 844 };
 const tablet = { width: 768, height: 1024 };
 const desktop = { width: 1440, height: 900 };
+const ultrawide = { width: 2560, height: 1440 };
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({
@@ -30,6 +31,7 @@ const populatedRoutes = [
   { name: "overview-populated", path: "/", heading: "Overview" },
   { name: "accounts-populated", path: "/accounts", heading: "Accounts" },
   { name: "account-detail-populated", path: `/accounts/${sourceAccount.account_id}`, heading: sourceAccount.display_name },
+  { name: "funding-records-populated", path: "/funding", heading: "Funding records" },
   { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
   { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
@@ -49,6 +51,22 @@ for (const route of populatedRoutes) {
     await capture(page, route.name);
   });
 }
+
+test("funding records use the reviewed contextual rail on ultrawide screens", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/funding");
+  await expect(page.getByRole("heading", { name: "Funding records", exact: true })).toBeVisible();
+  await capture(page, "funding-records-populated-ultrawide", ultrawide);
+});
+
+test("funding intake keeps its financial controls readable from desktop to ultrawide", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/funding");
+  await page.getByRole("button", { name: "Record funding" }).click();
+  await expect(page.getByRole("heading", { name: "Record external value", exact: true })).toBeVisible();
+  await capture(page, "funding-intake-desktop", desktop);
+  await capture(page, "funding-intake-ultrawide", ultrawide);
+});
 
 test("compact account directory preserves the selected information hierarchy", async ({ page }) => {
   await mockOperatorConsole(page);

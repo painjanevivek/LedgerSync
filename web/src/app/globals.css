@@ -276,6 +276,49 @@ body:has(dialog[open]) .skip-link {
   padding: 38px clamp(30px, 3vw, 44px) 22px;
 }
 
+/* Shared post-navigation canvas. Documents retain a deliberate readable
+   measure; at wide desktop widths the remaining columns become useful context
+   rather than accidental blank space. */
+.operator-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-7) var(--operator-grid-gap);
+  width: min(100%, var(--operator-workspace-max));
+  min-width: 0;
+  margin-inline: auto;
+}
+.operator-workspace-primary {
+  width: min(100%, var(--operator-workflow-max));
+  min-width: 0;
+  margin-inline: auto;
+}
+.operator-workspace-rail {
+  display: none;
+  min-width: 0;
+}
+.operator-workspace-footer {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 1600px) {
+  .operator-workspace {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .operator-workspace-primary {
+    grid-column: span 9;
+    width: 100%;
+    margin-inline: 0;
+  }
+  .operator-workspace-rail {
+    display: block;
+    grid-column: span 3;
+  }
+  .operator-workspace-footer {
+    grid-column: 1 / -1;
+  }
+}
+
 /* A first workspace is presented as a ledger path, not an empty analytics
    dashboard. The ordered rail mirrors the evidence sequence users will create. */
 .new-workspace {
@@ -4070,8 +4113,56 @@ h3 {
   }
 }
 
-/* Funding evidence is a docket, not a growth dashboard. The rail expresses the
-   only meaningful progression: external reference, decision, balanced journal. */
+/* Funding is a docket, not a growth dashboard. The workflow stays document-like
+   while the contextual rail clarifies the financial boundary on wide screens. */
+.funding-workspace .operator-workspace-primary > * {
+  width: min(100%, var(--operator-workflow-max));
+  margin-inline: auto;
+}
+.funding-workspace .operator-workspace-primary > .ledger-section,
+.funding-workspace .operator-workspace-primary > .funding-request-panel,
+.funding-workspace .operator-workspace-primary > .funding-actions,
+.funding-workspace .operator-workspace-primary > .funding-reconciliation {
+  margin-left: auto;
+  margin-right: auto;
+}
+.funding-workspace .console-footer {
+  width: 100%;
+}
+.funding-context-rail-content {
+  display: grid;
+  position: sticky;
+  top: calc(var(--target-compact) + var(--space-6));
+  gap: var(--space-4);
+}
+.funding-context-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--green);
+  padding: var(--space-5);
+  background: var(--paper);
+  box-shadow: var(--shadow-surface);
+}
+.funding-context-card .eyebrow {
+  margin-bottom: var(--space-2);
+}
+.funding-context-card h2 {
+  margin: 0;
+  font-size: var(--type-h3);
+}
+.funding-context-card p:not(.eyebrow) {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+}
+.funding-context-card.funding-context-current {
+  border-left-color: var(--blue);
+  background: var(--paper-subtle);
+}
+.funding-context-next {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3);
+  color: var(--ink-soft) !important;
+  font-weight: 700;
+}
 .funding-boundary-note,
 .funding-demo-banner {
   display: grid;
@@ -4226,6 +4317,13 @@ h3 {
 .funding-inline-notice p {
   margin: 0;
   color: var(--ink-soft);
+}
+@media (min-width: 1600px) {
+  /* The rail carries this guidance on wide screens; keep the form focused on
+     the four inputs rather than repeating the same explanation. */
+  .funding-workspace .funding-form-note {
+    display: none;
+  }
 }
 .funding-inline-notice {
   border-left-color: var(--amber);
@@ -4643,6 +4741,7 @@ h3 {
 @media (forced-colors: active) {
   .funding-boundary-note,
   .funding-demo-banner,
+  .funding-context-card,
   .funding-request-panel,
   .funding-form-note,
   .funding-inline-notice,

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Clock, Equals, LinkSimple, ShieldCheck, WarningCircle } from "@phosphor-icons/react";
+import { CheckCircle, Clock, Equals, LinkSimple, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { FormEvent, useState, type ReactNode } from "react";
 
@@ -17,6 +17,74 @@ function fundingTone(status: FundingStatus): "success" | "warning" | "danger" | 
   return "info";
 }
 
+export function FundingWorkspaceRail({
+  events,
+  event,
+  loading,
+  error,
+  online,
+}: Readonly<{
+  events: FundingEvent[];
+  event?: FundingEvent | null;
+  loading: boolean;
+  error: string | null;
+  online: boolean;
+}>) {
+  const record = event ?? events[0];
+  const reviewSummary = loading
+    ? "Refreshing the authorized funding page. A missing result is never inferred while this check is running."
+    : error
+      ? "The latest check did not complete. Keep any loaded record historical until it can be refreshed."
+      : record
+        ? `${events.length || 1} authorized funding ${events.length === 1 ? "record is" : "records are"} in the current review scope. The latest status is ${record.status}.`
+        : "No funding records are in the current authorized scope.";
+  const nextSafeAction = !online
+    ? "Reconnect before recording, deciding, or posting a funding record."
+    : record?.status === "requested"
+      ? "Independently match the external reference and supporting location before an approver records a decision."
+      : record?.status === "approved"
+        ? "Post only after the approved record still matches the external reference and exact amount."
+        : record?.status === "posted" || record?.status === "compensated"
+          ? "Use the record history to inspect the immutable decision and balanced journal."
+          : "Record an external reference and controlled supporting location before it can enter ledger review.";
+
+  return (
+    <div className="funding-context-rail-content">
+      <section className="funding-context-card">
+        <p className="eyebrow">Funding boundary</p>
+        <h2>Reference, not custody</h2>
+        <p>
+          LedgerSync records customer-authorized external value references. It
+          does not describe these records as deposits, bank settlement, or
+          custody.
+        </p>
+      </section>
+      <section className="funding-context-card">
+        <p className="eyebrow">Approval requirement</p>
+        <h2>Independent review protects posting</h2>
+        <p>
+          A funding record is reviewable first. In production, a separate
+          finance operator must approve it before a balanced journal can post.
+        </p>
+      </section>
+      <section className="funding-context-card">
+        <p className="eyebrow">Exact money</p>
+        <h2>Minor units stay authoritative</h2>
+        <p>
+          Amounts are stored as exact minor units. A record does not change a
+          balance until its approved journal is posted.
+        </p>
+      </section>
+      <section className="funding-context-card funding-context-current">
+        <p className="eyebrow">Current review</p>
+        <h2>Next safe action</h2>
+        <p>{reviewSummary}</p>
+        <p className="funding-context-next">{nextSafeAction}</p>
+      </section>
+    </div>
+  );
+}
+
 export function FundingListView({ events, accounts, nextCursor, verifiedAt, loading, error, online, canWrite, onOpenRequest, onRefresh, onNext }: Readonly<{
   events: FundingEvent[]; accounts: Account[]; nextCursor?: string; verifiedAt?: string; loading: boolean; error: string | null; online: boolean; canWrite: boolean;
   onOpenRequest: () => void; onRefresh: () => void; onNext: () => void;
@@ -26,7 +94,6 @@ export function FundingListView({ events, accounts, nextCursor, verifiedAt, load
     <PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Recorded external value references, independent decisions, and the balanced journals they authorize.">
       <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh records</button>{canWrite && <button className="button primary guarded-control" type="button" onClick={onOpenRequest}>Record funding</button>}</div>
     </PageHeader>
-    <div className="funding-boundary-note"><ShieldCheck weight="fill" aria-hidden="true" /><div><strong>Funding boundary</strong><p>LedgerSync records customer-authorized external value references. It does not describe these entries as deposits, bank settlement, or custody.</p></div></div>
     {verifiedAt && events.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Funding records" reason={error ?? (!online ? "Reconnect before acting on these records." : undefined)} />}
     {error && <StatePanel kind="error" title="Funding records unavailable" message={error} action={<FocusedRetry label="Retry funding records" onRetry={onRefresh} disabled={!online} busy={loading} />} />}
     {loading && events.length === 0 ? <StatePanel title="Loading funding records" message="LedgerSync is verifying one bounded tenant page; an empty result is not inferred while the request is pending." /> : events.length === 0 && !error ? <StatePanel title="No funding records yet" message="Record an external reference when value is confirmed outside LedgerSync and must enter the internal ledger under controlled review." action={canWrite ? <button className="button primary" type="button" onClick={onOpenRequest}>Record first funding</button> : undefined} /> : events.length > 0 && <section className="ledger-section funding-ledger" aria-labelledby="funding-ledger-heading" aria-busy={loading}>

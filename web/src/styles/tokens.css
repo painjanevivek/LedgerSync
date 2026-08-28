@@ -46,6 +46,13 @@
   --space-9: 48px;
   --space-10: 64px;
 
+  /* The post-navigation workspace is deliberately wider than individual
+     financial documents. Its 12-column grid keeps wide screens composed
+     without allowing form controls to become unreadable. */
+  --operator-workspace-max: 1440px;
+  --operator-workflow-max: 1160px;
+  --operator-grid-gap: var(--space-6);
+
   --type-display: 32px;
   --type-h1: 24px;
   --type-h2: 18px;
