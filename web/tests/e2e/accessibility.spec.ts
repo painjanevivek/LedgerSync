@@ -102,7 +102,7 @@ test("keyboard-only transfer review announces an unknown result and preserves th
     return route.abort("failed");
   });
   await page.goto("/transfers");
-  const amount = page.getByLabel("Exact amount");
+  const amount = page.getByLabel("Amount");
   await amount.focus();
   await amount.fill("12.50");
   const review = page.getByRole("button", { name: "Review transfer" });
@@ -125,7 +125,7 @@ test("exact-money input survives phone rotation and retains maximum signed-64-bi
   await page.setViewportSize({ width: 390, height: 844 });
   await mockOperatorConsole(page);
   await page.goto("/transfers");
-  const amount = page.getByLabel("Exact amount");
+  const amount = page.getByLabel("Amount");
   await expect(amount).toHaveAttribute("inputmode", "decimal");
   await amount.fill("92233720368547758.07");
   await page.setViewportSize({ width: 844, height: 390 });

@@ -7,9 +7,9 @@
 
 ## Phase 2 — Shared form and copy rules
 
-- [ ] UX-003 Add reusable field label, requirement badge, and helper-text components.
-- [ ] UX-004 Apply the shared pattern to account, transfer, funding, correction, and event forms.
-- [ ] UX-005 Add automated coverage for requirement labels and accessible descriptions.
+- [X] UX-003 Add reusable field label, requirement badge, and helper-text components.
+- [X] UX-004 Apply the shared pattern to account, transfer, funding, correction, and event forms.
+- [X] UX-005 Add automated coverage for requirement labels and accessible descriptions.
 
 ## Phase 3 — First-time user journey
 

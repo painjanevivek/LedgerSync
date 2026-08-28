@@ -5,7 +5,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
 import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
-import { CopyControl, EvidenceFreshness, FocusedRetry, StatePanel } from "@/features/console/components";
+import { CopyControl, EvidenceFreshness, FocusedRetry, FormField, StatePanel } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
 import type { PreparedTransfer } from "@/features/transfers/transferIntent";
 import { useTransferSubmission } from "@/features/transfers/useTransferSubmission";
@@ -211,10 +211,9 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
     {accountsVerifiedAt && <EvidenceFreshness state={accountsError ? "historical" : accountsLoading ? "refreshing" : "current"} verifiedAt={accountsVerifiedAt} label="Account picker" reason={accountsError ?? undefined} />}
     {accountsError && <StatePanel kind="error" title="Account picker not refreshed" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
     <form onSubmit={prepare} noValidate>
-      <label>From account<select value={effectiveSource} onChange={(event) => { userChangedRoute.current = true; setSource(event.target.value); }} disabled={disabled || pickerUnavailable}>{fundedSources.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
-      <label>To account<select value={effectiveDestination} onChange={(event) => { userChangedRoute.current = true; setDestination(event.target.value); }} disabled={disabled || pickerUnavailable}>{destinations.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
-      <label>Exact amount<input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" autoComplete="off" placeholder="0.00" aria-describedby="transfer-help transfer-error transfer-disabled-reason" aria-invalid={Boolean(validation)} disabled={disabled || pickerUnavailable} /></label>
-      <p id="transfer-help" className="muted">Decimal text becomes integer minor units. Floating-point arithmetic is never used.</p>
+      <FormField label="From account" requirement="required" hint="Money will leave this account."><select value={effectiveSource} onChange={(event) => { userChangedRoute.current = true; setSource(event.target.value); }} disabled={disabled || pickerUnavailable} required>{fundedSources.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></FormField>
+      <FormField label="To account" requirement="required" hint="Money will go to this account."><select value={effectiveDestination} onChange={(event) => { userChangedRoute.current = true; setDestination(event.target.value); }} disabled={disabled || pickerUnavailable} required>{destinations.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></FormField>
+      <FormField label="Amount" requirement="required" hint="Enter INR, for example 1250.00. LedgerSync keeps the amount exact."><input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" autoComplete="off" placeholder="1250.00" aria-describedby="transfer-error transfer-disabled-reason" aria-invalid={Boolean(validation)} disabled={disabled || pickerUnavailable} required /></FormField>
       {preferredDestination && !storedIntent && <p className="destination-preselection" role="status">Destination preselected from account <code>{preferredDestination.account_id}</code>. Review the source and exact amount before posting.</p>}
       {validation && <p id="transfer-error" className="field-error" role="alert">{validation}</p>}
       <button className="button primary" disabled={disabled || pickerUnavailable} aria-describedby={disabled || pickerUnavailable ? "transfer-disabled-reason" : undefined} type="submit">Review transfer</button>

@@ -149,7 +149,7 @@ test("unknown transfer outcome keeps the exact intent and safe retry action", as
   await page.route("**/api/transfers", (route) => route.request().method() === "POST" ? json(route, { error: { code: "transfer_outcome_unknown" } }, 504) : route.fallback());
   await page.goto("/transfers");
   await expect(page.getByRole("heading", { name: "Internal transfer" })).toBeVisible();
-  await page.getByLabel("Exact amount").fill("12.50");
+  await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).click();
   await expect(page.getByText("Result not yet confirmed")).toBeVisible();

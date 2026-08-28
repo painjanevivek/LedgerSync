@@ -87,7 +87,7 @@ async function expectAccessibleReflow(page: Page, width: number, height: number)
 async function postTransfer(page: Page, sourceAccountID: string, destinationAccountID: string): Promise<TransferProof> {
   await page.getByLabel("From account").selectOption(sourceAccountID);
   await page.getByLabel("To account").selectOption(destinationAccountID);
-  await page.getByLabel("Exact amount").fill(transferAmount);
+  await page.getByLabel("Amount").fill(transferAmount);
   await page.getByRole("button", { name: "Review transfer" }).click();
   await expect(page.getByRole("heading", { name: "Confirm exact transfer" })).toBeFocused();
 

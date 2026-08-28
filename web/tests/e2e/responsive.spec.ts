@@ -90,3 +90,23 @@ test("funding explains why its four inputs are required", async ({ page }) => {
   await expect(page.getByText("Why all four?", { exact: true })).toBeVisible();
   await expect(page.getByText("Another operator needs them to check the record before your balance can change.")).toBeVisible();
 });
+
+test("shared field labels show the server-backed required or optional state", async ({ page }) => {
+  await mockOperatorConsole(page);
+
+  await page.goto("/accounts/new");
+  await expect(page.locator(".account-command-form .field-requirement.required")).toHaveCount(3);
+  await expect(page.getByLabel("Display name")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("External reference")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("Category")).toHaveAttribute("required", "");
+
+  await page.goto("/transfers");
+  await expect(page.locator(".transfer-form .field-requirement.required")).toHaveCount(3);
+  await expect(page.getByLabel("From account")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("To account")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("Amount")).toHaveAttribute("required", "");
+
+  await page.goto("/events");
+  await expect(page.locator(".event-filter-document .field-requirement.optional")).toHaveCount(6);
+  await expect(page.getByLabel("Event type")).not.toHaveAttribute("required", "");
+});

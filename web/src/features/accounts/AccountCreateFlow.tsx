@@ -16,7 +16,7 @@ import {
   type CreateAccountIntent,
 } from "@/features/accounts/accountCommandIntent";
 import { useAccountCommand } from "@/features/accounts/useAccountCommand";
-import { CopyControl, PageHeader, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl, FormField, PageHeader, StatePanel, StatusBadge } from "@/features/console/components";
 import { formatMinorUnits } from "@/lib/money";
 
 type Props = Readonly<{
@@ -161,9 +161,9 @@ export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csr
       <h2 ref={stageHeading} tabIndex={-1} id="identity-heading">Define the account record</h2>
       <p className="muted">These fields identify the ledger boundary. They do not create or edit a balance.</p>
       <form className="account-command-form" onSubmit={submitIdentity} noValidate>
-        <label>Display name<input value={intent.request.display_name} onChange={(event) => updateRequest("display_name", event.target.value)} maxLength={120} autoComplete="off" required /></label>
-        <label>External reference<input value={intent.request.external_reference} onChange={(event) => updateRequest("external_reference", event.target.value)} maxLength={64} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,63}" autoComplete="off" required /></label>
-        <label>Category<select value={intent.request.category} onChange={(event) => updateRequest("category", event.target.value)}>{accountCategories.map((category) => <option key={category} value={category}>{categoryLabels[category]}</option>)}</select></label>
+        <FormField label="Display name" requirement="required" hint="Use a name people will recognize in LedgerSync."><input value={intent.request.display_name} onChange={(event) => updateRequest("display_name", event.target.value)} maxLength={120} autoComplete="off" required /></FormField>
+        <FormField label="External reference" requirement="required" hint="Use your own stable reference. Example: ACME-OPERATING-01."><input value={intent.request.external_reference} onChange={(event) => updateRequest("external_reference", event.target.value)} maxLength={64} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,63}" autoComplete="off" required /></FormField>
+        <FormField label="Category" requirement="required" hint="Choose the account’s main purpose."><select value={intent.request.category} onChange={(event) => updateRequest("category", event.target.value)} required>{accountCategories.map((category) => <option key={category} value={category}>{categoryLabels[category]}</option>)}</select></FormField>
         <label>Currency<input value="INR" readOnly aria-describedby="currency-boundary-help" /></label>
         <p id="currency-boundary-help" className="muted">This local ledger supports the fixed INR boundary for this flow.</p>
         <button className="button primary guarded-control" type="submit" disabled={!canWrite}>Continue to financial boundary</button>
