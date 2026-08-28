@@ -193,7 +193,11 @@ func (s *Service) Compensate(ctx context.Context, command CompensationCommand) (
 }
 
 func (s *Service) Get(ctx context.Context, tenantID, actorID, eventID string) (Event, error) {
-	return s.repository.Get(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(actorID), strings.TrimSpace(eventID))
+	tenantID, actorID, eventID = strings.TrimSpace(tenantID), strings.TrimSpace(actorID), strings.TrimSpace(eventID)
+	if tenantID == "" || actorID == "" || eventID == "" {
+		return Event{}, ErrInvalidCommand
+	}
+	return s.repository.Get(ctx, tenantID, actorID, eventID)
 }
 
 func (s *Service) List(ctx context.Context, tenantID, actorID string, query Query) (Page, error) {
@@ -201,11 +205,18 @@ func (s *Service) List(ctx context.Context, tenantID, actorID string, query Quer
 	if query.Limit <= 0 || query.Limit > 100 {
 		query.Limit = 50
 	}
+	if tenantID == "" || actorID == "" || !validFundingStatus(query.Status) {
+		return Page{}, ErrInvalidCommand
+	}
 	return s.repository.List(ctx, tenantID, actorID, query)
 }
 
 func (s *Service) Reconcile(ctx context.Context, tenantID, actorID, eventID string) (Reconciliation, error) {
-	return s.repository.Reconcile(ctx, strings.TrimSpace(tenantID), strings.TrimSpace(actorID), strings.TrimSpace(eventID))
+	tenantID, actorID, eventID = strings.TrimSpace(tenantID), strings.TrimSpace(actorID), strings.TrimSpace(eventID)
+	if tenantID == "" || actorID == "" || eventID == "" {
+		return Reconciliation{}, ErrInvalidCommand
+	}
+	return s.repository.Reconcile(ctx, tenantID, actorID, eventID)
 }
 
 func normalizeRequest(command RequestCommand) RequestCommand {
@@ -246,6 +257,15 @@ func (s *Service) normalizeCompensation(command CompensationCommand) Compensatio
 
 func validDecision(command DecisionCommand) bool {
 	return command.TenantID != "" && command.ActorSubjectID != "" && command.FundingEventID != "" && command.Reason != "" && command.CorrelationID != ""
+}
+
+func validFundingStatus(status string) bool {
+	switch status {
+	case "", "requested", "approved", "posted", "rejected", "compensated":
+		return true
+	default:
+		return false
+	}
 }
 
 func requestFingerprint(command RequestCommand) [sha256.Size]byte {

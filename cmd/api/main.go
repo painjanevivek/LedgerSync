@@ -13,6 +13,7 @@ import (
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
+	appfunding "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
@@ -135,7 +136,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "recovery:read", "exports:read", "explainability:read", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -171,6 +172,21 @@ func main() {
 			balanceHandler := handlers.NewBalanceHandler(balanceReader, provider)
 			accountsHandler := handlers.NewAccountsHandler(accountService, provider)
 			transactionsHandler := handlers.NewTransactionsHandler(history, provider)
+			fundingRepository, err := db.NewFundingRepository(database, nil)
+			if err != nil {
+				slog.Error("funding repository initialization failed", "error", err)
+				os.Exit(1)
+			}
+			fundingPolicy := appfunding.PolicyProductionDualControl
+			if configuration.Environment == "development" {
+				fundingPolicy = appfunding.PolicyLocalDemoSingleOperator
+			}
+			fundingService, err := appfunding.NewService(fundingRepository, fundingPolicy, nil)
+			if err != nil {
+				slog.Error("funding service initialization failed", "error", err)
+				os.Exit(1)
+			}
+			fundingHandler := handlers.NewFundingHandler(fundingService, provider)
 			investigationRepository, err := db.NewInvestigationRepository(database)
 			if err != nil {
 				slog.Error("investigation repository initialization failed", "error", err)
@@ -188,6 +204,7 @@ func main() {
 			accountsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
 			transactionsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
 			investigationHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			fundingHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute, configuration.WriteRateLimitPerMinute, configuration.WriteCapacityPerSecond)
 			auditRepository, err := db.NewAuditRepository(database)
 			if err != nil {
 				slog.Error("audit repository initialization failed", "error", err)
@@ -198,6 +215,7 @@ func main() {
 			accountsHandler.WithAuditRecorder(auditRepository)
 			transactionsHandler.WithAuditRecorder(auditRepository)
 			investigationHandler.WithAuditRecorder(auditRepository)
+			fundingHandler.WithAuditRecorder(auditRepository)
 			var authenticator *identity.RequestAuthenticator
 			if len(configuration.BFFAssertionSecret) >= 32 {
 				assertionConfig := identity.ActorAssertionConfig{Issuer: configuration.BFFAssertionIssuer, Audience: configuration.BFFAssertionAudience, CurrentKey: identity.ActorAssertionKey{ID: configuration.BFFAssertionKeyID, Secret: []byte(configuration.BFFAssertionSecret)}, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: identity.NewMemoryReplayGuard(100_000)}
@@ -214,6 +232,7 @@ func main() {
 				accountsHandler.WithRequestAuthenticator(authenticator)
 				transactionsHandler.WithRequestAuthenticator(authenticator)
 				investigationHandler.WithRequestAuthenticator(authenticator)
+				fundingHandler.WithRequestAuthenticator(authenticator)
 			}
 			if err := registerAccountCommandRoutes(router, accountCommandRouteConfig{
 				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
@@ -266,6 +285,14 @@ func main() {
 			router.HandleFunc("GET /api/transfers/{transferID}", investigationHandler.Transfer)
 			router.HandleFunc("GET /api/reconciliation/runs", investigationHandler.ReconciliationRuns)
 			router.HandleFunc("GET /api/reconciliation/runs/{runID}", investigationHandler.ReconciliationRun)
+			router.HandleFunc("POST /api/funding-requests", fundingHandler.Request)
+			router.HandleFunc("GET /api/funding-events", fundingHandler.List)
+			router.HandleFunc("GET /api/funding-events/{fundingEventId}", fundingHandler.Get)
+			router.HandleFunc("POST /api/funding-events/{fundingEventId}/approve", fundingHandler.Approve)
+			router.HandleFunc("POST /api/funding-events/{fundingEventId}/reject", fundingHandler.Reject)
+			router.HandleFunc("POST /api/funding-events/{fundingEventId}/post", fundingHandler.Post)
+			router.HandleFunc("POST /api/funding-events/{fundingEventId}/compensations", fundingHandler.Compensate)
+			router.HandleFunc("GET /api/funding-events/{fundingEventId}/reconciliation", fundingHandler.Reconcile)
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))

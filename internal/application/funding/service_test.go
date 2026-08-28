@@ -14,6 +14,7 @@ import (
 type repositoryStub struct {
 	requested RequestCommand
 	demo      bool
+	listCalls int
 }
 
 func (r *repositoryStub) Request(_ context.Context, command RequestCommand, _ [sha256.Size]byte) (Submission, error) {
@@ -37,6 +38,7 @@ func (r *repositoryStub) Get(context.Context, string, string, string) (Event, er
 	return Event{}, nil
 }
 func (r *repositoryStub) List(context.Context, string, string, Query) (Page, error) {
+	r.listCalls++
 	return Page{}, nil
 }
 func (r *repositoryStub) Reconcile(context.Context, string, string, string) (Reconciliation, error) {
@@ -84,5 +86,16 @@ func TestServiceRejectsInvalidFundingBeforeRepository(t *testing.T) {
 func TestServiceRejectsUnknownPolicyMode(t *testing.T) {
 	if _, err := NewService(&repositoryStub{}, PolicyMode("unsafe"), nil); err == nil {
 		t.Fatal("unknown policy mode accepted")
+	}
+}
+
+func TestServiceRejectsUnknownFundingStatusBeforeRepository(t *testing.T) {
+	repository := &repositoryStub{}
+	service, _ := NewService(repository, PolicyProductionDualControl, nil)
+	if _, err := service.List(context.Background(), "tenant", "actor", Query{Status: "invented", Limit: 25}); !errors.Is(err, ErrInvalidCommand) {
+		t.Fatalf("unknown status error=%v", err)
+	}
+	if repository.listCalls != 0 {
+		t.Fatal("invalid query reached repository")
 	}
 }

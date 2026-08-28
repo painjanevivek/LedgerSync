@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "1.8.0",
+  "contract_version": "1.9.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -49,6 +49,20 @@
         { "operation_id": "listReconciliationRuns", "method": "GET", "path": "/reconciliation/runs", "scope": "reconciliation:read" },
         { "operation_id": "runReconciliation", "method": "POST", "path": "/reconciliation/runs", "scope": "reconciliation:write" },
         { "operation_id": "getReconciliationRun", "method": "GET", "path": "/reconciliation/runs/{runId}", "scope": "reconciliation:read" }
+      ]
+    },
+    {
+      "id": "funding",
+      "label": "Controlled funding evidence",
+      "operations": [
+        { "operation_id": "requestFunding", "method": "POST", "path": "/funding-requests", "scope": "funding:write" },
+        { "operation_id": "listFundingEvents", "method": "GET", "path": "/funding-events", "scope": "funding:read" },
+        { "operation_id": "getFundingEvent", "method": "GET", "path": "/funding-events/{fundingEventId}", "scope": "funding:read" },
+        { "operation_id": "approveFundingEvent", "method": "POST", "path": "/funding-events/{fundingEventId}/approve", "scope": "funding:approve" },
+        { "operation_id": "rejectFundingEvent", "method": "POST", "path": "/funding-events/{fundingEventId}/reject", "scope": "funding:approve" },
+        { "operation_id": "postFundingEvent", "method": "POST", "path": "/funding-events/{fundingEventId}/post", "scope": "funding:write" },
+        { "operation_id": "requestFundingCompensation", "method": "POST", "path": "/funding-events/{fundingEventId}/compensations", "scope": "funding:write" },
+        { "operation_id": "reconcileFundingEvent", "method": "GET", "path": "/funding-events/{fundingEventId}/reconciliation", "scope": "funding:read" }
       ]
     },
     {

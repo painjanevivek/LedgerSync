@@ -16,8 +16,8 @@ func TestAllowedSetDropsUnknownRolesAndScopes(t *testing.T) {
 	if len(roles) != 1 || !contains(roles, "tenant:admin") {
 		t.Fatalf("unexpected roles: %#v", roles)
 	}
-	scopes := allowedSet([]string{"accounts:read", "accounts:write", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "recovery:read", "exports:read", "explainability:read", "accounts:all"}, allowedScopes)
-	if len(scopes) != 10 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") || !contains(scopes, "reconciliation:write") || !contains(scopes, "local:read") || !contains(scopes, "local:write") || !contains(scopes, "events:read") || !contains(scopes, "developer:read") || !contains(scopes, "recovery:read") || !contains(scopes, "exports:read") || !contains(scopes, "explainability:read") {
+	scopes := allowedSet([]string{"accounts:read", "accounts:write", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "accounts:all"}, allowedScopes)
+	if len(scopes) != 13 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") || !contains(scopes, "reconciliation:write") || !contains(scopes, "local:read") || !contains(scopes, "local:write") || !contains(scopes, "events:read") || !contains(scopes, "developer:read") || !contains(scopes, "recovery:read") || !contains(scopes, "exports:read") || !contains(scopes, "explainability:read") || !contains(scopes, "funding:read") || !contains(scopes, "funding:write") || !contains(scopes, "funding:approve") {
 		t.Fatalf("unexpected scopes: %#v", scopes)
 	}
 }
