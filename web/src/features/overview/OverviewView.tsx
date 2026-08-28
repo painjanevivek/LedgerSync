@@ -67,19 +67,19 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
     {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
       <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
       <div className="new-workspace-copy">
-        <p className="eyebrow">Zero records · ready for first use</p>
-        <h2 id="new-workspace-title">Build your first ledger path</h2>
-        <p>Create an account, record incoming funds, create a destination, then post and reconcile the first internal transfer.</p>
+        <p className="eyebrow">New workspace</p>
+        <h2 id="new-workspace-title">Start with four simple steps</h2>
+        <p>Create an account, add a funding record, review it, then make a transfer.</p>
         <div className="new-workspace-actions">
           <Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>
           <Link className="button secondary" href="/guide">Follow the guide</Link>
         </div>
       </div>
-      <ol className="new-workspace-path" aria-label="First ledger path">
-        <li><span>01</span><strong>Account</strong><small>Define where value belongs</small></li>
-        <li><span>02</span><strong>Funding</strong><small>Record an external value reference</small></li>
-        <li><span>03</span><strong>Transfer</strong><small>Move exact internal value</small></li>
-        <li><span>04</span><strong>Reconcile</strong><small>Prove the ledger result</small></li>
+      <ol className="new-workspace-path" aria-label="First ledger steps">
+        <li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>
+        <li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>
+        <li><Link href="/funding"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>
+        <li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>
       </ol>
     </section>}
     <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account details state">

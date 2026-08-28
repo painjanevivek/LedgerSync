@@ -13,9 +13,9 @@
 
 ## Phase 3 — First-time user journey
 
-- [ ] UX-006 Simplify the new-user dashboard to show the next safe task.
-- [ ] UX-007 Make the Guide page task-based and link it from the dashboard.
-- [ ] UX-008 Add an empty-workspace end-to-end journey.
+- [X] UX-006 Simplify the new-user dashboard to show the next safe task.
+- [X] UX-007 Make the Guide page task-based and link it from the dashboard.
+- [X] UX-008 Add an empty-workspace end-to-end journey.
 
 ## Phase 4 — Simplify existing screens
 

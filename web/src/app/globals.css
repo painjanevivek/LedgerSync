@@ -380,6 +380,16 @@ body:has(dialog[open]) .skip-link {
   border-right: 1px solid var(--line);
   padding: 17px;
 }
+.new-workspace-path a {
+  display: grid;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+.new-workspace-path a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
 .new-workspace-path li:last-child {
   border-right: 0;
 }
