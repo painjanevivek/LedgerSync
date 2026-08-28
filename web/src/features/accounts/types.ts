@@ -8,12 +8,26 @@ export type Account = Readonly<{
   version: string;
   as_of: string;
   display_name?: string;
-  category?: "operating" | "customer_funds" | "payroll" | "payables" | "expenses" | "reserve";
+  category?:
+    | "operating"
+    | "customer_funds"
+    | "payroll"
+    | "payables"
+    | "expenses"
+    | "reserve";
   external_reference?: string;
   audit_context?: AccountAuditEvent[];
 }>;
 
-export type AccountAuditEvent = Readonly<{ event_id: string; event_type: string; actor_subject_id: string; outcome: string; correlation_id: string; reason?: string; occurred_at: string }>;
+export type AccountAuditEvent = Readonly<{
+  event_id: string;
+  event_type: string;
+  actor_subject_id: string;
+  outcome: string;
+  correlation_id: string;
+  reason?: string;
+  occurred_at: string;
+}>;
 
 export type AccountBalance = Readonly<{
   account_id: string;
@@ -31,6 +45,10 @@ export type Transaction = Readonly<{
   currency: string;
   status: "posted" | "rejected";
   occurred_at: string;
+  correction_id?: string;
+  correction_role?: "original" | "compensation";
+  related_transfer_id?: string;
+  related_journal_transaction_id?: string;
 }>;
 
 export type TransferSummary = Readonly<{
@@ -40,16 +58,39 @@ export type TransferSummary = Readonly<{
   amount_minor: string;
   currency: string;
   financial_status: "posted" | "rejected" | "pending";
-  delivery_status: "not_applicable" | "pending" | "retrying" | "delivered" | "dead";
+  delivery_status:
+    "not_applicable" | "pending" | "retrying" | "delivered" | "dead";
   created_at: string;
   completed_at: string;
   journal_transaction_id?: string;
   rejection_code?: string;
+  correction_id?: string;
+  correction_role?: "original" | "compensation";
+  related_transfer_id?: string;
+  related_journal_transaction_id?: string;
 }>;
 
-export type Posting = Readonly<{ posting_id: string; account_id: string; direction: "debit" | "credit"; amount_minor: string; currency: string; occurred_at: string }>;
-export type EvidenceEvent = Readonly<{ event_id: string; kind: string; outcome: string; reference?: string; occurred_at: string }>;
-export type TransferDetail = TransferSummary & Readonly<{ actor_subject_id: string; postings: Posting[]; timeline: EvidenceEvent[] }>;
+export type Posting = Readonly<{
+  posting_id: string;
+  account_id: string;
+  direction: "debit" | "credit";
+  amount_minor: string;
+  currency: string;
+  occurred_at: string;
+}>;
+export type EvidenceEvent = Readonly<{
+  event_id: string;
+  kind: string;
+  outcome: string;
+  reference?: string;
+  occurred_at: string;
+}>;
+export type TransferDetail = TransferSummary &
+  Readonly<{
+    actor_subject_id: string;
+    postings: Posting[];
+    timeline: EvidenceEvent[];
+  }>;
 
 export type ReconciliationRun = Readonly<{
   run_id: string;
@@ -67,9 +108,27 @@ export type ReconciliationRun = Readonly<{
   mismatches?: ReconciliationMismatch[];
 }>;
 
-export type ReconciliationMismatch = Readonly<{ mismatch_id: string; account_id?: string; classification: string; currency?: string; expected_minor?: string; observed_minor?: string; observed_available_minor?: string; balance_version?: string; created_at: string }>;
+export type ReconciliationMismatch = Readonly<{
+  mismatch_id: string;
+  account_id?: string;
+  classification: string;
+  currency?: string;
+  expected_minor?: string;
+  observed_minor?: string;
+  observed_available_minor?: string;
+  balance_version?: string;
+  created_at: string;
+}>;
 
-export type ConsoleSession = Readonly<{ subject_id: string; tenant_id: string; csrf_token: string; scopes: string[]; environment?: "demo" | "production"; operator_label?: string; tenant_label?: string }>;
+export type ConsoleSession = Readonly<{
+  subject_id: string;
+  tenant_id: string;
+  csrf_token: string;
+  scopes: string[];
+  environment?: "demo" | "production";
+  operator_label?: string;
+  tenant_label?: string;
+}>;
 
 export type AccountCommandResult = Readonly<{
   account_id: string;
