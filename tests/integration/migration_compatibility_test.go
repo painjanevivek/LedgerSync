@@ -15,8 +15,10 @@ import (
 	"time"
 
 	accountapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	fundingapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
 	reconciliationapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
 	transferapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
@@ -281,6 +283,47 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM journal_transactions WHERE transfer_id=$1`, firstTransfer.Result.TransferID) != 1 ||
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.transfer_id=$1`, firstTransfer.Result.TransferID) != 2 {
 		t.Fatalf("limited-role transfer/replay did not commit exactly one balanced movement: first=%#v replay=%#v", firstTransfer, replayedTransfer)
+	}
+	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'upgrade-operator','finance')`, legacyTenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_funding_policies(tenant_id,currency,mode,finance_activated,policy_version,per_command_minor,operator_rolling_24h_minor,tenant_rolling_24h_minor) VALUES($1,'INR','local_demo_single_operator',false,1,100000,200000,500000)`, legacyTenant); err != nil {
+		t.Fatal(err)
+	}
+	fundingRepository, err := db.NewFundingRepository(limitedDatabase, func() time.Time { return createdAt.Add(4 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingService, err := fundingapp.NewService(fundingRepository, fundingapp.PolicyLocalDemoSingleOperator, func() time.Time { return createdAt.Add(4 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingAmount, err := money.New("INR", 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingRequest, err := fundingService.Request(context.Background(), fundingapp.RequestCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", DestinationAccountID: created.Result.AccountID, Amount: fundingAmount,
+		ExternalReference: "upgrade-funding-evidence", EvidenceReference: "customer-evidence://upgrade/funding",
+		IdempotencyKey: "upgrade-role-funding-0001", CorrelationID: "00000000-0000-0000-0000-000000000897",
+	})
+	if err != nil {
+		t.Fatalf("funding request with fresh migrated system account: %v", err)
+	}
+	approvedFunding, err := fundingService.Approve(context.Background(), fundingapp.DecisionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
+		Reason: "verified upgrade evidence", CorrelationID: "00000000-0000-0000-0000-000000000896",
+	})
+	if err != nil || approvedFunding.Status != "approved" {
+		t.Fatalf("funding approval after upgrade=%#v error=%v", approvedFunding, err)
+	}
+	postedFunding, err := fundingService.Post(context.Background(), fundingapp.ActionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
+		CorrelationID: "00000000-0000-0000-0000-000000000895",
+	})
+	if err != nil || postedFunding.Event.Status != "posted" ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND account_kind='funding_clearing' AND category='system'`, legacyTenant) != 1 {
+		t.Fatalf("fresh migrated funding journal=%#v error=%v", postedFunding, err)
 	}
 	if err := limitedDatabase.Close(); err != nil {
 		t.Fatal(err)
