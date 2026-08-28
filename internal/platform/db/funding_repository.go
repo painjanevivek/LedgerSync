@@ -310,7 +310,7 @@ WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE`, command.TenantID, command.
 			return err
 		}
 		if compensationOf == "" {
-			if _, err = tx.ExecContext(ctx, `INSERT INTO funding_velocity_events(funding_event_id,tenant_id,actor_subject_id,amount_minor,occurred_at,expires_at) VALUES($1,$2,$3,$4,$5,$5+INTERVAL '24 hours')`, command.FundingEventID, command.TenantID, requester, amount, command.OccurredAt); err != nil {
+			if _, err = tx.ExecContext(ctx, `INSERT INTO funding_velocity_events(funding_event_id,tenant_id,actor_subject_id,amount_minor,occurred_at,expires_at) VALUES($1,$2,$3,$4,$5,$5::timestamptz+INTERVAL '24 hours')`, command.FundingEventID, command.TenantID, requester, amount, command.OccurredAt); err != nil {
 				return err
 			}
 		} else {
