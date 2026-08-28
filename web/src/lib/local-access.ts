@@ -101,3 +101,13 @@ export function createLocalSession(
     ],
   };
 }
+
+export function createLocalReturnURL(
+  returnTo: string,
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+) {
+  if (!returnTo.startsWith("/") || returnTo.startsWith("//")) {
+    throw new Error("Local login return path must be application-relative");
+  }
+  return new URL(returnTo, readPublicOrigin(environment));
+}

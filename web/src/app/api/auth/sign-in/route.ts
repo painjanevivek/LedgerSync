@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { createLocalSession, readLocalAccessConfiguration } from "@/lib/local-access";
+import {
+  createLocalReturnURL,
+  createLocalSession,
+  readLocalAccessConfiguration,
+} from "@/lib/local-access";
 import { beginAuthorization, safeReturnTo, transactionCookie } from "@/lib/oidc";
 import { jsonError } from "@/lib/security";
 import { createSession, sessionCookie } from "@/lib/session";
@@ -12,7 +16,7 @@ export async function GET(request: NextRequest) {
       const returnTo = safeReturnTo(
         request.nextUrl.searchParams.get("return_to"),
       );
-      const response = NextResponse.redirect(new URL(returnTo, request.url));
+      const response = NextResponse.redirect(createLocalReturnURL(returnTo));
       response.cookies.set(
         sessionCookie(createSession(createLocalSession(localAccess))),
       );

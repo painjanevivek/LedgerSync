@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createLocalSession, readLocalAccessConfiguration } from "../../src/lib/local-access";
+import {
+  createLocalReturnURL,
+  createLocalSession,
+  readLocalAccessConfiguration,
+} from "../../src/lib/local-access";
 
 const localAccessEnvironment = {
   LEDGERSYNC_LOCAL_LOGIN_ENABLED: "true",
@@ -38,4 +42,9 @@ test("local login creates a narrow, expiring operator session in development", (
 
 test("local login is off unless explicitly enabled", () => {
   assert.equal(readLocalAccessConfiguration({ LEDGERSYNC_DEPLOYMENT_ENV: "development" }).enabled, false);
+});
+
+test("local login redirects to the configured loopback origin, not the container bind address", () => {
+  assert.equal(createLocalReturnURL("/guide", localAccessEnvironment).href, "http://127.0.0.1:3000/guide");
+  assert.throws(() => createLocalReturnURL("//example.com", localAccessEnvironment), /application-relative/);
 });
