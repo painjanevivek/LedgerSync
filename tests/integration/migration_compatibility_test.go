@@ -160,14 +160,16 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: os.DirFS(migrationDirectory)}); err != nil {
 		t.Fatal(err)
 	}
-	var canReadOutbox, canReadAudit bool
+	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
-       has_table_privilege('ledgersync_api','audit_events','SELECT')`).Scan(&canReadOutbox, &canReadAudit); err != nil {
+       has_table_privilege('ledgersync_api','audit_events','SELECT'),
+       has_table_privilege('ledgersync_api','tenant_funding_policies','SELECT'),
+       has_table_privilege('ledgersync_api','tenant_funding_policies','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy); err != nil {
 		t.Fatal(err)
 	}
-	if !canReadOutbox || !canReadAudit {
-		t.Fatalf("guided read-model migration did not upgrade API evidence grants: outbox=%t audit=%t", canReadOutbox, canReadAudit)
+	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy {
+		t.Fatalf("migrations did not preserve least-privilege API evidence grants: outbox=%t audit=%t funding_policy_read=%t funding_policy_update=%t", canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy)
 	}
 	wantBalances := map[string][3]int64{
 		legacyAccounts[0]: {725, 725, 9}, legacyAccounts[1]: {10, 10, 2}, legacyAccounts[2]: {20, 20, 3}, legacyAccounts[3]: {30, 30, 4},

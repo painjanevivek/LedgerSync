@@ -140,7 +140,7 @@ func (r *FundingRepository) Approve(ctx context.Context, command appfunding.Deci
 SELECT event.requester_subject_id,event.status,policy.mode,policy.finance_activated,policy.policy_version,
  COALESCE(event.compensation_of_event_id::text,'')
 FROM funding_events event JOIN tenant_funding_policies policy ON policy.tenant_id=event.tenant_id AND policy.currency=event.currency
-WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE`, command.TenantID, command.FundingEventID).Scan(&requester, &status, &mode, &financeActive, &policyVersion, &compensationOf)
+WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID, command.FundingEventID).Scan(&requester, &status, &mode, &financeActive, &policyVersion, &compensationOf)
 		if errors.Is(err, sql.ErrNoRows) {
 			return appfunding.ErrNotFound
 		}
@@ -229,7 +229,7 @@ SELECT event.requester_subject_id,event.destination_account_id::text,event.syste
  policy.mode,policy.finance_activated,policy.per_command_minor,policy.operator_rolling_24h_minor,policy.tenant_rolling_24h_minor,
  COALESCE(event.compensation_of_event_id::text,'')
 FROM funding_events event JOIN tenant_funding_policies policy ON policy.tenant_id=event.tenant_id AND policy.currency=event.currency
-WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE`, command.TenantID, command.FundingEventID).Scan(&requester, &destinationID, &systemID, &currency, &amount, &status, &policy.Mode, &policy.FinanceActive, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling, &compensationOf)
+WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID, command.FundingEventID).Scan(&requester, &destinationID, &systemID, &currency, &amount, &status, &policy.Mode, &policy.FinanceActive, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling, &compensationOf)
 		if errors.Is(err, sql.ErrNoRows) {
 			return appfunding.ErrNotFound
 		}
@@ -385,7 +385,7 @@ FOR UPDATE`, command.TenantID, command.FundingEventID).Scan(&destinationID, &sys
 		}
 		var mode string
 		var financeActive bool
-		if err = tx.QueryRowContext(ctx, `SELECT mode,finance_activated FROM tenant_funding_policies WHERE tenant_id=$1 AND currency=$2 FOR UPDATE`, command.TenantID, currency).Scan(&mode, &financeActive); err != nil {
+		if err = tx.QueryRowContext(ctx, `SELECT mode,finance_activated FROM tenant_funding_policies WHERE tenant_id=$1 AND currency=$2`, command.TenantID, currency).Scan(&mode, &financeActive); err != nil {
 			return err
 		}
 		if mode == string(appfunding.PolicyProductionDualControl) && !financeActive {
@@ -534,7 +534,7 @@ func loadFundingPolicy(ctx context.Context, tx *sql.Tx, tenantID, destinationID,
 SELECT policy.mode,policy.finance_activated,policy.policy_version,policy.per_command_minor,policy.operator_rolling_24h_minor,policy.tenant_rolling_24h_minor
 FROM accounts account JOIN tenant_funding_policies policy ON policy.tenant_id=account.tenant_id AND policy.currency=account.currency
 WHERE account.tenant_id=$1 AND account.id=$2 AND account.currency=$3 AND account.status='active' AND account.account_kind='customer'
-FOR UPDATE`, tenantID, destinationID, currency).Scan(&policy.Mode, &policy.FinanceActive, &policy.Version, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling)
+FOR UPDATE OF account`, tenantID, destinationID, currency).Scan(&policy.Mode, &policy.FinanceActive, &policy.Version, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling)
 	if errors.Is(err, sql.ErrNoRows) {
 		return policy, appfunding.ErrNotFound
 	}
