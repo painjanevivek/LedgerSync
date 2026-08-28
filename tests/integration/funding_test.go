@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -131,7 +132,7 @@ INSERT INTO tenant_funding_policies(
 	compensationCommand := appfunding.CompensationCommand{
 		TenantID: testTenantID, ActorSubjectID: approver, FundingEventID: created.Event.FundingEventID,
 		ReasonCode: "external_evidence_reversed", OperatorNote: "Verified reversal against external evidence case 2026-001.",
-		IdempotencyKey: "funding-compensation-key-000001", CorrelationID: "00000000-0000-4000-8000-000000000505",
+		IdempotencyKey: strings.Repeat("c", 24), CorrelationID: "00000000-0000-4000-8000-000000000505",
 	}
 	compensation, err := service.Compensate(ctx, compensationCommand)
 	if err != nil || compensation.Event.Status != "requested" || compensation.Event.CompensationOfEventID != created.Event.FundingEventID {
@@ -181,7 +182,7 @@ INSERT INTO tenant_funding_policies(
 		t.Fatal("compensation evidence or velocity accounting was incorrect")
 	}
 	secondCompensation := compensationCommand
-	secondCompensation.IdempotencyKey = "funding-compensation-key-000002"
+	secondCompensation.IdempotencyKey = strings.Repeat("d", 24)
 	if _, err = service.Compensate(ctx, secondCompensation); !errors.Is(err, appfunding.ErrConflict) {
 		t.Fatalf("second compensation error=%v", err)
 	}
