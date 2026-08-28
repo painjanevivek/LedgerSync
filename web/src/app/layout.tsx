@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "../styles/tokens.css";
 import "./globals.css";
 import "../styles/responsive.css";
@@ -10,6 +10,12 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "LedgerSync | Operator Console",
   description: "Exact, explainable internal ledger transfers and balances.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

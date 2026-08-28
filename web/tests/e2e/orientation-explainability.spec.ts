@@ -30,6 +30,35 @@ test("orientation reports empty and unavailable durable evidence without browser
   await expect(page.getByText("Completed",{exact:true})).toHaveCount(3);
 });
 
+test("workspace and local guide fill the browser canvas on phone, tablet, and desktop",async({page})=>{
+  await mockOperatorConsole(page);
+  for (const viewport of [{width:390,height:844},{width:768,height:1024},{width:1440,height:900}]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/?guide=1");
+    await expect(page.getByRole("heading",{name:"Follow one INR ledger record from intent to evidence"})).toBeVisible();
+    const geometry=await page.evaluate(()=>{
+      const root=document.documentElement;
+      const shell=document.querySelector<HTMLElement>(".app-shell")?.getBoundingClientRect();
+      const main=document.querySelector<HTMLElement>(".console-main")?.getBoundingClientRect();
+      if (!shell||!main) throw new Error("workspace geometry is unavailable");
+      return {
+        viewportWidth:window.innerWidth,
+        viewportHeight:window.innerHeight,
+        scrollWidth:root.scrollWidth,
+        shellLeft:Math.round(shell.left),
+        shellRight:Math.round(shell.right),
+        shellHeight:Math.round(shell.height),
+        mainRight:Math.round(main.right),
+      };
+    });
+    expect(geometry.scrollWidth).toBe(geometry.viewportWidth);
+    expect(geometry.shellLeft).toBe(0);
+    expect(geometry.shellRight).toBe(geometry.viewportWidth);
+    expect(geometry.mainRight).toBe(geometry.viewportWidth);
+    expect(geometry.shellHeight).toBeGreaterThanOrEqual(geometry.viewportHeight);
+  }
+});
+
 test("transfer detail renders seven linked stored-evidence stages and preserves filtered return context",async({page})=>{
   await mockOperatorConsole(page); await page.goto(`/transfers?q=3333&status=posted`);
   await page.getByRole("link",{name:"Open record"}).click();
