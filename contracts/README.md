@@ -4,4 +4,6 @@
 
 `contracts/api-lifecycle-policy.md` defines compatibility, supported-version, response-header, deprecation, and generated-artifact rules. `contracts/CHANGELOG.md` records reviewed changes and any announced sunset. These governance files are part of the API contract and must change in the same review as an affected operation.
 
+`contracts/generated/` contains the deliberately versioned TypeScript and Go operation catalogues, machine-readable manifest, and Postman-compatible collection. They are regenerated solely from `openapi.yaml` with `npm --prefix web run generate:developer-artifacts`; CI runs the same generator in check mode and fails on drift. The generated clients are transport helpers, never a credential store or an external-funds integration.
+
 The browser-facing BFF mapping and event semantics remain documented in `specs/001-secure-transfer-core/contracts/http-api.md`. CI lints OpenAPI, resolves every local reference, compares routes and response DTO fields with the registered runtime surface, and validates the versioned examples against their request schemas.

@@ -1,0 +1,981 @@
+{
+  "info": {
+    "name": "LedgerSync Private API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.14.0",
+    "_postman_id": "ledgersync-cfdb4cfab4c8381075f93cfc"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000/api"
+    },
+    {
+      "key": "bearerToken",
+      "value": "REPLACE_WITH_PROTECTED_TOKEN"
+    },
+    {
+      "key": "actorAssertion",
+      "value": "REPLACE_WITH_SERVER_ASSERTION"
+    }
+  ],
+  "item": [
+    {
+      "name": "approveDeveloperWebhookReplay",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals"
+      }
+    },
+    {
+      "name": "approveFundingEvent",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-events/{fundingEventId}/approve"
+      }
+    },
+    {
+      "name": "approveTransferCorrection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfer-corrections/{correctionId}/approve"
+      }
+    },
+    {
+      "name": "cancelTransferCorrection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfer-corrections/{correctionId}/cancel"
+      }
+    },
+    {
+      "name": "createAccount",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-createAccount-key"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts"
+      }
+    },
+    {
+      "name": "createDeveloperCredential",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-createDeveloperCredential-key"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/credentials"
+      }
+    },
+    {
+      "name": "createTransfer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-createTransfer-key"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "disableDeveloperWebhook",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-disableDeveloperWebhook-key"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks/{webhookId}/disablements"
+      }
+    },
+    {
+      "name": "downloadOpenAPI",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/openapi.yaml"
+      }
+    },
+    {
+      "name": "explainTransferEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers/{transferId}/explainability"
+      }
+    },
+    {
+      "name": "exportAccountLedgerCSV",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/exports/accounts/{accountId}/transactions.csv"
+      }
+    },
+    {
+      "name": "exportReconciliationCSV",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/exports/reconciliation.csv"
+      }
+    },
+    {
+      "name": "exportTransfersCSV",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/exports/transfers.csv"
+      }
+    },
+    {
+      "name": "getAccountBalance",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{accountId}/balance"
+      }
+    },
+    {
+      "name": "getDeveloperCredential",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/credentials/{credentialId}"
+      }
+    },
+    {
+      "name": "getDeveloperMetadata",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/metadata"
+      }
+    },
+    {
+      "name": "getDeveloperWebhook",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks/{webhookId}"
+      }
+    },
+    {
+      "name": "getEventEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/events/{eventId}"
+      }
+    },
+    {
+      "name": "getFundingEvent",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-events/{fundingEventId}"
+      }
+    },
+    {
+      "name": "getLocalDiagnostics",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/local/diagnostics"
+      }
+    },
+    {
+      "name": "getLocalOrientationEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/local/orientation"
+      }
+    },
+    {
+      "name": "getOwnedAccount",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{accountId}"
+      }
+    },
+    {
+      "name": "getReconciliationRun",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/reconciliation/runs/{runId}"
+      }
+    },
+    {
+      "name": "getRecoveryEvidenceIndex",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/recovery/manifests"
+      }
+    },
+    {
+      "name": "getTransfer",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers/{transferId}"
+      }
+    },
+    {
+      "name": "getTransferCorrection",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfer-corrections/{correctionId}"
+      }
+    },
+    {
+      "name": "listAccountTransactions",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{accountId}/transactions"
+      }
+    },
+    {
+      "name": "listDeveloperCredentials",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/credentials"
+      }
+    },
+    {
+      "name": "listDeveloperWebhookDeliveries",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks/{webhookId}/deliveries"
+      }
+    },
+    {
+      "name": "listDeveloperWebhooks",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks"
+      }
+    },
+    {
+      "name": "listEventEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/events"
+      }
+    },
+    {
+      "name": "listFundingEvents",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-events"
+      }
+    },
+    {
+      "name": "listOwnedAccounts",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/me/accounts"
+      }
+    },
+    {
+      "name": "listReconciliationRuns",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/reconciliation/runs"
+      }
+    },
+    {
+      "name": "listTransferCorrections",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfer-corrections"
+      }
+    },
+    {
+      "name": "listTransfers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "postFundingEvent",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-events/{fundingEventId}/post"
+      }
+    },
+    {
+      "name": "postTransferCorrection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfer-corrections/{correctionId}/post"
+      }
+    },
+    {
+      "name": "reconcileFundingEvent",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-events/{fundingEventId}/reconciliation"
+      }
+    },
+    {
+      "name": "registerDeveloperWebhook",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-registerDeveloperWebhook-key"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks"
+      }
+    },
+    {
+      "name": "rejectFundingEvent",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-events/{fundingEventId}/reject"
+      }
+    },
+    {
+      "name": "rejectTransferCorrection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfer-corrections/{correctionId}/reject"
+      }
+    },
+    {
+      "name": "replayDeveloperWebhookDelivery",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays"
+      }
+    },
+    {
+      "name": "requestFunding",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-requestFunding-key"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-requests"
+      }
+    },
+    {
+      "name": "requestFundingCompensation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-requestFundingCompensation-key"
+          }
+        ],
+        "url": "{{baseUrl}}/funding-events/{fundingEventId}/compensations"
+      }
+    },
+    {
+      "name": "requestTransferCorrection",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-requestTransferCorrection-key"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers/{transferId}/corrections"
+      }
+    },
+    {
+      "name": "revokeDeveloperCredential",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-revokeDeveloperCredential-key"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/credentials/{credentialId}/revocations"
+      }
+    },
+    {
+      "name": "rotateDeveloperCredential",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-rotateDeveloperCredential-key"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/credentials/{credentialId}/rotations"
+      }
+    },
+    {
+      "name": "rotateDeveloperWebhookSignature",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-rotateDeveloperWebhookSignature-key"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks/{webhookId}/signature-rotations"
+      }
+    },
+    {
+      "name": "runReconciliation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-runReconciliation-key"
+          }
+        ],
+        "url": "{{baseUrl}}/reconciliation/runs"
+      }
+    },
+    {
+      "name": "updateAccount",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-updateAccount-key"
+          }
+        ],
+        "url": "{{baseUrl}}/accounts/{accountId}"
+      }
+    },
+    {
+      "name": "updateLocalOrientationPreferences",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/local/orientation/preferences"
+      }
+    },
+    {
+      "name": "verifyDeveloperWebhook",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-verifyDeveloperWebhook-key"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/webhooks/{webhookId}/verifications"
+      }
+    }
+  ]
+}
