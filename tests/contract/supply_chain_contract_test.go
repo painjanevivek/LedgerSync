@@ -56,6 +56,19 @@ func TestQualityRestoreRetainsTheExplicitBackupRoot(t *testing.T) {
 	}
 }
 
+func TestRestoreInvariantRejectsNegativeCustomerBalancesOnly(t *testing.T) {
+	restoreScript := readContractFile(t, filepath.Join(repositoryRoot(t), "scripts", "local-restore-drill.ps1"))
+	for _, required := range []string{
+		"JOIN accounts account ON account.id=balance.account_id",
+		"balance.available_minor < 0 OR balance.ledger_minor < 0",
+		"account.account_kind <> 'funding_clearing'",
+	} {
+		if !strings.Contains(restoreScript, required) {
+			t.Fatalf("restore invariant must preserve controlled clearing balances while rejecting negative customer balances; missing %q", required)
+		}
+	}
+}
+
 func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 	root := repositoryRoot(t)
 	workflow := readContractFile(t, filepath.Join(root, ".github", "workflows", "contract.yml"))
