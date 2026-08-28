@@ -136,16 +136,16 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
         <div><dt>Transfer ID</dt><dd><Link href={`/transfers/${outcome.transferId}`}>{outcome.transferId}</Link></dd></div>
         <div><dt>Journal transaction</dt><dd>{outcome.journalTransactionId ? <CopyControl value={outcome.journalTransactionId} /> : <Link href={`/transfers/${outcome.transferId}`}>Open immutable record</Link>}</dd></div>
         <div><dt>Exact amount</dt><dd>{formatMinorUnits(outcome.currency!, outcome.amountMinor!)}</dd></div>
-        <div><dt>Posted UTC</dt><dd>{outcome.occurredAt ? utcDateTime(outcome.occurredAt) : "Open the immutable record for timestamp evidence"}</dd></div>
+        <div><dt>Posted UTC</dt><dd>{outcome.occurredAt ? utcDateTime(outcome.occurredAt) : "Open the immutable record for its timestamp"}</dd></div>
         <div><dt>Source</dt><dd><Link href={`/accounts/${outcome.source}`}>{outcome.source}</Link></dd></div>
         <div><dt>Destination</dt><dd><Link href={`/accounts/${outcome.destination}`}>{outcome.destination}</Link></dd></div>
       </dl>
       <section className="committed-balance-evidence" aria-labelledby="committed-balances-heading">
-        <p className="eyebrow" id="committed-balances-heading">Committed balance evidence</p>
+        <p className="eyebrow" id="committed-balances-heading">Committed balance details</p>
         {outcome.balances?.length ? <div className="review-grid">{outcome.balances.map((balance) => <div key={balance.account_id}>
           <dt><Link href={`/accounts/${balance.account_id}`}>{balance.account_id === outcome.source ? "Source" : "Destination"} account</Link></dt>
           <dd>{formatMinorUnits(balance.currency, balance.posted_minor)}<code>version {balance.version}</code><small>{utcDateTime(balance.as_of)}</small></dd>
-        </div>)}</div> : <p className="muted">Open the source and destination account records for current balance evidence.</p>}
+        </div>)}</div> : <p className="muted">Open the source and destination account records for current balance details.</p>}
       </section>
       <button className="button secondary" type="button" onClick={() => setOutcome(null)}>Prepare another transfer</button>
       {returnTo && <Link className="text-link" href={returnTo}>Return to account</Link>}

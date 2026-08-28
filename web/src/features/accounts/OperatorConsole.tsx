@@ -169,7 +169,7 @@ export function OperatorConsole({
       setTransferError(
         unavailableMessage(
           response.status,
-          "transfer evidence",
+          "transfer details",
           response.requestReference,
         ),
       );
@@ -271,7 +271,7 @@ export function OperatorConsole({
       setReconciliationError(
         unavailableMessage(
           response.status,
-          "authoritative reconciliation evidence",
+          "authoritative reconciliation results",
           response.requestReference,
         ),
       );
@@ -297,7 +297,7 @@ export function OperatorConsole({
       setReconciliationError(
         unavailableMessage(
           response.status,
-          "the selected reconciliation evidence",
+          "the selected reconciliation result",
           response.requestReference,
         ),
       );
@@ -481,11 +481,11 @@ export function OperatorConsole({
           <PageHeader
             eyebrow={`${title} · LedgerSync operator workspace`}
             title="Verifying access"
-            description="Verifying the authorized tenant scope before financial evidence is displayed."
+            description="Verifying the authorized tenant scope before financial records are displayed."
           />
           <StatePanel
-            title="Loading verified evidence"
-            message="Balances, transfer history, and reconciliation evidence are loading from their authoritative sources."
+            title="Loading financial records"
+            message="Balances, transfer history, and reconciliation results are loading from their authoritative sources."
           />
         </div>
         <ConsoleFooter pending />

@@ -425,7 +425,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     await expect(page.getByText(fundingTransfer.transferID, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(returnTransfer.transferID, { exact: true })).toHaveCount(0);
     const exportReview = page.getByRole("dialog", { name: "Review transfer history export" });
-    await page.getByRole("button", { name: "Export transfer evidence" }).click();
+    await page.getByRole("button", { name: "Export transfer details" }).click();
     await expect(exportReview).toBeVisible();
     await expect(exportReview).toContainText(`Search: ${fundingTransfer.transferID}`);
     await expect(exportReview).toContainText("Financial status: posted");

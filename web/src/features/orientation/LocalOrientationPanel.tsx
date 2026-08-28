@@ -42,7 +42,7 @@ function stateLabel(step: OrientationStep) { return step.state === "completed" ?
 function reason(step: OrientationStep) {
   if (step.reason_code === "no_posted_funding_journal") return "No approved funding journal has been posted for this operator yet.";
   if (step.reason_code === "operator_confirmation_required") return "Open the evidence, then save an explicit operator confirmation.";
-  if (step.reason_code === "no_authorized_account") return "No authorized account evidence is available yet.";
+  if (step.reason_code === "no_authorized_account") return "No authorized account details are available yet.";
   if (step.reason_code === "no_posted_transfer") return "A posted transfer is required before this step can be verified.";
   if (step.reason_code === "no_delivery_attempt") return "No delivery attempt is available to inspect yet.";
   if (step.reason_code === "no_exportable_evidence") return "No authorized evidence is available to export yet.";

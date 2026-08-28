@@ -74,7 +74,7 @@ ORDER BY transfer.completed_at DESC, transfer.id DESC LIMIT $5`, tenantID, accou
 		return nil, "", fmt.Errorf("list history: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	var entries []transactions.Entry
+	entries := make([]transactions.Entry, 0)
 	for rows.Next() {
 		var item transactions.Entry
 		if err := rows.Scan(&item.TransferID, &item.Direction, &item.Amount, &item.Currency, &item.Status, &item.OccurredAt, &item.CorrectionID, &item.CorrectionStatus, &item.CorrectionRole, &item.OriginalTransferID, &item.CompensationTransferID); err != nil {

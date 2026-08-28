@@ -133,7 +133,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     event.preventDefault();
     if (!target || pending) return;
     if (retained && outcome?.kind === "unknown") { await submitIntent(retained); return; }
-    if (!verifiedAccount || evidenceLoading || evidenceError) { showValidation("Refresh did not produce current, consistent account evidence. Cancel and try again when authoritative evidence is available."); return; }
+    if (!verifiedAccount || evidenceLoading || evidenceError) { showValidation("Refresh did not produce current, consistent account details. Cancel and try again when authoritative records are available."); return; }
     if (!validLifecycleReason(reason)) { showValidation("Reason is required and must be 1–256 characters without control characters."); return; }
     if (target === "closed" && confirmation !== verifiedAccount.external_reference) { showValidation("Enter the exact external reference to confirm terminal closure."); return; }
     if (target === "closed" && (!verifiedBalance || !verifiedExactZero)) { showValidation("Current authoritative available and ledger balances must both be exactly INR 0.00 before closure."); return; }
@@ -166,12 +166,12 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
       {account.status === "active" && !canTransfer && <p className="permission-note">Funding is unavailable because your role cannot post transfers.</p>}
       {account.status === "active" && canTransfer && !fundingScopeComplete && <p className="permission-note">The authorized account picker exceeds its bounded scope. LedgerSync cannot prove a funded source, so funding remains unavailable.</p>}
       {account.status === "active" && canTransfer && fundingScopeComplete && !fundedSourceAvailable && <p className="permission-note">No different active, authorized INR source has a positive available balance. Funding remains unavailable.</p>}
-      {!online && <StatePanel kind="offline" title="Account controls are offline" message="Lifecycle commands are disabled until current evidence can be verified and the command can be submitted." />}
+      {!online && <StatePanel kind="offline" title="Account controls are offline" message="Lifecycle commands are disabled until current account details can be verified and the command can be submitted." />}
       {balanceLoading && <StatePanel title="Verifying closure boundary" message="Current available and ledger balances are loading independently." />}
-      {balanceError && <StatePanel kind="unknown" title="Closure evidence unavailable" message="Final closure confirmation remains disabled until the dialog refreshes and verifies both exact balances." />}
-      {balanceCurrent && !exactZero && <StatePanel kind="denied" title="Close account requires exact zero" message={`Authoritative available evidence is ${account.currency} · ${balance!.available_minor} minor units; ledger evidence is ${account.currency} · ${balance!.ledger_minor} minor units. Fund movement must use an auditable transfer; this control cannot edit either value.`} />}
+      {balanceError && <StatePanel kind="unknown" title="Closure details unavailable" message="Final closure confirmation remains disabled until the dialog refreshes and verifies both exact balances." />}
+      {balanceCurrent && !exactZero && <StatePanel kind="denied" title="Close account requires exact zero" message={`Current spendable amount is ${account.currency} · ${balance!.available_minor} minor units; posted ledger amount is ${account.currency} · ${balance!.ledger_minor} minor units. Fund movement must use an auditable transfer; this control cannot edit either value.`} />}
     </>}
-    {outcome && outcome.kind !== "success" && !recovery && !dialogOpen && <div className="account-command-recovery" role="region" aria-labelledby="lifecycle-result-heading"><h3 ref={outcomeHeading} tabIndex={-1} id="lifecycle-result-heading">Lifecycle command not completed</h3><StatePanel kind={outcome.kind === "denied" ? "denied" : "error"} title="Review current account evidence" message={outcome.message} /></div>}
+    {outcome && outcome.kind !== "success" && !recovery && !dialogOpen && <div className="account-command-recovery" role="region" aria-labelledby="lifecycle-result-heading"><h3 ref={outcomeHeading} tabIndex={-1} id="lifecycle-result-heading">Lifecycle command not completed</h3><StatePanel kind={outcome.kind === "denied" ? "denied" : "error"} title="Review current account details" message={outcome.message} /></div>}
     {recovery && !dialogOpen && <div className="account-command-recovery" role="region" aria-live="polite" aria-labelledby="lifecycle-recovery-heading">
       <h3 ref={outcomeHeading} tabIndex={-1} id="lifecycle-recovery-heading">Lifecycle result not yet confirmed</h3>
       <StatePanel kind="unknown" title="Exact command retained" message={outcome?.message ?? "A previous lifecycle submission may have committed. Editing is locked until this exact body and retry key are resolved."} />
@@ -183,8 +183,8 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
         <p className="eyebrow">Guarded lifecycle command</p>
         <h2 id="lifecycle-dialog-heading">{actionLabel(target)}</h2>
         <p id="lifecycle-dialog-description">{actionExplanation(target)} Current account configuration{target === "closed" ? " and both balance values are" : " is"} refreshed when this dialog opens.</p>
-        {evidenceLoading && <StatePanel title="Refreshing authoritative evidence" message="The command stays disabled until current account configuration and required balance evidence are verified." />}
-        {evidenceError && <StatePanel kind="unknown" title="Authoritative evidence unavailable" message={evidenceError} />}
+        {evidenceLoading && <StatePanel title="Refreshing account details" message="The command stays disabled until current account configuration and required balances are verified." />}
+        {evidenceError && <StatePanel kind="unknown" title="Account details unavailable" message={evidenceError} />}
         <dl className="review-grid"><div><dt>Account</dt><dd>{verifiedAccount?.display_name || account.display_name || account.external_reference}<code>{account.account_id}</code></dd></div><div><dt>Current status</dt><dd>{verifiedAccount?.status ?? "Verifying"}</dd></div><div><dt>Expected account version</dt><dd><code>{verifiedAccount?.account_version ?? "Verifying"}</code></dd></div>{target === "closed" && <><div><dt>Available balance</dt><dd>{verifiedBalance ? formatMinorUnits(verifiedBalance.currency, verifiedBalance.available_minor) : "Unavailable"}</dd></div><div><dt>Ledger balance</dt><dd>{verifiedBalance ? formatMinorUnits(verifiedBalance.currency, verifiedBalance.ledger_minor) : "Unavailable"}</dd></div></>}</dl>
         <label>Reason<textarea value={reason} onChange={(event) => { setReason(event.target.value); setValidation(null); }} maxLength={256} rows={4} required disabled={commandLocked} aria-invalid={Boolean(validation)} aria-describedby={`lifecycle-reason-help${validation ? " lifecycle-validation" : ""}`} /></label>
         <p id="lifecycle-reason-help" className="muted">Required audit context, 1–256 characters. It must explain this operator decision.</p>

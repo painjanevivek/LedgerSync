@@ -67,7 +67,7 @@ test("compact developer contract preserves code and retry hierarchy",async({page
 test("transfer export review preserves the exact evidence hierarchy",async({page})=>{
   await mockOperatorConsole(page);
   await page.goto("/transfers");
-  await page.getByRole("button",{name:"Export transfer evidence"}).click();
+  await page.getByRole("button",{name:"Export transfer details"}).click();
   await expect(page.getByRole("heading",{name:"Review transfer history export"})).toBeVisible();
   await capture(page,"transfer-export-review",desktop);
   await capture(page,"transfer-export-review-compact",compact);

@@ -14,7 +14,7 @@ export function BalanceStatus({ currency, availableMinor, version, asOf, verifie
     <p className="eyebrow">{historical ? "Last verified posted balance" : "Posted balance"}</p>
     <strong className="amount-xl" aria-label={`${formatMinorUnits(currency!, availableMinor!)} ${historical ? "historical posted balance" : "posted balance"}`}>{formatMinorUnits(currency!, availableMinor!)}</strong>
     <p className="muted">Version <span className="mono">{version ?? "—"}</span> · As of {asOf ? new Date(asOf).toLocaleString() : "—"}</p>
-    {verifiedAt && <EvidenceFreshness state={historical ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Balance evidence" reason={historical ? error ?? undefined : undefined} />}
+    {verifiedAt && <EvidenceFreshness state={historical ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Balance details" reason={historical ? error ?? undefined : undefined} />}
     {error&&onRetry&&<FocusedRetry label="Retry balance only" onRetry={onRetry} disabled={retryDisabled} busy={loading}/>}
   </section>;
 }

@@ -23,7 +23,7 @@ const steps = [
   {
     title: "Record incoming funds",
     description:
-      "Use Funding evidence to record an external value event. Review, approve, and post it so the balance is backed by a balanced journal.",
+      "Use Funding records to add an external value reference. Review, approve, and post it so the balance is backed by a balanced journal.",
     href: "/funding",
     action: "Open funding",
     icon: Receipt,
@@ -47,15 +47,15 @@ const steps = [
   {
     title: "Run reconciliation",
     description:
-      "Verify that account projections match immutable ledger postings. A matched run with zero mismatches is the completion evidence.",
+      "Verify that account projections match immutable ledger postings. A matched run with zero mismatches is the completed result.",
     href: "/reconciliation",
     action: "Run reconciliation",
     icon: ShieldCheck,
   },
   {
-    title: "Retain the evidence",
+    title: "Keep your records",
     description:
-      "Inspect events and stored transfer evidence, export the bounded CSV records you need, and create host backups outside the browser.",
+      "Inspect delivery events and the stored transfer proof chain, export the bounded CSV records you need, and create host backups outside the browser.",
     href: "/recovery",
     action: "Review recovery",
     icon: Archive,
@@ -68,7 +68,7 @@ export function GuideView() {
       <PageHeader
         eyebrow="Guide / First successful ledger path"
         title="Run LedgerSync with confidence"
-        description="Follow this sequence once from an empty workspace. Each step creates the evidence required by the next, so you never need to invent balances or bypass ledger controls."
+        description="Follow this sequence once from an empty workspace. Each step creates the records required by the next, so you never need to invent balances or bypass ledger controls."
       >
         <Link className="button secondary" href="/">
           Return to overview

@@ -8,9 +8,9 @@ test("same-account refresh failure retains timestamped historical balance and hi
   await expect(page.getByLabel("INR 1250.00 posted balance")).toBeVisible();
   await page.unroute("**/api/accounts/*/balance");
   await page.route("**/api/accounts/*/balance", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
-  await page.getByRole("button", { name: "Refresh evidence" }).click();
+  await page.getByRole("button", { name: "Refresh accounts" }).click();
   await expect(page.getByLabel("INR 1250.00 historical posted balance")).toBeVisible();
-  await expect(page.getByText(/Balance evidence not refreshed/)).toBeVisible();
+  await expect(page.getByText(/Balance details not refreshed/)).toBeVisible();
   await expect(page.getByText("transfer-existing", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Close account" })).toBeEnabled();
 });

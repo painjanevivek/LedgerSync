@@ -140,7 +140,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
         const summary = await readJSON<Account>(`/api/accounts/${encodeURIComponent(accountId)}`);
         if (generation !== detailGeneration.current) return;
         if (summary.ok && summary.data.account_id) { resolvedAccount = summary.data; setAccountDetail(summary.data); setError(null); }
-        else setError(unavailableMessage(summary.status, "account evidence", summary.requestReference));
+        else setError(unavailableMessage(summary.status, "account details", summary.requestReference));
       })(),
       loadBalance(accountId),
       loadHistory(accountId),

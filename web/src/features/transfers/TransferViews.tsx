@@ -377,17 +377,17 @@ export function TransfersView({
         <PageHeader
           eyebrow="Money movement / Immutable record"
           title="Transfer detail"
-          description="Loading the requested immutable transfer evidence."
+          description="Loading the requested immutable transfer details."
         />
         {error ? (
           <StatePanel
             kind="error"
-            title="Transfer evidence unavailable"
+            title="Transfer details unavailable"
             message={error}
           />
         ) : (
           <StatePanel
-            title="Loading transfer evidence"
+            title="Loading transfer details"
             message="Ledger posting and delivery states are verified separately before display."
           />
         )}
@@ -555,7 +555,7 @@ export function TransfersView({
             returnTo={historyReturn}
             exportAction={
               <EvidenceExportControl
-                label="Export transfer evidence"
+                label="Export transfer details"
                 subject="transfer history"
                 endpoint={`/api/exports/transfers.csv?${exportQuery}`}
                 scope="Server-filtered authorized transfer history"

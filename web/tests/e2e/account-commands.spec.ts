@@ -252,9 +252,9 @@ test("close dialog refreshes account configuration and both balances before enab
   await expect(page.getByRole("heading", { name: sourceAccount.display_name })).toBeVisible();
   const before = { summaryReads, balanceReads };
   await page.getByRole("button", { name: "Close account" }).click();
-  await expect(page.getByText("Refreshing authoritative evidence")).toBeVisible();
+  await expect(page.getByText("Refreshing account details")).toBeVisible();
   releaseSummaryRefresh();
-  await expect(page.getByText("Refreshing authoritative evidence")).toBeHidden();
+  await expect(page.getByText("Refreshing account details")).toBeHidden();
   expect(summaryReads).toBeGreaterThan(before.summaryReads);
   expect(balanceReads).toBeGreaterThan(before.balanceReads);
   await expect(page.getByText("Available balance").locator("..")) .toContainText("INR 0.00");

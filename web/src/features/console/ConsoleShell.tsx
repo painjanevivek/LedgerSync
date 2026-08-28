@@ -69,7 +69,7 @@ const navigation = [
       },
       {
         section: "funding" as const,
-        label: "Funding evidence",
+        label: "Funding records",
         href: "/funding",
         icon: Receipt,
       },

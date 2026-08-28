@@ -58,7 +58,7 @@ test("funding browser surface is fixed-route and preserves non-custodial languag
   assert.ok(sources.every((source) => !/export async function (?:PUT|PATCH|DELETE)/.test(source)));
   const views = await readFile("src/features/funding/FundingViews.tsx", "utf8");
   const flow = await readFile("src/features/funding/FundingRequestFlow.tsx", "utf8");
-  assert.match(`${views}\n${flow}`, /external value evidence/i);
+  assert.match(`${views}\n${flow}`, /external value reference/i);
   assert.match(`${views}\n${flow}`, /does not (?:claim|describe)/i);
   assert.doesNotMatch(`${views}\n${flow}`, /confirm deposit|bank deposit completed/i);
 });

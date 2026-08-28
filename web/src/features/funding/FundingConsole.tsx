@@ -47,7 +47,7 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
       setEvents((existing) => cursor ? [...existing, ...response.data.events] : response.data.events);
       setNextCursor(response.data.next_cursor || undefined);
       setVerifiedAt(new Date().toISOString());
-    } else setError(unavailableMessage(response.status, "funding evidence", response.requestReference));
+    } else setError(unavailableMessage(response.status, "funding records", response.requestReference));
     setLoading(false);
   }, []);
 
@@ -62,7 +62,7 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
       setVerifiedAt(new Date().toISOString());
     } else {
       setSelected(null);
-      setError(response.status === 404 ? `The selected funding evidence was not found in this authorized tenant scope. Request reference: ${response.requestReference}.` : unavailableMessage(response.status, "funding evidence", response.requestReference));
+      setError(response.status === 404 ? `The selected funding record was not found in this authorized tenant scope. Request reference: ${response.requestReference}.` : unavailableMessage(response.status, "funding records", response.requestReference));
     }
     setLoading(false);
   }, [fundingEventId]);
@@ -128,8 +128,8 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
     setActionBusy(false);
   }
 
-  if (sessionLoading) return <ConsoleShell section="funding" tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><PageHeader eyebrow="Funding evidence · LedgerSync" title="Verifying access" description="Checking finance evidence scopes before any external reference or journal state is shown." /><StatePanel title="Loading authorized evidence" message="No funding state is inferred while the session boundary is verified." /><ConsoleFooter /></ConsoleShell>;
-  if (!session) return <main className="boot-screen"><p className="eyebrow">Access not verified</p><h1>Funding workspace unavailable</h1><StatePanel kind={sessionError ? "error" : "denied"} title={sessionError ? "Session evidence unavailable" : "No authorized session"} message={sessionError ?? "Sign in with an approved finance operator identity. No funding evidence is displayed."} /></main>;
+  if (sessionLoading) return <ConsoleShell section="funding" tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><PageHeader eyebrow="Funding records · LedgerSync" title="Verifying access" description="Checking finance access before any external reference or journal state is shown." /><StatePanel title="Loading authorized records" message="No funding state is inferred while the session boundary is verified." /><ConsoleFooter /></ConsoleShell>;
+  if (!session) return <main className="boot-screen"><p className="eyebrow">Access not verified</p><h1>Funding workspace unavailable</h1><StatePanel kind={sessionError ? "error" : "denied"} title={sessionError ? "Session unavailable" : "No authorized session"} message={sessionError ?? "Sign in with an approved finance operator identity. No funding records are displayed."} /></main>;
 
   const canRead = session.scopes.includes("funding:read");
   const canWrite = session.scopes.includes("funding:write");
@@ -137,7 +137,7 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   const selectedAccount = accounts.find((account) => account.account_id === selected?.destination_account_id);
   return <ConsoleShell section="funding" tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "local" ? "Local workspace" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "local" ? "This workstation" : "Authorized finance operator"} onSignOut={() => void signOut()}>
     {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Funding actions are disabled; retained evidence is historical until refreshed.</span></div>}
-    {!canRead ? <><PageHeader eyebrow="Ledger / Funding evidence" title="Funding evidence" description="Controlled external value evidence and its balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden finance evidence visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={() => void loadEvent()} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
+    {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={() => void loadEvent()} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
     <ConsoleFooter />
   </ConsoleShell>;
 }

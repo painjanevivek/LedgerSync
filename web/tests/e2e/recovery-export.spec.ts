@@ -35,7 +35,7 @@ test("transfer export review discloses exact filters and uses one native bounded
   await mockOperatorConsole(page); await page.goto("/transfers");
   await page.getByLabel("Search transfers").fill("11111111"); await page.getByLabel("Financial status").selectOption("posted"); await page.getByRole("button",{name:"Apply filters"}).click();
   await expect(page).toHaveURL(/q=11111111.*status=posted/);
-  const trigger=page.getByRole("button",{name:"Export transfer evidence"}); await trigger.click();
+  const trigger=page.getByRole("button",{name:"Export transfer details"}); await trigger.click();
   const dialog=page.getByRole("dialog",{name:"Review transfer history export"}); await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("heading",{name:"Review transfer history export"})).toBeFocused();
   await expect(dialog.getByText("Search: 11111111 · Financial status: posted",{exact:true})).toBeVisible();
@@ -48,10 +48,10 @@ test("transfer export review discloses exact filters and uses one native bounded
 
 test("account and reconciliation exports retain their exact contextual scope",async({page})=>{
   await mockOperatorConsole(page); await page.goto(`/accounts/${destinationAccount.account_id}`);
-  await page.getByRole("button",{name:"Export ledger evidence"}).click();
+  await page.getByRole("button",{name:"Export ledger history"}).click();
   await expect(page.getByRole("dialog",{name:"Review account ledger history export"}).getByText(`One authorized account · ${destinationAccount.account_id}`,{exact:true})).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.goto(`/reconciliation/${run.run_id}`); await page.getByRole("button",{name:"Export run evidence"}).click();
+  await page.goto(`/reconciliation/${run.run_id}`); await page.getByRole("button",{name:"Export run result"}).click();
   const dialog=page.getByRole("dialog",{name:"Review reconciliation run export"});
   await expect(dialog.getByText(`One immutable run · ${run.run_id}`,{exact:true})).toBeVisible();
   await expect(dialog.getByText(`Run ID: ${run.run_id}`,{exact:true})).toBeVisible();
@@ -63,5 +63,5 @@ test("recovery and export controls reflow, deny missing scopes, and fail closed 
   await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["local:read"],environment:"local"}));
   await page.goto("/recovery"); await expect(page.getByText("Recovery evidence not authorized",{exact:true})).toBeVisible();
   await mockOperatorConsole(page); await page.goto("/transfers"); await context.setOffline(true);
-  await expect(page.getByRole("button",{name:"Export transfer evidence"})).toBeDisabled(); await context.setOffline(false);
+  await expect(page.getByRole("button",{name:"Export transfer details"})).toBeDisabled(); await context.setOffline(false);
 });
