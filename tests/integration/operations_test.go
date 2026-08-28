@@ -48,7 +48,12 @@ func TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth(t *testing.T) {
 		t.Fatalf("unauthorized detail error=%v", err)
 	}
 
-	outboxRepository, err := db.NewOutboxRepository(database, func() time.Time { return time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC) })
+	var latestAvailableAt time.Time
+	if err := database.QueryRowContext(context.Background(), `SELECT max(available_at) FROM outbox_events WHERE tenant_id=$1`, testTenantID).Scan(&latestAvailableAt); err != nil {
+		t.Fatal(err)
+	}
+	claimTime := latestAvailableAt.UTC().Add(time.Second)
+	outboxRepository, err := db.NewOutboxRepository(database, func() time.Time { return claimTime })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +65,7 @@ func TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth(t *testing.T) {
 	if err != nil || claimedDetail.State != "pending" {
 		t.Fatalf("healthy first claim mislabeled: detail=%#v error=%v", claimedDetail, err)
 	}
-	if err := outboxRepository.Reschedule(context.Background(), "operations-test-worker", claimed[0].ID, time.Date(2026, 8, 25, 12, 1, 0, 0, time.UTC), "publish_failed"); err != nil {
+	if err := outboxRepository.Reschedule(context.Background(), "operations-test-worker", claimed[0].ID, claimTime.Add(time.Minute), "publish_failed"); err != nil {
 		t.Fatal(err)
 	}
 	retrying, _, err := events.List(context.Background(), testTenantID, testActorID, operations.EventFilter{State: "retrying", Limit: 25})
