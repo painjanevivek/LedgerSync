@@ -158,7 +158,9 @@ test("read-only transfer role explains why posting is disabled", async ({ page }
   await mockOperatorConsole(page);
   await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: [], environment: "demo", tenant_label: "Meridian Labs · Test", operator_label: "Read-only auditor" }));
   await page.goto("/transfers");
-  await expect(page.getByText("Read-only role: transfer posting is not permitted.")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),
+  ).toHaveText("Read-only role: transfer posting is not permitted.");
   await capture(page, "transfers-read-only", desktop);
 });
 
