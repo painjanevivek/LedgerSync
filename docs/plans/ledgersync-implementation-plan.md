@@ -1,5 +1,7 @@
 # LedgerSync Implementation Plan
 
+> **Historical plan:** retained for implementation and audit evidence. The [master completion plan](ledgersync-master-product-system-and-website-completion-plan.md) and [master delivery register](ledgersync-master-progress.md) are authoritative from 2026-08-28.
+
 **Document type:** evidence-led implementation, hardening, and controlled-pilot plan  
 **Prepared:** 23 August 2026  
 **Architecture-audit amendment:** 24 August 2026  

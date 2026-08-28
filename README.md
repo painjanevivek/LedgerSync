@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Release status:** the complete expanded **local-only product passed consolidated acceptance** for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. The [Phase 10 evidence](docs/release-evidence/local-product-phase-10-acceptance.md) covers the complete account, transfer, reconciliation, investigation, developer, export, recovery, restart, security, and 25 TPS journey. The product is not approved for LAN, cloud, shared-host, or production deployment. See the [local-product gate register](docs/pilot/local-product-completion-gates.md).
+**Release status:** the complete expanded **local-only product passed consolidated acceptance** for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. The current commit is being requalified under the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md); see the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. Earlier [Phase 10 evidence](docs/release-evidence/local-product-phase-10-acceptance.md) covers the account, transfer, reconciliation, investigation, developer, export, recovery, restart, security, and 25 TPS journey, but does not approve LAN, cloud, shared-host, pilot, or production deployment.
 
 ## Contents
 

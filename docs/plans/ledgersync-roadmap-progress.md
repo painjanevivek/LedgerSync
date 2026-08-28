@@ -1,5 +1,7 @@
 # LedgerSync Future-Scope Delivery Register
 
+> **Historical status snapshot (2026-08-24):** the [master delivery register](ledgersync-master-progress.md) now owns current phase status. Keep this file as evidence; do not update it as the active register.
+
 **Roadmap source:** `docs/plans/ledgersync-future-scope-implementation-plan.md`  
 **Last updated:** 2026-08-24  
 **Current delivery gate:** Phase 0 complete; Phase 1 repository closure is implemented and awaiting managed AWS/Cognito, recovery, partner, and accountable-human evidence.

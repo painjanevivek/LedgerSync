@@ -1,6 +1,6 @@
 # LedgerSync pilot completion gate register
 
-**Status:** authoritative repository gate list
+**Status:** historical detailed pilot-gate inventory; subordinate to the [master delivery register](../plans/ledgersync-master-progress.md)
 
 **Established:** 2026-08-24
 
@@ -8,7 +8,7 @@
 
 **Scope:** engineering MVP → controlled design-partner pilot → evidence-based graduation
 
-This register is the single status source for work that remains after the verified engineering MVP. A non-technical reader can use the **Status** and **Next action** columns without interpreting code. A repository test never substitutes for a real device, managed provider, legal decision, named operator, partner consent, or operating history.
+This register preserves the detailed shared-pilot gates established on 2026-08-24. Current cross-phase status is maintained in the master delivery register. A repository test never substitutes for a real device, managed provider, legal decision, named operator, partner consent, or operating history.
 
 ## Status rules
 
