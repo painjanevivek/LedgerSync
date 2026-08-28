@@ -1,10 +1,10 @@
-# Master Phase 4 — guided operator journey foundation
+# Master Phase 4 — guided operator journey
 
-**Result:** `FOUNDATION PASSED / PHASE ACTIVE`
+**Result:** `PASSED / COMPLETE`
 
-**Candidate:** `8800eafa783f6f5d2ded105b03a498c1dcab75c2`; the implementation, reviewed visual baselines, migration, staged-role compatibility, and tests are pushed to `origin/main`.
+**Qualified candidate:** `98ef5660c54cf72da9d37dba5bc349fbadc89f96`
 
-**Completion boundary:** this evidence does not close Phase 4. The full first-run loop depends on the approved funding-journal capability in Phase 5. LedgerSync truthfully renders that step as unavailable and never treats a transfer, seed balance, or database edit as funding.
+**Completion decision:** Phase 5 supplies the previously missing controlled funding capability. The twelve-step guide now derives funding completion only from a posted original funding event and links to its immutable evidence record.
 
 ## Implemented product outcome
 
@@ -14,7 +14,8 @@
 - Added PostgreSQL-owned tenant-and-subject preferences for dismissal and allowlisted manual confirmations.
 - Added optimistic versioning, conflict refresh, bounded strict request parsing, `local:write`, operator-role enforcement, CSRF protection at the BFF, and fixed private routing.
 - Added dismiss, reopen, restart-manual-progress, safe-stop, compact layout, forced-colors borders, and plain-language definitions.
-- Kept funding unavailable pending Phase 5 rather than fabricating a successful end-to-end loop.
+- Replaced the temporary funding capability stop with PostgreSQL-backed posted-funding evidence after Phase 5 qualified the command.
+- Added a real-stack funding journey proving same-key request replay, approval, posting, post replay, exact balance/version advancement, matched funding reconciliation, and checklist completion.
 
 ## Verification performed on the candidate
 
@@ -27,21 +28,22 @@
 | Browser functionality, accessibility, responsive, and visual suite | Passed 124/124 after reviewed baseline promotion; includes unknown-response refresh without optimistic completion |
 | Reviewed cross-platform visual changes | Populated and mixed-currency Overview images inspected on Windows and from exact-commit pinned-Linux CI; hierarchy, stop-ship semantics, exact evidence, navigation, and error separation approved |
 | Web performance | Passed 2/2; compact Overview LCP 1868 ms, CLS 0, observed INP 72 ms |
+| Funding onboarding bridge | Passed: application, live PostgreSQL integration, strict browser sanitizer, production build, and real-stack system test contract |
 
 ## Exact-commit hosted evidence
 
 | Gate | Run | Result |
 |---|---|---|
-| Quality | `33156046449` | Passed for `8800eaf`: Go, web, 124 browser checks, reviewed Linux visuals, disposable PostgreSQL/Redis integration, migration upgrade compatibility, role privileges, real-stack recovery, and release evidence |
-| Production path | `33156046450` | Passed for `8800eaf` |
-| Supply chain and security | `33156046469` | Passed for `8800eaf` |
-| Contract validation | `33155048723` | Passed for `3370d5c`; the later commits changed only database role provisioning and stale integration evidence, outside the contract workflow path filter |
+| Quality | `33166233664` | Passed for `98ef566`: Go, web, browser, disposable PostgreSQL/Redis, posted-funding onboarding, least-privilege upgrade, backup/isolated restore, reconciliation/cache rebuild, restart, and dependency-fault recovery |
+| Production path | `33166233627` | Passed for `98ef566` |
+| Supply chain and security | `33166233616` | Passed for `98ef566` |
+| Contract validation | `33165575264` | Passed for `ab5dbd4`; the final candidate changed only the internal cache projection query and its live integration regression, outside the contract workflow path filter |
 
-The corrective trail is preserved rather than hidden: `d4fc49d` introduced the foundation, `3370d5c` canonicalized empty progress and promoted reviewed Linux images, `acb0847` added least-privilege preference grants and the migration-17 diagnostics expectation, and `8800eaf` made those grants valid in both supported provisioning orders. The final hosted upgrade simulation proves that `roles.sql` remains safe on pre-migration-17 schemas.
+The corrective trail is preserved rather than hidden: `d4fc49d` introduced the foundation, `3370d5c` canonicalized empty progress and promoted reviewed Linux images, `acb0847` added least-privilege preference grants and the migration-17 diagnostics expectation, `8800eaf` made those grants valid in both supported provisioning orders, `97e9ae1` completed the funding step without manufacturing completion, `68478a5` qualified that bridge through the least-privilege PostgreSQL upgrade path, and `98ef566` closed the exact-candidate recovery/cache boundary.
 
-## Remaining Phase 4 exit work
+## Exit-gate decision
 
-- Complete and approve Phase 5 controlled funding journals.
-- Replace the funding capability stop with authorized durable funding evidence and its safe next action.
-- Execute the complete first-time health-to-backup loop after funding exists.
-- Re-run exact-commit local, Linux visual, integration, security, production-build, and real-stack gates before changing M04 to `COMPLETE`.
+- Every step resumes from PostgreSQL-owned evidence or explicit versioned operator confirmation.
+- The guide does not complete funding from seed balances, ordinary transfers, database edits, or unposted requests.
+- Missing evidence remains missing, unavailable recovery evidence remains unavailable, and sensitive financial steps cannot be manually checked off.
+- The repository-supported health-to-backup loop is complete. Physical-device, assistive-technology, provider, legal, and design-partner approvals remain manual gates in later phases.
