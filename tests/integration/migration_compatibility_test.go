@@ -121,13 +121,6 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: phaseSeven}); err != nil {
 		t.Fatal(err)
 	}
-	rolesSQL, err := os.ReadFile(filepath.Join(filepath.Dir(sourceFile), "..", "..", "deploy", "postgres", "roles.sql"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
-		t.Fatalf("apply pre-000013 database roles: %v", err)
-	}
 	legacyTenant := "00000000-0000-0000-0000-000000000801"
 	legacyAccounts := []string{
 		"00000000-0000-0000-0000-000000000802",
@@ -165,6 +158,13 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	}
 	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: os.DirFS(migrationDirectory)}); err != nil {
 		t.Fatal(err)
+	}
+	rolesSQL, err := os.ReadFile(filepath.Join(filepath.Dir(sourceFile), "..", "..", "deploy", "postgres", "roles.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
+		t.Fatalf("apply post-upgrade database roles: %v", err)
 	}
 	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy bool
 	if err := upgradeDatabase.QueryRow(`
