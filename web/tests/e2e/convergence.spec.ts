@@ -27,6 +27,40 @@ test("same-filter event refresh failure retains its last verified page", async (
   await expect(page.getByText(/Event page not refreshed/)).toBeVisible();
 });
 
+test("failed account picker is unavailable rather than an unfunded-account business state", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/me/accounts?*");
+  await page.route("**/api/me/accounts?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
+  await page.goto("/transfers");
+  await expect(page.getByText("Account picker unavailable", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry account picker only" })).toBeVisible();
+  await expect(page.getByText("No funded source account", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Review transfer" })).toHaveCount(0);
+});
+
+test("overview preserves independent evidence when transfer history is unavailable", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/transfers?*");
+  await page.route("**/api/transfers?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
+  await page.goto("/");
+  await expect(page.getByText("Operating-controlled balances", { exact: true })).toBeVisible();
+  await expect(page.getByText("Latest reconciliation passed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Transfer history unavailable", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry transfers only" })).toBeVisible();
+  await expect(page.getByText("No transfer records", { exact: true })).toHaveCount(0);
+});
+
+test("reconciliation command waits for verified history instead of treating failure as idle", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/reconciliation/runs?*");
+  await page.route("**/api/reconciliation/runs?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
+  await page.goto("/reconciliation");
+  await expect(page.getByRole("button", { name: "Run reconciliation", exact: true })).toBeDisabled();
+  await expect(page.getByText(/Starting a run is disabled until current reconciliation history is verified/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry reconciliation history only" })).toBeVisible();
+  await expect(page.getByText("No reconciliation evidence", { exact: true })).toHaveCount(0);
+});
+
 test("compact navigation is modal, traps focus, and excludes the background", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockOperatorConsole(page);

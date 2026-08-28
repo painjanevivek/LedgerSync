@@ -7,7 +7,12 @@ const tablet = { width: 768, height: 1024 };
 const desktop = { width: 1440, height: 900 };
 
 function json(route: Route, body: unknown, status = 200) {
-  return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  return route.fulfill({
+    status,
+    contentType: "application/json",
+    headers: { "X-Request-ID": "visual-request-reference" },
+    body: JSON.stringify(body),
+  });
 }
 
 async function capture(page: Page, name: string, viewport = desktop) {

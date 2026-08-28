@@ -24,6 +24,7 @@ function eventQuery(filters: EventFilters) {
 export function OperationsConsole({ section, eventId, filters = emptyEventFilters, returnTo }: Props) {
   const router = useRouter();
   const [session, setSession] = useState<ConsoleSession | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [online, setOnline] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -40,7 +41,7 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
     setLoading(true);
     const response = await readJSON<LocalDiagnostics>("/api/local/diagnostics");
     if (response.ok && response.data.overall_state) { setDiagnostics(response.data); setVerifiedAt(response.data.generated_at); setError(null); }
-    else setError(unavailableMessage(response.status, "local diagnostics"));
+    else setError(unavailableMessage(response.status, "local diagnostics", response.requestReference));
     setLoading(false);
   }, []);
 
@@ -55,7 +56,7 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
     const response = await readJSON<EventPage>(`/api/events?${key}`);
     if (generation !== requestGeneration.current) return;
     if (response.ok && Array.isArray(response.data.events)) { setEvents(response.data.events); setNextCursor(response.data.next_cursor || undefined); setVerifiedAt(new Date().toISOString()); setError(null); }
-    else setError(unavailableMessage(response.status, "event evidence"));
+    else setError(unavailableMessage(response.status, "event evidence", response.requestReference));
     setLoading(false);
   }, [filters]);
 
@@ -71,7 +72,7 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
     const response = await readJSON<DeliveryEventDetail>(`/api/events/${encodeURIComponent(eventId)}`);
     if (generation !== requestGeneration.current) return;
     if (response.ok && response.data.event_id) { setEvent(response.data); setVerifiedAt(new Date().toISOString()); setError(null); }
-    else setError(response.status === 404 ? "The selected event was not found in this authorized tenant scope." : unavailableMessage(response.status, "event detail"));
+    else setError(response.status === 404 ? `The selected event was not found in this authorized tenant scope. Request reference: ${response.requestReference}.` : unavailableMessage(response.status, "event detail", response.requestReference));
     setLoading(false);
   }, [eventId]);
 
@@ -80,7 +81,8 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
     (async () => {
       const response = await readJSON<ConsoleSession>("/api/session");
       if (!active) return;
-      if (response.ok && response.data.tenant_id) setSession(response.data);
+      if (response.ok && response.data.tenant_id) { setSession(response.data); setSessionError(null); }
+      else setSessionError(response.status === 401 ? null : unavailableMessage(response.status, "the authorized session", response.requestReference));
       setSessionLoading(false);
     })();
     return () => { active = false; };
@@ -110,7 +112,7 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
   }
 
   if (sessionLoading) return <ConsoleShell section={section} tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><PageHeader eyebrow="Local operations · LedgerSync" title="Verifying access" description="Checking the authorized tenant and read scope before operational evidence is displayed."/><StatePanel title="Loading authorized evidence" message="No dependency or delivery state is being inferred while the session is verified."/><ConsoleFooter/></ConsoleShell>;
-  if (!session) return <main className="boot-screen"><p className="eyebrow">Authentication required</p><h1>Operator workspace unavailable</h1><StatePanel kind="denied" title="No authorized session" message="Configure the approved OIDC provider, or explicitly enable the isolated local demo environment. No operational data is displayed." /></main>;
+  if (!session) return <main className="boot-screen"><p className="eyebrow">Access not verified</p><h1>Operator workspace unavailable</h1><StatePanel kind={sessionError ? "error" : "denied"} title={sessionError ? "Session evidence unavailable" : "No authorized session"} message={sessionError ?? "Configure the approved OIDC provider, or explicitly enable the isolated local demo environment. No operational data is displayed."} /></main>;
 
   const canRead = section === "local-status" ? session.scopes.includes("local:read") : session.scopes.includes("events:read");
   return <ConsoleShell section={section} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "demo" ? "Isolated demo" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "demo" ? "Non-production data" : "Authorized operator"} preview={session.environment === "demo"} onSignOut={() => void signOut()}>

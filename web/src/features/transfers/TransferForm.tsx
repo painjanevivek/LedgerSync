@@ -5,7 +5,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
 import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
-import { CopyControl, StatePanel } from "@/features/console/components";
+import { CopyControl, EvidenceFreshness, FocusedRetry, StatePanel } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
 import type { PreparedTransfer } from "@/features/transfers/transferIntent";
 import { useTransferSubmission } from "@/features/transfers/useTransferSubmission";
@@ -14,15 +14,20 @@ import { formatMinorUnits, minorUnitsFromDecimal } from "@/lib/money";
 
 type Props = Readonly<{
   accounts: Account[];
+  accountsLoading: boolean;
+  accountsError: string | null;
+  accountsVerifiedAt?: string;
   tenantId: string;
   csrfToken: string;
   disabled?: boolean;
+  disabledReason?: string;
   preferredDestinationId?: string;
   returnTo?: string;
+  onRetryAccounts: () => void;
   onPosted: () => Promise<void>;
 }>;
 
-export function TransferForm({ accounts, tenantId, csrfToken, disabled, preferredDestinationId, returnTo, onPosted }: Props) {
+export function TransferForm({ accounts, accountsLoading, accountsError, accountsVerifiedAt, tenantId, csrfToken, disabled, disabledReason, preferredDestinationId, returnTo, onRetryAccounts, onPosted }: Props) {
   const transferable = useMemo(() => accounts.filter((account) => account.status === "active"), [accounts]);
   const fundedSources = useMemo(() => transferable.filter((account) => hasPositiveMinorUnits(account.available_minor)), [transferable]);
   const preferredDestination = useMemo(() => transferable.find((account) => account.account_id === preferredDestinationId), [preferredDestinationId, transferable]);
@@ -60,6 +65,12 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, preferre
 
   const effectivePrepared = prepared ?? restorableIntent;
   const preferredFundingBlocked = Boolean(preferredDestination && !storedIntent && !fundedSources.some((account) => account.account_id !== preferredDestination.account_id && account.currency === preferredDestination.currency));
+  const pickerUnavailable = accountsLoading || Boolean(accountsError);
+  const prerequisiteReason = accountsError
+    ? "New transfer preparation is disabled because the authorized account picker could not be refreshed. Previously loaded accounts remain historical."
+    : accountsLoading
+      ? "New transfer preparation is disabled while the authorized account picker is loading."
+      : disabledReason;
 
   useEffect(() => {
     if (preferredConsumed.current || userChangedRoute.current || storedIntent || !preferredDestination) return;
@@ -151,6 +162,7 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, preferre
 
   if (effectivePrepared) {
     const outcomeUnknown = outcome?.kind === "unknown";
+    const submissionDisabled = Boolean(disabled || (!outcomeUnknown && pickerUnavailable));
     return <section className="surface transfer-review" aria-labelledby="transfer-review-heading">
       <p className="eyebrow">Review before posting</p>
       <h2 ref={reviewHeading} tabIndex={-1} id="transfer-review-heading">Confirm exact transfer</h2>
@@ -165,15 +177,25 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, preferre
         title={outcomeUnknown ? "Result not yet confirmed" : "Transfer not posted"}
         message={outcome.message}
       />}
+      {accountsError && <StatePanel kind="error" title="Account picker unavailable" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
       <div className="action-row">
         {outcomeUnknown
           ? <p className="intent-lock-note">Editing is locked until this exact outcome is confirmed.</p>
           : <button className="button secondary" type="button" disabled={pending} onClick={() => { setPrepared(null); setOutcome(null); }}>Back to edit</button>}
-        <button className="button primary" type="button" disabled={pending || disabled} onClick={() => void submit()}>
+        <button className="button primary" type="button" aria-describedby={submissionDisabled ? "transfer-disabled-reason" : undefined} disabled={pending || submissionDisabled} onClick={() => void submit()}>
           {pending ? "Posting transfer…" : outcomeUnknown ? "Retry same transfer" : "Confirm and post"}
         </button>
       </div>
+      {submissionDisabled && <p id="transfer-disabled-reason" className="permission-note">{prerequisiteReason ?? "Transfer posting is unavailable until connectivity and authorization are verified."}</p>}
     </section>;
+  }
+
+  if (accountsLoading && accounts.length === 0) {
+    return <StatePanel title="Loading authorized account picker" message="Source and destination controls remain disabled until the account request succeeds. No empty account scope is inferred." />;
+  }
+
+  if (accountsError && accounts.length === 0) {
+    return <StatePanel kind="error" title="Account picker unavailable" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />;
   }
 
   if (preferredFundingBlocked || transferable.length < 2 || fundedSources.length === 0 || destinations.length === 0) {
@@ -186,14 +208,17 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, preferre
       <h2 id="transfer-heading">Internal transfer</h2>
       <p className="muted">Exact, same-currency movement between authorized ledger accounts.</p>
     </div>
+    {accountsVerifiedAt && <EvidenceFreshness state={accountsError ? "historical" : accountsLoading ? "refreshing" : "current"} verifiedAt={accountsVerifiedAt} label="Account picker" reason={accountsError ?? undefined} />}
+    {accountsError && <StatePanel kind="error" title="Account picker not refreshed" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
     <form onSubmit={prepare} noValidate>
-      <label>From account<select value={effectiveSource} onChange={(event) => { userChangedRoute.current = true; setSource(event.target.value); }} disabled={disabled}>{fundedSources.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
-      <label>To account<select value={effectiveDestination} onChange={(event) => { userChangedRoute.current = true; setDestination(event.target.value); }} disabled={disabled}>{destinations.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
-      <label>Exact amount<input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" autoComplete="off" placeholder="0.00" aria-describedby="transfer-help transfer-error" aria-invalid={Boolean(validation)} disabled={disabled} /></label>
+      <label>From account<select value={effectiveSource} onChange={(event) => { userChangedRoute.current = true; setSource(event.target.value); }} disabled={disabled || pickerUnavailable}>{fundedSources.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
+      <label>To account<select value={effectiveDestination} onChange={(event) => { userChangedRoute.current = true; setDestination(event.target.value); }} disabled={disabled || pickerUnavailable}>{destinations.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
+      <label>Exact amount<input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" autoComplete="off" placeholder="0.00" aria-describedby="transfer-help transfer-error transfer-disabled-reason" aria-invalid={Boolean(validation)} disabled={disabled || pickerUnavailable} /></label>
       <p id="transfer-help" className="muted">Decimal text becomes integer minor units. Floating-point arithmetic is never used.</p>
       {preferredDestination && !storedIntent && <p className="destination-preselection" role="status">Destination preselected from account <code>{preferredDestination.account_id}</code>. Review the source and exact amount before posting.</p>}
       {validation && <p id="transfer-error" className="field-error" role="alert">{validation}</p>}
-      <button className="button primary" disabled={disabled} type="submit">Review transfer</button>
+      <button className="button primary" disabled={disabled || pickerUnavailable} aria-describedby={disabled || pickerUnavailable ? "transfer-disabled-reason" : undefined} type="submit">Review transfer</button>
+      {(disabled || pickerUnavailable) && <p id="transfer-disabled-reason" className="permission-note">{prerequisiteReason ?? "Transfer preparation is disabled until connectivity and authorization are verified."}</p>}
     </form>
   </section>;
 }

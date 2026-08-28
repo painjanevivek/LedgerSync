@@ -77,7 +77,8 @@ test("developer scope denial is distinct and suppresses metadata requests",async
   await page.goto("/developer");
   await expect(page.getByText("Developer contract not authorized")).toBeVisible();
   expect(requested).toBe(false);
-  await expect(page.getByRole("button",{name:"Download OpenAPI YAML"})).toBeDisabled();
+  await expect(page.getByText("Download unavailable until the current authorized contract is loaded.")).toBeVisible();
+  await expect(page.getByRole("button",{name:"Download OpenAPI YAML"})).toHaveCount(0);
 });
 
 test("long code and contract tables reflow at 320px and 200-percent-equivalent width",async({page})=>{
@@ -100,6 +101,7 @@ test("offline state preserves loaded metadata and disables refresh and download"
   await context.setOffline(true);
   await expect(page.getByText("Offline — contract freshness is not verified")).toBeVisible();
   await expect(page.getByRole("button",{name:"Refresh contract"})).toBeDisabled();
-  await expect(page.getByRole("button",{name:"Download OpenAPI YAML"})).toBeDisabled();
+  await expect(page.getByText("Download unavailable until the current authorized contract is loaded.")).toBeVisible();
+  await expect(page.getByRole("button",{name:"Download OpenAPI YAML"})).toHaveCount(0);
   await context.setOffline(false);
 });

@@ -24,12 +24,13 @@ type Props = Readonly<{
   csrfToken: string;
   online: boolean;
   canWrite: boolean;
+  evidenceReady: boolean;
   latestRun: ReconciliationRun | null;
   onObserved: (run: ReconciliationRun) => void;
   onRefreshHistory: () => Promise<void>;
 }>;
 
-export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, latestRun, onObserved, onRefreshHistory }: Props) {
+export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, evidenceReady, latestRun, onObserved, onRefreshHistory }: Props) {
   const storageKey = useMemo(() => reconciliationCommandStorageKey(tenantId), [tenantId]);
   const [intent, setIntent] = useState<ReconciliationCommandIntent | null>(null);
   const [outcome, setOutcome] = useState<ReconciliationCommandOutcome | null>(null);
@@ -199,9 +200,10 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, l
   return <section className="reconciliation-control" aria-labelledby="reconciliation-control-heading">
     <div className="section-heading reconciliation-control-heading">
       <div><p className="eyebrow">Serialized operator control</p><h2 id="reconciliation-control-heading">Run reconciliation</h2><p>Start one tenant-wide comparison between projected balances and immutable postings. Existing run evidence remains available below.</p></div>
-      <button className="button primary guarded-control" type="button" disabled={!online || !canWrite || pending || commandLocked} onClick={beginReview}><ShieldCheck aria-hidden="true" />Run reconciliation</button>
+      <button className="button primary guarded-control" type="button" aria-describedby={!evidenceReady ? "reconciliation-prerequisite-reason" : undefined} disabled={!online || !canWrite || !evidenceReady || pending || commandLocked} onClick={beginReview}><ShieldCheck aria-hidden="true" />Run reconciliation</button>
     </div>
     {!canWrite && <p className="permission-note">Read-only role: reconciliation can be inspected, but your role cannot start a run.</p>}
+    {!evidenceReady && <p id="reconciliation-prerequisite-reason" className="permission-note">Starting a run is disabled until current reconciliation history is verified, so an unavailable dependency is never mistaken for an empty or idle state.</p>}
     {!online && <StatePanel kind="offline" title="Reconciliation controls are offline" message="Known run history remains visible. Starting and checking a run are disabled until the browser reconnects." />}
 
     {intent?.state === "review" && <section className="surface reconciliation-command-document" aria-labelledby="reconciliation-review-heading">
@@ -214,7 +216,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, l
         <p><span>Financial mutation</span><strong>None — no balance, transfer, posting, or journal entry is changed</strong></p>
       </div>
       <p className="guardrail-copy">The private service serializes runs per tenant. Completion creates new immutable evidence; it does not replace earlier successful or mismatch history.</p>
-      <div className="action-row reconciliation-command-actions"><button className="button secondary guarded-control" type="button" disabled={pending} onClick={() => persist(null)}>Cancel</button><button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite} onClick={() => void submit(intent)}>{pending ? "Starting reconciliation…" : "Start reconciliation"}</button></div>
+      <div className="action-row reconciliation-command-actions"><button className="button secondary guarded-control" type="button" disabled={pending} onClick={() => persist(null)}>Cancel</button><button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite || !evidenceReady} onClick={() => void submit(intent)}>{pending ? "Starting reconciliation…" : "Start reconciliation"}</button></div>
     </section>}
 
     {running && <section className="surface reconciliation-command-document running" role="status" aria-labelledby="reconciliation-running-heading" aria-live="polite">

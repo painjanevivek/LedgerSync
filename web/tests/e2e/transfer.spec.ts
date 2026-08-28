@@ -36,6 +36,22 @@ test("an authorized operator retries a lost response with the same idempotency k
   expect(keys[1]).toBe(keys[0]);
 });
 
+test("rapid repeated activation dispatches only one transfer request", async ({ page }) => {
+  await mockOperatorConsole(page);
+  let calls = 0;
+  await page.route("**/api/transfers", async (route) => {
+    calls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ transfer_id: "transfer-single-flight", status: "posted", currency: "INR", amount_minor: "1250", occurred_at: "2026-08-19T12:00:01Z", minimum_balance_versions: {}, balances: {} }) });
+  });
+  await page.goto("/transfers");
+  await page.getByLabel("Exact amount").fill("12.50");
+  await page.getByRole("button", { name: "Review transfer" }).click();
+  await page.getByRole("button", { name: "Confirm and post" }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+  await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeVisible();
+  expect(calls).toBe(1);
+});
+
 test("an unknown transfer survives reload with its exact intent and only the same-key retry action", async ({ page }) => {
   await mockOperatorConsole(page);
   const keys: string[] = [];

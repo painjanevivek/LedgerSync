@@ -36,6 +36,10 @@
 }
 
 @media (max-width: 760px) {
+  /* Reserve each independently loaded overview region so progressive evidence does not move later content. */
+  .overview-account-state { min-block-size: 31rem; }
+  .overview-reconciliation-state { min-block-size: 11rem; }
+  .overview-transfer-state { min-block-size: 36rem; }
   .button { min-height: var(--target-compact); }
   .side-nav .icon-button { width: var(--target-compact); height: var(--target-compact); }
   .app-shell { grid-template-columns: 1fr; }
@@ -119,6 +123,8 @@
   .operations-environment { padding: 18px 12px; }
   .operations-environment dl, .event-filter-document { grid-template-columns: 1fr; }
   .safe-next-action { grid-template-columns: 1fr; }
+  .capability-guidance { grid-template-columns: 1fr; }
+  .capability-guidance p { grid-template-columns: 1fr; gap: 4px; }
   .event-filter-actions { flex-direction: column; }
   .event-filter-actions .button { width: 100%; min-height: var(--target-comfortable); }
   .event-detail-document { padding: 20px 12px; }

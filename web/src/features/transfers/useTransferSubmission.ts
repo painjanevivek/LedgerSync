@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { TransferDetail } from "@/features/accounts/types";
 import {
@@ -24,14 +24,18 @@ export type TransferOutcome = Readonly<{
   occurredAt?: string;
   journalTransactionId?: string;
   balances?: TransferBalance[];
+  requestReference?: string;
 }> | null;
 
 type TransferErrorPayload = Readonly<{ error?: { code?: string } }>;
 
-const unknownOutcome: TransferOutcome = {
-  kind: "unknown",
-  message: "The result is not confirmed. Retry this exact transfer; LedgerSync will reuse its existing idempotency key.",
-};
+function unknownOutcome(reference: string): TransferOutcome {
+  return {
+    kind: "unknown",
+    requestReference: reference,
+    message: `The result is not confirmed. Retry this exact transfer; LedgerSync will reuse its existing idempotency key. Request reference: ${reference}.`,
+  };
+}
 
 function isDefinitiveRejection(status: number, code?: string): boolean {
   if (["insufficient_funds", "transfer_policy_denied", "account_inactive", "idempotency_conflict", "validation_failed", "csrf_failed", "forbidden", "unauthorized"].includes(code ?? "")) return true;
@@ -40,6 +44,7 @@ function isDefinitiveRejection(status: number, code?: string): boolean {
 
 export function useTransferSubmission(tenantId: string, csrfToken: string, onPosted: () => Promise<void>) {
   const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
   const [outcome, setOutcome] = useState<TransferOutcome>(null);
   const storageKey = transferIntentStorageKey(tenantId);
   const subscribe = useCallback((notify: () => void) => {
@@ -83,7 +88,8 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
   }
 
   async function submit(prepared: PreparedTransfer) {
-    if (pending) return false;
+    if (pending || inFlight.current) return false;
+    inFlight.current = true;
 
     const persisted = parseStoredTransferIntent(sessionStorage.getItem(storageKey)) ?? storedIntent;
     if (persisted && !storedIntentMatches(persisted, prepared)) {
@@ -91,10 +97,12 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
         kind: "unknown",
         message: "A different transfer intent is still unconfirmed. LedgerSync refused to reuse its key. Reload to restore that exact transfer before retrying.",
       });
+      inFlight.current = false;
       return false;
     }
 
     const intent = persisted ?? createStoredTransferIntent(crypto.randomUUID(), prepared);
+    const localReference = crypto.randomUUID();
     if (!persisted) saveIntent(intent);
     setPending(true);
     setOutcome(null);
@@ -108,6 +116,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
           "Content-Type": "application/json",
           "X-CSRF-Token": csrfToken,
           "Idempotency-Key": intent.idempotencyKey,
+          "X-Request-ID": localReference,
         },
         body: JSON.stringify({
           sourceAccountId: intent.sourceAccountId,
@@ -117,8 +126,9 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       });
       payload = await response.json().catch(() => ({})) as (TransferResult & TransferErrorPayload) | TransferErrorPayload;
     } catch {
-      setOutcome(unknownOutcome);
+      setOutcome(unknownOutcome(localReference));
       setPending(false);
+      inFlight.current = false;
       return false;
     }
 
@@ -135,6 +145,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
         destination: intent.destinationAccountId,
         occurredAt: payload.occurred_at,
         balances,
+        requestReference: response.headers.get("X-Request-ID") ?? localReference,
       };
       setOutcome(baseOutcome);
       setPending(false);
@@ -150,23 +161,26 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
           journalTransactionId: detail.journal_transaction_id,
         });
       }
+      inFlight.current = false;
       return true;
     }
 
     const code = "error" in payload ? payload.error?.code : undefined;
+    const responseReference = response.headers.get("X-Request-ID") ?? localReference;
     if (isDefinitiveRejection(response.status, code)) {
       clearIntent();
       if (code === "insufficient_funds") {
-        setOutcome({ kind: "error", message: "Transfer rejected — insufficient posted balance. No money moved." });
+        setOutcome({ kind: "error", requestReference: responseReference, message: `Transfer rejected — insufficient posted balance. No money moved. Request reference: ${responseReference}.` });
       } else if (code === "idempotency_conflict") {
-        setOutcome({ kind: "error", message: "This retry key belongs to a different transfer request. The conflicting local key was cleared; review before creating a new intent." });
+        setOutcome({ kind: "error", requestReference: responseReference, message: `This retry key belongs to a different transfer request. The conflicting local key was cleared; review before creating a new intent. Request reference: ${responseReference}.` });
       } else {
-        setOutcome({ kind: "error", message: "Transfer not posted. The request reached a final rejection, so no unknown movement remains." });
+        setOutcome({ kind: "error", requestReference: responseReference, message: `Transfer not posted. The request reached a final rejection, so no unknown movement remains. Request reference: ${responseReference}.` });
       }
     } else {
-      setOutcome(unknownOutcome);
+      setOutcome(unknownOutcome(responseReference));
     }
     setPending(false);
+    inFlight.current = false;
     return false;
   }
 

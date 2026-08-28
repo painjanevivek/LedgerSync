@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { AccountCommandResult } from "@/features/accounts/types";
 import type { CreateAccountFields, LifecycleAccountIntent } from "@/features/accounts/accountCommandIntent";
 
 export type AccountCommandOutcome =
   | Readonly<{ kind: "success"; account: AccountCommandResult; replayed: boolean; requestReference?: string }>
-  | Readonly<{ kind: "unknown"; message: string }>
-  | Readonly<{ kind: "conflict" | "error" | "denied"; code: string; message: string }>;
+  | Readonly<{ kind: "unknown"; message: string; requestReference?: string }>
+  | Readonly<{ kind: "conflict" | "error" | "denied"; code: string; message: string; requestReference?: string }>;
 
-function errorMessage(code: string, status: number): AccountCommandOutcome {
+function errorMessage(code: string, status: number): Exclude<AccountCommandOutcome, { kind: "success" }> {
   if (code === "account_version_conflict") return { kind: "conflict", code, message: "The account changed after this page loaded. Current evidence has been refreshed; review it before trying again." };
   if (code === "external_reference_conflict") return { kind: "conflict", code, message: "That external reference already belongs to an account in this tenant." };
   if (code === "account_not_zero") return { kind: "conflict", code, message: "The account is not exactly zero. Refresh current balance evidence before closing it." };
@@ -33,8 +33,12 @@ function isCommandResult(value: unknown): value is AccountCommandResult {
 export function useAccountCommand(csrfToken: string) {
   const [pending, setPending] = useState(false);
   const [outcome, setOutcome] = useState<AccountCommandOutcome | null>(null);
+  const inFlight = useRef(false);
 
   async function send(path: string, method: "POST" | "PATCH", request: CreateAccountFields | LifecycleAccountIntent["request"], idempotencyKey: string) {
+    if (inFlight.current) return { kind: "unknown" as const, message: "This exact account command is already in flight. Wait for its authoritative response before retrying." };
+    inFlight.current = true;
+    const localReference = crypto.randomUUID();
     setPending(true);
     setOutcome(null);
     try {
@@ -45,6 +49,7 @@ export function useAccountCommand(csrfToken: string) {
           "Content-Type": "application/json",
           "X-CSRF-Token": csrfToken,
           "Idempotency-Key": idempotencyKey,
+          "X-Request-ID": localReference,
         },
         body: JSON.stringify(request),
       });
@@ -54,7 +59,7 @@ export function useAccountCommand(csrfToken: string) {
           kind: "success",
           account: value,
           replayed: response.headers.get("Idempotent-Replay") === "true",
-          requestReference: response.headers.get("X-Request-ID") ?? undefined,
+          requestReference: response.headers.get("X-Request-ID") ?? localReference,
         };
         setOutcome(next);
         return next;
@@ -62,16 +67,18 @@ export function useAccountCommand(csrfToken: string) {
       const code = typeof value === "object" && value !== null && typeof (value as { error?: { code?: unknown } }).error?.code === "string"
         ? (value as { error: { code: string } }).error.code
         : "temporary_unavailable";
-      const next = code === "account_command_outcome_unknown" || code === "request_in_progress" || response.status >= 500 || response.status === 429
+      const reference = response.headers.get("X-Request-ID") ?? localReference;
+      const base = code === "account_command_outcome_unknown" || code === "request_in_progress" || response.status >= 500 || response.status === 429
         ? { kind: "unknown" as const, message: "LedgerSync cannot prove whether this account command committed. Retry only the locked command with the same key, or inspect current account evidence." }
         : errorMessage(code, response.status);
+      const next = { ...base, requestReference: reference, message: `${base.message} Request reference: ${reference}.` };
       setOutcome(next);
       return next;
     } catch {
-      const next = { kind: "unknown" as const, message: "The connection ended after submission. The outcome is unknown; retry only this exact locked command with the same key." };
+      const next = { kind: "unknown" as const, requestReference: localReference, message: `The connection ended after submission. The outcome is unknown; retry only this exact locked command with the same key. Request reference: ${localReference}.` };
       setOutcome(next);
       return next;
-    } finally { setPending(false); }
+    } finally { inFlight.current = false; setPending(false); }
   }
 
   return { pending, outcome, setOutcome, send };

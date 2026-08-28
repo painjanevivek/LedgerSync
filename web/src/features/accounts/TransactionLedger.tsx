@@ -4,7 +4,7 @@ import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 import type { Account, Transaction } from "@/features/accounts/types";
-import { EvidenceFreshness, Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import { EvidenceFreshness, FocusedRetry, Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
 import { formatMinorUnits } from "@/lib/money";
 
@@ -17,13 +17,15 @@ type Props = Readonly<{
   onNext: () => void;
   exportAction?: ReactNode;
   verifiedAt?: string;
+  onRetry?: () => void;
+  retryDisabled?: boolean;
 }>;
 
-export function TransactionLedger({ transactions, account, loading, error, nextCursor, onNext, exportAction, verifiedAt }: Props) {
+export function TransactionLedger({ transactions, account, loading, error, nextCursor, onNext, exportAction, verifiedAt, onRetry, retryDisabled }: Props) {
   return <section className="ledger-section" aria-labelledby="transactions-heading" aria-busy={loading}>
     <div className="section-heading"><div><p className="eyebrow">Immutable activity</p><h2 id="transactions-heading">Ledger entries</h2><p>{account ? `${accountLabel(account)} · ${account.currency}` : "Select an account to inspect its postings."}</p></div>{exportAction}</div>
     {loading && transactions.length === 0 && <StatePanel title="Loading ledger history" message="Reading immutable postings from the authorized account scope." />}
-    {error && <StatePanel kind="error" title="Ledger history unavailable" message={error} />}
+    {error && <StatePanel kind="error" title="Ledger history unavailable" message={error} action={onRetry?<FocusedRetry label="Retry ledger history only" onRetry={onRetry} disabled={retryDisabled} busy={loading}/>:undefined} />}
     {verifiedAt && transactions.length > 0 && <EvidenceFreshness state={error ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Ledger history" reason={error ?? undefined} />}
     {!loading && !error && transactions.length === 0 && <StatePanel title="No ledger entries" message="This account has no posted transfer history in the available window." />}
     {transactions.length > 0 && <><div className="ledger-list">{transactions.map((transaction) => <article className="ledger-row" key={`${transaction.transfer_id}-${transaction.direction}`}>

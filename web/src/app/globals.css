@@ -403,6 +403,13 @@ h3 { font-size: var(--type-h3); line-height: 1.47; }
 .operations-environment pre { max-width: 100%; overflow-x: auto; border-left: 3px solid var(--green); padding: 14px; background: var(--paper-subtle); font: 10px/1.7 var(--font-mono); }
 .safe-next-action { display: grid; grid-template-columns: 140px minmax(0,1fr) auto; align-items: center; gap: 12px; border: 1px solid var(--line); padding: 15px; }
 .safe-next-action p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.capability-guidance-list { display: grid; border-block: 1px solid var(--line-strong); }
+.capability-guidance { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,auto); align-items: center; gap: 24px; border-bottom: 1px solid var(--line); padding: 17px 4px; }
+.capability-guidance:last-child { border-bottom: 0; }
+.capability-guidance > div { display: grid; gap: 12px; }
+.capability-guidance p { display: grid; grid-template-columns: 138px minmax(0,1fr); gap: 14px; margin: 0; }
+.capability-guidance p strong { color: var(--ink-soft); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+.capability-guidance p span { color: var(--muted); font-size: 11px; line-height: 1.55; }
 .financial-separation-note { display: flex; align-items: flex-start; gap: 12px; width: min(1080px,100%); border-left: 3px solid var(--green); padding: 14px 16px; background: var(--green-soft); }
 .financial-separation-note > svg { flex: 0 0 auto; width: 18px; height: 18px; color: var(--green); }
 .financial-separation-note p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
