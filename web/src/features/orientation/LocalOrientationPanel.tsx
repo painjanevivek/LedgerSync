@@ -34,10 +34,13 @@ type Props = Readonly<{ tenantId: string; evidence: LocalOrientation | null; loa
 
 export function LocalOrientationPanel({ tenantId, evidence, loading, error, online, canRead, forceOpen = false, onRefresh }: Props) {
   const storageKey = `ledgersync:orientation-dismissed:${tenantId}`;
-  const [visible, setVisible] = useState(forceOpen);
+  const [visible, setVisible] = useState(true);
   useEffect(() => {
-    const timer=window.setTimeout(()=>{ if (forceOpen) { setVisible(true); return; } try { setVisible(localStorage.getItem(storageKey) !== "true"); } catch { setVisible(true); } },0);
-    return ()=>window.clearTimeout(timer);
+    const timer = window.setTimeout(() => {
+      if (forceOpen) { setVisible(true); return; }
+      try { setVisible(localStorage.getItem(storageKey) !== "true"); } catch { setVisible(true); }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [forceOpen, storageKey]);
   function dismiss() { try { localStorage.setItem(storageKey, "true"); } catch { /* Dismissal is convenience state only. */ } setVisible(false); }
   if (!visible) return null;
@@ -57,7 +60,14 @@ export function LocalOrientationPanel({ tenantId, evidence, loading, error, onli
     {!canRead ? <div className="orientation-state"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Checklist permission required</strong><span>The guide remains readable, but durable progress needs the local:read scope.</span></p></div>
       : !evidence ? !online ? <div className="orientation-state"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Checklist unavailable offline</strong><span>No locally cached completion is presented as durable evidence.</span></p></div>
       : error ? <div className="orientation-state" role="alert"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Durable checklist unavailable</strong><span>{error}</span></p><button className="button secondary" type="button" onClick={onRefresh}>Retry evidence</button></div>
-      : <div className="orientation-state" aria-busy="true"><Info weight="fill" aria-hidden="true"/><p><strong>Loading durable progress</strong><span>LedgerSync is checking stored tenant evidence; browser history is not used.</span></p></div>
+      : <><div className="orientation-state" aria-busy="true"><Info weight="fill" aria-hidden="true"/><p><strong>Loading durable progress</strong><span>LedgerSync is checking stored tenant evidence; browser history is not used.</span></p></div><ol className="orientation-checklist orientation-checklist-loading" aria-label="Ledger journey loading">
+        {(Object.keys(stepCopy) as OrientationStep["id"][]).map((stepId) => <li key={stepId}>
+          <span className="orientation-check" aria-hidden="true"><Info weight="fill" /></span>
+          <div><strong>{stepCopy[stepId].title}</strong><p>{stepCopy[stepId].description}</p><small>Stored evidence is being checked</small></div>
+          <StatusBadge tone="info">Checking evidence</StatusBadge>
+          <Link className="record-link" href={stepCopy[stepId].href}>Open step</Link>
+        </li>)}
+      </ol></>
       : <><EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={evidence.generated_at} label="Orientation checklist" reason={error ?? (!online ? "Reconnect before relying on checklist state." : undefined)} /><ol className="orientation-checklist">
         {evidence.steps.map((step) => <li key={step.id}>
           <span className={`orientation-check ${step.state}`} aria-hidden="true">{step.state === "completed" ? <CheckCircle weight="fill" /> : step.state === "evidence_available" ? <Info weight="fill" /> : <WarningCircle weight="fill" />}</span>

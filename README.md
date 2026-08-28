@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Release status:** the complete expanded **local-only product passed consolidated acceptance** for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. The current commit is being requalified under the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md); see the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. Earlier [Phase 10 evidence](docs/release-evidence/local-product-phase-10-acceptance.md) covers the account, transfer, reconciliation, investigation, developer, export, recovery, restart, security, and 25 TPS journey, but does not approve LAN, cloud, shared-host, pilot, or production deployment.
+**Release status:** the complete expanded **local-only product is qualified** for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. Current-main [quality reconvergence evidence](docs/release-evidence/master-phase-1-quality.md) covers exact-commit ledger, browser, CLS, recovery, security, container, and real-stack gates. Phase 2 of the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) is now hardening local startup diagnostics; see the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. This status does not approve LAN, cloud, shared-host, pilot, or production deployment.
 
 ## Contents
 
@@ -434,8 +434,8 @@ The repository-root `docker-compose.yml` is the canonical local entry point and 
 
 ### Complete local operator path
 
-1. Start Docker Desktop and wait until its engine is ready.
-2. From this repository in PowerShell, run `.\scripts\start-local.ps1`.
+1. From this repository in PowerShell, run `.\scripts\doctor-local.ps1`. It is read-only and distinguishes a missing Docker installation, stopped engine, permission failure, outdated Compose plugin, disk shortage, malformed local environment, volume state, and a port conflict.
+2. Start Docker Desktop if the doctor asks you to, then run `.\scripts\start-local.ps1`.
 3. Open `http://127.0.0.1:3000`. The server-controlled local demo operator goes directly to **Overview**; it does not require a password or external identity provider. Read the reopenable local guide for the INR, internal-only, PostgreSQL-authority, persistence, and safe-stop boundaries.
 4. Open **Accounts**. Inspect an existing account or choose **Create account**. Creation records identity and category only: currency is fixed to INR and the exact opening balance is `INR 0.00`; there is no browser balance editor.
 5. From a created account, choose **Fund account** to reuse the normal **Transfers** form with that destination selected. Choose a different active funded source, enter the exact decimal amount, review it, and post. If the result is unknown, use **Retry same transfer** so the exact body and idempotency key are retained.
@@ -453,7 +453,7 @@ This workflow is designed and automatically checked at CSS viewports from 320 to
 
 | If this happens | What it means | Safe action |
 |---|---|---|
-| Docker unavailable | Docker Desktop is stopped or still starting | Start Docker Desktop, wait for the engine, then rerun `start-local.ps1` |
+| Docker unavailable | Docker may be absent, stopped, or inaccessible to this user | Run `doctor-local.ps1`; follow its classified recovery action, then rerun `start-local.ps1` |
 | Port 3000 occupied | Another process owns LedgerSync's IPv4 loopback port | Keep that process untouched; stop it yourself or change its port, then rerun startup |
 | Dependency still starting | PostgreSQL, Redis, API, worker, or web has not reached health | Run `status-local.ps1`, wait briefly, then read bounded output with `logs-local.ps1 -Service <name>` |
 | Migration failed | The schema setup job did not complete | Read `logs-local.ps1 -Service migrate`; do not edit financial tables manually |
@@ -470,6 +470,7 @@ This workflow is designed and automatically checked at CSS viewports from 320 to
 
 ```powershell
 # 1. Start or recover the complete supported topology. This preserves existing data.
+.\scripts\doctor-local.ps1
 .\scripts\start-local.ps1
 
 # 2. Open the product.
@@ -489,7 +490,7 @@ npm --prefix web run lint
 npm --prefix web run build
 ```
 
-`start-local.ps1` validates Docker and Compose, waits for PostgreSQL and Redis health, requires migrations and the idempotent demo seed to finish, verifies every long-running service, and tests the real browser/BFF read path before printing “ready.” API startup never mutates the financial schema. The destructive reset command is deliberately separate and refuses to run without the exact confirmation documented in the [local runtime runbook](docs/runbooks/local-runtime-smoke.md).
+`start-local.ps1` validates PowerShell, Git, Docker, Compose 2.20+, free disk, loopback-port ownership, environment state, and Compose configuration. It waits for PostgreSQL and Redis health, requires migrations and the versioned idempotent demo seed to finish, verifies every long-running service, and tests the real browser/BFF read path before printing “ready.” API startup never mutates the financial schema. The destructive reset command is deliberately separate, reports the latest validated backup and restore-drill state, and refuses to run without the exact confirmation documented in the [local runtime runbook](docs/runbooks/local-runtime-smoke.md).
 
 To rebuild the disposable cache from PostgreSQL projections:
 

@@ -25,6 +25,9 @@ jobs:
           version: v2.13.1
       - name: Race-test financial and contract paths
         run: go test -race ./cmd/... ./internal/... ./tests/unit ./tests/contract
+      - name: Verify local operator diagnostics and safety contracts
+        shell: pwsh
+        run: ./tests/scripts/test-local-runtime-doctor.ps1
       - name: Fuzz exact-money boundary
         run: go test -run=^$ -fuzz=FuzzParseExactMoney -fuzztime=10s ./tests/unit
       - name: Enforce 60% critical financial core coverage floor

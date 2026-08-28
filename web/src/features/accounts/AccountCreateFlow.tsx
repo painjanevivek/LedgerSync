@@ -69,6 +69,7 @@ export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csr
   const stageHeading = useRef<HTMLHeadingElement>(null);
   const errorHeading = useRef<HTMLDivElement>(null);
   const abandonDialog = useRef<HTMLDialogElement>(null);
+  const abandonTrigger = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -193,11 +194,11 @@ export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csr
       {failure && <StatePanel kind={failure.kind === "unknown" ? "unknown" : failure.kind === "denied" ? "denied" : "error"} title={failure.kind === "unknown" ? "Account result not yet confirmed" : "Account was not created"} message={failure.message} />}
       {!online && <StatePanel kind="offline" title="Offline — command retained" message="The reviewed account identity is stored for this tenant on this device. Reconnect to submit it." />}
       <div className="action-row account-command-actions">
-        {intent.stage === "unknown" || failure?.kind === "unknown" ? <><p className="intent-lock-note"><WarningCircle weight="fill" aria-hidden="true" /> Editing is locked while this exact outcome is unresolved.</p><button className="button secondary guarded-control" type="button" onClick={() => abandonDialog.current?.showModal()}>Abandon local recovery</button></> : <button className="button secondary guarded-control" type="button" disabled={pending} onClick={() => setIntent((current) => ({ ...current, stage: "identity" }))}>Back to edit</button>}
+        {intent.stage === "unknown" || failure?.kind === "unknown" ? <><p className="intent-lock-note"><WarningCircle weight="fill" aria-hidden="true" /> Editing is locked while this exact outcome is unresolved.</p><button ref={abandonTrigger} className="button secondary guarded-control" type="button" onClick={() => abandonDialog.current?.showModal()}>Abandon local recovery</button></> : <button className="button secondary guarded-control" type="button" disabled={pending} onClick={() => setIntent((current) => ({ ...current, stage: "identity" }))}>Back to edit</button>}
         <button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite} onClick={() => void createAccount()}>{pending ? "Submitting account…" : intent.stage === "unknown" || failure?.kind === "unknown" ? "Retry same account command" : "Create account"}</button>
       </div>
     </section>}
-    <dialog ref={abandonDialog} className="confirmation-dialog" aria-labelledby="abandon-heading" onCancel={() => abandonDialog.current?.close()}>
+    <dialog ref={abandonDialog} className="confirmation-dialog" aria-labelledby="abandon-heading" onCancel={() => abandonDialog.current?.close()} onClose={() => requestAnimationFrame(() => abandonTrigger.current?.focus())}>
       <form method="dialog"><p className="eyebrow">Recovery decision</p><h2 id="abandon-heading">Abandon local account recovery?</h2><p>This removes the local retry record. It does not cancel a command that may already have committed. Inspect the account directory before creating another account with this external reference.</p><div className="action-row account-command-actions"><button className="button secondary guarded-control" value="cancel">Keep recovery</button><button className="button danger guarded-control" value="confirm" onClick={abandon}>Abandon local recovery</button></div></form>
     </dialog>
   </>;

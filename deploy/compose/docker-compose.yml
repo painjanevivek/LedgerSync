@@ -4,6 +4,7 @@ services:
     # Long-lived local authority must return with Docker Desktop. Normal stop/start
     # preserves the named volume; reset is a separate explicit operation.
     restart: unless-stopped
+    stop_grace_period: 30s
     environment:
       POSTGRES_DB: ledgersync
       POSTGRES_USER: ledgersync
@@ -30,6 +31,7 @@ services:
     # Redis is disposable, but automatic restart keeps the local read path usable
     # after an ordinary Docker daemon event.
     restart: unless-stopped
+    stop_grace_period: 30s
     command: ["redis-server", "--appendonly", "yes"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -76,6 +78,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    stop_grace_period: 30s
     init: true
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/readyz"]
@@ -110,6 +113,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    stop_grace_period: 30s
     init: true
     healthcheck:
       test: ["CMD-SHELL", "ps | grep -q '[o]utbox-worker'"]
@@ -143,6 +147,7 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+    stop_grace_period: 30s
     init: true
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]

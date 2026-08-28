@@ -57,6 +57,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
   const [dialogOpen, setDialogOpen] = useState(false);
   const { pending, outcome, setOutcome, send } = useAccountCommand(csrfToken);
   const dialog = useRef<HTMLDialogElement>(null);
+  const dialogTrigger = useRef<HTMLButtonElement | null>(null);
   const outcomeHeading = useRef<HTMLHeadingElement>(null);
   const dialogOutcome = useRef<HTMLDivElement>(null);
   const validationSummary = useRef<HTMLDivElement>(null);
@@ -81,7 +82,8 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     else outcomeHeading.current?.focus();
   }, [dialogOpen, outcome]);
 
-  async function open(nextTarget: AccountTargetStatus) {
+  async function open(nextTarget: AccountTargetStatus, trigger: HTMLButtonElement) {
+    dialogTrigger.current = trigger;
     const sequence = ++refreshSequence.current;
     setTarget(nextTarget);
     setReason("");
@@ -122,6 +124,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
       if (result.kind === "conflict") {
         dialog.current?.close();
         await onChanged();
+        requestAnimationFrame(() => outcomeHeading.current?.focus());
       }
     }
   }
@@ -154,9 +157,9 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     <div className="section-heading"><div><p className="eyebrow">Configuration authority</p><h2 id="account-controls-heading">Account controls</h2><p>Lifecycle commands use configuration version <code>{account.account_version}</code>. Financial balance version <code>{balance?.version ?? "unavailable"}</code> is never used for configuration changes.</p></div></div>
     {account.status === "closed" ? <StatePanel title="Account lifecycle is terminal" message="Closed status cannot be reversed. Immutable transfer and audit history remains available below." /> : <>
       <div className="account-control-row">
-        {account.status === "active" && <button className="button secondary guarded-control" type="button" disabled={actionDisabled} onClick={() => void open("frozen")}><Snowflake aria-hidden="true" />Freeze account</button>}
-        {account.status === "frozen" && <button className="button secondary guarded-control" type="button" disabled={actionDisabled} onClick={() => void open("active")}><ArrowClockwise aria-hidden="true" />Reactivate account</button>}
-        <button className="button danger guarded-control" type="button" disabled={actionDisabled} onClick={() => void open("closed")}><XCircle aria-hidden="true" />Close account</button>
+        {account.status === "active" && <button className="button secondary guarded-control" type="button" disabled={actionDisabled} onClick={(event) => void open("frozen", event.currentTarget)}><Snowflake aria-hidden="true" />Freeze account</button>}
+        {account.status === "frozen" && <button className="button secondary guarded-control" type="button" disabled={actionDisabled} onClick={(event) => void open("active", event.currentTarget)}><ArrowClockwise aria-hidden="true" />Reactivate account</button>}
+        <button className="button danger guarded-control" type="button" disabled={actionDisabled} onClick={(event) => void open("closed", event.currentTarget)}><XCircle aria-hidden="true" />Close account</button>
         {account.status === "active" && canTransfer && fundingScopeComplete && fundedSourceAvailable && <Link className="button primary guarded-control" href={`/transfers?destination=${encodeURIComponent(account.account_id)}&return_to=${encodeURIComponent(returnTo)}`}>Fund account</Link>}
       </div>
       {!canWrite && <p className="permission-note">Read-only role: account lifecycle commands are not permitted.</p>}
@@ -165,7 +168,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
       {account.status === "active" && canTransfer && fundingScopeComplete && !fundedSourceAvailable && <p className="permission-note">No different active, authorized INR source has a positive available balance. Funding remains unavailable.</p>}
       {!online && <StatePanel kind="offline" title="Account controls are offline" message="Lifecycle commands are disabled until current evidence can be verified and the command can be submitted." />}
       {balanceLoading && <StatePanel title="Verifying closure boundary" message="Current available and ledger balances are loading independently." />}
-      {balanceError && <StatePanel kind="unknown" title="Closure evidence unavailable" message="Close account remains disabled because LedgerSync cannot prove the current exact balance." />}
+      {balanceError && <StatePanel kind="unknown" title="Closure evidence unavailable" message="Final closure confirmation remains disabled until the dialog refreshes and verifies both exact balances." />}
       {balanceCurrent && !exactZero && <StatePanel kind="denied" title="Close account requires exact zero" message={`Authoritative available evidence is ${account.currency} · ${balance!.available_minor} minor units; ledger evidence is ${account.currency} · ${balance!.ledger_minor} minor units. Fund movement must use an auditable transfer; this control cannot edit either value.`} />}
     </>}
     {outcome && outcome.kind !== "success" && !recovery && !dialogOpen && <div className="account-command-recovery" role="region" aria-labelledby="lifecycle-result-heading"><h3 ref={outcomeHeading} tabIndex={-1} id="lifecycle-result-heading">Lifecycle command not completed</h3><StatePanel kind={outcome.kind === "denied" ? "denied" : "error"} title="Review current account evidence" message={outcome.message} /></div>}
@@ -175,7 +178,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
       <dl className="review-grid"><div><dt>Command</dt><dd>{actionLabel(retained.request.target_status)}</dd></div><div><dt>Expected account version</dt><dd><code>{retained.request.expected_version}</code></dd></div><div><dt>Audited reason</dt><dd>{retained.request.reason}</dd></div></dl>
       <div className="action-row account-command-actions"><p className="intent-lock-note"><WarningCircle weight="fill" aria-hidden="true" /> Do not issue a different lifecycle command while this result is unknown.</p><button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite} onClick={() => void submitIntent(retained)}>{pending ? "Retrying command…" : `Retry same ${actionLabel(retained.request.target_status).toLowerCase()}`}</button></div>
     </div>}
-    <dialog ref={dialog} className="confirmation-dialog" aria-labelledby="lifecycle-dialog-heading" aria-describedby="lifecycle-dialog-description" onClose={() => { refreshSequence.current += 1; setDialogOpen(false); setTarget(null); setValidation(null); setEvidenceLoading(false); }}>
+    <dialog ref={dialog} className="confirmation-dialog" aria-labelledby="lifecycle-dialog-heading" aria-describedby="lifecycle-dialog-description" onClose={() => { refreshSequence.current += 1; setDialogOpen(false); setTarget(null); setValidation(null); setEvidenceLoading(false); requestAnimationFrame(() => dialogTrigger.current?.focus()); }}>
       {target && <form onSubmit={(event) => void confirm(event)} noValidate>
         <p className="eyebrow">Guarded lifecycle command</p>
         <h2 id="lifecycle-dialog-heading">{actionLabel(target)}</h2>

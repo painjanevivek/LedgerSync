@@ -12,14 +12,13 @@ param(
 . (Join-Path $PSScriptRoot "local-initialization-common.ps1")
 
 try {
-    Write-Host "Checking Docker and the LedgerSync local boundary..."
-    Assert-LedgerSyncDockerAvailable
+    Write-Host "Checking PowerShell, Git, Docker, Compose, disk space, and the LedgerSync local boundary..."
+    Assert-LedgerSyncLocalPrerequisites
     Initialize-LedgerSyncLocalSecrets
     $requestedMode = if ($PSBoundParameters.ContainsKey("InitializationMode")) { $InitializationMode } else { $null }
     $resolvedMode = Initialize-LedgerSyncInitializationMode -RequestedMode $requestedMode
     $env:LEDGERSYNC_INITIALIZATION_MODE = $resolvedMode
     Initialize-LedgerSyncLocalRecoveryEvidenceIndex | Out-Null
-    Test-LedgerSyncPortAvailableOrOwned
     Invoke-LedgerSyncCompose -ComposeArguments @("config", "-q")
 
     $upArguments = @("up", "-d")
@@ -42,6 +41,6 @@ try {
 }
 catch {
     Write-Error $_
-    Write-Host "Run scripts/status-local.ps1, then scripts/logs-local.ps1 -Service <name> for bounded diagnostics."
+    Write-Host "Run scripts/doctor-local.ps1 for prerequisites, then scripts/status-local.ps1 for service-specific recovery actions."
     exit 1
 }

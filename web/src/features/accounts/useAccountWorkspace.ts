@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { AccountFilters } from "@/features/accounts/AccountViews";
 import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
-import { readJSON, unavailableMessage } from "@/lib/api/client";
+import { readJSON, unavailableMessage, uiDataState } from "@/lib/api/client";
 
 type AccountsPayload = { accounts?: Account[]; next_cursor?: string };
 type TransactionsPayload = { transactions?: Transaction[]; next_cursor?: string };
@@ -52,6 +52,8 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   const detailKey = useRef<string | undefined>(undefined);
   const directoryGeneration = useRef(0);
   const detailGeneration = useRef(0);
+  const balanceGeneration = useRef(0);
+  const historyGeneration = useRef(0);
 
   const selected = useMemo(() => accountDetail ?? accounts.find((account) => account.account_id === initialAccountId) ?? null, [accountDetail, accounts, initialAccountId]);
 
@@ -69,7 +71,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     const response = await readJSON<AccountsPayload>(`/api/me/accounts?${key}`);
     if (generation !== directoryGeneration.current) return [];
     if (!response.ok) {
-      setError(unavailableMessage(response.status, "accounts"));
+      setError(unavailableMessage(response.status, "accounts", response.requestReference));
       setDirectoryLoading(false);
       return [];
     }
@@ -81,6 +83,43 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     setError(null);
     setDirectoryLoading(false);
     return items;
+  }, []);
+
+  const loadBalance = useCallback(async (accountId: string) => {
+    const generation = ++balanceGeneration.current;
+    setBalanceLoading(true);
+    setBalanceError(null);
+    const currentBalance = await readJSON<AccountBalance>(`/api/accounts/${encodeURIComponent(accountId)}/balance`);
+    if (generation !== balanceGeneration.current) return null;
+    if (currentBalance.ok && currentBalance.data.account_id) {
+      setBalance(currentBalance.data);
+      setBalanceVerifiedAt(currentBalance.data.as_of || new Date().toISOString());
+      setBalanceError(null);
+      setBalanceLoading(false);
+      return currentBalance.data;
+    }
+    setBalanceError(unavailableMessage(currentBalance.status, "the authoritative balance", currentBalance.requestReference));
+    setBalanceLoading(false);
+    return null;
+  }, []);
+
+  const loadHistory = useCallback(async (accountId: string) => {
+    const generation = ++historyGeneration.current;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    const history = await readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(accountId)}/transactions?limit=25`);
+    if (generation !== historyGeneration.current) return [];
+    if (history.ok && Array.isArray(history.data.transactions)) {
+      setTransactions(history.data.transactions);
+      setHistoryCursor(history.data.next_cursor || undefined);
+      setHistoryVerifiedAt(new Date().toISOString());
+      setHistoryError(null);
+      setHistoryLoading(false);
+      return history.data.transactions;
+    }
+    setHistoryError(unavailableMessage(history.status, "ledger history", history.requestReference));
+    setHistoryLoading(false);
+    return [];
   }, []);
 
   const loadDetail = useCallback(async (accountId: string) => {
@@ -95,43 +134,19 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
       setBalanceVerifiedAt(undefined);
       setHistoryVerifiedAt(undefined);
     }
-    setBalanceLoading(true);
-    setHistoryLoading(true);
-    setBalanceError(null);
-    setHistoryError(null);
     let resolvedAccount: Account | null = null;
-    let resolvedBalance: AccountBalance | null = null;
-    await Promise.all([
+    const [, resolvedBalance] = await Promise.all([
       (async () => {
         const summary = await readJSON<Account>(`/api/accounts/${encodeURIComponent(accountId)}`);
         if (generation !== detailGeneration.current) return;
         if (summary.ok && summary.data.account_id) { resolvedAccount = summary.data; setAccountDetail(summary.data); setError(null); }
-        else setError(unavailableMessage(summary.status, "account evidence"));
+        else setError(unavailableMessage(summary.status, "account evidence", summary.requestReference));
       })(),
-      (async () => {
-        const currentBalance = await readJSON<AccountBalance>(`/api/accounts/${encodeURIComponent(accountId)}/balance`);
-        if (generation !== detailGeneration.current) return;
-        if (currentBalance.ok && currentBalance.data.account_id) {
-          resolvedBalance = currentBalance.data;
-          setBalance(currentBalance.data);
-          setBalanceVerifiedAt(currentBalance.data.as_of || new Date().toISOString());
-        } else setBalanceError("The authoritative balance could not be refreshed. Any retained value is historical and cannot authorize a command.");
-        setBalanceLoading(false);
-      })(),
-      (async () => {
-        const history = await readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(accountId)}/transactions?limit=25`);
-        if (generation !== detailGeneration.current) return;
-        if (history.ok && Array.isArray(history.data.transactions)) {
-          setTransactions(history.data.transactions);
-          setHistoryCursor(history.data.next_cursor || undefined);
-          setHistoryVerifiedAt(new Date().toISOString());
-          setHistoryError(null);
-        } else setHistoryError(history.status === 401 ? "Your session expired. Re-authenticate before viewing ledger history." : history.status === 403 ? "Your role is not authorized to view ledger history." : "Ledger history is temporarily unavailable. No empty result is being inferred.");
-        setHistoryLoading(false);
-      })(),
+      loadBalance(accountId),
+      loadHistory(accountId),
     ]);
     return { account: resolvedAccount, balance: resolvedBalance };
-  }, []);
+  }, [loadBalance, loadHistory]);
 
   const loadMoreHistory = useCallback(async () => {
     if (!initialAccountId || !historyCursor) return;
@@ -142,7 +157,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
       setHistoryCursor(history.data.next_cursor || undefined);
       setHistoryVerifiedAt(new Date().toISOString());
       setHistoryError(null);
-    } else setHistoryError("Additional ledger history is temporarily unavailable. Existing entries remain verified.");
+    } else setHistoryError(unavailableMessage(history.status, "additional ledger history", history.requestReference));
     setHistoryLoading(false);
   }, [historyCursor, initialAccountId]);
 
@@ -161,5 +176,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     void load(next);
   }
 
-  return { accounts, selected, filters, nextCursor, scopeComplete, balance, transactions, historyCursor, directoryLoading, balanceLoading, historyLoading, error, balanceError, historyError, directoryVerifiedAt, balanceVerifiedAt, historyVerifiedAt, load, loadDetail, loadMoreHistory, applyFilters, loadNextPage };
+  const directoryState = uiDataState({ loading: directoryLoading, hasData: accounts.length > 0, hasError: Boolean(error) });
+
+  return { accounts, selected, filters, nextCursor, scopeComplete, balance, transactions, historyCursor, directoryLoading, directoryState, balanceLoading, historyLoading, error, balanceError, historyError, directoryVerifiedAt, balanceVerifiedAt, historyVerifiedAt, load, loadDetail, loadBalance, loadHistory, loadMoreHistory, applyFilters, loadNextPage };
 }

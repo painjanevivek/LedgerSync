@@ -19,10 +19,14 @@ export function StatePanel({ title, message, kind = "empty", action }: Readonly<
   return <div className={`state-panel ${kind}`} role={kind === "error" ? "alert" : "status"}>{kind === "error" || kind === "offline" || kind === "unknown" ? <WarningCircle weight="fill" aria-hidden="true" /> : <Info weight="fill" aria-hidden="true" />}<div><strong>{title}</strong><p>{message}</p>{action}</div></div>;
 }
 
+export function FocusedRetry({ label, onRetry, disabled = false, busy = false }: Readonly<{ label: string; onRetry: () => void; disabled?: boolean; busy?: boolean }>) {
+  return <button className="button secondary guarded-control" type="button" disabled={disabled || busy} onClick={onRetry}><ArrowClockwise aria-hidden="true" />{busy ? "Retrying…" : label}</button>;
+}
+
 export function RecordLink({ href, label, id }: Readonly<{ href: string; label: string; id?: string }>) { return <Link className="record-link" href={href} id={id}>{label}<ArrowRight aria-hidden="true" /></Link>; }
 
 export function Pagination({ nextCursor, onNext, busy, label = "Load more" }: Readonly<{ nextCursor?: string; onNext: () => void; busy?: boolean; label?: string }>) {
-  return <div className="pagination"><span>{nextCursor ? "More records are available" : "End of available records"}</span><button className="button secondary" type="button" disabled={!nextCursor || busy} onClick={onNext}>{busy ? "Loading…" : label}</button></div>;
+  return <div className="pagination"><span>{nextCursor ? "More records are available" : "End of available records"}</span>{nextCursor && <button className="button secondary" type="button" disabled={busy} onClick={onNext}>{busy ? "Loading…" : label}</button>}</div>;
 }
 
 export function DataTableRegion({ label, children }: Readonly<{ label: string; children: ReactNode }>) {

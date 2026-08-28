@@ -7,7 +7,12 @@ const tablet = { width: 768, height: 1024 };
 const desktop = { width: 1440, height: 900 };
 
 function json(route: Route, body: unknown, status = 200) {
-  return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  return route.fulfill({
+    status,
+    contentType: "application/json",
+    headers: { "X-Request-ID": "visual-request-reference" },
+    body: JSON.stringify(body),
+  });
 }
 
 async function capture(page: Page, name: string, viewport = desktop) {
@@ -153,7 +158,9 @@ test("read-only transfer role explains why posting is disabled", async ({ page }
   await mockOperatorConsole(page);
   await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: [], environment: "demo", tenant_label: "Meridian Labs · Test", operator_label: "Read-only auditor" }));
   await page.goto("/transfers");
-  await expect(page.getByText("Read-only role: transfer posting is not permitted.")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),
+  ).toHaveText("Read-only role: transfer posting is not permitted.");
   await capture(page, "transfers-read-only", desktop);
 });
 
