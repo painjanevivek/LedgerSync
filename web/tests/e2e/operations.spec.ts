@@ -35,19 +35,26 @@ test("partial dependency failure remains a truthful partial snapshot", async ({ 
 
 test("event filters use the exact allowlisted query and an empty result is explicit", async ({ page }) => {
   await mockOperatorConsole(page);
-  let requested = "";
-  await page.route("**/api/events?*", (route) => { requested = route.request().url(); return json(route, { events:[],next_cursor:"" }); });
+  await page.route("**/api/events?*", (route) => json(route, { events:[],next_cursor:"" }));
   await page.goto("/events");
   await page.getByLabel("Event type").fill("account.balance.changed.v1");
   await page.getByLabel("State").selectOption("dead");
   await page.getByLabel("Related ID").fill(deliveryEvent.aggregate_id);
   await page.getByLabel("From UTC").fill("2026-08-19T00:00:00Z");
+  const filteredRequestPromise = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === "/api/events" && url.searchParams.has("eventType");
+  });
   await page.getByRole("button", { name:"Apply filters" }).click();
+  const filteredRequest = await filteredRequestPromise;
   await expect(page.getByText("No events match these filters")).toBeVisible();
-  expect(requested).toContain("eventType=account.balance.changed.v1");
-  expect(requested).toContain("state=dead");
-  expect(requested).toContain(`relatedId=${deliveryEvent.aggregate_id}`);
-  expect(requested).toContain("from=2026-08-19T00%3A00%3A00Z");
+  expect(Object.fromEntries(new URL(filteredRequest.url()).searchParams)).toEqual({
+    eventType: "account.balance.changed.v1",
+    from: "2026-08-19T00:00:00Z",
+    limit: "25",
+    relatedId: deliveryEvent.aggregate_id,
+    state: "dead",
+  });
 });
 
 test("dead event detail is read-only and sends the operator to authoritative related evidence", async ({ page }) => {
