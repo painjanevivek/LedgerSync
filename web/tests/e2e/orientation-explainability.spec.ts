@@ -55,9 +55,11 @@ test("orientation reports empty and unavailable durable evidence without browser
   const partial={...orientationEvidence,evidence_state:"partial",steps:orientationEvidence.steps.map((step,index)=>index===2?{id:"inspect_accounts",state:"missing",evidence_type:"account_record",reason_code:"no_authorized_account"}:index===11?{id:"create_backup",state:"unavailable",evidence_type:"recovery_backup",reason_code:"recovery_evidence_unavailable"}:step)};
   await page.route("**/api/local/orientation",route=>json(route,partial)); await page.goto("/?guide=1");
   await expect(page.getByText("Not yet evidenced",{exact:true})).toHaveCount(3);
-  await expect(page.getByText("Unavailable",{exact:true})).toHaveCount(2);
-  await expect(page.getByText("Funding remains blocked until the controlled journal and approval workflow exists.",{exact:true})).toBeVisible();
-  await expect(page.getByText("Stored evidence",{exact:true})).toHaveCount(3);
+  await expect(page.getByText("Unavailable",{exact:true})).toHaveCount(1);
+  const fundingStep=page.getByRole("listitem").filter({hasText:"Fund through an approved ledger event"});
+  await expect(fundingStep.getByText("Stored evidence",{exact:true})).toBeVisible();
+  await expect(fundingStep.getByRole("link",{name:"Open evidence"})).toHaveAttribute("href",`/funding/${orientationEvidence.steps[4].evidence_id}`);
+  await expect(page.getByText("Stored evidence",{exact:true})).toHaveCount(4);
 });
 
 test("workspace and local guide fill the browser canvas on phone, tablet, and desktop",async({page})=>{

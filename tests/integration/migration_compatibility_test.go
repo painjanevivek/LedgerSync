@@ -259,42 +259,17 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1`, created.Result.AccountID) != 1 {
 		t.Fatalf("limited-role account create result=%#v", created.Result)
 	}
-	if err := seedTransferFixture(context.Background(), upgradeDatabase, 10_000); err != nil {
-		t.Fatalf("seed limited-role transfer fixture: %v", err)
-	}
-	transferRepository, err := db.NewTransferRepository(limitedDatabase, func() time.Time { return createdAt.Add(3 * time.Hour) })
-	if err != nil {
-		t.Fatal(err)
-	}
-	transferService, err := transferapp.NewService(transferRepository, func() time.Time { return createdAt.Add(3 * time.Hour) })
-	if err != nil {
-		t.Fatal(err)
-	}
-	firstTransfer, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-0001", "25.00"))
-	if err != nil {
-		t.Fatalf("atomic transfer with migrated API grants: %v", err)
-	}
-	replayedTransfer, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-0001", "25.00"))
-	if err != nil {
-		t.Fatalf("atomic transfer replay with migrated API grants: %v", err)
-	}
-	if firstTransfer.Replayed || !replayedTransfer.Replayed || firstTransfer.Result.TransferID == "" || firstTransfer.Result.TransferID != replayedTransfer.Result.TransferID ||
-		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM transfers WHERE id=$1 AND status='posted'`, firstTransfer.Result.TransferID) != 1 ||
-		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM journal_transactions WHERE transfer_id=$1`, firstTransfer.Result.TransferID) != 1 ||
-		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.transfer_id=$1`, firstTransfer.Result.TransferID) != 2 {
-		t.Fatalf("limited-role transfer/replay did not commit exactly one balanced movement: first=%#v replay=%#v", firstTransfer, replayedTransfer)
-	}
 	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'upgrade-operator','finance')`, legacyTenant); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_funding_policies(tenant_id,currency,mode,finance_activated,policy_version,per_command_minor,operator_rolling_24h_minor,tenant_rolling_24h_minor) VALUES($1,'INR','local_demo_single_operator',false,1,100000,200000,500000)`, legacyTenant); err != nil {
 		t.Fatal(err)
 	}
-	fundingRepository, err := db.NewFundingRepository(limitedDatabase, func() time.Time { return createdAt.Add(4 * time.Hour) })
+	fundingRepository, err := db.NewFundingRepository(limitedDatabase, func() time.Time { return createdAt.Add(3 * time.Hour) })
 	if err != nil {
 		t.Fatal(err)
 	}
-	fundingService, err := fundingapp.NewService(fundingRepository, fundingapp.PolicyLocalDemoSingleOperator, func() time.Time { return createdAt.Add(4 * time.Hour) })
+	fundingService, err := fundingapp.NewService(fundingRepository, fundingapp.PolicyLocalDemoSingleOperator, func() time.Time { return createdAt.Add(3 * time.Hour) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,6 +299,31 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 	if err != nil || postedFunding.Event.Status != "posted" ||
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND account_kind='funding_clearing' AND category='system'`, legacyTenant) != 1 {
 		t.Fatalf("fresh migrated funding journal=%#v error=%v", postedFunding, err)
+	}
+	if err := seedTransferFixture(context.Background(), upgradeDatabase, 10_000); err != nil {
+		t.Fatalf("seed limited-role transfer fixture: %v", err)
+	}
+	transferRepository, err := db.NewTransferRepository(limitedDatabase, func() time.Time { return createdAt.Add(4 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	transferService, err := transferapp.NewService(transferRepository, func() time.Time { return createdAt.Add(4 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstTransfer, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-0001", "25.00"))
+	if err != nil {
+		t.Fatalf("atomic transfer with migrated API grants: %v", err)
+	}
+	replayedTransfer, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-0001", "25.00"))
+	if err != nil {
+		t.Fatalf("atomic transfer replay with migrated API grants: %v", err)
+	}
+	if firstTransfer.Replayed || !replayedTransfer.Replayed || firstTransfer.Result.TransferID == "" || firstTransfer.Result.TransferID != replayedTransfer.Result.TransferID ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM transfers WHERE id=$1 AND status='posted'`, firstTransfer.Result.TransferID) != 1 ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM journal_transactions WHERE transfer_id=$1`, firstTransfer.Result.TransferID) != 1 ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.transfer_id=$1`, firstTransfer.Result.TransferID) != 2 {
+		t.Fatalf("limited-role transfer/replay did not commit exactly one balanced movement: first=%#v replay=%#v", firstTransfer, replayedTransfer)
 	}
 	if err := limitedDatabase.Close(); err != nil {
 		t.Fatal(err)
