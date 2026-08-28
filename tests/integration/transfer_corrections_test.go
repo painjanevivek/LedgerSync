@@ -14,9 +14,10 @@ func TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe(t *testing.T) {
 	transferService, database := requireTransferService(t, 10_000)
 	ctx := context.Background()
 	now := time.Date(2026, 8, 18, 10, 0, 0, 0, time.UTC)
-	if _, err := database.ExecContext(ctx, `
-UPDATE tenant_transfer_policies SET control_mode='local_demo_single_operator',requires_step_up=false,approval_ttl_minutes=60 WHERE tenant_id=$1;
-INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'correction-finance','finance')`, testTenantID); err != nil {
+	if _, err := database.ExecContext(ctx, `UPDATE tenant_transfer_policies SET control_mode='local_demo_single_operator',requires_step_up=false,approval_ttl_minutes=60 WHERE tenant_id=$1`, testTenantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'correction-finance','finance')`, testTenantID); err != nil {
 		t.Fatal(err)
 	}
 	original, err := transferService.Submit(ctx, transferCommand(t, "correction-original-0001", "25.00"))

@@ -519,7 +519,11 @@ func insertCorrectionApproval(ctx context.Context, tx *sql.Tx, tenantID, targetI
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO approval_records(id,tenant_id,command_type,target_id,requester_subject_id,approver_subject_id,status,expires_at,decision_reason,correlation_id,policy_version,created_at,decided_at) VALUES($1,$2,'transfer_compensation',$3,$4,NULLIF($5,''),$6,$7,NULLIF($8,''),$9,$10,$11,CASE WHEN $6='requested' THEN NULL ELSE $11 END)`, id, tenantID, targetID, requester, approver, status, expires, reason, correlationID, version, at)
+	var decidedAt any
+	if status != "requested" {
+		decidedAt = at
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO approval_records(id,tenant_id,command_type,target_id,requester_subject_id,approver_subject_id,status,expires_at,decision_reason,correlation_id,policy_version,created_at,decided_at) VALUES($1,$2,'transfer_compensation',$3,$4,NULLIF($5,''),$6,$7,NULLIF($8,''),$9,$10,$11,$12)`, id, tenantID, targetID, requester, approver, status, expires, reason, correlationID, version, at, decidedAt)
 	return err
 }
 func insertCorrectionAudit(ctx context.Context, tx *sql.Tx, tenantID, actorID, targetID, eventType, outcome, correlationID string, at time.Time, metadata map[string]any) error {
