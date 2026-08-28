@@ -3,7 +3,7 @@
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.14.0",
-    "_postman_id": "ledgersync-cfdb4cfab4c8381075f93cfc"
+    "_postman_id": "ledgersync-bb709e185378a9fe3172ee26"
   },
   "variable": [
     {

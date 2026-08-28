@@ -90,7 +90,9 @@ async function materialize(path, content) {
   await writeFile(path, content);
 }
 
-const source = await readFile(openAPIPath, "utf8");
+// Git may materialize the reviewed YAML with CRLF on Windows. Normalize before
+// parsing and hashing so generated artifacts are identical in local and Linux CI.
+const source = (await readFile(openAPIPath, "utf8")).replace(/\r\n/g, "\n");
 const document = YAML.parse(source);
 const version = document?.info?.version;
 if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) throw new Error("OpenAPI info.version must be semantic versioning");

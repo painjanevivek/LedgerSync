@@ -2,7 +2,7 @@
   "schema_version": 1,
   "api_version": "1.14.0",
   "source": "contracts/openapi.yaml",
-  "openapi_sha256": "cfdb4cfab4c8381075f93cfcf6298d09f8c3f6cac7ae7e5056965ed40ed75e92",
+  "openapi_sha256": "bb709e185378a9fe3172ee26df32e1c1e9dc24bfdb3bc705cfab9714fabb4a25",
   "operations": [
     {
       "id": "approveDeveloperWebhookReplay",
