@@ -294,6 +294,9 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err := enqueueBalanceEvent(ctx, tx, command, entry.ID, updatedDestination, now); err != nil {
 		return transfers.Result{}, err
 	}
+	if err := enqueueTransferWebhookEvent(ctx, tx, command, entry.ID, now); err != nil {
+		return transfers.Result{}, err
+	}
 	return result, nil
 }
 
@@ -514,6 +517,42 @@ func enqueueBalanceEvent(ctx context.Context, tx *sql.Tx, command transfers.Comm
 INSERT INTO outbox_events (id, tenant_id, transfer_id, account_id, aggregate_type, aggregate_id, event_type, aggregate_version, payload, occurred_at)
 VALUES ($1, $2, $3, $4, 'account_balance', $4, 'account.balance.changed.v1', $5, $6, $7)`, id, command.TenantID, transferID, balance.ID, balance.BalanceVersion, payload, now)
 	return wrap("enqueue balance event", err)
+}
+
+// enqueueTransferWebhookEvent records a canonical business event and schedules
+// only currently verified subscribers in the same financial transaction. The
+// payload is never regenerated during retry or replay, so a partner can safely
+// deduplicate every at-least-once delivery by event_id.
+func enqueueTransferWebhookEvent(ctx context.Context, tx *sql.Tx, command transfers.Command, transferID string, now time.Time) error {
+	eventID, err := newUUID()
+	if err != nil {
+		return err
+	}
+	payload, err := json.Marshal(map[string]string{
+		"event_id":               eventID,
+		"event_type":             "transfer.posted",
+		"transfer_id":            transferID,
+		"debit_account_id":       command.DebitAccountID,
+		"credit_account_id":      command.CreditAccountID,
+		"amount_minor":           strconv.FormatInt(command.Amount.Minor(), 10),
+		"currency":               command.Amount.Currency().Code,
+		"occurred_at":            now.Format(time.RFC3339Nano),
+		"delivery_semantics":     "at_least_once",
+		"deduplication_event_id": eventID,
+	})
+	if err != nil {
+		return fmt.Errorf("marshal transfer webhook event: %w", err)
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO outbox_events(id,tenant_id,transfer_id,aggregate_type,aggregate_id,event_type,aggregate_version,payload,occurred_at)VALUES($1,$2,$3,'transfer',$3,'transfer.posted.v1',1,$4,$5)`, eventID, command.TenantID, transferID, payload, now); err != nil {
+		return wrap("enqueue transfer webhook event", err)
+	}
+	if _, err = tx.ExecContext(ctx, `INSERT INTO webhook_delivery_jobs(id,tenant_id,transfer_id,outbox_event_id,webhook_id,event_id,event_type,payload,available_at,created_at,updated_at)
+SELECT gen_random_uuid(),$2,$3,$1,endpoint.id,$1,'transfer.posted',$4,$5,$5,$5
+FROM developer_webhook_endpoints endpoint
+WHERE endpoint.tenant_id=$2 AND endpoint.status='active' AND 'transfer.posted'=ANY(endpoint.subscribed_events)`, eventID, command.TenantID, transferID, payload, now); err != nil {
+		return wrap("schedule transfer webhook delivery", err)
+	}
+	return nil
 }
 
 func storeOutcome(ctx context.Context, tx *sql.Tx, command transfers.Command, result transfers.Result) error {

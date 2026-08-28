@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -26,6 +27,30 @@ type KeyResolver interface {
 	Resolve(context.Context, string) ([]byte, error)
 }
 
+// StaticKeyResolver is suitable for a worker-only secret-injection adapter.
+// It copies keys on construction and resolution so callers cannot mutate the
+// process-held key set. API handlers never receive this implementation.
+type StaticKeyResolver map[string][]byte
+
+func NewStaticKeyResolver(keys map[string][]byte) (StaticKeyResolver, error) {
+	result := make(StaticKeyResolver, len(keys))
+	for reference, key := range keys {
+		if strings.TrimSpace(reference) == "" || len(key) < 32 {
+			return nil, errors.New("webhook signing key references require at least 32 bytes")
+		}
+		result[reference] = bytes.Clone(key)
+	}
+	return result, nil
+}
+
+func (r StaticKeyResolver) Resolve(_ context.Context, reference string) ([]byte, error) {
+	key, ok := r[strings.TrimSpace(reference)]
+	if !ok {
+		return nil, errors.New("webhook signing key reference is unavailable")
+	}
+	return bytes.Clone(key), nil
+}
+
 type Delivery struct {
 	ID, EventID, EventType, EndpointURL, SigningKeyReference, SigningKeyID string
 	Payload                                                                json.RawMessage
@@ -41,6 +66,30 @@ type Dispatcher struct {
 	client   *http.Client
 	resolver KeyResolver
 	clock    func() time.Time
+}
+
+// NewSecureHTTPClient fixes the request boundary for webhook delivery: short
+// bounded connections, no redirects, modern TLS, and DNS-rebinding-resistant
+// public-address dialing.
+func NewSecureHTTPClient() *http.Client {
+	transport := &http.Transport{
+		DialContext:           PublicDialContext(nil, nil),
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          32,
+		MaxIdleConnsPerHost:   4,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ResponseHeaderTimeout: 5 * time.Second,
+		ExpectContinueTimeout: time.Second,
+		TLSClientConfig:       &tls.Config{MinVersion: tls.VersionTLS12},
+	}
+	return &http.Client{
+		Transport: transport,
+		Timeout:   10 * time.Second,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 }
 
 func NewDispatcher(client *http.Client, resolver KeyResolver, clock func() time.Time) (*Dispatcher, error) {

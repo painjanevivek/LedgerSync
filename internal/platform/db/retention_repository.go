@@ -42,7 +42,7 @@ func (r *RetentionRepository) Run(ctx context.Context, policy retention.Policy, 
 	defer func() { _ = tx.Rollback() }()
 	result := retention.Result{Mode: mode, CorrelationID: correlationID, StartedAt: now}
 	if apply {
-		result.PublishedOutbox, err = deleteBatch(ctx, tx, `DELETE FROM outbox_events WHERE id IN (SELECT o.id FROM outbox_events o WHERE o.tenant_id=$1 AND o.published_at<$2 AND o.dead_at IS NULL AND NOT EXISTS(SELECT 1 FROM delivery_attempts d WHERE d.outbox_event_id=o.id) AND NOT EXISTS(SELECT 1 FROM outbox_replay_actions a WHERE a.event_id=o.id) ORDER BY o.published_at,o.id LIMIT $3 FOR UPDATE SKIP LOCKED)`, policy.TenantID, now.Add(-policy.PublishedOutboxAfter), policy.BatchSize)
+		result.PublishedOutbox, err = deleteBatch(ctx, tx, `DELETE FROM outbox_events WHERE id IN (SELECT o.id FROM outbox_events o WHERE o.tenant_id=$1 AND o.published_at<$2 AND o.dead_at IS NULL AND NOT EXISTS(SELECT 1 FROM delivery_attempts d WHERE d.outbox_event_id=o.id) AND NOT EXISTS(SELECT 1 FROM webhook_delivery_jobs j WHERE j.outbox_event_id=o.id) AND NOT EXISTS(SELECT 1 FROM outbox_replay_actions a WHERE a.event_id=o.id) ORDER BY o.published_at,o.id LIMIT $3 FOR UPDATE SKIP LOCKED)`, policy.TenantID, now.Add(-policy.PublishedOutboxAfter), policy.BatchSize)
 		if err == nil {
 			result.ExpiredRates, err = deleteBatch(ctx, tx, `DELETE FROM api_rate_limit_windows WHERE (tenant_id,principal_hash,route_key,window_started_at) IN (SELECT tenant_id,principal_hash,route_key,window_started_at FROM api_rate_limit_windows WHERE tenant_id=$1 AND window_started_at<$2 ORDER BY window_started_at LIMIT $3 FOR UPDATE SKIP LOCKED)`, policy.TenantID, now.Add(-policy.RateWindowAfter), policy.BatchSize)
 		}
@@ -54,7 +54,7 @@ func (r *RetentionRepository) Run(ctx context.Context, policy retention.Policy, 
 		err = tx.QueryRowContext(ctx, `SELECT count(*) FROM idempotency_requests WHERE tenant_id=$1 AND state='completed' AND expires_at<$2`, policy.TenantID, now).Scan(&result.RetainedIdempotency)
 	}
 	if !apply && err == nil {
-		err = tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM outbox_events o WHERE o.tenant_id=$1 AND o.published_at<$2 AND o.dead_at IS NULL AND NOT EXISTS(SELECT 1 FROM delivery_attempts d WHERE d.outbox_event_id=o.id) AND NOT EXISTS(SELECT 1 FROM outbox_replay_actions a WHERE a.event_id=o.id)),(SELECT count(*) FROM api_rate_limit_windows WHERE tenant_id=$1 AND window_started_at<$3)`, policy.TenantID, now.Add(-policy.PublishedOutboxAfter), now.Add(-policy.RateWindowAfter)).Scan(&result.PublishedOutbox, &result.ExpiredRates)
+		err = tx.QueryRowContext(ctx, `SELECT (SELECT count(*) FROM outbox_events o WHERE o.tenant_id=$1 AND o.published_at<$2 AND o.dead_at IS NULL AND NOT EXISTS(SELECT 1 FROM delivery_attempts d WHERE d.outbox_event_id=o.id) AND NOT EXISTS(SELECT 1 FROM webhook_delivery_jobs j WHERE j.outbox_event_id=o.id) AND NOT EXISTS(SELECT 1 FROM outbox_replay_actions a WHERE a.event_id=o.id)),(SELECT count(*) FROM api_rate_limit_windows WHERE tenant_id=$1 AND window_started_at<$3)`, policy.TenantID, now.Add(-policy.PublishedOutboxAfter), now.Add(-policy.RateWindowAfter)).Scan(&result.PublishedOutbox, &result.ExpiredRates)
 	}
 	if err != nil {
 		return retention.Result{}, fmt.Errorf("execute retention batch: %w", err)

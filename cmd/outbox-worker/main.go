@@ -12,6 +12,7 @@ import (
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/outbox"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/projection"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/webhookdelivery"
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
@@ -94,6 +95,26 @@ func main() {
 		slog.Error("outbox worker initialization failed", "error", err)
 		os.Exit(1)
 	}
+	webhookStore, err := db.NewWebhookDeliveryJobRepository(database, nil)
+	if err != nil {
+		slog.Error("webhook delivery store initialization failed", "error", err)
+		os.Exit(1)
+	}
+	webhookKeys, err := webhookdelivery.NewStaticKeyResolver(configuration.WebhookSigningKeys)
+	if err != nil {
+		slog.Error("webhook signing key configuration invalid", "error", err)
+		os.Exit(1)
+	}
+	webhookDispatcher, err := webhookdelivery.NewDispatcher(webhookdelivery.NewSecureHTTPClient(), webhookKeys, nil)
+	if err != nil {
+		slog.Error("webhook dispatcher initialization failed", "error", err)
+		os.Exit(1)
+	}
+	webhookWorker, err := webhookdelivery.NewWorker(webhookStore, webhookDispatcher, nil, webhookdelivery.Config{WorkerID: fmt.Sprintf("%s-%d-webhooks", hostname, os.Getpid())})
+	if err != nil {
+		slog.Error("webhook worker initialization failed", "error", err)
+		os.Exit(1)
+	}
 	balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute, telemetry)
 	if err != nil {
 		slog.Error("balance cache initialization failed", "error", err)
@@ -121,6 +142,14 @@ func main() {
 		telemetry.ObserveBoundary(iterationCtx, "worker", "publish", iterationStarted, publishErr)
 		if publishErr != nil && ctx.Err() == nil {
 			slog.Error("outbox publish iteration failed", "error", publishErr)
+		}
+		iterationStarted = time.Now()
+		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.webhook_dispatch")
+		_, webhookErr := webhookWorker.RunOnce(iterationCtx)
+		span.End()
+		telemetry.ObserveBoundary(iterationCtx, "worker", "webhook_dispatch", iterationStarted, webhookErr)
+		if webhookErr != nil && ctx.Err() == nil {
+			slog.Error("webhook delivery iteration failed", "error", webhookErr)
 		}
 		iterationStarted = time.Now()
 		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.project")

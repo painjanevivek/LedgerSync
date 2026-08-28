@@ -120,20 +120,34 @@ func (r *DeliveryReplayRepository) Replay(ctx context.Context, command recovery.
 	if latestNumber != attemptNumber {
 		return "", errors.New("a newer delivery attempt already exists")
 	}
+	if kind != "webhook" || outboxEventID == "" {
+		return "", errors.New("only event-backed webhook delivery can be replayed")
+	}
 
-	newAttemptID, err := newUUID()
+	newJobID, err := newUUID()
 	if err != nil {
 		return "", err
 	}
 	now := r.clock().UTC()
-	if _, err = tx.ExecContext(ctx, `INSERT INTO delivery_attempts(id,tenant_id,transfer_id,outbox_event_id,delivery_kind,endpoint_reference,attempt_number,status,due_at)VALUES($1,$2,$3,NULLIF($4,'')::uuid,$5,$6,$7,'pending',$8)`, newAttemptID, command.TenantID, transferID, outboxEventID, kind, endpoint, attemptNumber+1, now); err != nil {
-		return "", fmt.Errorf("schedule delivery replay: %w", err)
+	result, err := tx.ExecContext(ctx, `INSERT INTO webhook_delivery_jobs(id,tenant_id,transfer_id,outbox_event_id,webhook_id,event_id,event_type,payload,attempt_number,replay_of_attempt_id,available_at,created_at,updated_at)
+SELECT $1,$2,$3,event.id,endpoint.id,event.id,'transfer.posted',event.payload,$4,$5,$6,$6,$6
+FROM outbox_events event
+JOIN developer_webhook_endpoints endpoint ON endpoint.tenant_id=event.tenant_id AND endpoint.id::text=$7
+WHERE event.id=$8 AND event.tenant_id=$2 AND event.transfer_id=$3 AND event.event_type='transfer.posted.v1'`, newJobID, command.TenantID, transferID, attemptNumber+1, command.AttemptID, now, endpoint, outboxEventID)
+	if err != nil {
+		return "", fmt.Errorf("schedule webhook delivery replay: %w", err)
+	}
+	if rows, rowsErr := result.RowsAffected(); rowsErr != nil || rows != 1 {
+		if rowsErr != nil {
+			return "", rowsErr
+		}
+		return "", errors.New("webhook replay source no longer has a verified event and endpoint")
 	}
 	actionID, err := newUUID()
 	if err != nil {
 		return "", err
 	}
-	details, _ := json.Marshal(map[string]string{"approved_by": approver, "new_attempt_id": newAttemptID, "reason_code": reason})
+	details, _ := json.Marshal(map[string]string{"approved_by": approver, "webhook_delivery_job_id": newJobID, "reason_code": reason})
 	if _, err = tx.ExecContext(ctx, `INSERT INTO delivery_replay_actions(id,tenant_id,attempt_id,action,actor_subject_id,reason_code,correlation_id,sanitized_details,created_at)VALUES($1,$2,$3,'executed',$4,$5,$6,$7,$8)`, actionID, command.TenantID, command.AttemptID, command.ActorSubjectID, reason, command.CorrelationID, details, now); err != nil {
 		return "", fmt.Errorf("persist delivery replay execution: %w", err)
 	}
@@ -143,5 +157,5 @@ func (r *DeliveryReplayRepository) Replay(ctx context.Context, command recovery.
 	if err = tx.Commit(); err != nil {
 		return "", err
 	}
-	return newAttemptID, nil
+	return newJobID, nil
 }

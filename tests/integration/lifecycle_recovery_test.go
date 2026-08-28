@@ -110,8 +110,16 @@ func TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation(t *testing.T) {
 		t.Fatal("outbox replay executed more than once")
 	}
 
+	webhookID := "00000000-0000-0000-0000-000000000223"
+	if _, err = database.ExecContext(ctx, `INSERT INTO developer_webhook_endpoints(id,tenant_id,display_name,endpoint_url,subscribed_events,signing_key_reference,signing_key_id,status,version,verified_at,created_at,updated_at)VALUES($1,$2,'Recovery partner','https://partner.example.test/hooks',ARRAY['transfer.posted'],'secrets/webhooks/recovery','recovery-key','active',1,'2026-08-18T09:00:00Z','2026-08-18T09:00:00Z','2026-08-18T09:00:00Z')`, webhookID, testTenantID); err != nil {
+		t.Fatal(err)
+	}
+	var transferWebhookEventID string
+	if err = database.QueryRowContext(ctx, `SELECT id::text FROM outbox_events WHERE tenant_id=$1 AND transfer_id=$2 AND event_type='transfer.posted.v1'`, testTenantID, result.Result.TransferID).Scan(&transferWebhookEventID); err != nil {
+		t.Fatal(err)
+	}
 	deadAttemptID := "00000000-0000-0000-0000-000000000221"
-	if _, err = database.ExecContext(ctx, `INSERT INTO delivery_attempts(id,tenant_id,transfer_id,outbox_event_id,delivery_kind,endpoint_reference,attempt_number,status,sanitized_error_code,due_at,completed_at)VALUES($1,$2,$3,$4,'webhook','partner-primary',1,'dead','timeout','2026-08-18T10:00:00Z','2026-08-18T10:01:00Z')`, deadAttemptID, testTenantID, result.Result.TransferID, eventID); err != nil {
+	if _, err = database.ExecContext(ctx, `INSERT INTO delivery_attempts(id,tenant_id,transfer_id,outbox_event_id,delivery_kind,endpoint_reference,attempt_number,status,sanitized_error_code,due_at,completed_at)VALUES($1,$2,$3,$4,'webhook',$5,1,'dead','timeout','2026-08-18T10:00:00Z','2026-08-18T10:01:00Z')`, deadAttemptID, testTenantID, result.Result.TransferID, transferWebhookEventID, webhookID); err != nil {
 		t.Fatal(err)
 	}
 	delivery, err := db.NewDeliveryReplayRepository(database, func() time.Time { return time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC) })
@@ -135,7 +143,7 @@ func TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation(t *testing.T) {
 	if _, err = delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "executor", CorrelationID: deliveryCorrelation}); err == nil {
 		t.Fatal("duplicate delivery replay must not create another attempt")
 	}
-	if countRows(t, database, `SELECT count(*) FROM delivery_attempts WHERE transfer_id=$1`, result.Result.TransferID) != 2 || countRows(t, database, `SELECT count(*) FROM delivery_replay_actions WHERE action='executed'`) != 1 {
+	if countRows(t, database, `SELECT count(*) FROM delivery_attempts WHERE transfer_id=$1`, result.Result.TransferID) != 1 || countRows(t, database, `SELECT count(*) FROM webhook_delivery_jobs WHERE replay_of_attempt_id=$1`, deadAttemptID) != 1 || countRows(t, database, `SELECT count(*) FROM delivery_replay_actions WHERE action='executed'`) != 1 {
 		t.Fatal("delivery replay was not exactly once")
 	}
 }

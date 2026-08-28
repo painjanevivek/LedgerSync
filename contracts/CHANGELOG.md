@@ -2,6 +2,12 @@
 
 All dates are UTC. Contract artifacts are reviewed and released together.
 
+## 1.15.0 — 2026-08-28
+
+- Clarified that approved webhook replays return an accepted durable job, not a mutable attempt record.
+- A completed job appends immutable retry, dead-letter, or delivered attempt evidence while preserving the original event payload.
+- No operation is deprecated and no sunset is scheduled.
+
 ## 1.14.0 — 2026-08-28
 
 - Added tenant-scoped webhook registration, verification, external signing-key rotation, disablement, and stable delivery history.

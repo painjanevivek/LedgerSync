@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "1.14.0"
+const APIVersion = "1.15.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string

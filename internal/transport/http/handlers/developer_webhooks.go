@@ -234,12 +234,12 @@ func (h *DeveloperWebhookHandler) Replay(w http.ResponseWriter, r *http.Request)
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	attemptID, err := h.service.ReplayDelivery(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), p.SubjectID, middleware.CorrelationID(r.Context()))
+	jobID, err := h.service.ReplayDelivery(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), p.SubjectID, middleware.CorrelationID(r.Context()))
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
 	}
-	writeDeveloperCredentialJSON(w, http.StatusCreated, map[string]string{"attempt_id": attemptID, "status": "pending"})
+	writeDeveloperCredentialJSON(w, http.StatusAccepted, map[string]string{"delivery_job_id": jobID, "status": "scheduled"})
 }
 
 func (h *DeveloperWebhookHandler) writeSubmission(w http.ResponseWriter, r *http.Request, s developerplatform.WebhookSubmission, err error) {
