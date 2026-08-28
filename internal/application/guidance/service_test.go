@@ -113,6 +113,12 @@ func TestOrientationPreferencesAreVersionedServerStateAndCannotBypassEvidence(t 
 			t.Fatalf("preference completion missing at %d: %+v", index, summary.Steps[index])
 		}
 	}
+	if _, err := service.UpdateOrientationPreferences(context.Background(), "tenant", "actor", "4", false, []string{}); err != nil {
+		t.Fatalf("empty preference update error=%v", err)
+	}
+	if captured.CompletedStepIDs == nil || len(captured.CompletedStepIDs) != 0 {
+		t.Fatalf("empty preference must be canonical JSON-array input: %+v", captured)
+	}
 
 	withoutEvidence, _ := NewService(guidanceRepositoryStub{}, guidanceRecoveryStub{}, nil)
 	if _, err := withoutEvidence.UpdateOrientationPreferences(context.Background(), "tenant", "actor", "0", false, []string{"inspect_postings"}); !errors.Is(err, ErrInvalidPreference) {

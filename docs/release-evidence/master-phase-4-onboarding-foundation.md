@@ -25,7 +25,7 @@
 | Web unit/security | Passed: 85/85 |
 | Type/lint/production build | Passed |
 | Browser functionality, accessibility, responsive, and visual suite | Passed 124/124 after reviewed baseline promotion; includes unknown-response refresh without optimistic completion |
-| Reviewed Windows visual changes | Populated and mixed-currency Overview images inspected; hierarchy, stop-ship semantics, exact evidence, navigation, and error separation approved; focused comparison passed 2/2 |
+| Reviewed cross-platform visual changes | Populated and mixed-currency Overview images inspected on Windows and from exact-commit pinned-Linux CI; hierarchy, stop-ship semantics, exact evidence, navigation, and error separation approved |
 | Web performance | Passed 2/2; compact Overview LCP 1868 ms, CLS 0, observed INP 72 ms |
 
 ## Remaining Phase 4 exit work

@@ -155,7 +155,7 @@ func (s *Service) UpdateOrientationPreferences(ctx context.Context, tenantID, ac
 	if err != nil || version < 0 || len(completedStepIDs) > len(operatorPreferenceSteps) {
 		return OrientationSummary{}, ErrInvalidPreference
 	}
-	completed := append([]string(nil), completedStepIDs...)
+	completed := append([]string{}, completedStepIDs...)
 	sort.Strings(completed)
 	for index, stepID := range completed {
 		if _, allowed := operatorPreferenceSteps[stepID]; !allowed || (index > 0 && stepID == completed[index-1]) {

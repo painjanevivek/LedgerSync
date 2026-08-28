@@ -82,7 +82,8 @@ func (r *GuidanceRepository) UpdateOrientationPreference(ctx context.Context, te
 	if r == nil || r.database == nil || ctx == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" || update.ExpectedVersion < 0 {
 		return guidance.OrientationPreference{}, guidance.ErrInvalidPreference
 	}
-	completedJSON, err := json.Marshal(update.CompletedStepIDs)
+	completed := append([]string{}, update.CompletedStepIDs...)
+	completedJSON, err := json.Marshal(completed)
 	if err != nil {
 		return guidance.OrientationPreference{}, guidance.ErrInvalidPreference
 	}
@@ -102,7 +103,7 @@ func (r *GuidanceRepository) UpdateOrientationPreference(ctx context.Context, te
 	updatedAt = updatedAt.UTC()
 	return guidance.OrientationPreference{
 		Dismissed:        update.Dismissed,
-		CompletedStepIDs: append([]string(nil), update.CompletedStepIDs...),
+		CompletedStepIDs: completed,
 		Version:          version,
 		UpdatedAt:        &updatedAt,
 	}, nil
