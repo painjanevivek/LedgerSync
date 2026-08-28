@@ -25,16 +25,16 @@ func TestExpiredOutboxLeaseIsRecoveredAfterWorkerLoss(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(claimed) != 2 {
-		t.Fatalf("claimed=%d, want 2 account events", len(claimed))
+	if len(claimed) != 3 {
+		t.Fatalf("claimed=%d, want 3 transfer events", len(claimed))
 	}
 	now = now.Add(2 * time.Second)
 	recovered, err := repository.Claim(context.Background(), "recovery-worker", 10, time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(recovered) != 2 {
-		t.Fatalf("recovered=%d, want 2 expired events", len(recovered))
+	if len(recovered) != 3 {
+		t.Fatalf("recovered=%d, want 3 expired events", len(recovered))
 	}
 	for _, event := range recovered {
 		if err := repository.MarkPublished(context.Background(), "recovery-worker", event.ID, now); err != nil {
@@ -77,8 +77,8 @@ func TestRedisDependencyLossReschedulesWithoutChangingFinancialRecords(t *testin
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM ledger_postings`).Scan(&postings); err != nil {
 		t.Fatal(err)
 	}
-	if unpublished != 2 || published != 0 || postings != 2 {
-		t.Fatalf("unpublished=%d published=%d postings=%d; expected 2,0,2", unpublished, published, postings)
+	if unpublished != 3 || published != 0 || postings != 2 {
+		t.Fatalf("unpublished=%d published=%d postings=%d; expected 3,0,2", unpublished, published, postings)
 	}
 }
 
