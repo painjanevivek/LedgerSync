@@ -178,7 +178,10 @@ func (r *DeveloperWebhookRepository) DisableWebhook(ctx context.Context, command
 	return submission, err
 }
 
-const webhookSelect = `SELECT id::text,display_name,endpoint_url,subscribed_events,signing_key_reference,signing_key_id,status,version::text,challenge_expires_at,verified_at,disabled_at,created_at,updated_at FROM developer_webhook_endpoints`
+// PostgreSQL arrays are not portable through every database/sql driver. The
+// repository projects the approved subscription list to JSON at the boundary,
+// then validates it before exposing it to the application.
+const webhookSelect = `SELECT id::text,display_name,endpoint_url,array_to_json(subscribed_events)::text,signing_key_reference,signing_key_id,status,version::text,challenge_expires_at,verified_at,disabled_at,created_at,updated_at FROM developer_webhook_endpoints`
 
 func (r *DeveloperWebhookRepository) GetWebhook(ctx context.Context, tenantID, webhookID string) (developerplatform.Webhook, error) {
 	return scanWebhook(r.database.QueryRowContext(ctx, webhookSelect+` WHERE tenant_id=$1 AND id=$2`, tenantID, webhookID))
@@ -255,20 +258,33 @@ type webhookScanner interface{ Scan(...any) error }
 
 func scanWebhook(scanner webhookScanner) (developerplatform.Webhook, error) {
 	var item developerplatform.Webhook
-	err := scanner.Scan(&item.ID, &item.DisplayName, &item.EndpointURL, &item.SubscribedEvents, &item.SigningKeyReference, &item.SigningKeyID, &item.Status, &item.Version, &item.ChallengeExpiresAt, &item.VerifiedAt, &item.DisabledAt, &item.CreatedAt, &item.UpdatedAt)
+	var subscribedEvents []byte
+	err := scanner.Scan(&item.ID, &item.DisplayName, &item.EndpointURL, &subscribedEvents, &item.SigningKeyReference, &item.SigningKeyID, &item.Status, &item.Version, &item.ChallengeExpiresAt, &item.VerifiedAt, &item.DisabledAt, &item.CreatedAt, &item.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, developerplatform.ErrNotFound
 	}
-	return item, err
+	if err != nil {
+		return item, err
+	}
+	if err = json.Unmarshal(subscribedEvents, &item.SubscribedEvents); err != nil || len(item.SubscribedEvents) == 0 {
+		return item, errors.New("invalid persisted webhook subscriptions")
+	}
+	return item, nil
 }
 func lockWebhook(ctx context.Context, tx *sql.Tx, tenantID, webhookID string) (developerplatform.Webhook, []byte, error) {
 	var item developerplatform.Webhook
-	var digest []byte
-	err := tx.QueryRowContext(ctx, `SELECT id::text,display_name,endpoint_url,subscribed_events,signing_key_reference,signing_key_id,status,version::text,challenge_expires_at,verified_at,disabled_at,created_at,updated_at,challenge_digest FROM developer_webhook_endpoints WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, tenantID, webhookID).Scan(&item.ID, &item.DisplayName, &item.EndpointURL, &item.SubscribedEvents, &item.SigningKeyReference, &item.SigningKeyID, &item.Status, &item.Version, &item.ChallengeExpiresAt, &item.VerifiedAt, &item.DisabledAt, &item.CreatedAt, &item.UpdatedAt, &digest)
+	var digest, subscribedEvents []byte
+	err := tx.QueryRowContext(ctx, `SELECT id::text,display_name,endpoint_url,array_to_json(subscribed_events)::text,signing_key_reference,signing_key_id,status,version::text,challenge_expires_at,verified_at,disabled_at,created_at,updated_at,challenge_digest FROM developer_webhook_endpoints WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, tenantID, webhookID).Scan(&item.ID, &item.DisplayName, &item.EndpointURL, &subscribedEvents, &item.SigningKeyReference, &item.SigningKeyID, &item.Status, &item.Version, &item.ChallengeExpiresAt, &item.VerifiedAt, &item.DisabledAt, &item.CreatedAt, &item.UpdatedAt, &digest)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, nil, developerplatform.ErrNotFound
 	}
-	return item, digest, err
+	if err != nil {
+		return item, nil, err
+	}
+	if err = json.Unmarshal(subscribedEvents, &item.SubscribedEvents); err != nil || len(item.SubscribedEvents) == 0 {
+		return item, nil, errors.New("invalid persisted webhook subscriptions")
+	}
+	return item, digest, nil
 }
 
 func reserveWebhookCommand(ctx context.Context, tx *sql.Tx, tenantID, actorID, operation, key string, fingerprint [sha256.Size]byte, now time.Time, submission *developerplatform.WebhookSubmission) (bool, error) {
