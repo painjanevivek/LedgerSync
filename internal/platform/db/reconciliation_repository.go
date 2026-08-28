@@ -50,6 +50,24 @@ func (r *ReconciliationRepository) Reconcile(ctx context.Context, tenantID strin
 		return reconciliation.Result{}, fmt.Errorf("begin reconciliation snapshot: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	locked, err := acquireReconciliationLock(ctx, tx, tenantID)
+	if err != nil {
+		return reconciliation.Result{}, err
+	}
+	if !locked {
+		return reconciliation.Result{}, reconciliation.ErrAlreadyRunning
+	}
+	result, err = r.reconcileTx(ctx, tx, tenantID, "", "", "", startedAt)
+	if err != nil {
+		return reconciliation.Result{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return reconciliation.Result{}, fmt.Errorf("commit reconciliation evidence: %w", err)
+	}
+	return result, nil
+}
+
+func (r *ReconciliationRepository) reconcileTx(ctx context.Context, tx *sql.Tx, tenantID, actorID, correlationID, runID string, startedAt time.Time) (reconciliation.Result, error) {
 
 	var watermark, schemaVersion string
 	if err := tx.QueryRowContext(ctx, `SELECT txid_current_snapshot()::text, COALESCE((SELECT max(version) FROM schema_migrations), 'unknown')`).Scan(&watermark, &schemaVersion); err != nil {
@@ -112,9 +130,14 @@ ORDER BY a.id`, tenantID)
 	}
 	mismatches = append(mismatches, incomplete...)
 
-	runID, err := newUUID()
-	if err != nil {
-		return reconciliation.Result{}, err
+	if runID == "" {
+		runID, err = newUUID()
+		if err != nil {
+			return reconciliation.Result{}, err
+		}
+	}
+	if correlationID == "" {
+		correlationID = runID
 	}
 	completedAt := time.Now().UTC()
 	status := reconciliation.StatusMatched
@@ -123,7 +146,7 @@ ORDER BY a.id`, tenantID)
 	}
 	applicationVersion := buildVersion()
 	details, _ := json.Marshal(map[string]any{"comparison": "opening_baseline_plus_immutable_postings_to_projection", "scope": reconciliationScope, "ledger_watermark": watermark, "application_version": applicationVersion, "schema_version": schemaVersion, "posting_count": strconv.Itoa(postingCount)})
-	if _, err := tx.ExecContext(ctx, `INSERT INTO reconciliation_runs (id,tenant_id,status,checked_account_count,mismatch_count,correlation_id,started_at,completed_at,details,scope,ledger_watermark,application_version,schema_version,posting_count) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, runID, tenantID, status, checked, len(mismatches), runID, startedAt, completedAt, details, reconciliationScope, watermark, applicationVersion, schemaVersion, postingCount); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO reconciliation_runs (id,tenant_id,status,checked_account_count,mismatch_count,correlation_id,started_at,completed_at,details,scope,ledger_watermark,application_version,schema_version,posting_count) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, runID, tenantID, status, checked, len(mismatches), correlationID, startedAt, completedAt, details, reconciliationScope, watermark, applicationVersion, schemaVersion, postingCount); err != nil {
 		return reconciliation.Result{}, fmt.Errorf("persist reconciliation run: %w", err)
 	}
 	for index := range mismatches {
@@ -136,13 +159,22 @@ ORDER BY a.id`, tenantID)
 		outcome = "failed"
 	}
 	auditDetails, _ := json.Marshal(map[string]any{"status": status, "scope": reconciliationScope, "checked_account_count": checked, "posting_count": postingCount, "mismatch_count": len(mismatches), "ledger_watermark": watermark})
-	if _, err := tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,'reconciliation.completed','reconciliation_run',$3,$4,$5,$6,$7)`, runID, tenantID, runID, outcome, runID, auditDetails, completedAt); err != nil {
+	auditID, err := newUUID()
+	if err != nil {
+		return reconciliation.Result{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.completed','reconciliation_run',$4,$5,$6,$7,$8)`, auditID, tenantID, nullableString(actorID), runID, outcome, correlationID, auditDetails, completedAt); err != nil {
 		return reconciliation.Result{}, fmt.Errorf("persist reconciliation audit: %w", err)
 	}
-	if err := tx.Commit(); err != nil {
-		return reconciliation.Result{}, fmt.Errorf("commit reconciliation evidence: %w", err)
+	return reconciliation.Result{ID: runID, TenantID: tenantID, CorrelationID: correlationID, Scope: reconciliationScope, LedgerWatermark: watermark, ApplicationVersion: applicationVersion, SchemaVersion: schemaVersion, Status: status, CheckedAccountCount: checked, PostingCount: postingCount, MismatchCount: len(mismatches), StartedAt: startedAt, CompletedAt: completedAt}, nil
+}
+
+func acquireReconciliationLock(ctx context.Context, tx *sql.Tx, tenantID string) (bool, error) {
+	var locked bool
+	if err := tx.QueryRowContext(ctx, `SELECT pg_try_advisory_xact_lock(hashtextextended($1, 824631))`, tenantID).Scan(&locked); err != nil {
+		return false, fmt.Errorf("acquire tenant reconciliation lock: %w", err)
 	}
-	return reconciliation.Result{ID: runID, TenantID: tenantID, Scope: reconciliationScope, LedgerWatermark: watermark, ApplicationVersion: applicationVersion, SchemaVersion: schemaVersion, Status: status, CheckedAccountCount: checked, PostingCount: postingCount, MismatchCount: len(mismatches), StartedAt: startedAt, CompletedAt: completedAt}, nil
+	return locked, nil
 }
 
 func compareAccount(accountID, currency string, available, ledger, version, opening sql.NullString, postedDelta string) ([]reconciliationMismatch, error) {

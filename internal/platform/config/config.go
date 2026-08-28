@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -43,9 +44,11 @@ type Config struct {
 	BFFAssertionPreviousKeyID  string
 	DevelopmentSubjectID       string
 	DevelopmentTenantID        string
+	DevelopmentAPIToken        string
 	TelemetryEnabled           bool
 	TelemetryServiceName       string
 	OTLPHTTPEndpoint           string
+	RecoveryEvidenceRoot       string
 }
 
 func Load() (Config, error) {
@@ -158,9 +161,11 @@ func Load() (Config, error) {
 		BFFAssertionPreviousKeyID:  os.Getenv("LEDGERSYNC_BFF_ASSERTION_PREVIOUS_KEY_ID"),
 		DevelopmentSubjectID:       os.Getenv("LEDGERSYNC_DEVELOPMENT_SUBJECT_ID"),
 		DevelopmentTenantID:        os.Getenv("LEDGERSYNC_DEVELOPMENT_TENANT_ID"),
+		DevelopmentAPIToken:        os.Getenv("LEDGERSYNC_DEVELOPMENT_API_TOKEN"),
 		TelemetryEnabled:           telemetryEnabled,
 		TelemetryServiceName:       valueOrDefault("LEDGERSYNC_TELEMETRY_SERVICE_NAME", "ledgersync-api"),
 		OTLPHTTPEndpoint:           os.Getenv("LEDGERSYNC_OTLP_HTTP_ENDPOINT"),
+		RecoveryEvidenceRoot:       valueOrDefault("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "/run/ledgersync/recovery"),
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
 		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/resource audience/client mapping, and 32-byte BFF assertion secret are required outside development")
@@ -171,8 +176,14 @@ func Load() (Config, error) {
 	if (config.BFFAssertionPreviousSecret == "") != (config.BFFAssertionPreviousKeyID == "") || (config.BFFAssertionPreviousSecret != "" && len(config.BFFAssertionPreviousSecret) < 32) {
 		return Config{}, fmt.Errorf("previous BFF assertion key ID and 32-byte secret must be configured together")
 	}
+	if config.Environment == "development" && (config.DevelopmentSubjectID != "" || config.DevelopmentTenantID != "") && len(config.DevelopmentAPIToken) < 32 {
+		return Config{}, fmt.Errorf("LEDGERSYNC_DEVELOPMENT_API_TOKEN must be at least 32 characters when development identity is enabled")
+	}
 	if len(config.PilotCurrency) != 3 || config.PilotCurrency[0] < 'A' || config.PilotCurrency[0] > 'Z' || config.PilotCurrency[1] < 'A' || config.PilotCurrency[1] > 'Z' || config.PilotCurrency[2] < 'A' || config.PilotCurrency[2] > 'Z' {
 		return Config{}, fmt.Errorf("LEDGERSYNC_PILOT_CURRENCY must be an ISO-style three-letter uppercase code")
+	}
+	if !path.IsAbs(config.RecoveryEvidenceRoot) {
+		return Config{}, fmt.Errorf("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT must be an absolute directory")
 	}
 	return config, nil
 }

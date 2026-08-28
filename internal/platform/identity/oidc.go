@@ -109,13 +109,21 @@ var allowedRoles = map[string]struct{}{
 }
 
 var allowedScopes = map[string]struct{}{
-	"accounts:read":       {},
-	"transfers:read":      {},
-	"transfers:write":     {},
-	"transactions:read":   {},
-	"reconciliation:read": {},
-	"audit:read":          {},
-	BFFActorScope:         {},
+	"accounts:read":        {},
+	"accounts:write":       {},
+	"transfers:read":       {},
+	"transfers:write":      {},
+	"transactions:read":    {},
+	"reconciliation:read":  {},
+	"reconciliation:write": {},
+	"local:read":           {},
+	"events:read":          {},
+	"developer:read":       {},
+	"recovery:read":        {},
+	"exports:read":         {},
+	"explainability:read":  {},
+	"audit:read":           {},
+	BFFActorScope:          {},
 }
 
 func allowedSet(values []string, allowed map[string]struct{}) map[string]struct{} {

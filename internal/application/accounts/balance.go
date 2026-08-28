@@ -1,5 +1,5 @@
-// Package accounts owns account-read contracts. It asks a disposable cache for
-// speed but treats PostgreSQL projections as the sole authoritative answer.
+// Package accounts owns account-read contracts. It refreshes a disposable
+// cache, but PostgreSQL projections are the sole authoritative answer.
 package accounts
 
 import (
@@ -26,6 +26,8 @@ type Balance struct {
 type Source string
 
 const (
+	// SourceCache is retained for compatibility with existing internal callers.
+	// Customer-visible balance reads no longer return Redis projections.
 	SourceCache   Source = "cache"
 	SourcePrimary Source = "primary"
 )
@@ -39,7 +41,6 @@ type Repository interface {
 	ReadCurrent(context.Context, string, string, string) (Balance, error)
 }
 type Cache interface {
-	Get(context.Context, string, string) (Balance, error)
 	Put(context.Context, Balance) (bool, error)
 }
 type Verifier interface {
@@ -52,15 +53,16 @@ type Metrics interface {
 }
 
 type Reader struct {
-	primary      Repository
-	cache        Cache
-	verifier     Verifier
-	maximumWait  time.Duration
-	pollInterval time.Duration
-	metrics      Metrics
+	primary  Repository
+	cache    Cache
+	verifier Verifier
+	metrics  Metrics
 }
 
 type ReaderConfig struct {
+	// MaximumWait and PollInterval are retained for source compatibility.
+	// Balance reads no longer wait for Redis because PostgreSQL is the financial
+	// source of truth.
 	MaximumWait, PollInterval time.Duration
 	Metrics                   Metrics
 }
@@ -69,57 +71,27 @@ func NewReader(primary Repository, cache Cache, verifier Verifier, cfg ReaderCon
 	if primary == nil || cache == nil {
 		return nil, errors.New("balance primary repository and cache are required")
 	}
-	if cfg.MaximumWait <= 0 {
-		cfg.MaximumWait = 150 * time.Millisecond
-	}
-	if cfg.PollInterval <= 0 {
-		cfg.PollInterval = 15 * time.Millisecond
-	}
-	return &Reader{primary: primary, cache: cache, verifier: verifier, maximumWait: cfg.MaximumWait, pollInterval: cfg.PollInterval, metrics: cfg.Metrics}, nil
+	return &Reader{primary: primary, cache: cache, verifier: verifier, metrics: cfg.Metrics}, nil
 }
 
 func (r *Reader) Read(ctx context.Context, tenantID, actorID, accountID, rawRequirement string) (Result, error) {
 	if tenantID == "" || actorID == "" || accountID == "" {
 		return Result{}, errors.New("tenant, actor, and account are required")
 	}
+	// ReadCurrent performs authorization and reads the projection in one
+	// tenant/owner-scoped PostgreSQL query. Redis is deliberately not consulted
+	// for the returned value: a syntactically valid forged cache record must not
+	// become customer-visible financial truth.
+	balance, err := r.primary.ReadCurrent(ctx, tenantID, actorID, accountID)
+	if err != nil {
+		return Result{}, fmt.Errorf("%w: %w", ErrCurrentBalanceUnavailable, err)
+	}
+	// Preserve the non-disclosing authorization boundary: only validate a
+	// caller-supplied consistency requirement after the scoped query has proved
+	// that this actor may read the account.
 	minimum, err := r.minimumVersion(tenantID, accountID, rawRequirement)
 	if err != nil {
 		return Result{}, err
-	}
-	if cached, err := r.cache.Get(ctx, tenantID, accountID); err == nil && cached.Version >= minimum {
-		if r.metrics != nil {
-			r.metrics.ObserveCacheHit()
-		}
-		return Result{Balance: cached, Source: SourceCache}, nil
-	}
-	if minimum > 0 {
-		deadline := time.NewTimer(r.maximumWait)
-		defer deadline.Stop()
-		ticker := time.NewTicker(r.pollInterval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return Result{}, ctx.Err()
-			case <-deadline.C:
-				goto fallback
-			case <-ticker.C:
-				if cached, err := r.cache.Get(ctx, tenantID, accountID); err == nil && cached.Version >= minimum {
-					if r.metrics != nil {
-						r.metrics.ObserveCacheHit()
-					}
-					return Result{Balance: cached, Source: SourceCache}, nil
-				}
-			}
-		}
-	}
-fallback:
-	if r.metrics != nil {
-		r.metrics.ObservePrimaryFallback()
-	}
-	balance, err := r.primary.ReadCurrent(ctx, tenantID, actorID, accountID)
-	if err != nil {
-		return Result{}, fmt.Errorf("%w: %v", ErrCurrentBalanceUnavailable, err)
 	}
 	if balance.Version < minimum {
 		if r.metrics != nil {

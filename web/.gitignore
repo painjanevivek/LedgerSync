@@ -2,4 +2,6 @@ node_modules/
 .next/
 .env.local
 playwright-report/
+playwright-report-real-stack/
 test-results/
+tsconfig.tsbuildinfo

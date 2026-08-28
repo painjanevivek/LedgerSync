@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { AccountFilters } from "@/features/accounts/AccountViews";
-import type { Account, Transaction } from "@/features/accounts/types";
+import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
 
 type AccountsPayload = { accounts?: Account[]; next_cursor?: string };
@@ -36,7 +36,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   const [filters, setFilters] = useState<AccountFilters>(initialFilters);
   const [nextCursor, setNextCursor] = useState<string>();
   const [scopeComplete, setScopeComplete] = useState(true);
-  const [balance, setBalance] = useState<Account | null>(null);
+  const [balance, setBalance] = useState<AccountBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [historyCursor, setHistoryCursor] = useState<string>();
   const [directoryLoading, setDirectoryLoading] = useState(false);
@@ -45,12 +45,29 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   const [error, setError] = useState<string | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [directoryVerifiedAt, setDirectoryVerifiedAt] = useState<string>();
+  const [balanceVerifiedAt, setBalanceVerifiedAt] = useState<string>();
+  const [historyVerifiedAt, setHistoryVerifiedAt] = useState<string>();
+  const directoryKey = useRef<string | undefined>(undefined);
+  const detailKey = useRef<string | undefined>(undefined);
+  const directoryGeneration = useRef(0);
+  const detailGeneration = useRef(0);
 
   const selected = useMemo(() => accountDetail ?? accounts.find((account) => account.account_id === initialAccountId) ?? null, [accountDetail, accounts, initialAccountId]);
 
   const load = useCallback(async (requestedFilters: AccountFilters, limit = 25) => {
+    const key = accountQuery(requestedFilters, limit);
+    const sameQuery = directoryKey.current === key;
+    directoryKey.current = key;
+    const generation = ++directoryGeneration.current;
+    if (!sameQuery) {
+      setAccounts([]);
+      setNextCursor(undefined);
+      setDirectoryVerifiedAt(undefined);
+    }
     setDirectoryLoading(true);
-    const response = await readJSON<AccountsPayload>(`/api/me/accounts?${accountQuery(requestedFilters, limit)}`);
+    const response = await readJSON<AccountsPayload>(`/api/me/accounts?${key}`);
+    if (generation !== directoryGeneration.current) return [];
     if (!response.ok) {
       setError(unavailableMessage(response.status, "accounts"));
       setDirectoryLoading(false);
@@ -59,6 +76,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     const items = Array.isArray(response.data.accounts) ? response.data.accounts : [];
     setAccounts(items);
     setNextCursor(response.data.next_cursor || undefined);
+    setDirectoryVerifiedAt(new Date().toISOString());
     if (limit === 100) setScopeComplete(!response.data.next_cursor);
     setError(null);
     setDirectoryLoading(false);
@@ -66,29 +84,53 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   }, []);
 
   const loadDetail = useCallback(async (accountId: string) => {
+    const sameAccount = detailKey.current === accountId;
+    detailKey.current = accountId;
+    const generation = ++detailGeneration.current;
+    if (!sameAccount) {
+      setAccountDetail(null);
+      setBalance(null);
+      setTransactions([]);
+      setHistoryCursor(undefined);
+      setBalanceVerifiedAt(undefined);
+      setHistoryVerifiedAt(undefined);
+    }
     setBalanceLoading(true);
     setHistoryLoading(true);
     setBalanceError(null);
     setHistoryError(null);
-    const [summary, currentBalance, history] = await Promise.all([
-      readJSON<Account>(`/api/accounts/${encodeURIComponent(accountId)}`),
-      readJSON<Account>(`/api/accounts/${encodeURIComponent(accountId)}/balance`),
-      readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(accountId)}/transactions?limit=25`),
+    let resolvedAccount: Account | null = null;
+    let resolvedBalance: AccountBalance | null = null;
+    await Promise.all([
+      (async () => {
+        const summary = await readJSON<Account>(`/api/accounts/${encodeURIComponent(accountId)}`);
+        if (generation !== detailGeneration.current) return;
+        if (summary.ok && summary.data.account_id) { resolvedAccount = summary.data; setAccountDetail(summary.data); setError(null); }
+        else setError(unavailableMessage(summary.status, "account evidence"));
+      })(),
+      (async () => {
+        const currentBalance = await readJSON<AccountBalance>(`/api/accounts/${encodeURIComponent(accountId)}/balance`);
+        if (generation !== detailGeneration.current) return;
+        if (currentBalance.ok && currentBalance.data.account_id) {
+          resolvedBalance = currentBalance.data;
+          setBalance(currentBalance.data);
+          setBalanceVerifiedAt(currentBalance.data.as_of || new Date().toISOString());
+        } else setBalanceError("The authoritative balance could not be refreshed. Any retained value is historical and cannot authorize a command.");
+        setBalanceLoading(false);
+      })(),
+      (async () => {
+        const history = await readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(accountId)}/transactions?limit=25`);
+        if (generation !== detailGeneration.current) return;
+        if (history.ok && Array.isArray(history.data.transactions)) {
+          setTransactions(history.data.transactions);
+          setHistoryCursor(history.data.next_cursor || undefined);
+          setHistoryVerifiedAt(new Date().toISOString());
+          setHistoryError(null);
+        } else setHistoryError(history.status === 401 ? "Your session expired. Re-authenticate before viewing ledger history." : history.status === 403 ? "Your role is not authorized to view ledger history." : "Ledger history is temporarily unavailable. No empty result is being inferred.");
+        setHistoryLoading(false);
+      })(),
     ]);
-    setAccountDetail(summary.ok && summary.data.account_id ? summary.data : null);
-    if (!summary.ok) setError(unavailableMessage(summary.status, "account evidence"));
-    setBalance(currentBalance.ok && currentBalance.data.account_id ? currentBalance.data : null);
-    if (!currentBalance.ok) setBalanceError("The authoritative balance could not be verified. An older value is not shown as current.");
-    setBalanceLoading(false);
-    if (history.ok && Array.isArray(history.data.transactions)) {
-      setTransactions(history.data.transactions);
-      setHistoryCursor(history.data.next_cursor || undefined);
-      setHistoryError(null);
-    } else {
-      setTransactions([]);
-      setHistoryError(history.status === 401 ? "Your session expired. Re-authenticate before viewing ledger history." : history.status === 403 ? "Your role is not authorized to view ledger history." : "Ledger history is temporarily unavailable. No empty result is being inferred.");
-    }
-    setHistoryLoading(false);
+    return { account: resolvedAccount, balance: resolvedBalance };
   }, []);
 
   const loadMoreHistory = useCallback(async () => {
@@ -98,6 +140,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     if (history.ok && Array.isArray(history.data.transactions)) {
       setTransactions((current) => [...current, ...history.data.transactions!]);
       setHistoryCursor(history.data.next_cursor || undefined);
+      setHistoryVerifiedAt(new Date().toISOString());
       setHistoryError(null);
     } else setHistoryError("Additional ledger history is temporarily unavailable. Existing entries remain verified.");
     setHistoryLoading(false);
@@ -118,5 +161,5 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     void load(next);
   }
 
-  return { accounts, selected, filters, nextCursor, scopeComplete, balance, transactions, historyCursor, directoryLoading, balanceLoading, historyLoading, error, balanceError, historyError, load, loadDetail, loadMoreHistory, applyFilters, loadNextPage };
+  return { accounts, selected, filters, nextCursor, scopeComplete, balance, transactions, historyCursor, directoryLoading, balanceLoading, historyLoading, error, balanceError, historyError, directoryVerifiedAt, balanceVerifiedAt, historyVerifiedAt, load, loadDetail, loadMoreHistory, applyFilters, loadNextPage };
 }

@@ -2,10 +2,10 @@ name: Contract validation
 
 on:
   pull_request:
-    paths: [contracts/**, cmd/api/**, internal/transport/http/**, tests/contract/**, .github/workflows/contract.yml]
+    paths: [contracts/**, cmd/api/**, internal/application/**, internal/transport/http/**, tests/contract/**, deploy/compose/docker-compose.yml, deploy/compose/docker-compose.restore.yml, deploy/compose/docker-compose.fault.yml, scripts/run-security-supply-chain-qualification.ps1, web/package.json, web/package-lock.json, .github/workflows/contract.yml, .github/workflows/quality.yml, .github/workflows/release-evidence.yml, .github/workflows/security.yml]
   push:
     branches: [main]
-    paths: [contracts/**, cmd/api/**, internal/transport/http/**, tests/contract/**, .github/workflows/contract.yml]
+    paths: [contracts/**, cmd/api/**, internal/application/**, internal/transport/http/**, tests/contract/**, deploy/compose/docker-compose.yml, deploy/compose/docker-compose.restore.yml, deploy/compose/docker-compose.fault.yml, scripts/run-security-supply-chain-qualification.ps1, web/package.json, web/package-lock.json, .github/workflows/contract.yml, .github/workflows/quality.yml, .github/workflows/release-evidence.yml, .github/workflows/security.yml]
 
 permissions:
   contents: read
@@ -19,5 +19,8 @@ jobs:
         with: { go-version-file: go.mod, check-latest: true }
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with: { node-version: 24, cache: npm, cache-dependency-path: web/package-lock.json }
-      - run: npx --yes @redocly/cli@1.34.0 lint contracts/openapi.yaml
-      - run: go test ./tests/contract -run 'TestOpenAPI|TestDatabaseRole'
+      - run: npm ci
+        working-directory: web
+      - run: ./node_modules/.bin/redocly lint ../contracts/openapi.yaml
+        working-directory: web
+      - run: go test ./tests/contract

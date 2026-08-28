@@ -24,7 +24,7 @@ test("an authorized operator retries a lost response with the same idempotency k
   });
 
   await page.goto("/");
-  await page.getByRole("link", { name: "Transfers" }).click();
+  await page.getByRole("link", { name: "Transfers", exact: true }).click();
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).click();

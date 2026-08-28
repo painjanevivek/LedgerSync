@@ -2,6 +2,8 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
+import { readPublicOrigin } from "@/lib/security";
+
 const transactionCookieName = "ledgersync_oidc_transaction";
 const transactionLifetimeMs = 10 * 60 * 1000;
 
@@ -11,7 +13,7 @@ export type VerifiedIdentity = Readonly<{ subjectId: string; tenantId: string; r
 type OperatorAuthorization = Readonly<{ tenantId: string; roles: string[]; scopes: string[] }>;
 
 const allowedRoles = new Set(["tenant:operator", "tenant:admin"]);
-const allowedScopes = new Set(["accounts:read", "transfers:read", "transfers:write", "transactions:read", "reconciliation:read", "audit:read"]);
+const allowedScopes = new Set(["accounts:read", "accounts:write", "transfers:read", "transfers:write", "transactions:read", "reconciliation:read", "reconciliation:write", "audit:read", "local:read", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"]);
 
 export function resolveOperatorAuthorization(subjectId: string): OperatorAuthorization {
   const raw = process.env.LEDGERSYNC_OIDC_SUBJECT_PERMISSIONS;
@@ -115,5 +117,6 @@ export async function completeAuthorization(code: string, state: string, transac
 export { transactionCookieName };
 
 export function transactionCookie(value: string) {
+  readPublicOrigin();
   return { name: transactionCookieName, value, httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/api/auth", maxAge: transactionLifetimeMs / 1000 };
 }

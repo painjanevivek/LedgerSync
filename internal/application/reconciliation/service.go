@@ -17,10 +17,10 @@ const (
 )
 
 type Result struct {
-	ID, TenantID, Scope, LedgerWatermark, ApplicationVersion, SchemaVersion string
-	Status                                                                  Status
-	CheckedAccountCount, PostingCount, MismatchCount                        int
-	StartedAt, CompletedAt                                                  time.Time
+	ID, TenantID, CorrelationID, Scope, LedgerWatermark, ApplicationVersion, SchemaVersion string
+	Status                                                                                 Status
+	CheckedAccountCount, PostingCount, MismatchCount                                       int
+	StartedAt, CompletedAt                                                                 time.Time
 }
 type Repository interface {
 	Reconcile(context.Context, string, time.Time) (Result, error)

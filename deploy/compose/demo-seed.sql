@@ -2,6 +2,10 @@
 
 INSERT INTO tenants (id, external_reference) VALUES ('00000000-0000-4000-8000-000000000001', 'ledgersync-local-demo') ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO tenant_subject_roles (tenant_id,subject_id,role)
+VALUES ('00000000-0000-4000-8000-000000000001','demo-operator','operator')
+ON CONFLICT DO NOTHING;
+
 DO $$
 BEGIN
   IF EXISTS (

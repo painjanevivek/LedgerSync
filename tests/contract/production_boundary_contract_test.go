@@ -38,6 +38,15 @@ func TestProductionDeploymentFilesDoNotReferenceLegacyApplications(t *testing.T)
 	}
 }
 
+func TestSupportedComposeHasNoLegacyDiagnosticProfile(t *testing.T) {
+	compose := readContractFile(t, filepath.Join(repositoryRoot(t), "deploy", "compose", "docker-compose.yml"))
+	for _, forbidden := range []string{"legacy-simulation", "profiles: [diagnostic]", "sleep infinity"} {
+		if strings.Contains(compose, forbidden) {
+			t.Errorf("supported Compose retains legacy diagnostic marker %q", forbidden)
+		}
+	}
+}
+
 func repositoryRoot(t *testing.T) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)

@@ -2,14 +2,23 @@
 param(
     [ValidateRange(30, 600)]
     [int]$WaitTimeoutSeconds = 240,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [ValidateSet("demo", "empty")]
+    [string]$InitializationMode
 )
 
 . (Join-Path $PSScriptRoot "local-runtime-common.ps1")
+. (Join-Path $PSScriptRoot "local-backup-common.ps1")
+. (Join-Path $PSScriptRoot "local-initialization-common.ps1")
 
 try {
     Write-Host "Checking Docker and the LedgerSync local boundary..."
     Assert-LedgerSyncDockerAvailable
+    Initialize-LedgerSyncLocalSecrets
+    $requestedMode = if ($PSBoundParameters.ContainsKey("InitializationMode")) { $InitializationMode } else { $null }
+    $resolvedMode = Initialize-LedgerSyncInitializationMode -RequestedMode $requestedMode
+    $env:LEDGERSYNC_INITIALIZATION_MODE = $resolvedMode
+    Initialize-LedgerSyncLocalRecoveryEvidenceIndex | Out-Null
     Test-LedgerSyncPortAvailableOrOwned
     Invoke-LedgerSyncCompose -ComposeArguments @("config", "-q")
 
@@ -29,7 +38,7 @@ try {
 
     Write-Host ""
     Write-Host "LedgerSync local MVP is ready: $script:LedgerSyncWebUrl" -ForegroundColor Green
-    Write-Host "Project: $script:LedgerSyncComposeProject | Data volumes were preserved."
+    Write-Host "Project: $script:LedgerSyncComposeProject | Initialization: $resolvedMode | Data volumes were preserved."
 }
 catch {
     Write-Error $_

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
+import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
 import { CopyControl, StatePanel } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
 import type { PreparedTransfer } from "@/features/transfers/transferIntent";
@@ -16,21 +17,30 @@ type Props = Readonly<{
   tenantId: string;
   csrfToken: string;
   disabled?: boolean;
+  preferredDestinationId?: string;
+  returnTo?: string;
   onPosted: () => Promise<void>;
 }>;
 
-export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted }: Props) {
+export function TransferForm({ accounts, tenantId, csrfToken, disabled, preferredDestinationId, returnTo, onPosted }: Props) {
   const transferable = useMemo(() => accounts.filter((account) => account.status === "active"), [accounts]);
-  const [source, setSource] = useState(transferable[0]?.account_id ?? "");
-  const [destination, setDestination] = useState(transferable[1]?.account_id ?? "");
+  const fundedSources = useMemo(() => transferable.filter((account) => hasPositiveMinorUnits(account.available_minor)), [transferable]);
+  const preferredDestination = useMemo(() => transferable.find((account) => account.account_id === preferredDestinationId), [preferredDestinationId, transferable]);
+  const initialSource = preferredDestination
+    ? fundedSources.find((account) => account.account_id !== preferredDestination.account_id && account.currency === preferredDestination.currency)
+    : fundedSources[0];
+  const [source, setSource] = useState(initialSource?.account_id ?? "");
+  const [destination, setDestination] = useState(preferredDestination?.account_id ?? transferable.find((account) => account.account_id !== initialSource?.account_id)?.account_id ?? "");
   const [amount, setAmount] = useState("");
+  const userChangedRoute = useRef(false);
+  const preferredConsumed = useRef(false);
   const [prepared, setPrepared] = useState<PreparedTransfer | null>(null);
   const [validation, setValidation] = useState<string | null>(null);
   const { outcome, pending, setOutcome, storedIntent, submit: postPrepared } = useTransferSubmission(tenantId, csrfToken, onPosted);
   const reviewHeading = useRef<HTMLHeadingElement>(null);
   const outcomeHeading = useRef<HTMLHeadingElement>(null);
 
-  const sourceAccount = transferable.find((account) => account.account_id === source) ?? transferable[0];
+  const sourceAccount = fundedSources.find((account) => account.account_id === source) ?? fundedSources[0];
   const effectiveSource = sourceAccount?.account_id ?? "";
   const destinations = useMemo(
     () => transferable.filter((account) => account.account_id !== effectiveSource && account.currency === sourceAccount?.currency),
@@ -49,6 +59,20 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted
   }, [storedIntent, transferable]);
 
   const effectivePrepared = prepared ?? restorableIntent;
+  const preferredFundingBlocked = Boolean(preferredDestination && !storedIntent && !fundedSources.some((account) => account.account_id !== preferredDestination.account_id && account.currency === preferredDestination.currency));
+
+  useEffect(() => {
+    if (preferredConsumed.current || userChangedRoute.current || storedIntent || !preferredDestination) return;
+    const nextSource = fundedSources.find((account) => account.account_id !== preferredDestination.account_id && account.currency === preferredDestination.currency);
+    if (!nextSource) return;
+    const frame = requestAnimationFrame(() => {
+      if (userChangedRoute.current || preferredConsumed.current) return;
+      setSource(nextSource.account_id);
+      setDestination(preferredDestination.account_id);
+      preferredConsumed.current = true;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [fundedSources, preferredDestination, storedIntent]);
 
   useEffect(() => {
     if (effectivePrepared) reviewHeading.current?.focus();
@@ -113,6 +137,7 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted
         </div>)}</div> : <p className="muted">Open the source and destination account records for current balance evidence.</p>}
       </section>
       <button className="button secondary" type="button" onClick={() => setOutcome(null)}>Prepare another transfer</button>
+      {returnTo && <Link className="text-link" href={returnTo}>Return to account</Link>}
     </section>;
   }
 
@@ -122,10 +147,6 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted
       title="Unconfirmed transfer cannot be restored"
       message="The original accounts are no longer both available in the authorized active scope. LedgerSync will not alter or recreate this intent with a different key. Inspect transfer history before taking further action."
     />;
-  }
-
-  if (transferable.length < 2 || destinations.length === 0) {
-    return <StatePanel kind="denied" title="Transfer unavailable" message="Two active, authorized accounts in the same currency are required." />;
   }
 
   if (effectivePrepared) {
@@ -155,6 +176,10 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted
     </section>;
   }
 
+  if (preferredFundingBlocked || transferable.length < 2 || fundedSources.length === 0 || destinations.length === 0) {
+    return <StatePanel kind="denied" title="No funded source account" message="A different active, authorized account in the same currency must have a positive exact available balance before a new transfer can be prepared." />;
+  }
+
   return <section className="surface transfer-form" aria-labelledby="transfer-heading">
     <div>
       <p className="eyebrow">Prepare</p>
@@ -162,10 +187,11 @@ export function TransferForm({ accounts, tenantId, csrfToken, disabled, onPosted
       <p className="muted">Exact, same-currency movement between authorized ledger accounts.</p>
     </div>
     <form onSubmit={prepare} noValidate>
-      <label>From account<select value={effectiveSource} onChange={(event) => setSource(event.target.value)} disabled={disabled}>{transferable.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
-      <label>To account<select value={effectiveDestination} onChange={(event) => setDestination(event.target.value)} disabled={disabled}>{destinations.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
+      <label>From account<select value={effectiveSource} onChange={(event) => { userChangedRoute.current = true; setSource(event.target.value); }} disabled={disabled}>{fundedSources.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
+      <label>To account<select value={effectiveDestination} onChange={(event) => { userChangedRoute.current = true; setDestination(event.target.value); }} disabled={disabled}>{destinations.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
       <label>Exact amount<input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" autoComplete="off" placeholder="0.00" aria-describedby="transfer-help transfer-error" aria-invalid={Boolean(validation)} disabled={disabled} /></label>
       <p id="transfer-help" className="muted">Decimal text becomes integer minor units. Floating-point arithmetic is never used.</p>
+      {preferredDestination && !storedIntent && <p className="destination-preselection" role="status">Destination preselected from account <code>{preferredDestination.account_id}</code>. Review the source and exact amount before posting.</p>}
       {validation && <p id="transfer-error" className="field-error" role="alert">{validation}</p>}
       <button className="button primary" disabled={disabled} type="submit">Review transfer</button>
     </form>

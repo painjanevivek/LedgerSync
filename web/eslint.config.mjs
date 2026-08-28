@@ -12,6 +12,7 @@ export default defineConfig([
     "build/**",
     "coverage/**",
     "playwright-report/**",
+    "playwright-report-real-stack/**",
     "test-results/**",
     "**/*.min.js",
   ]),

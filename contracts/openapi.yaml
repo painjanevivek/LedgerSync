@@ -1,19 +1,50 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.2.0
+  version: 1.8.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
     has an unknown outcome and must be retried with the identical payload and
-    Idempotency-Key.
+    Idempotency-Key. Account command timeouts follow the same retry rule.
   license: { name: Apache License 2.0, identifier: Apache-2.0 }
 servers: [{ url: /api }]
 security: [{ bearerAuth: [], actorAssertion: [] }]
 paths:
+
+  /accounts:
+    post:
+      operationId: createAccount
+      x-required-scope: accounts:write
+      summary: Create an owned INR account with exact zero balances.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateAccountRequest' } } }
+      responses:
+        '201':
+          description: Original or safely replayed account creation outcome.
+          headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountCommandResult' }
+              examples:
+                original: { $ref: '#/components/examples/AccountCreateOriginal' }
+                replay: { $ref: '#/components/examples/AccountCreateReplay' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AccountConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/AccountNotZero' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/AccountCommandUnavailable' }
+        '500': { $ref: '#/components/responses/InternalError' }
   /me/accounts:
     get:
       operationId: listOwnedAccounts
+      x-required-scope: accounts:read
       summary: List accounts visible to the authenticated subject.
       parameters:
         - { $ref: '#/components/parameters/Cursor' }
@@ -31,6 +62,7 @@ paths:
   /accounts/{accountId}:
     get:
       operationId: getOwnedAccount
+      x-required-scope: accounts:read
       summary: Read one account visible to the authenticated subject without disclosing inaccessible records.
       parameters: [{ $ref: '#/components/parameters/AccountID' }]
       responses:
@@ -39,9 +71,33 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
+    patch:
+      operationId: updateAccount
+      x-required-scope: accounts:write
+      summary: Replace mutable account metadata or request one lifecycle transition.
+      parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PatchAccountRequest' } } }
+      responses:
+        '200':
+          description: Original or safely replayed account mutation outcome.
+          headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/AccountCommandResult' } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AccountConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/AccountNotZero' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/AccountCommandUnavailable' }
+        '500': { $ref: '#/components/responses/InternalError' }
   /accounts/{accountId}/balance:
     get:
       operationId: getAccountBalance
+      x-required-scope: accounts:read
       summary: Read an authorized current balance.
       parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/ConsistencyRequirement' }]
       responses:
@@ -55,6 +111,7 @@ paths:
   /accounts/{accountId}/transactions:
     get:
       operationId: listAccountTransactions
+      x-required-scope: transactions:read
       summary: List immutable posted history for an authorized account.
       parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
       responses:
@@ -67,13 +124,14 @@ paths:
   /transfers:
     get:
       operationId: listTransfers
+      x-required-scope: transfers:read
       summary: Search tenant transfer outcomes.
       parameters:
         - { $ref: '#/components/parameters/Cursor' }
         - { $ref: '#/components/parameters/Limit' }
         - { in: query, name: accountId, schema: { type: string, format: uuid } }
-        - { in: query, name: status, schema: { type: string, enum: [pending, posted, rejected] } }
-        - { in: query, name: q, schema: { type: string, maxLength: 256 } }
+        - { in: query, name: status, description: 'Server-side financial-status filter applied before pagination.', schema: { type: string, enum: [pending, posted, rejected] } }
+        - { in: query, name: q, description: 'Server-side case-insensitive substring search over transfer, source-account, and destination-account UUIDs; hexadecimal and hyphen characters only. The cursor is bound to this and every other filter.', schema: { type: string, minLength: 1, maxLength: 128, pattern: '^[0-9A-Fa-f-]+$' } }
         - { in: query, name: from, schema: { type: string, format: date-time } }
         - { in: query, name: to, schema: { type: string, format: date-time } }
       responses:
@@ -84,6 +142,7 @@ paths:
         '429': { $ref: '#/components/responses/RateLimited' }
     post:
       operationId: createTransfer
+      x-required-scope: transfers:write
       summary: Submit an exact internal transfer under tenant policy.
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       requestBody:
@@ -106,6 +165,7 @@ paths:
   /transfers/{transferId}:
     get:
       operationId: getTransfer
+      x-required-scope: transfers:read
       summary: Inspect a transfer, postings, and evidence timeline.
       parameters: [{ $ref: '#/components/parameters/TransferID' }]
       responses:
@@ -117,6 +177,7 @@ paths:
   /reconciliation/runs:
     get:
       operationId: listReconciliationRuns
+      x-required-scope: reconciliation:read
       summary: List persisted reconciliation runs.
       parameters: [{ $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
       responses:
@@ -125,9 +186,35 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      operationId: runReconciliation
+      x-required-scope: reconciliation:write
+      summary: Run one tenant-wide reconciliation under transaction-safe single-run exclusion.
+      description: >-
+        Requires reconciliation:write. The request has no body and requires an
+        Idempotency-Key. Matched and mismatch are both durable completed run
+        outcomes; already_running is a stable, idempotently replayable denial.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, maxProperties: 0, additionalProperties: false } } }
+      responses:
+        '201':
+          description: Original or safely replayed matched/mismatch reconciliation result.
+          headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReconciliationRun' } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/ReconciliationConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ReconciliationUnavailable' }
+        '504': { $ref: '#/components/responses/ReconciliationResponseUnknown' }
   /reconciliation/runs/{runId}:
     get:
       operationId: getReconciliationRun
+      x-required-scope: reconciliation:read
       summary: Read a run and immutable mismatch evidence.
       parameters: [{ $ref: '#/components/parameters/RunID' }]
       responses:
@@ -137,6 +224,187 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /local/diagnostics:
+    get:
+      operationId: getLocalDiagnostics
+      x-required-scope: local:read
+      summary: Read a bounded, partial local health snapshot without infrastructure identifiers or secrets.
+      responses:
+        '200': { description: 'Ready, degraded, or unavailable diagnostic snapshot with independently classified dependencies.', content: { application/json: { schema: { $ref: '#/components/schemas/DiagnosticSnapshot' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /local/orientation:
+    get:
+      operationId: getLocalOrientationEvidence
+      x-required-scope: local:read
+      summary: Read a truthful seven-step local orientation progress summary backed by durable evidence.
+      description: >-
+        Requires local:read and a tenant operator or administrator role.
+        Browser inspection actions are not durably recorded, so related records
+        are reported only as evidence_available rather than completed.
+      responses:
+        '200': { description: Durable local progress evidence with missing and unavailable states kept distinct., content: { application/json: { schema: { $ref: '#/components/schemas/OrientationSummary' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /events:
+    get:
+      operationId: listEventEvidence
+      x-required-scope: events:read
+      summary: List sanitized tenant-authorized outbox and delivery evidence.
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { in: query, name: eventType, schema: { type: string, maxLength: 128 } }
+        - { in: query, name: state, schema: { type: string, enum: [pending, retrying, published, dead] } }
+        - { in: query, name: relatedId, schema: { type: string, format: uuid } }
+        - { in: query, name: correlationId, schema: { type: string, format: uuid } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: Stable page containing no raw event payloads or infrastructure fields., content: { application/json: { schema: { $ref: '#/components/schemas/EventEvidencePage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /events/{eventId}:
+    get:
+      operationId: getEventEvidence
+      x-required-scope: events:read
+      summary: Read one sanitized event and its bounded delivery timeline without payload or endpoint disclosure.
+      parameters: [{ in: path, name: eventId, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Authorized event detail., content: { application/json: { schema: { $ref: '#/components/schemas/EventEvidenceDetail' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /transfers/{transferId}/explainability:
+    get:
+      operationId: explainTransferEvidence
+      x-required-scope: explainability:read
+      summary: Read one authorized transfer as a bounded seven-stage persisted-evidence timeline.
+      description: >-
+        Requires explainability:read together with transfers:read, events:read,
+        and reconciliation:read. Missing links and reconciliation coverage that
+        cannot be proven from a stored PostgreSQL snapshot watermark remain
+        explicit; the API never infers delivery or reconciliation success.
+      parameters: [{ $ref: '#/components/parameters/TransferID' }]
+      responses:
+        '200': { description: Exactly seven semantic stages in evidence order., content: { application/json: { schema: { $ref: '#/components/schemas/ExplainabilityTimeline' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /recovery/manifests:
+    get:
+      operationId: getRecoveryEvidenceIndex
+      x-required-scope: recovery:read
+      summary: Read the bounded sanitized recovery evidence index produced by local recovery tooling.
+      description: >-
+        Requires recovery:read and a tenant operator or administrator role. The
+        API reads one fixed finalized evidence-index file; it never accepts a
+        path or filename and never exposes dump names, paths, digests,
+        credentials, or host/container details.
+      responses:
+        '200': { description: Latest validated backup and restore evidence plus bounded retention counts., content: { application/json: { schema: { $ref: '#/components/schemas/RecoveryEvidenceIndex' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/RecoveryEvidenceUnavailable' }
+  /exports/transfers.csv:
+    get:
+      operationId: exportTransfersCSV
+      x-required-scope: exports:read
+      summary: Stream a bounded tenant-authorized filtered transfer evidence export.
+      description: Requires exports:read, transfers:read, and a tenant operator or administrator role.
+      parameters:
+        - { in: query, name: accountId, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [pending, posted, rejected] } }
+        - { in: query, name: q, schema: { type: string, maxLength: 256 } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+        - { $ref: '#/components/parameters/ExportLimit' }
+      responses:
+        '200': { $ref: '#/components/responses/CSVExport' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ExportUnavailable' }
+        '504': { $ref: '#/components/responses/ExportTimeout' }
+  /exports/accounts/{accountId}/transactions.csv:
+    get:
+      operationId: exportAccountLedgerCSV
+      x-required-scope: exports:read
+      summary: Stream one object-authorized account ledger as bounded immutable evidence.
+      description: Requires exports:read and transactions:read; inaccessible accounts return the same not-found response as absent accounts.
+      parameters: [{ $ref: '#/components/parameters/AccountID' }, { $ref: '#/components/parameters/ExportLimit' }]
+      responses:
+        '200': { $ref: '#/components/responses/CSVExport' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ExportUnavailable' }
+        '504': { $ref: '#/components/responses/ExportTimeout' }
+  /exports/reconciliation.csv:
+    get:
+      operationId: exportReconciliationCSV
+      x-required-scope: exports:read
+      summary: Stream bounded tenant reconciliation run and mismatch evidence.
+      description: Requires exports:read, reconciliation:read, and a tenant operator or administrator role.
+      parameters:
+        - { in: query, name: runId, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [matched, mismatch, failed] } }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+        - { $ref: '#/components/parameters/ExportLimit' }
+      responses:
+        '200': { $ref: '#/components/responses/CSVExport' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ExportUnavailable' }
+        '504': { $ref: '#/components/responses/ExportTimeout' }
+  /developer/metadata:
+    get:
+      operationId: getDeveloperMetadata
+      x-required-scope: developer:read
+      summary: Read the bounded, versioned, non-secret developer example catalogue.
+      description: Requires developer:read. This static response contains no credential values and cannot execute requests.
+      responses:
+        '200':
+          description: Canonical developer metadata synchronized with this OpenAPI contract.
+          content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperMetadata' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /openapi.yaml:
+    get:
+      operationId: downloadOpenAPI
+      x-required-scope: developer:read
+      summary: Download this canonical OpenAPI YAML as a bounded read-only attachment.
+      description: Requires developer:read. The response is compiled into the API binary from the reviewed canonical source.
+      responses:
+        '200':
+          description: Canonical LedgerSync private API contract.
+          headers:
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.8.0.yaml"' }
+          content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
@@ -151,6 +419,7 @@ components:
     RunID: { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
     Cursor: { in: query, name: cursor, schema: { type: string, maxLength: 512 } }
     Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+    ExportLimit: { in: query, name: limit, description: Maximum evidence rows; generation stops at this server-enforced bound., schema: { type: integer, minimum: 1, maximum: 10000, default: 10000 } }
     IdempotencyKey: { in: header, name: Idempotency-Key, required: true, schema: { type: string, minLength: 16, maxLength: 255 } }
     CorrelationID: { in: header, name: X-Request-ID, schema: { type: string, format: uuid } }
     ConsistencyRequirement: { in: header, name: X-LedgerSync-Consistency-Requirement, schema: { type: string, maxLength: 2048 } }
@@ -172,9 +441,10 @@ components:
       allOf:
         - { $ref: '#/components/schemas/Balance' }
         - type: object
-          required: [status]
+          required: [status, account_version]
           properties:
             status: { type: string, enum: [active, frozen, closed] }
+            account_version: { type: string, pattern: '^[1-9][0-9]*$', description: Optimistic account configuration version used by PATCH; distinct from the balance projection version field. }
             display_name: { type: string }
             category: { type: string }
             external_reference: { type: string }
@@ -187,6 +457,7 @@ components:
         actor_subject_id: { type: string }
         outcome: { type: string }
         correlation_id: { type: string, format: uuid }
+        reason: { type: string, maxLength: 256, description: Sanitized lifecycle reason projected only for account status-change commands and their denials. }
         occurred_at: { type: string, format: date-time }
     AccountDetail:
       allOf:
@@ -201,6 +472,53 @@ components:
       properties:
         accounts: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/Account' } }
         next_cursor: { type: string, maxLength: 512 }
+    CreateAccountRequest:
+      type: object
+      additionalProperties: false
+      required: [display_name, external_reference, category, currency]
+      properties:
+        display_name: { type: string, minLength: 1, maxLength: 120 }
+        external_reference: { type: string, minLength: 3, maxLength: 64, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$' }
+        category: { type: string, enum: [operating, customer_funds, payroll, payables, expenses, reserve] }
+        currency: { type: string, enum: [INR] }
+    PatchAccountRequest:
+      oneOf:
+        - { $ref: '#/components/schemas/PatchAccountMetadataRequest' }
+        - { $ref: '#/components/schemas/PatchAccountStatusRequest' }
+    PatchAccountMetadataRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_version, display_name, external_reference, category]
+      properties:
+        expected_version: { type: string, pattern: '^[1-9][0-9]*$' }
+        display_name: { type: string, minLength: 1, maxLength: 120 }
+        external_reference: { type: string, minLength: 3, maxLength: 64, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$' }
+        category: { type: string, enum: [operating, customer_funds, payroll, payables, expenses, reserve] }
+    PatchAccountStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_version, target_status, reason]
+      properties:
+        expected_version: { type: string, pattern: '^[1-9][0-9]*$' }
+        target_status: { type: string, enum: [active, frozen, closed] }
+        reason: { type: string, minLength: 1, maxLength: 256, description: Required trimmed valid-Unicode operator reason; control characters are rejected and the normalized value participates in idempotency. }
+    AccountCommandResult:
+      type: object
+      additionalProperties: false
+      required: [account_id, tenant_id, currency, status, display_name, external_reference, category, account_version, available_minor, ledger_minor, created_at, updated_at]
+      properties:
+        account_id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        currency: { type: string, enum: [INR] }
+        status: { type: string, enum: [active, frozen, closed] }
+        display_name: { type: string }
+        external_reference: { type: string }
+        category: { type: string, enum: [operating, customer_funds, payroll, payables, expenses, reserve] }
+        account_version: { type: string, pattern: '^[1-9][0-9]*$' }
+        available_minor: { $ref: '#/components/schemas/ExactMinor' }
+        ledger_minor: { $ref: '#/components/schemas/ExactMinor' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     CreateTransferRequest:
       type: object
       required: [source_account_id, destination_account_id, amount, currency]
@@ -219,8 +537,8 @@ components:
         currency: { $ref: '#/components/schemas/Currency' }
         amount_minor: { $ref: '#/components/schemas/ExactMinor' }
         occurred_at: { type: string, format: date-time }
-        minimum_balance_versions: { type: object, additionalProperties: { $ref: '#/components/schemas/ExactVersion' } }
-        balances: { type: object, additionalProperties: { $ref: '#/components/schemas/TransferBalance' } }
+        minimum_balance_versions: { type: object, description: "Read-your-writes versions only for accounts the initiating actor may read.", additionalProperties: { $ref: '#/components/schemas/ExactVersion' } }
+        balances: { type: object, description: "Committed balances only for accounts the initiating actor may read; credit permission alone never discloses a destination balance.", additionalProperties: { $ref: '#/components/schemas/TransferBalance' } }
         rejection_code: { type: string }
     TransferBalance:
       type: object
@@ -308,6 +626,269 @@ components:
         completed_at: { type: string, format: date-time }
         mismatches: { type: array, items: { $ref: '#/components/schemas/ReconciliationMismatch' } }
     ReconciliationPage: { type: object, required: [runs, next_cursor], properties: { runs: { type: array, items: { $ref: '#/components/schemas/ReconciliationRun' } }, next_cursor: { type: string } } }
+    DiagnosticSnapshot:
+      type: object
+      required: [overall_state, generated_at, application, financial_authority, delivery_cache]
+      properties:
+        overall_state: { type: string, enum: [ready, degraded, unavailable] }
+        generated_at: { type: string, format: date-time }
+        application:
+          type: object
+          required: [version, commit, environment]
+          properties: { version: { type: string, maxLength: 128 }, commit: { type: string, maxLength: 128 }, environment: { type: string, enum: [local_demo, configured] } }
+        financial_authority:
+          type: object
+          required: [postgres, latest_reconciliation]
+          properties:
+            postgres: { type: object, required: [state], properties: { state: { type: string, enum: [reachable, unavailable] }, schema_version: { type: string, maxLength: 128 } } }
+            latest_reconciliation: { type: object, required: [state], properties: { state: { type: string, enum: [available, none, unavailable] }, status: { type: string, enum: [matched, mismatch, failed] }, run_id: { type: string, format: uuid }, completed_at: { type: string, format: date-time } } }
+        delivery_cache:
+          type: object
+          required: [outbox, redis]
+          properties:
+            outbox: { type: object, required: [state, worker_progress], properties: { state: { type: string, enum: [reachable, unavailable] }, pending_count: { $ref: '#/components/schemas/ExactVersion' }, dead_count: { $ref: '#/components/schemas/ExactVersion' }, worker_progress: { type: string, enum: [recent, idle, stalled, unknown] }, latest_published_at: { type: string, format: date-time }, oldest_pending_at: { type: string, format: date-time } } }
+            redis: { type: object, required: [state, label], properties: { state: { type: string, enum: [reachable, unavailable] }, label: { type: string, enum: [disposable_cache] } } }
+    EventEvidence:
+      type: object
+      required: [event_id, event_type, state, aggregate_type, aggregate_id, aggregate_version, attempt_count, occurred_at, available_at]
+      properties:
+        event_id: { type: string, format: uuid }
+        event_type: { type: string, maxLength: 128 }
+        state: { type: string, enum: [pending, retrying, published, dead, unknown] }
+        aggregate_type: { type: string, maxLength: 64 }
+        aggregate_id: { type: string, format: uuid }
+        aggregate_version: { $ref: '#/components/schemas/ExactVersion' }
+        attempt_count: { $ref: '#/components/schemas/ExactVersion' }
+        transfer_id: { type: string, format: uuid }
+        account_id: { type: string, format: uuid }
+        correlation_id: { type: string, format: uuid }
+        last_error_code: { type: string, enum: [publish_failed, invalid_event, redis_unavailable, approved_replay, redacted] }
+        occurred_at: { type: string, format: date-time }
+        available_at: { type: string, format: date-time }
+        claimed_until: { type: string, format: date-time }
+        published_at: { type: string, format: date-time }
+        dead_at: { type: string, format: date-time }
+    DeliveryEvidence:
+      type: object
+      required: [attempt_id, kind, state, attempt_number, due_at]
+      properties:
+        attempt_id: { type: string, format: uuid }
+        kind: { type: string, enum: [webhook, notification, unknown] }
+        state: { type: string, enum: [pending, retrying, delivered, dead, unknown] }
+        attempt_number: { $ref: '#/components/schemas/ExactVersion' }
+        response_class: { type: string, enum: [2xx, 3xx, 4xx, 5xx, network_error, timeout, redacted] }
+        error_code: { type: string, enum: [timeout, publish_failed, invalid_event, redis_unavailable, recipient_unavailable, connection_failed, redacted] }
+        due_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+    EventTimelineItem: { type: object, required: [kind, occurred_at], properties: { kind: { type: string, maxLength: 64 }, occurred_at: { type: string, format: date-time } } }
+    EventEvidenceDetail:
+      allOf:
+        - { $ref: '#/components/schemas/EventEvidence' }
+        - type: object
+          required: [delivery_attempts, delivery_attempts_truncated, timeline]
+          properties:
+            delivery_attempts: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/DeliveryEvidence' } }
+            delivery_attempts_truncated: { type: boolean }
+            timeline: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/EventTimelineItem' } }
+    EventEvidencePage: { type: object, required: [events, next_cursor], properties: { events: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/EventEvidence' } }, next_cursor: { type: string, maxLength: 512 } } }
+    OrientationSummary:
+      type: object
+      additionalProperties: false
+      required: [generated_at, evidence_state, steps]
+      properties:
+        generated_at: { type: string, format: date-time }
+        evidence_state: { type: string, enum: [complete, partial] }
+        steps: { type: array, minItems: 7, maxItems: 7, items: { $ref: '#/components/schemas/OrientationStep' } }
+    OrientationStep:
+      type: object
+      additionalProperties: false
+      required: [id, state, evidence_type]
+      properties:
+        id: { type: string, enum: [inspect_account, create_account, fund_account, inspect_transfer, run_reconciliation, inspect_delivery, create_backup] }
+        state: { type: string, enum: [completed, evidence_available, missing, unavailable] }
+        evidence_type: { type: string, enum: [account_record, account_created_audit, posted_transfer, transfer_record, reconciliation_run, delivery_attempt, recovery_backup] }
+        evidence_id: { type: string, minLength: 1, maxLength: 128 }
+        occurred_at: { type: string, format: date-time }
+        reason_code: { type: string, enum: [browser_action_not_recorded, no_authorized_account, no_account_creation_evidence, no_posted_transfer, no_authorized_transfer, no_reconciliation_run, no_delivery_attempt, no_validated_backup, recovery_evidence_unavailable] }
+    ExplainabilityTimeline:
+      type: object
+      additionalProperties: false
+      required: [transfer_id, generated_at, evidence_state, stages]
+      properties:
+        transfer_id: { type: string, format: uuid }
+        generated_at: { type: string, format: date-time }
+        evidence_state: { type: string, enum: [complete, partial] }
+        stages: { type: array, minItems: 7, maxItems: 7, items: { $ref: '#/components/schemas/ExplainabilityStage' } }
+    ExplainabilityStage:
+      type: object
+      additionalProperties: false
+      required: [sequence, kind, state, truncated, evidence]
+      properties:
+        sequence: { type: integer, minimum: 1, maximum: 7 }
+        kind: { type: string, enum: [request, transfer, journal_postings, balance_versions, outbox, delivery, reconciliation] }
+        state: { type: string, enum: [available, missing, unavailable] }
+        reason_code: { type: string, enum: [no_retained_idempotency_outcome, no_journal, no_postings, no_balance_version_evidence, no_outbox_events, no_delivery_attempts, coverage_not_provable, dependency_unavailable, evidence_truncated] }
+        truncated: { type: boolean }
+        evidence: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/ExplainabilityEvidence' } }
+    ExplainabilityEvidence:
+      type: object
+      additionalProperties: false
+      required: [evidence_type, occurred_at]
+      properties:
+        evidence_type: { type: string, enum: [idempotency_outcome, transfer, journal, posting, balance_version, outbox_event, delivery_attempt, reconciliation_run] }
+        evidence_id: { type: string, format: uuid }
+        related_id: { type: string, format: uuid }
+        status: { type: string, enum: [in_progress, completed, failed, pending, posted, rejected, debit, credit, published, retrying, dead, delivered, matched, mismatch] }
+        event_type: { type: string, enum: [account.balance.changed.v1] }
+        account_id: { type: string, format: uuid }
+        direction: { type: string, enum: [debit, credit] }
+        amount_minor: { $ref: '#/components/schemas/ExactMinor' }
+        currency: { $ref: '#/components/schemas/Currency' }
+        balance_version: { $ref: '#/components/schemas/ExactVersion' }
+        attempt_number: { type: string, pattern: '^[1-9][0-9]*$' }
+        occurred_at: { type: string, format: date-time }
+    RecoveryEvidenceIndex:
+      type: object
+      additionalProperties: false
+      required: [format_version, generated_at_utc, latest_backup, latest_restore, retention]
+      properties:
+        format_version: { type: string, enum: [ledgersync-recovery-evidence-index/v1] }
+        generated_at_utc: { type: string, format: date-time }
+        latest_backup: { oneOf: [{ $ref: '#/components/schemas/RecoveryBackupEvidence' }, { type: 'null' }] }
+        latest_restore: { oneOf: [{ $ref: '#/components/schemas/RecoveryRestoreEvidence' }, { type: 'null' }] }
+        retention: { $ref: '#/components/schemas/RecoveryRetentionEvidence' }
+    RecoveryBackupEvidence:
+      type: object
+      additionalProperties: false
+      required: [backup_id, finalized_at_utc, size_bytes, schema_version, digest_status, validation_status, source_commit]
+      properties:
+        backup_id: { type: string, pattern: '^backup-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{7,40}$', maxLength: 64 }
+        finalized_at_utc: { type: string, format: date-time }
+        size_bytes: { type: integer, format: int64, minimum: 1 }
+        schema_version: { type: string, pattern: '^[0-9]{6}_[a-z0-9._-]{1,120}$', maxLength: 127 }
+        digest_status: { type: string, enum: [verified] }
+        validation_status: { type: string, enum: [passed] }
+        source_commit: { type: string, pattern: '^[0-9a-f]{40}$' }
+    RecoveryRestoreEvidence:
+      type: object
+      additionalProperties: false
+      required: [backup_id, completed_at_utc, status, reconciliation_status, mismatch_count, normal_project_unchanged, local_rto_seconds]
+      properties:
+        backup_id: { type: string, pattern: '^backup-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{7,40}$', maxLength: 64 }
+        completed_at_utc: { type: string, format: date-time }
+        status: { type: string, enum: [passed] }
+        reconciliation_status: { type: string, enum: [matched, completed, passed] }
+        mismatch_count: { type: integer, minimum: 0, maximum: 0 }
+        normal_project_unchanged: { type: boolean, enum: [true] }
+        local_rto_seconds: { type: number, minimum: 0, maximum: 86400 }
+    RecoveryRetentionEvidence:
+      type: object
+      additionalProperties: false
+      required: [valid_backup_count, ignored_entry_count, configured_keep_count]
+      properties:
+        valid_backup_count: { type: integer, minimum: 0, maximum: 200 }
+        ignored_entry_count: { type: integer, minimum: 0, maximum: 200 }
+        configured_keep_count: { type: integer, minimum: 1, maximum: 100 }
+    DeveloperMetadata:
+      type: object
+      additionalProperties: false
+      required: [schema_version, contract_version, base_url, openapi_download_path, boundary, authentication, endpoint_groups, examples, retry_outcomes, error_catalogue, record_lookup]
+      properties:
+        schema_version: { type: string, enum: ['1'] }
+        contract_version: { type: string, pattern: '^[0-9]+\.[0-9]+\.[0-9]+$' }
+        base_url: { type: string, enum: [/api] }
+        openapi_download_path: { type: string, enum: [/api/openapi.yaml] }
+        boundary: { $ref: '#/components/schemas/DeveloperBoundary' }
+        authentication: { type: array, minItems: 2, maxItems: 4, items: { $ref: '#/components/schemas/DeveloperAuthenticationMode' } }
+        endpoint_groups: { type: array, minItems: 1, maxItems: 8, items: { $ref: '#/components/schemas/DeveloperEndpointGroup' } }
+        examples: { type: array, minItems: 2, maxItems: 8, items: { $ref: '#/components/schemas/DeveloperRequestExample' } }
+        retry_outcomes: { type: array, minItems: 1, maxItems: 16, items: { $ref: '#/components/schemas/DeveloperRetryOutcome' } }
+        error_catalogue: { type: array, minItems: 1, maxItems: 32, items: { $ref: '#/components/schemas/DeveloperErrorEntry' } }
+        record_lookup: { $ref: '#/components/schemas/DeveloperRecordLookup' }
+    DeveloperBoundary:
+      type: object
+      additionalProperties: false
+      required: [title, summary, network]
+      properties:
+        title: { type: string, maxLength: 80 }
+        summary: { type: string, maxLength: 512 }
+        network: { type: string, enum: [loopback_only] }
+    DeveloperAuthenticationMode:
+      type: object
+      additionalProperties: false
+      required: [id, label, summary]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 64 }
+        label: { type: string, maxLength: 80 }
+        summary: { type: string, maxLength: 512 }
+    DeveloperEndpointGroup:
+      type: object
+      additionalProperties: false
+      required: [id, label, operations]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 64 }
+        label: { type: string, maxLength: 80 }
+        operations: { type: array, minItems: 1, maxItems: 20, items: { $ref: '#/components/schemas/DeveloperEndpoint' } }
+    DeveloperEndpoint:
+      type: object
+      additionalProperties: false
+      required: [operation_id, method, path, scope]
+      properties:
+        operation_id: { type: string, pattern: '^[A-Za-z][A-Za-z0-9]*$', maxLength: 80 }
+        method: { type: string, enum: [GET, POST, PATCH] }
+        path: { type: string, pattern: '^/[A-Za-z0-9{}._/-]+$', maxLength: 160 }
+        scope: { type: string, pattern: '^[a-z]+:[a-z]+$', maxLength: 64 }
+    DeveloperRequestExample:
+      type: object
+      additionalProperties: false
+      required: [id, title, operation_id, request_schema, method, path, headers, body, retry_summary]
+      properties:
+        id: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 64 }
+        title: { type: string, maxLength: 120 }
+        operation_id: { type: string, pattern: '^[A-Za-z][A-Za-z0-9]*$', maxLength: 80 }
+        request_schema: { type: string, pattern: '^#/components/schemas/[A-Za-z][A-Za-z0-9]*$', maxLength: 128 }
+        method: { type: string, enum: [POST, PATCH] }
+        path: { type: string, pattern: '^/[A-Za-z0-9{}._/-]+$', maxLength: 160 }
+        headers:
+          type: object
+          additionalProperties: false
+          required: [Content-Type, Idempotency-Key]
+          properties:
+            Content-Type: { type: string, enum: [application/json] }
+            Idempotency-Key: { type: string, minLength: 16, maxLength: 255 }
+        body: { type: object, minProperties: 1, maxProperties: 8 }
+        result_facts:
+          type: object
+          additionalProperties: false
+          properties:
+            currency: { type: string, enum: [INR] }
+            status: { type: string, enum: [active, posted] }
+            available_minor: { $ref: '#/components/schemas/ExactMinor' }
+            ledger_minor: { $ref: '#/components/schemas/ExactMinor' }
+        retry_summary: { type: string, maxLength: 512 }
+    DeveloperRetryOutcome:
+      type: object
+      additionalProperties: false
+      required: [code, safe_action]
+      properties:
+        code: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 80 }
+        safe_action: { type: string, maxLength: 512 }
+    DeveloperErrorEntry:
+      type: object
+      additionalProperties: false
+      required: [code, meaning]
+      properties:
+        code: { type: string, pattern: '^[a-z][a-z0-9_]*$', maxLength: 80 }
+        meaning: { type: string, maxLength: 512 }
+    DeveloperRecordLookup:
+      type: object
+      additionalProperties: false
+      required: [summary, correlation_header, safe_fields]
+      properties:
+        summary: { type: string, maxLength: 512 }
+        correlation_header: { type: string, enum: [X-Request-ID] }
+        safe_fields: { type: array, minItems: 1, maxItems: 8, uniqueItems: true, items: { type: string, enum: [account_id, transfer_id, run_id, event_id, correlation_id] } }
     Error:
       type: object
       required: [error]
@@ -319,12 +900,64 @@ components:
             code: { type: string }
             message: { type: string }
             request_id: { type: string, format: uuid }
+  examples:
+    AccountCreateOriginal:
+      summary: Original zero-balance creation.
+      value: { account_id: 70000000-0000-4000-8000-000000000001, tenant_id: 00000000-0000-4000-8000-000000000001, currency: INR, status: active, display_name: India Operations, external_reference: india-operations, category: operating, account_version: '1', available_minor: '0', ledger_minor: '0', created_at: '2026-08-25T10:00:00Z', updated_at: '2026-08-25T10:00:00Z' }
+    AccountCreateReplay:
+      summary: Same-key replay; the response also carries Idempotent-Replay true.
+      value: { account_id: 70000000-0000-4000-8000-000000000001, tenant_id: 00000000-0000-4000-8000-000000000001, currency: INR, status: active, display_name: India Operations, external_reference: india-operations, category: operating, account_version: '1', available_minor: '0', ledger_minor: '0', created_at: '2026-08-25T10:00:00Z', updated_at: '2026-08-25T10:00:00Z' }
+    InvalidAccountTransition: { value: { error: { code: invalid_account_transition, message: The requested account status transition is not allowed., request_id: 00000000-0000-4000-8000-000000000099 } } }
+    AccountVersionConflict: { value: { error: { code: account_version_conflict, message: The account changed before this command was applied., request_id: 00000000-0000-4000-8000-000000000099 } } }
+    ExternalReferenceConflict: { value: { error: { code: external_reference_conflict, message: The external reference already belongs to another account., request_id: 00000000-0000-4000-8000-000000000099 } } }
+    AccountNotZero: { value: { error: { code: account_not_zero, message: The account must have exact zero available and ledger balances before closing., request_id: 00000000-0000-4000-8000-000000000099 } } }
+    ReadOnlyDenial: { value: { error: { code: forbidden, message: You cannot perform this action., request_id: 00000000-0000-4000-8000-000000000099 } } }
+    AccountResponseUnknown: { value: { error: { code: temporary_unavailable, message: The account command outcome is unavailable. Retry the identical request with the same idempotency key., request_id: 00000000-0000-4000-8000-000000000099 } } }
+    ReconciliationAlreadyRunning: { value: { error: { code: reconciliation_already_running, message: A reconciliation run is already active for this tenant., request_id: 00000000-0000-4000-8000-000000000099 }, run_id: 00000000-0000-4000-8000-000000000077 } }
+    ReconciliationResponseUnknown: { value: { error: { code: response_unknown, message: The reconciliation outcome is unknown. Retry with the identical idempotency key., request_id: 00000000-0000-4000-8000-000000000099 } } }
   responses:
     InvalidRequest: { description: Validation failed without a financial change., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    UnsupportedMediaType: { description: Content-Type must be application/json; media-type parameters such as charset are allowed., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { error: { code: unsupported_media_type, message: Content-Type must be application/json., request_id: 00000000-0000-4000-8000-000000000099 } } } } }
     Unauthorized: { description: Authentication is required., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    Forbidden: { description: Access denied without resource disclosure., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: Access denied without resource disclosure., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { readOnlyDenial: { $ref: '#/components/examples/ReadOnlyDenial' } } } } }
     NotFound: { description: Authorized resource not found., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Conflict: { description: Idempotency conflict or in-progress request., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    AccountConflict:
+      description: External-reference, optimistic-version, lifecycle, idempotency, or in-progress conflict.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            invalidTransition: { $ref: '#/components/examples/InvalidAccountTransition' }
+            versionConflict: { $ref: '#/components/examples/AccountVersionConflict' }
+            externalReferenceConflict: { $ref: '#/components/examples/ExternalReferenceConflict' }
+    AccountNotZero:
+      description: The exact authoritative close predicate was not satisfied.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { nonZeroClose: { $ref: '#/components/examples/AccountNotZero' } } } }
+    AccountCommandUnavailable:
+      description: The outcome is unavailable or a safe close predicate could not be proven; retry the identical intent and key.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { responseUnknown: { $ref: '#/components/examples/AccountResponseUnknown' } } } }
+    ReconciliationConflict: { description: 'A run is already active, the key belongs to another intent, or the same request is still completing. already_running includes the active run_id when one remains active.', headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Error' }, { type: object, properties: { run_id: { type: string, format: uuid } } }] }, examples: { alreadyRunning: { $ref: '#/components/examples/ReconciliationAlreadyRunning' } } } } }
+    ReconciliationUnavailable: { description: Reconciliation could not start safely; retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ReconciliationResponseUnknown: { description: The caller timed out after submission and must retry the identical intent and idempotency key., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, examples: { responseUnknown: { $ref: '#/components/examples/ReconciliationResponseUnknown' } } } } }
+    CSVExport:
+      description: >-
+        Versioned UTF-8 CSV with every cell quoted, exact minor-unit strings,
+        deterministic columns, and spreadsheet-active text neutralized. The
+        stream is bounded to 10,000 rows and ten seconds. Completion, row
+        count, and limit-reached evidence are returned as HTTP trailers.
+      headers:
+        Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-transfers-20260825T120000Z-v1.csv"' }
+        X-LedgerSync-Export-Schema: { schema: { type: string, enum: ['1'] } }
+        X-LedgerSync-Export-Row-Limit: { schema: { type: string, pattern: '^[1-9][0-9]{0,4}$' } }
+        Trailer: { schema: { type: string }, example: 'X-LedgerSync-Export-Status, X-LedgerSync-Export-Rows, X-LedgerSync-Export-Limit-Reached' }
+        X-LedgerSync-Export-Status: { description: HTTP trailer set after streaming finishes., schema: { type: string, enum: [complete, failed] } }
+        X-LedgerSync-Export-Rows: { description: HTTP trailer containing the exact emitted data-row count., schema: { type: string, pattern: '^(0|[1-9][0-9]{0,4})$' } }
+        X-LedgerSync-Export-Limit-Reached: { description: HTTP trailer indicating that the selected row bound stopped iteration., schema: { type: string, enum: ['true', 'false'] } }
+      content: { text/csv: { schema: { type: string, contentMediaType: text/csv } } }
+    RecoveryEvidenceUnavailable: { description: 'The fixed sanitized recovery evidence index is absent, unsafe, malformed, incomplete, or unavailable.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ExportUnavailable: { description: 'Authorized evidence, capacity, or required audit persistence is temporarily unavailable.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ExportTimeout: { description: CSV generation exceeded the bounded deadline before response streaming began., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     PolicyDenied: { description: "Tenant amount, velocity, destination, or currency policy denied the transfer.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     RateLimited:
       description: Principal/tenant/route limit exceeded.

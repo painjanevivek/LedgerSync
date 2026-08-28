@@ -1,0 +1,155 @@
+{
+  "schema_version": "1",
+  "contract_version": "1.8.0",
+  "base_url": "/api",
+  "openapi_download_path": "/api/openapi.yaml",
+  "boundary": {
+    "title": "Local LedgerSync boundary",
+    "summary": "Use the loopback web application and its same-origin BFF. The private API remains an internal service boundary.",
+    "network": "loopback_only"
+  },
+  "authentication": [
+    {
+      "id": "browser_bff_session",
+      "label": "Browser BFF session",
+      "summary": "The local web application supplies the authenticated session, CSRF protection, workload credential, and signed actor assertion."
+    },
+    {
+      "id": "private_api_development_token",
+      "label": "Private API development token",
+      "summary": "Retrieve or rotate local credentials only with explicit protected host tooling. Credentials are never returned by this metadata API."
+    }
+  ],
+  "endpoint_groups": [
+    {
+      "id": "accounts",
+      "label": "Accounts",
+      "operations": [
+        { "operation_id": "createAccount", "method": "POST", "path": "/accounts", "scope": "accounts:write" },
+        { "operation_id": "listOwnedAccounts", "method": "GET", "path": "/me/accounts", "scope": "accounts:read" },
+        { "operation_id": "getOwnedAccount", "method": "GET", "path": "/accounts/{accountId}", "scope": "accounts:read" },
+        { "operation_id": "updateAccount", "method": "PATCH", "path": "/accounts/{accountId}", "scope": "accounts:write" },
+        { "operation_id": "getAccountBalance", "method": "GET", "path": "/accounts/{accountId}/balance", "scope": "accounts:read" },
+        { "operation_id": "listAccountTransactions", "method": "GET", "path": "/accounts/{accountId}/transactions", "scope": "transactions:read" }
+      ]
+    },
+    {
+      "id": "transfers",
+      "label": "Transfers",
+      "operations": [
+        { "operation_id": "listTransfers", "method": "GET", "path": "/transfers", "scope": "transfers:read" },
+        { "operation_id": "createTransfer", "method": "POST", "path": "/transfers", "scope": "transfers:write" },
+        { "operation_id": "getTransfer", "method": "GET", "path": "/transfers/{transferId}", "scope": "transfers:read" }
+      ]
+    },
+    {
+      "id": "reconciliation",
+      "label": "Reconciliation",
+      "operations": [
+        { "operation_id": "listReconciliationRuns", "method": "GET", "path": "/reconciliation/runs", "scope": "reconciliation:read" },
+        { "operation_id": "runReconciliation", "method": "POST", "path": "/reconciliation/runs", "scope": "reconciliation:write" },
+        { "operation_id": "getReconciliationRun", "method": "GET", "path": "/reconciliation/runs/{runId}", "scope": "reconciliation:read" }
+      ]
+    },
+    {
+      "id": "operations",
+      "label": "Local operations",
+      "operations": [
+        { "operation_id": "getLocalDiagnostics", "method": "GET", "path": "/local/diagnostics", "scope": "local:read" },
+        { "operation_id": "getLocalOrientationEvidence", "method": "GET", "path": "/local/orientation", "scope": "local:read" },
+        { "operation_id": "listEventEvidence", "method": "GET", "path": "/events", "scope": "events:read" },
+        { "operation_id": "getEventEvidence", "method": "GET", "path": "/events/{eventId}", "scope": "events:read" },
+        { "operation_id": "explainTransferEvidence", "method": "GET", "path": "/transfers/{transferId}/explainability", "scope": "explainability:read" }
+      ]
+    },
+    {
+      "id": "recovery_exports",
+      "label": "Recovery and exports",
+      "operations": [
+        { "operation_id": "getRecoveryEvidenceIndex", "method": "GET", "path": "/recovery/manifests", "scope": "recovery:read" },
+        { "operation_id": "exportTransfersCSV", "method": "GET", "path": "/exports/transfers.csv", "scope": "exports:read" },
+        { "operation_id": "exportAccountLedgerCSV", "method": "GET", "path": "/exports/accounts/{accountId}/transactions.csv", "scope": "exports:read" },
+        { "operation_id": "exportReconciliationCSV", "method": "GET", "path": "/exports/reconciliation.csv", "scope": "exports:read" }
+      ]
+    },
+    {
+      "id": "developer",
+      "label": "Developer contracts",
+      "operations": [
+        { "operation_id": "getDeveloperMetadata", "method": "GET", "path": "/developer/metadata", "scope": "developer:read" },
+        { "operation_id": "downloadOpenAPI", "method": "GET", "path": "/openapi.yaml", "scope": "developer:read" }
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "id": "create_transfer",
+      "title": "Post an exact INR transfer",
+      "operation_id": "createTransfer",
+      "request_schema": "#/components/schemas/CreateTransferRequest",
+      "method": "POST",
+      "path": "/transfers",
+      "headers": {
+        "Content-Type": "application/json",
+        "Idempotency-Key": "example-transfer-key-0001"
+      },
+      "body": {
+        "source_account_id": "70000000-0000-4000-8000-000000000001",
+        "destination_account_id": "70000000-0000-4000-8000-000000000002",
+        "amount": "125.50",
+        "currency": "INR"
+      },
+      "retry_summary": "If the response is lost or times out, retry the identical body with the identical Idempotency-Key."
+    },
+    {
+      "id": "create_account",
+      "title": "Create an exact-zero INR account",
+      "operation_id": "createAccount",
+      "request_schema": "#/components/schemas/CreateAccountRequest",
+      "method": "POST",
+      "path": "/accounts",
+      "headers": {
+        "Content-Type": "application/json",
+        "Idempotency-Key": "example-account-key-0001"
+      },
+      "body": {
+        "display_name": "India Operations",
+        "external_reference": "india-operations-example",
+        "category": "operating",
+        "currency": "INR"
+      },
+      "result_facts": {
+        "currency": "INR",
+        "status": "active",
+        "available_minor": "0",
+        "ledger_minor": "0"
+      },
+      "retry_summary": "A same-key, same-intent retry returns the original account. A changed intent with that key conflicts."
+    }
+  ],
+  "retry_outcomes": [
+    { "code": "request_in_progress", "safe_action": "Retry the identical request with the same idempotency key." },
+    { "code": "response_unknown", "safe_action": "Retry the identical request with the same idempotency key." },
+    { "code": "temporary_unavailable", "safe_action": "Retry the identical request with the same idempotency key." },
+    { "code": "transaction_conflict_retryable", "safe_action": "Retry the identical transfer with the same idempotency key." },
+    { "code": "idempotency_conflict", "safe_action": "Stop. The key belongs to a different intent; inspect the original request before choosing a new key." },
+    { "code": "reconciliation_already_running", "safe_action": "Inspect the active run identifier; do not queue a second run." }
+  ],
+  "error_catalogue": [
+    { "code": "invalid_request", "meaning": "The request failed validation and no financial change was accepted." },
+    { "code": "unauthorized", "meaning": "Authentication failed." },
+    { "code": "forbidden", "meaning": "The principal lacks the required scope or object authorization." },
+    { "code": "not_found", "meaning": "The authorized resource was not found; inaccessible objects are not disclosed." },
+    { "code": "account_version_conflict", "meaning": "The account configuration changed before the command was applied." },
+    { "code": "invalid_account_transition", "meaning": "The requested account lifecycle transition is not allowed." },
+    { "code": "account_not_zero", "meaning": "Both authoritative available and ledger balances must be exactly zero before close." },
+    { "code": "external_reference_conflict", "meaning": "The external reference already belongs to another account." },
+    { "code": "transfer_policy_denied", "meaning": "The transfer is outside the configured tenant policy." },
+    { "code": "evidence_unavailable", "meaning": "Authoritative read evidence is temporarily unavailable; an empty result was not inferred." }
+  ],
+  "record_lookup": {
+    "summary": "Use returned resource identifiers and X-Request-ID to find authorized records in account history, transfer detail, reconciliation, and event evidence views.",
+    "correlation_header": "X-Request-ID",
+    "safe_fields": ["account_id", "transfer_id", "run_id", "event_id", "correlation_id"]
+  }
+}

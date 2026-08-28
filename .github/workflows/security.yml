@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -25,7 +25,7 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - name: Scan Go dependencies
-        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./cmd/... ./contracts/... ./internal/... ./tests/...
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
@@ -68,10 +68,33 @@ jobs:
           image-ref: ledgersync-web:${{ github.sha }}
           severity: HIGH,CRITICAL
           exit-code: 1
-      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+      - name: Generate API image SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
-          artifact-name: ledgersync-sbom
-          output-file: sbom.spdx.json
-      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+          image: ledgersync-api:${{ github.sha }}
+          artifact-name: ledgersync-api-sbom-${{ github.sha }}
+          output-file: api.spdx.json
+      - name: Generate worker image SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
-          subject-path: sbom.spdx.json
+          image: ledgersync-worker:${{ github.sha }}
+          artifact-name: ledgersync-worker-sbom-${{ github.sha }}
+          output-file: worker.spdx.json
+      - name: Generate web image SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ledgersync-web:${{ github.sha }}
+          artifact-name: ledgersync-web-sbom-${{ github.sha }}
+          output-file: web.spdx.json
+      - name: Attest API SBOM provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: api.spdx.json
+      - name: Attest worker SBOM provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: worker.spdx.json
+      - name: Attest web SBOM provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: web.spdx.json

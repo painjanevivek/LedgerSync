@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ledgersync:recovery-evidence-index:v1",
+  "title": "LedgerSync local recovery evidence index v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "generated_at_utc",
+    "latest_backup",
+    "latest_restore",
+    "retention"
+  ],
+  "properties": {
+    "format_version": {
+      "const": "ledgersync-recovery-evidence-index/v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "latest_backup": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/backup" }
+      ]
+    },
+    "latest_restore": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/restore" }
+      ]
+    },
+    "retention": {
+      "$ref": "#/$defs/retention"
+    }
+  },
+  "$defs": {
+    "backup_id": {
+      "type": "string",
+      "pattern": "^backup-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{7,40}$"
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backup_id",
+        "finalized_at_utc",
+        "size_bytes",
+        "schema_version",
+        "digest_status",
+        "validation_status",
+        "source_commit"
+      ],
+      "properties": {
+        "backup_id": { "$ref": "#/$defs/backup_id" },
+        "finalized_at_utc": { "type": "string", "format": "date-time" },
+        "size_bytes": { "type": "integer", "minimum": 1 },
+        "schema_version": {
+          "type": "string",
+          "pattern": "^[0-9]{6}_[a-z0-9._-]{1,120}$"
+        },
+        "digest_status": { "const": "verified" },
+        "validation_status": { "const": "passed" },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "restore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backup_id",
+        "completed_at_utc",
+        "status",
+        "reconciliation_status",
+        "mismatch_count",
+        "normal_project_unchanged",
+        "local_rto_seconds"
+      ],
+      "properties": {
+        "backup_id": { "$ref": "#/$defs/backup_id" },
+        "completed_at_utc": { "type": "string", "format": "date-time" },
+        "status": { "const": "passed" },
+        "reconciliation_status": {
+          "enum": ["matched", "completed", "passed"]
+        },
+        "mismatch_count": { "const": 0 },
+        "normal_project_unchanged": { "const": true },
+        "local_rto_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 86400
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_backup_count",
+        "ignored_entry_count",
+        "configured_keep_count"
+      ],
+      "properties": {
+        "valid_backup_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "ignored_entry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "configured_keep_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    }
+  }
+}

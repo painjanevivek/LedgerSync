@@ -14,6 +14,7 @@ var ErrAccountDirectoryUnavailable = errors.New("account directory is temporaril
 
 type Summary struct {
 	AccountID         string
+	AccountVersion    int64
 	Currency          string
 	Status            string
 	DisplayName       string
@@ -29,6 +30,7 @@ type AuditEvent struct {
 	ActorSubjectID string
 	Outcome        string
 	CorrelationID  string
+	Reason         string
 	OccurredAt     time.Time
 }
 

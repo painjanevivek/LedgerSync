@@ -5,7 +5,7 @@ This runbook operates the loopback-only Compose project on one workstation. It i
 ## Supported boundary
 
 - Project name: `compose` by default, matching existing local volumes.
-- Browser surface: `http://localhost:3000` bound to `127.0.0.1`.
+- Browser surface: `http://127.0.0.1:3000`, bound only to IPv4 loopback.
 - Private services: PostgreSQL, Redis, API, and worker have no host-published ports.
 - Financial scope: internal same-currency INR demo transfers only.
 - Normal start, stop, and restart preserve the Compose-named volumes
@@ -14,6 +14,18 @@ This runbook operates the loopback-only Compose project on one workstation. It i
   continuity and may be discarded and rebuilt from PostgreSQL.
 
 An isolated test can set `LEDGERSYNC_LOCAL_COMPOSE_PROJECT` to a validated lowercase project name. Never point these commands at an unrelated project.
+
+This runbook does not describe or authorize deployment. The supported product
+boundary is the direct loopback dashboard on one Windows workstation. Automated
+responsive and accessibility checks use CSS viewport/browser emulation; they
+do not claim physical-device, real browser-zoom, NVDA, VoiceOver, or production
+accessibility certification.
+
+The complete scripted form of this runbook passed
+[LPC-100](../pilot/local-product-completion-gates.md), including real Chromium,
+dependency restarts, 7,500 exact transfers, protected isolated restore, exact
+cleanup, and ordinary-volume preservation. The bounded evidence is recorded in
+[local-product Phase 10](../release-evidence/local-product-phase-10-acceptance.md).
 
 ## Start or recover the product
 
@@ -34,6 +46,26 @@ The command performs these checks before it prints the URL:
 7. Session, authorized account, and reconciliation reads succeed through the web/BFF.
 
 The seed is replay-safe: it inserts missing demo records and must never reset projections, versions, opening evidence, postings, or transfers.
+
+## Walk the complete browser evidence path
+
+After startup, open `http://127.0.0.1:3000` directly and follow the local guide.
+The normal operator path is Accounts → Create account → Fund account through
+Transfers → inspect Transfer Detail → freeze/reactivate/close at authoritative
+zero → Reconciliation → Events. Local Status, Developer, and Recovery provide
+read-only operational, contract, and custody evidence.
+
+For an unknown account, transfer, or reconciliation response, retry the exact
+retained body and idempotency key. Never create a replacement command merely
+because the browser did not observe the first response. Transfer/event filters
+are server-backed and must retain their URL context. CSV exports require a
+scope/filter/schema review and are not backups.
+
+The browser cannot run PowerShell, Docker, restore, reset, reseed, or arbitrary
+HTTP requests. Use only the fixed host commands in this runbook for those
+operations. The isolated real-stack browser suite and its required safety
+variables are documented in `web/tests/system/README.md`; it must never target
+the normal `compose` project.
 
 ## Inspect status and bounded logs
 
@@ -115,7 +147,7 @@ docker compose -p compose -f deploy/compose/docker-compose.yml restart web
 Then run the idempotent retry and reconciliation proof with a new test key:
 
 ```powershell
-$env:LEDGERSYNC_SYSTEM_WEB_URL='http://localhost:3000'
+$env:LEDGERSYNC_SYSTEM_WEB_URL='http://127.0.0.1:3000'
 $env:LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY='local-system-after-restart-000001'
 go test ./tests/system -run 'TestRealBFFAPIAndPostgreSQLRetryPath|TestRealBFFReconciliationEvidence' -count=1 -v
 ```

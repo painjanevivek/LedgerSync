@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "test": "tsx --test tests/**/*.test.ts",
     "test:e2e": "playwright test --grep-invert @performance",
+    "test:e2e:real-stack": "playwright test --config playwright.real-stack.config.ts",
     "test:e2e:performance": "playwright test --grep @performance --workers=1",
     "test:visual": "playwright test tests/e2e/visual-regression.spec.ts",
     "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
+    "@redocly/cli": "1.34.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

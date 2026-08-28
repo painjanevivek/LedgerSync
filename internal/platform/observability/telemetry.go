@@ -35,6 +35,7 @@ type Telemetry struct {
 	requests           metric.Int64Counter
 	boundaryCalls      metric.Int64Counter
 	boundaryDuration   metric.Float64Histogram
+	httpRouteDuration  metric.Float64Histogram
 	transferOutcomes   metric.Int64Counter
 	outboxAge          metric.Float64Histogram
 	ryewViolations     metric.Int64Counter
@@ -83,6 +84,14 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	if err != nil {
 		return nil, err
 	}
+	httpRouteDuration, err := meter.Float64Histogram(
+		"ledgersync.http.route.duration",
+		metric.WithUnit("ms"),
+		metric.WithExplicitBucketBoundaries(5, 10, 25, 50, 100, 200, 500, 750, 1000, 2000, 5000),
+	)
+	if err != nil {
+		return nil, err
+	}
 	transferOutcomes, err := meter.Int64Counter("ledgersync.transfer.outcomes")
 	if err != nil {
 		return nil, err
@@ -124,7 +133,7 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 		return nil, err
 	}
 	telemetry.enabled, telemetry.tracer = true, tracerProvider.Tracer(instrumentationName)
-	telemetry.requests, telemetry.boundaryCalls, telemetry.boundaryDuration = requests, boundaryCalls, boundaryDuration
+	telemetry.requests, telemetry.boundaryCalls, telemetry.boundaryDuration, telemetry.httpRouteDuration = requests, boundaryCalls, boundaryDuration, httpRouteDuration
 	telemetry.transferOutcomes, telemetry.outboxAge = transferOutcomes, outboxAge
 	telemetry.ryewViolations, telemetry.reconciliationRun = ryewViolations, reconciliationRuns
 	telemetry.recoveryOperations, telemetry.deadWork, telemetry.retentionRuns, telemetry.retentionDeleted = recoveryOperations, deadWork, retentionRuns, retentionDeleted
@@ -229,17 +238,47 @@ func (t *Telemetry) HTTP(next http.Handler) http.Handler {
 		defer span.End()
 		started := time.Now()
 		recorder := &statusRecorder{ResponseWriter: writer, status: http.StatusOK}
-		next.ServeHTTP(recorder, request.WithContext(ctx))
+		routedRequest := request.WithContext(ctx)
+		next.ServeHTTP(recorder, routedRequest)
 		if t.enabled {
+			durationMilliseconds := float64(time.Since(started)) / float64(time.Millisecond)
 			outcome := "ok"
 			if recorder.status >= 500 {
 				outcome = "error"
 			}
 			attrs := metric.WithAttributes(attribute.String("method", request.Method), attribute.Int("status_code", recorder.status), attribute.String("outcome", outcome))
 			t.requests.Add(ctx, 1, attrs)
-			t.boundaryDuration.Record(ctx, float64(time.Since(started))/float64(time.Millisecond), metric.WithAttributes(attribute.String("boundary", "http"), attribute.String("operation", "request"), attribute.String("outcome", outcome)))
+			t.boundaryDuration.Record(ctx, durationMilliseconds, metric.WithAttributes(attribute.String("boundary", "http"), attribute.String("operation", "request"), attribute.String("outcome", outcome)))
+			if operation := performanceRouteOperation(routedRequest.Pattern); operation != "" {
+				t.httpRouteDuration.Record(ctx, durationMilliseconds, metric.WithAttributes(attribute.String("operation", operation), attribute.String("outcome", outcome)))
+			}
 		}
 	})
+}
+
+// performanceRouteOperation is deliberately a closed set. ServeMux patterns
+// are code-defined and contain no object identifiers, but the allowlist also
+// prevents future wildcard or raw-path changes from creating sensitive or
+// unbounded metric labels.
+func performanceRouteOperation(pattern string) string {
+	switch pattern {
+	case "POST /api/transfers":
+		return "transfer_command"
+	case "GET /api/accounts/{accountID}/balance":
+		return "balance_read"
+	case "GET /api/local/diagnostics":
+		return "diagnostics_read"
+	case "GET /api/events":
+		return "events_list"
+	case "GET /api/events/{eventID}":
+		return "events_detail"
+	case "POST /api/accounts":
+		return "account_create"
+	case "PATCH /api/accounts/{accountID}":
+		return "account_patch"
+	default:
+		return ""
+	}
 }
 
 type statusRecorder struct {

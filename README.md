@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Release status:** the engineering core is implemented. A ready-to-use **local-only MVP** is being completed for one Windows workstation at `http://localhost:3000`, with INR demo data and no external deployment. This is separate from the shared production pilot, which remains blocked on physical-device review, signed finance/security/legal decisions, managed OIDC and infrastructure, provider-backed PITR, named operational ownership, and a consenting design partner. See the [two gate registers](docs/pilot/local-mvp-gates.md).
+**Release status:** the complete expanded **local-only product passed consolidated acceptance** for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. The current commit is being requalified under the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md); see the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. Earlier [Phase 10 evidence](docs/release-evidence/local-product-phase-10-acceptance.md) covers the account, transfer, reconciliation, investigation, developer, export, recovery, restart, security, and 25 TPS journey, but does not approve LAN, cloud, shared-host, pilot, or production deployment.
 
 ## Contents
 
@@ -98,11 +98,16 @@ xychart-beta
 
 | Evidence | Result | What it proves |
 |---|---:|---|
+| Complete Phase 10 isolated acceptance | **PASS in 430.09 s** | end-to-end product, faults, recovery, cleanup, and ordinary-stack preservation |
+| Five-minute mixed capacity | **7,500 transfers at 25.071 iterations/s** | exact 7,500 journals, 15,000 postings, 7,500 idempotency outcomes, zero safety drift |
+| Phase 10 transfer / balance latency | **p95 212.397 / 84.403 ms** | healthy local profile remains below 500 / 200 ms gates |
+| Phase 10 security qualification | **20 / 20 steps passed** | tests, vet, fuzz, coverage, dependency/history/IaC/image scans, and three SBOMs |
+| Protected isolated restore | **PASS; local RTO 22.38 s** | current schema, cache rebuild, matched reconciliation, ordinary project unchanged |
 | Phase 3 PostgreSQL transfer suite | **PASS in 2.613 s** | no overdraft, safe replay, conflict rejection, ledger reconciliation |
 | Phase 5 PostgreSQL ownership suite | **PASS in 2.513 s** | cross-account reads denied without disclosure |
 | BFF security suite | **3 / 3 tests passed** | session tamper/expiry, CSRF, response headers |
 | Phase 4 fault cases | **3 scenarios passed** | delayed projection, Redis loss/rebuild, monotonic cache version |
-| Ordered migrations | **12** | financial schema through bounded velocity/capacity state |
+| Ordered migrations | **16** | financial schema through account lifecycle, investigation, exports, recovery, and guided read models |
 | Journal postings / posted transfer | **2** | one debit + one credit |
 | Account events / transfer | **2** | one outbox event per affected account |
 | Consistency requirement lifetime | **10 min** | signed minimum balance version |
@@ -427,6 +432,34 @@ normal project's opaque financial fingerprint or named-volume set changes.
 
 The repository-root `docker-compose.yml` is the canonical local entry point and delegates to the supported topology in `deploy/compose/docker-compose.yml`. The archived `docker-compose.legacy-demo.yml` is retained only for historical reference; it is not a supported development, test, or production path.
 
+### Complete local operator path
+
+1. Start Docker Desktop and wait until its engine is ready.
+2. From this repository in PowerShell, run `.\scripts\start-local.ps1`.
+3. Open `http://127.0.0.1:3000`. The server-controlled local demo operator goes directly to **Overview**; it does not require a password or external identity provider. Read the reopenable local guide for the INR, internal-only, PostgreSQL-authority, persistence, and safe-stop boundaries.
+4. Open **Accounts**. Inspect an existing account or choose **Create account**. Creation records identity and category only: currency is fixed to INR and the exact opening balance is `INR 0.00`; there is no browser balance editor.
+5. From a created account, choose **Fund account** to reuse the normal **Transfers** form with that destination selected. Choose a different active funded source, enter the exact decimal amount, review it, and post. If the result is unknown, use **Retry same transfer** so the exact body and idempotency key are retained.
+6. Open the transfer record to inspect the immutable result, debit and credit postings, and seven-stage stored-evidence chain. Delivery state is separate from the PostgreSQL financial result. Use server-backed transfer filters or **Events** filters to investigate a specific identifier without changing evidence.
+7. On Account Detail, use audited **Freeze account** and **Reactivate account** controls when required. Closing requires a current authoritative available and ledger balance of exact zero, a reason, and typed external-reference confirmation; Closed is terminal and history remains visible.
+8. Run **Reconciliation** and require an authoritative matched result with zero mismatches. Inspect **Local status** for PostgreSQL, outbox, and Redis as separate truth domains; **Developer** for versioned examples and the OpenAPI download; and **Recovery** for current database, protected backup, and isolated-restore evidence.
+9. CSV exports are bounded, tenant-authorized operational evidence. Review their scope, active filters, row ceiling, schema, and identifier disclosure before download. They are not backups. Backup and restore remain host-only operations.
+10. Run `.\scripts\status-local.ps1`, create recovery evidence with `.\scripts\backup-local.ps1 -RetentionCount 5` and the isolated restore drill when needed, then run `.\scripts\stop-local.ps1` when finished.
+
+The complete release gate is reproducible with `.\scripts\test-local-acceptance.ps1 -IncludeCapacity`; it uses unique disposable projects, preserves ordinary volumes, and restores the normal stack. Run it only when the workstation can remain available for approximately eight minutes. Security and supply-chain evidence is a separate exact-commit gate: `.\scripts\run-security-supply-chain-qualification.ps1 -Mode All -ExpectedCommit <40-character-clean-commit>`.
+
+Normal stop preserves PostgreSQL and Redis volumes. `.\scripts\reset-local.ps1` is intentionally destructive and requires the exact confirmation documented in the [local runtime runbook](docs/runbooks/local-runtime-smoke.md).
+
+This workflow is designed and automatically checked at CSS viewports from 320 to 1920 pixels, including keyboard, reduced-motion, forced-color, reflow, and automated WCAG checks. Those checks are browser emulation—not physical-phone, tablet, NVDA, VoiceOver, browser/OS combination, or production accessibility certification. No physical-device result is claimed for the local-only product.
+
+| If this happens | What it means | Safe action |
+|---|---|---|
+| Docker unavailable | Docker Desktop is stopped or still starting | Start Docker Desktop, wait for the engine, then rerun `start-local.ps1` |
+| Port 3000 occupied | Another process owns LedgerSync's IPv4 loopback port | Keep that process untouched; stop it yourself or change its port, then rerun startup |
+| Dependency still starting | PostgreSQL, Redis, API, worker, or web has not reached health | Run `status-local.ps1`, wait briefly, then read bounded output with `logs-local.ps1 -Service <name>` |
+| Migration failed | The schema setup job did not complete | Read `logs-local.ps1 -Service migrate`; do not edit financial tables manually |
+| Balance looks stale | Redis may be behind or disposable cache data was lost | Run `test-local-fault-recovery.ps1`; PostgreSQL remains authoritative and reconciliation rebuilds cache |
+| Database unavailable | Financial truth cannot be read or changed safely | Do not retry with a new transfer key; restore PostgreSQL health, then retry the exact intent with its original key |
+
 | Dependency | Minimum |
 |---|---:|
 | Go | 1.22 |
@@ -440,7 +473,7 @@ The repository-root `docker-compose.yml` is the canonical local entry point and 
 .\scripts\start-local.ps1
 
 # 2. Open the product.
-Start-Process http://localhost:3000
+Start-Process http://127.0.0.1:3000
 
 # 3. Inspect, back up, or stop it without deleting PostgreSQL/Redis volumes.
 .\scripts\status-local.ps1
@@ -477,6 +510,7 @@ pilot environment:
 - [Architecture and trust boundaries](docs/architecture.md)
 - [Private API integration and idempotent transfer contract](docs/api-guide.md)
 - [Operator console, incident response, and release ownership](docs/operations.md)
+- [Real-stack browser acceptance boundary](web/tests/system/README.md)
 - [Performance measurement protocol](docs/performance-baseline.md)
 - [Fault-injection scenarios](tests/fault/toxiproxy-scenarios.md)
 
@@ -486,6 +520,8 @@ pilot environment:
 
 ### Evidence
 
+- [Phase 10 — complete local-product acceptance](docs/release-evidence/local-product-phase-10-acceptance.md)
+- [Local-product completion gates](docs/pilot/local-product-completion-gates.md)
 - [Phase 3 — safe transfer core](docs/release-evidence/phase-3-safe-transfer-core.md)
 - [Phase 4 — RYEW balance visibility](docs/release-evidence/phase-4-ryew-balance-visibility.md)
 - [Phase 5 — account security](docs/release-evidence/phase-5-account-security.md)

@@ -7,6 +7,8 @@ import (
 
 func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("LEDGERSYNC_DEVELOPMENT_SUBJECT_ID", "")
+	t.Setenv("LEDGERSYNC_DEVELOPMENT_TENANT_ID", "")
 	configuration, err := Load()
 	if err != nil {
 		t.Fatal(err)
@@ -19,6 +21,16 @@ func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	}
 	if configuration.PilotCurrency != "INR" || configuration.ReadRateLimitPerMinute != 6_000 || configuration.WriteRateLimitPerMinute != 1_800 || configuration.WriteCapacityPerSecond != 30 {
 		t.Fatalf("pilot controls are incomplete: %#v", configuration)
+	}
+}
+
+func TestLoadRequiresGeneratedCredentialForDevelopmentIdentity(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("LEDGERSYNC_DEVELOPMENT_SUBJECT_ID", "demo")
+	t.Setenv("LEDGERSYNC_DEVELOPMENT_TENANT_ID", "tenant")
+	t.Setenv("LEDGERSYNC_DEVELOPMENT_API_TOKEN", "fixed")
+	if _, err := Load(); err == nil {
+		t.Fatal("development identity accepted a weak workload credential")
 	}
 }
 
@@ -76,5 +88,18 @@ func TestLoadRequiresExplicitPilotCurrencyOutsideDevelopment(t *testing.T) {
 	t.Setenv("LEDGERSYNC_PILOT_CURRENCY", "")
 	if _, err := Load(); err == nil {
 		t.Fatal("production accepted an implicit pilot currency")
+	}
+}
+
+func TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "data/local-backups")
+	if _, err := Load(); err == nil {
+		t.Fatal("relative recovery evidence root was accepted")
+	}
+	t.Setenv("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "/run/ledgersync/recovery")
+	configuration, err := Load()
+	if err != nil || configuration.RecoveryEvidenceRoot != "/run/ledgersync/recovery" {
+		t.Fatalf("absolute recovery root=%q error=%v", configuration.RecoveryEvidenceRoot, err)
 	}
 }

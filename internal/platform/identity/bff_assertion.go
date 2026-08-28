@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"container/heap"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -40,7 +41,8 @@ type ActorAssertionConfig struct {
 
 // RequestAuthenticator accepts delegated user context only after the caller
 // authenticates as the dedicated BFF workload identity. The assertion has its
-// own issuer/audience/key/lifetime contract and cannot grant unknown scopes.
+// own issuer/audience/key/lifetime contract, is bound to the workload's tenant,
+// and cannot grant unknown scopes.
 type RequestAuthenticator struct {
 	provider Provider
 	config   ActorAssertionConfig
@@ -90,6 +92,9 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 	}
 	payload, err := verifyActorAssertion(assertion, a.config, a.now())
 	if err != nil || !allAllowed(payload.Roles, allowedRoles) || !allAllowed(payload.Scopes, allowedScopes) {
+		return Principal{}, ErrUnauthenticated
+	}
+	if payload.TenantID != principal.TenantID {
 		return Principal{}, ErrUnauthenticated
 	}
 	if err := a.config.ReplayGuard.Use(ctx, payload.AssertionID, time.Unix(payload.ExpiresAt, 0)); err != nil {
@@ -174,14 +179,33 @@ var errAssertionReplay = errors.New("actor assertion replayed")
 type MemoryReplayGuard struct {
 	mu      sync.Mutex
 	entries map[string]time.Time
+	expiry  replayExpiryHeap
 	limit   int
+}
+
+type replayExpiry struct {
+	assertionID string
+	expiresAt   time.Time
+}
+
+type replayExpiryHeap []replayExpiry
+
+func (h replayExpiryHeap) Len() int           { return len(h) }
+func (h replayExpiryHeap) Less(i, j int) bool { return h[i].expiresAt.Before(h[j].expiresAt) }
+func (h replayExpiryHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *replayExpiryHeap) Push(value any)    { *h = append(*h, value.(replayExpiry)) }
+func (h *replayExpiryHeap) Pop() any {
+	old := *h
+	item := old[len(old)-1]
+	*h = old[:len(old)-1]
+	return item
 }
 
 func NewMemoryReplayGuard(limit int) *MemoryReplayGuard {
 	if limit < 1 {
 		limit = 10_000
 	}
-	return &MemoryReplayGuard{entries: make(map[string]time.Time), limit: limit}
+	return &MemoryReplayGuard{entries: make(map[string]time.Time), expiry: make(replayExpiryHeap, 0, limit), limit: limit}
 }
 
 func (g *MemoryReplayGuard) Use(_ context.Context, assertionID string, expiresAt time.Time) error {
@@ -191,14 +215,16 @@ func (g *MemoryReplayGuard) Use(_ context.Context, assertionID string, expiresAt
 		return errAssertionReplay
 	}
 	now := time.Now()
-	for key, expiry := range g.entries {
-		if !expiry.After(now) {
-			delete(g.entries, key)
+	for g.expiry.Len() > 0 && !g.expiry[0].expiresAt.After(now) {
+		expired := heap.Pop(&g.expiry).(replayExpiry)
+		if current, exists := g.entries[expired.assertionID]; exists && current.Equal(expired.expiresAt) {
+			delete(g.entries, expired.assertionID)
 		}
 	}
 	if len(g.entries) >= g.limit {
 		return errAssertionReplay
 	}
 	g.entries[assertionID] = expiresAt
+	heap.Push(&g.expiry, replayExpiry{assertionID: assertionID, expiresAt: expiresAt})
 	return nil
 }

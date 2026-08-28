@@ -22,13 +22,6 @@ type AccountsHandler struct {
 	audit         AuditRecorder
 }
 
-func (h *AccountsHandler) WithBFFAssertionSecret(secret string) *AccountsHandler {
-	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
-		h.authenticator = authenticator
-	}
-	return h
-}
-
 func (h *AccountsHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *AccountsHandler {
 	h.authenticator = authenticator
 	return h
@@ -122,6 +115,7 @@ func publicAccountError(err error) error {
 
 type accountResponse struct {
 	AccountID         string `json:"account_id"`
+	AccountVersion    string `json:"account_version"`
 	Currency          string `json:"currency"`
 	Status            string `json:"status"`
 	AvailableMinor    string `json:"available_minor"`
@@ -134,7 +128,7 @@ type accountResponse struct {
 }
 
 func mapAccountResponse(item accounts.Summary) accountResponse {
-	return accountResponse{AccountID: item.AccountID, Currency: item.Currency, Status: item.Status, AvailableMinor: strconv.FormatInt(item.Balance.AvailableMinor, 10), LedgerMinor: strconv.FormatInt(item.Balance.LedgerMinor, 10), Version: strconv.FormatInt(item.Balance.Version, 10), AsOf: item.Balance.AsOf.Format(time.RFC3339Nano), DisplayName: item.DisplayName, Category: item.Category, ExternalReference: item.ExternalReference}
+	return accountResponse{AccountID: item.AccountID, AccountVersion: strconv.FormatInt(item.AccountVersion, 10), Currency: item.Currency, Status: item.Status, AvailableMinor: strconv.FormatInt(item.Balance.AvailableMinor, 10), LedgerMinor: strconv.FormatInt(item.Balance.LedgerMinor, 10), Version: strconv.FormatInt(item.Balance.Version, 10), AsOf: item.Balance.AsOf.Format(time.RFC3339Nano), DisplayName: item.DisplayName, Category: item.Category, ExternalReference: item.ExternalReference}
 }
 
 func writeAccountResponse(writer http.ResponseWriter, item accounts.Summary) {
@@ -144,11 +138,12 @@ func writeAccountResponse(writer http.ResponseWriter, item accounts.Summary) {
 		ActorSubjectID string `json:"actor_subject_id"`
 		Outcome        string `json:"outcome"`
 		CorrelationID  string `json:"correlation_id"`
+		Reason         string `json:"reason,omitempty"`
 		OccurredAt     string `json:"occurred_at"`
 	}
 	audit := make([]auditResponse, 0, len(item.AuditContext))
 	for _, event := range item.AuditContext {
-		audit = append(audit, auditResponse{EventID: event.EventID, EventType: event.EventType, ActorSubjectID: event.ActorSubjectID, Outcome: event.Outcome, CorrelationID: event.CorrelationID, OccurredAt: event.OccurredAt.Format(time.RFC3339Nano)})
+		audit = append(audit, auditResponse{EventID: event.EventID, EventType: event.EventType, ActorSubjectID: event.ActorSubjectID, Outcome: event.Outcome, CorrelationID: event.CorrelationID, Reason: event.Reason, OccurredAt: event.OccurredAt.Format(time.RFC3339Nano)})
 	}
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")

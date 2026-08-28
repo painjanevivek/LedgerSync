@@ -17,6 +17,8 @@ type Event struct {
 	TenantID         string
 	TransferID       string
 	AccountID        string
+	AggregateType    string
+	AggregateID      string
 	EventType        string
 	AggregateVersion int64
 	Payload          []byte
@@ -139,7 +141,14 @@ func (w *Worker) handlePublishFailure(ctx context.Context, event Event, publishE
 }
 
 func validate(event Event) error {
-	if event.ID == "" || event.TenantID == "" || event.AccountID == "" || event.EventType == "" || event.AggregateVersion < 0 || len(event.Payload) == 0 {
+	aggregateType, aggregateID := event.AggregateType, event.AggregateID
+	if aggregateType == "" && event.AccountID != "" {
+		aggregateType = "account_balance"
+	}
+	if aggregateID == "" {
+		aggregateID = event.AccountID
+	}
+	if event.ID == "" || event.TenantID == "" || aggregateType == "" || aggregateID == "" || event.EventType == "" || event.AggregateVersion < 0 || len(event.Payload) == 0 {
 		return ErrInvalidEvent
 	}
 	return nil

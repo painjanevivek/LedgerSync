@@ -25,13 +25,6 @@ type BalanceHandler struct {
 	audit         AuditRecorder
 }
 
-func (h *BalanceHandler) WithBFFAssertionSecret(secret string) *BalanceHandler {
-	if authenticator, err := identity.NewRequestAuthenticator(h.identity, secret); err == nil {
-		h.authenticator = authenticator
-	}
-	return h
-}
-
 func (h *BalanceHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *BalanceHandler {
 	h.authenticator = authenticator
 	return h

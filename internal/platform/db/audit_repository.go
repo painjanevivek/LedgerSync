@@ -8,6 +8,10 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 )
 
 // AuditEvent is deliberately metadata-minimal. It must contain identifiers and
@@ -54,15 +58,31 @@ func sanitizeAuditMetadata(metadata map[string]string) map[string]string {
 	clean := make(map[string]string)
 	for key, value := range metadata {
 		key = strings.ToLower(strings.TrimSpace(key))
-		if key == "" || len(key) > 64 || len(value) > 256 || sensitiveAuditKey(key) {
+		if key == "" || len(key) > 64 || !allowedAuditMetadataValue(key, value) || sensitiveAuditKey(key) {
 			continue
 		}
 		clean[key] = value
 	}
 	return clean
 }
+
+func allowedAuditMetadataValue(key, value string) bool {
+	if key != "reason" {
+		return len(value) <= 256
+	}
+	if !utf8.ValidString(value) || utf8.RuneCountInString(value) > accounts.MaxLifecycleReasonRunes {
+		return false
+	}
+	for _, character := range value {
+		if unicode.IsControl(character) {
+			return false
+		}
+	}
+	return true
+}
+
 func sensitiveAuditKey(key string) bool {
-	for _, word := range []string{"secret", "token", "authorization", "cookie", "session", "amount", "balance", "email", "phone", "address", "payload"} {
+	for _, word := range []string{"secret", "token", "authorization", "cookie", "session", "csrf", "consistency", "credential", "database_url", "connection_string", "dsn", "private_key", "api_key", "access_key", "amount", "balance", "email", "phone", "address", "ip_address", "payload"} {
 		if strings.Contains(key, word) {
 			return true
 		}

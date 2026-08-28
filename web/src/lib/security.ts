@@ -11,6 +11,28 @@ export const securityHeaders: Record<string, string> = {
   "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
 };
 
+export function readPublicOrigin(environment: Readonly<Record<string, string | undefined>> = process.env): URL {
+  const configuredOrigin = environment.LEDGERSYNC_PUBLIC_ORIGIN?.trim();
+  if (!configuredOrigin) throw new Error("LEDGERSYNC_PUBLIC_ORIGIN is required");
+  let origin: URL;
+  try {
+    origin = new URL(configuredOrigin);
+  } catch {
+    throw new Error("LEDGERSYNC_PUBLIC_ORIGIN must be a valid HTTP(S) origin");
+  }
+  if (
+    (origin.protocol !== "http:" && origin.protocol !== "https:")
+    || origin.username
+    || origin.password
+    || origin.pathname !== "/"
+    || origin.search
+    || origin.hash
+  ) {
+    throw new Error("LEDGERSYNC_PUBLIC_ORIGIN must be a valid HTTP(S) origin");
+  }
+  return origin;
+}
+
 export function contentSecurityPolicy(nonce?: string): string {
   const scriptSource = nonce ? `script-src 'self' 'nonce-${nonce}'` : "script-src 'self'";
   const styleSource = nonce ? `style-src 'self' 'nonce-${nonce}'` : "style-src 'self'";
@@ -27,16 +49,24 @@ export function addSecurityHeaders(response: NextResponse, nonce?: string): Next
   return response;
 }
 
-// Cookie-authenticated mutations must originate from this same public origin.
+export function hasValidHost(request: NextRequest): boolean {
+  try {
+    const expected = readPublicOrigin();
+    const host = request.headers.get("host");
+    if (!host) return false;
+    const supplied = new URL(`${expected.protocol}//${host}`);
+    return supplied.username === "" && supplied.password === "" && supplied.pathname === "/" && supplied.search === "" && supplied.hash === "" && supplied.origin === expected.origin;
+  } catch {
+    return false;
+  }
+}
+
+// Cookie-authenticated mutations must originate from this fixed public origin.
 export function hasSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
-  if (origin === null) return false;
-  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? "development").trim().toLowerCase();
-  const configuredOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN?.trim();
-  if ((deploymentEnvironment === "production" || deploymentEnvironment === "prod") && !configuredOrigin) return false;
-  if (!configuredOrigin) return origin === request.nextUrl.origin;
+  if (origin === null || !hasValidHost(request)) return false;
   try {
-    return origin === new URL(configuredOrigin).origin;
+    return origin === readPublicOrigin().origin;
   } catch {
     return false;
   }

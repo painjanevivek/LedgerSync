@@ -4,10 +4,13 @@ package observability
 import (
 	"context"
 	"log/slog"
+	"regexp"
 	"strings"
 )
 
 const Redacted = "[REDACTED]"
+
+var sensitiveLogValue = regexp.MustCompile(`(?i)(?:postgres(?:ql)?://[^:\s]+:[^@\s]+@|authorization:\s*bearer\s+\S+|bearer\s+[A-Za-z0-9._~+/-]{16,})`)
 
 // NewLogger returns a structured logger which redacts known sensitive fields
 // before the configured handler receives them. Callers must still avoid logging
@@ -55,12 +58,15 @@ func redactAttr(attr slog.Attr) slog.Attr {
 		}
 		return slog.Group(attr.Key, clean...)
 	}
+	if attr.Value.Kind() == slog.KindString && sensitiveLogValue.MatchString(attr.Value.String()) {
+		return slog.String(attr.Key, Redacted)
+	}
 	return attr
 }
 
 func isSensitive(key string) bool {
 	key = strings.ToLower(key)
-	for _, forbidden := range []string{"password", "secret", "token", "authorization", "cookie", "session", "balance", "amount", "email", "phone", "address"} {
+	for _, forbidden := range []string{"password", "secret", "token", "authorization", "cookie", "session", "csrf", "consistency", "credential", "database_url", "connection_string", "dsn", "private_key", "api_key", "access_key", "balance", "amount", "email", "phone", "address", "ip_address"} {
 		if strings.Contains(key, forbidden) {
 			return true
 		}

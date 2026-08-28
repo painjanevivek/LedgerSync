@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions"
@@ -20,6 +21,12 @@ func TestAccountReadsDenyUnownedAccountsWithoutDisclosure(t *testing.T) {
 	}
 	if _, err := balances.ReadCurrent(ctx, testTenantID, "different-subject", testSourceID); !errors.Is(err, db.ErrBalanceNotAuthorized) {
 		t.Fatalf("expected safe authorization denial, got %v", err)
+	}
+	if err := balances.Authorize(ctx, testTenantID, "different-subject", testSourceID); !errors.Is(err, db.ErrBalanceNotAuthorized) {
+		t.Fatalf("expected safe cache authorization denial, got %v", err)
+	}
+	if err := balances.Authorize(ctx, testTenantID, testActorID, testSourceID); err != nil {
+		t.Fatalf("authorized cache read was denied: %v", err)
 	}
 	historyRepo, err := db.NewTransactionHistoryRepository(database)
 	if err != nil {
@@ -134,5 +141,44 @@ func TestAccountListContainsOnlyAccountsOwnedByCaller(t *testing.T) {
 	}
 	if len(accounts) != 1 || accounts[0].AccountID != testSourceID {
 		t.Fatalf("owned account list disclosed unexpected account: %#v", accounts)
+	}
+}
+
+func TestAccountDetailProjectsOnlyAllowListedLifecycleReasons(t *testing.T) {
+	_, database := requireTransferService(t, 10_000)
+	ctx := context.Background()
+	events := []struct {
+		id, eventType, outcome, correlationID, metadata string
+	}{
+		{"00000000-0000-0000-0000-000000009020", "account.status_changed", "succeeded", "00000000-0000-0000-0000-000000009021", `{"reason":"Quarter-end review","secret_token":"must-not-project","status":"frozen"}`},
+		{"00000000-0000-0000-0000-000000009022", "account.command_denied", "denied", "00000000-0000-0000-0000-000000009023", `{"operation":"account_status_change","reason":"Close requires exact zero","denial_code":"non_zero_balance"}`},
+		{"00000000-0000-0000-0000-000000009024", "account.reviewed", "succeeded", "00000000-0000-0000-0000-000000009025", `{"reason":"must-not-project","secret_token":"must-not-project"}`},
+	}
+	for index, event := range events {
+		if _, err := database.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'account',$5,$6,$7,$8::jsonb,$9)`, event.id, testTenantID, testActorID, event.eventType, testSourceID, event.outcome, event.correlationID, event.metadata, time.Date(2026, 8, 25, 12, index, 0, 0, time.UTC)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	repository, err := db.NewAccountRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := repository.GetOwned(ctx, testTenantID, testActorID, testSourceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reasons := make(map[string]string)
+	for _, event := range detail.AuditContext {
+		reasons[event.EventType+":"+event.CorrelationID] = event.Reason
+	}
+	if got := reasons["account.status_changed:00000000-0000-0000-0000-000000009021"]; got != "Quarter-end review" {
+		t.Fatalf("status-change reason=%q", got)
+	}
+	if got := reasons["account.command_denied:00000000-0000-0000-0000-000000009023"]; got != "Close requires exact zero" {
+		t.Fatalf("lifecycle-denial reason=%q", got)
+	}
+	if got := reasons["account.reviewed:00000000-0000-0000-0000-000000009025"]; got != "" {
+		t.Fatalf("unrelated metadata reason leaked through account detail: %q", got)
 	}
 }

@@ -286,7 +286,7 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err := insertAuditEvent(ctx, tx, command, entry.ID, transfers.AuditTransferPosted, "succeeded", now); err != nil {
 		return transfers.Result{}, err
 	}
-	result := postedResult(entry, updatedSource, updatedDestination)
+	result := postedResult(entry, updatedSource)
 	if err := enqueueBalanceEvent(ctx, tx, command, entry.ID, updatedSource, now); err != nil {
 		return transfers.Result{}, err
 	}
@@ -510,8 +510,8 @@ func enqueueBalanceEvent(ctx context.Context, tx *sql.Tx, command transfers.Comm
 		return fmt.Errorf("marshal outbox event: %w", err)
 	}
 	_, err = tx.ExecContext(ctx, `
-INSERT INTO outbox_events (id, tenant_id, transfer_id, account_id, event_type, aggregate_version, payload, occurred_at)
-VALUES ($1, $2, $3, $4, 'account.balance.changed.v1', $5, $6, $7)`, id, command.TenantID, transferID, balance.ID, balance.BalanceVersion, payload, now)
+INSERT INTO outbox_events (id, tenant_id, transfer_id, account_id, aggregate_type, aggregate_id, event_type, aggregate_version, payload, occurred_at)
+VALUES ($1, $2, $3, $4, 'account_balance', $4, 'account.balance.changed.v1', $5, $6, $7)`, id, command.TenantID, transferID, balance.ID, balance.BalanceVersion, payload, now)
 	return wrap("enqueue balance event", err)
 }
 
@@ -531,17 +531,16 @@ WHERE tenant_id = $1 AND actor_subject_id = $2 AND operation = $3 AND idempotenc
 	return requireOneRow(updated, "store idempotency outcome")
 }
 
-func postedResult(entry transferdomain.Transfer, source, destination lockedAccount) transfers.Result {
+func postedResult(entry transferdomain.Transfer, source lockedAccount) transfers.Result {
 	return transfers.Result{
 		TransferID:             entry.ID,
 		Status:                 string(transferdomain.StatusPosted),
 		Currency:               entry.Amount.Currency().Code,
 		AmountMinor:            entry.Amount.Minor(),
 		OccurredAt:             entry.CompletedAt.UTC().Format(time.RFC3339Nano),
-		MinimumBalanceVersions: map[string]int64{source.ID: source.BalanceVersion, destination.ID: destination.BalanceVersion},
+		MinimumBalanceVersions: map[string]int64{source.ID: source.BalanceVersion},
 		Balances: map[string]transfers.Balance{
-			source.ID:      toBalance(source, entry.Amount.Currency().Code, entry.CompletedAt.UTC()),
-			destination.ID: toBalance(destination, entry.Amount.Currency().Code, entry.CompletedAt.UTC()),
+			source.ID: toBalance(source, entry.Amount.Currency().Code, entry.CompletedAt.UTC()),
 		},
 	}
 }

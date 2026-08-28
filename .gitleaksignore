@@ -1,0 +1,15 @@
+# Redacted Phase 10 review: these exact historical fingerprints are synthetic
+# idempotency-key fixtures or prose containing the phrase "secret compromise".
+# Do not add path, rule, or commit-wide exclusions; every new finding must fail.
+2b95d8adf18376d67c552cfd12ab228838dbbbd1:internal/application/reconciliation/command_test.go:generic-api-key:30
+2b95d8adf18376d67c552cfd12ab228838dbbbd1:internal/transport/http/handlers/reconciliation_commands_test.go:generic-api-key:76
+2b95d8adf18376d67c552cfd12ab228838dbbbd1:internal/transport/http/handlers/reconciliation_commands_test.go:generic-api-key:80
+381ba05269992bb5415977437dd2a6a8f6186dac:internal/application/accounts/commands_test.go:generic-api-key:72
+381ba05269992bb5415977437dd2a6a8f6186dac:internal/application/accounts/commands_test.go:generic-api-key:108
+8f560f3dc8e6abd6fbddf8315697c86f315138f1:internal/application/accounts/commands_test.go:generic-api-key:34
+8f560f3dc8e6abd6fbddf8315697c86f315138f1:internal/application/accounts/commands_test.go:generic-api-key:56
+8f560f3dc8e6abd6fbddf8315697c86f315138f1:internal/application/accounts/commands_test.go:generic-api-key:68
+8f560f3dc8e6abd6fbddf8315697c86f315138f1:tests/integration/account_commands_test.go:generic-api-key:146
+ad5eda1ff028b33e88c3154bcbc8d8991b36e277:internal/transport/http/handlers/transfer_consistency_test.go:generic-api-key:70
+b4be5f44d9da2ba01f54ce4a30664287399cb629:docs/plans/ledgersync-implementation-plan.md:generic-api-key:1594
+e07c562f79c1e5037602b39d3eb58537f0def064:tests/unit/idempotency_test.go:generic-api-key:14

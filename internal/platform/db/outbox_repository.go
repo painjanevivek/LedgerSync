@@ -52,7 +52,8 @@ SET claim_owner = $3,
     attempt_count = event.attempt_count + 1
 FROM candidates
 WHERE event.id = candidates.id
-RETURNING event.id, event.tenant_id, event.transfer_id, event.account_id, event.event_type,
+RETURNING event.id, event.tenant_id, COALESCE(event.transfer_id::text,''), COALESCE(event.account_id::text,''),
+          event.aggregate_type, event.aggregate_id, event.event_type,
           event.aggregate_version, event.payload, event.occurred_at, event.attempt_count`, now, limit, workerID, now.Add(lease))
 	if err != nil {
 		return nil, fmt.Errorf("claim outbox events: %w", err)
@@ -61,7 +62,7 @@ RETURNING event.id, event.tenant_id, event.transfer_id, event.account_id, event.
 	var events []outbox.Event
 	for rows.Next() {
 		var event outbox.Event
-		if err := rows.Scan(&event.ID, &event.TenantID, &event.TransferID, &event.AccountID, &event.EventType, &event.AggregateVersion, &event.Payload, &event.OccurredAt, &event.AttemptCount); err != nil {
+		if err := rows.Scan(&event.ID, &event.TenantID, &event.TransferID, &event.AccountID, &event.AggregateType, &event.AggregateID, &event.EventType, &event.AggregateVersion, &event.Payload, &event.OccurredAt, &event.AttemptCount); err != nil {
 			return nil, fmt.Errorf("scan claimed outbox event: %w", err)
 		}
 		if r.telemetry != nil && now.After(event.OccurredAt) {

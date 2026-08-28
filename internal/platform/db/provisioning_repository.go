@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/provisioning"
@@ -84,7 +85,11 @@ func (r *ProvisioningRepository) Apply(ctx context.Context, configuration provis
 		if opening < 0 {
 			return errors.New("opening balance cannot be negative")
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO accounts(id,tenant_id,currency,status,display_name,category,external_reference)VALUES($1,$2,$3,'active',$4,$5,NULLIF($6,''))`, account.ID, configuration.TenantID, configuration.Currency, account.DisplayName, account.Category, account.ExternalReference); err != nil {
+		reference := strings.TrimSpace(account.ExternalReference)
+		if reference == "" {
+			reference = "provisioned-" + strings.ToLower(account.ID)
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO accounts(id,tenant_id,currency,status,display_name,category,external_reference)VALUES($1,$2,$3,'active',$4,$5,$6)`, account.ID, configuration.TenantID, configuration.Currency, account.DisplayName, account.Category, reference); err != nil {
 			return err
 		}
 		if _, err = tx.ExecContext(ctx, `INSERT INTO account_balance_projections(account_id,available_minor,ledger_minor,balance_version)VALUES($1,$2,$2,0)`, account.ID, opening); err != nil {

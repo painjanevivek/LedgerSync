@@ -11,7 +11,7 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
-func TestRequirementBearingReadFallsBackToPrimaryWhenProjectionIsDelayed(t *testing.T) {
+func TestRequirementBearingReadUsesPrimaryWhenRedisProjectionIsDelayed(t *testing.T) {
 	service, database, redisClient := requireFaultDependencies(t, 10000)
 	submission, err := service.Submit(context.Background(), faultTransferCommand(t, "fault-ryew-delay-key-0001", "25.00"))
 	if err != nil {

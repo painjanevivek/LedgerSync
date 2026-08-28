@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
+import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
 
 const compact = { width: 390, height: 844 };
 const tablet = { width: 768, height: 1024 };
@@ -29,6 +29,11 @@ const populatedRoutes = [
   { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
   { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation detail" },
+  { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
+  { name: "events-populated", path: "/events", heading: "Event investigation" },
+  { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
+  { name: "developer-contract", path: "/developer", heading: "Developer" },
+  { name: "recovery-evidence", path: "/recovery", heading: "Recovery Center" },
 ] as const;
 
 for (const route of populatedRoutes) {
@@ -45,6 +50,22 @@ test("compact account directory preserves the selected information hierarchy", a
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
   await capture(page, "accounts-populated-compact", compact);
+});
+
+test("compact developer contract preserves code and retry hierarchy",async({page})=>{
+  await mockOperatorConsole(page);
+  await page.goto("/developer");
+  await expect(page.getByRole("heading",{name:"Developer",exact:true})).toBeVisible();
+  await capture(page,"developer-contract-compact",compact);
+});
+
+test("transfer export review preserves the exact evidence hierarchy",async({page})=>{
+  await mockOperatorConsole(page);
+  await page.goto("/transfers");
+  await page.getByRole("button",{name:"Export transfer evidence"}).click();
+  await expect(page.getByRole("heading",{name:"Review transfer history export"})).toBeVisible();
+  await capture(page,"transfer-export-review",desktop);
+  await capture(page,"transfer-export-review-compact",compact);
 });
 
 test("loading state does not imply empty account evidence", async ({ page }) => {
@@ -142,4 +163,61 @@ test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Mixed-currency pilot data blocked")).toBeVisible();
   await capture(page, "overview-mixed-currency-error", desktop);
+});
+
+test("account create review has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  await mockOperatorConsole(page);
+  await page.goto("/accounts/new");
+  await page.getByLabel("Display name").fill("Settlement evidence");
+  await page.getByLabel("External reference").fill("SETTLEMENT-INR");
+  await page.getByLabel("Category").selectOption("operating");
+  await page.getByRole("button", { name: "Continue to financial boundary" }).click();
+  await page.getByRole("button", { name: "Continue to review" }).click();
+  await expect(page.getByRole("heading", { name: "Review exact account command" })).toBeVisible();
+  await capture(page, "account-create-review", desktop);
+  await capture(page, "account-create-review-compact", compact);
+});
+
+test("account lifecycle guard has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  await mockOperatorConsole(page);
+  await page.goto(`/accounts/${sourceAccount.account_id}`);
+  await page.getByRole("button", { name: "Freeze account" }).click();
+  await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");
+  await expect(page.getByRole("heading", { name: "Freeze account" })).toBeVisible();
+  await page.setViewportSize(desktop);
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot("account-freeze-confirmation-1440x900.png", { animations: "disabled", caret: "hide", fullPage: false, maxDiffPixelRatio: 0.002 });
+  await page.keyboard.press("Escape");
+  await page.setViewportSize(compact);
+  await page.getByRole("button", { name: "Freeze account" }).click();
+  await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");
+  await expect(page.getByRole("heading", { name: "Freeze account" })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot("account-freeze-confirmation-compact-390x844.png", { animations: "disabled", caret: "hide", fullPage: false, maxDiffPixelRatio: 0.002 });
+});
+
+test("reconciliation command review has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  await mockOperatorConsole(page);
+  await page.goto("/reconciliation");
+  await page.getByRole("button", { name: "Run reconciliation", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Review authoritative reconciliation scope" })).toBeVisible();
+  await capture(page, "reconciliation-command-review", desktop);
+  await capture(page, "reconciliation-command-review-compact", compact);
+});
+
+test("reconciliation running control has a Windows local-console baseline", async ({ page }) => {
+  test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
+  const running = { ...run, run_id: "77777777-7777-4777-8777-777777777777", status: "running", ledger_watermark: "", application_version: "", schema_version: "", checked_account_count: "0", posting_count: "0", mismatch_count: "0", completed_at: "" };
+  await mockOperatorConsole(page);
+  await page.route("**/api/reconciliation/runs", (route) => json(route, running, 202));
+  await page.route(`**/api/reconciliation/runs/${running.run_id}`, (route) => json(route, running));
+  await page.goto("/reconciliation");
+  await page.getByRole("button", { name: "Run reconciliation", exact: true }).click();
+  await page.getByRole("button", { name: "Start reconciliation" }).click();
+  await expect(page.getByRole("heading", { name: "Reconciliation running" })).toBeVisible();
+  await capture(page, "reconciliation-command-running", desktop);
+  await capture(page, "reconciliation-command-running-compact", compact);
 });

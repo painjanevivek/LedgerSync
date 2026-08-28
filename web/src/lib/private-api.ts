@@ -22,13 +22,20 @@ export async function privateAPIContext(session: Session, requestID?: string) {
 }
 
 export async function proxyPrivateGET(request: NextRequest, session: Session, path: string, allowedQuery: readonly string[] = []) {
+  const permitted = new Set(allowedQuery);
   const query = new URLSearchParams();
-  for (const key of allowedQuery) {
-    const value = request.nextUrl.searchParams.get(key)?.trim();
-    if (value) {
-      if (value.length > 256) return jsonError("validation_failed", 400);
-      query.set(key, value);
+  for (const [key] of request.nextUrl.searchParams) {
+    if (!permitted.has(key) || request.nextUrl.searchParams.getAll(key).length !== 1) {
+      return jsonError("invalid_request", 400);
     }
+  }
+  for (const key of allowedQuery) {
+    const raw = request.nextUrl.searchParams.get(key);
+    if (raw === null) continue;
+    const value = raw.trim();
+    const maximumLength = key === "cursor" ? 2_048 : 256;
+    if (!value || value.length > maximumLength) return jsonError("invalid_request", 400);
+    query.set(key, value);
   }
   try {
     const connection = await privateAPIContext(session, request.headers.get("x-request-id") ?? undefined);

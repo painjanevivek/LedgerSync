@@ -1,13 +1,13 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     # Long-lived local authority must return with Docker Desktop. Normal stop/start
     # preserves the named volume; reset is a separate explicit operation.
     restart: unless-stopped
     environment:
       POSTGRES_DB: ledgersync
       POSTGRES_USER: ledgersync
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development-only-change-me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run scripts/start-local.ps1 to create local secrets}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ledgersync -d ledgersync"]
       interval: 5s
@@ -17,10 +17,16 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks: [private]
+    user: postgres
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+      - /var/run/postgresql:rw,noexec,nosuid,size=4m
+    cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
 
   redis:
-    image: redis:7.4-alpine
+    image: redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
     # Redis is disposable, but automatic restart keeps the local read path usable
     # after an ordinary Docker daemon event.
     restart: unless-stopped
@@ -34,6 +40,10 @@ services:
     volumes:
       - redis-data:/data
     networks: [private]
+    user: redis
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
 
   api:
@@ -51,13 +61,15 @@ services:
       LEDGERSYNC_WRITE_RATE_LIMIT_PER_MINUTE: ${LEDGERSYNC_WRITE_RATE_LIMIT_PER_MINUTE:-1800}
       LEDGERSYNC_WRITE_CAPACITY_PER_SECOND: ${LEDGERSYNC_WRITE_CAPACITY_PER_SECOND:-30}
       LEDGERSYNC_REDIS_STREAM_MAX_LENGTH: 5000000
-      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_api:${LEDGERSYNC_API_DATABASE_PASSWORD:?Local API database secret is required}@postgres:5432/ledgersync?sslmode=disable
       LEDGERSYNC_REDIS_ADDR: redis:6379
-      LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:-development-only-change-me}
-      LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:-development-only-change-me-change-before-shared-use}
-      LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:-development-bff-assertion-secret-change-me}
+      LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:?Local API session secret is required}
+      LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:?Local consistency signing key is required}
+      LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:?Local BFF assertion secret is required}
+      LEDGERSYNC_DEVELOPMENT_API_TOKEN: ${LEDGERSYNC_DEVELOPMENT_API_TOKEN:?Local private API token is required}
       LEDGERSYNC_DEVELOPMENT_SUBJECT_ID: demo-operator
       LEDGERSYNC_DEVELOPMENT_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      LEDGERSYNC_RECOVERY_EVIDENCE_ROOT: /run/ledgersync/recovery
     depends_on:
       demo-seed:
         condition: service_completed_successfully
@@ -72,6 +84,10 @@ services:
       start_period: 5s
       retries: 30
     networks: [private]
+    volumes:
+      # The API receives only the sanitized tooling index, never backup dumps or
+      # the host backup directory. start-local initializes this exact file.
+      - ../../data/local-backups/recovery-evidence-index.json:/run/ledgersync/recovery/recovery-evidence-index.json:ro
     read_only: true
     tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
     cap_drop: ["ALL"]
@@ -83,14 +99,14 @@ services:
       dockerfile: deploy/docker/outbox-worker.Dockerfile
     environment:
       LEDGERSYNC_ENV: development
-      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_worker:${LEDGERSYNC_WORKER_DATABASE_PASSWORD:?Local worker database secret is required}@postgres:5432/ledgersync?sslmode=disable
       LEDGERSYNC_REDIS_ADDR: redis:6379
       LEDGERSYNC_STARTUP_TIMEOUT: 90s
       LEDGERSYNC_STARTUP_INITIAL_BACKOFF: 250ms
       LEDGERSYNC_STARTUP_MAX_BACKOFF: 5s
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -114,12 +130,12 @@ services:
     environment:
       NODE_ENV: production
       LEDGERSYNC_PRIVATE_API_URL: http://api:8080
-      LEDGERSYNC_PRIVATE_API_TOKEN: development-local-only
-      LEDGERSYNC_WEB_SESSION_SECRET: ${LEDGERSYNC_WEB_SESSION_SECRET:-development-web-session-secret-change-me}
-      LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:-development-bff-assertion-secret-change-me}
+      LEDGERSYNC_PRIVATE_API_TOKEN: ${LEDGERSYNC_DEVELOPMENT_API_TOKEN:?Local private API token is required}
+      LEDGERSYNC_WEB_SESSION_SECRET: ${LEDGERSYNC_WEB_SESSION_SECRET:?Local web session secret is required}
+      LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:?Local BFF assertion secret is required}
       LEDGERSYNC_DEPLOYMENT_ENV: development
       LEDGERSYNC_COOKIE_SECURE: "false"
-      LEDGERSYNC_PUBLIC_ORIGIN: http://localhost:3000
+      LEDGERSYNC_PUBLIC_ORIGIN: http://127.0.0.1:3000
       LEDGERSYNC_DEMO_MODE: "true"
       LEDGERSYNC_DEMO_SUBJECT_ID: demo-operator
       LEDGERSYNC_DEMO_TENANT_ID: 00000000-0000-4000-8000-000000000001
@@ -145,21 +161,44 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
-    entrypoint: ["/usr/local/bin/migrate"]
+      target: database-tooling
+    entrypoint: ["sh", "-ec"]
+    command:
+      - >-
+        /usr/local/bin/migrate &&
+        exec psql -v ON_ERROR_STOP=1 -h postgres -U ledgersync -d ledgersync
+        -f /database-roles/roles.sql -f /database-roles/local-workload-logins.sql
     environment:
       LEDGERSYNC_ENV: development
-      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:-development-only-change-me}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync:${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}@postgres:5432/ledgersync?sslmode=disable
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}
+      LEDGERSYNC_API_DATABASE_PASSWORD: ${LEDGERSYNC_API_DATABASE_PASSWORD:?Local API database secret is required}
+      LEDGERSYNC_WORKER_DATABASE_PASSWORD: ${LEDGERSYNC_WORKER_DATABASE_PASSWORD:?Local worker database secret is required}
     depends_on:
       postgres:
         condition: service_healthy
     networks: [private]
     restart: "no"
+    user: postgres
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
 
   demo-seed:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD:-development-only-change-me}
-    command: ["psql", "-h", "postgres", "-U", "ledgersync", "-d", "ledgersync", "-f", "/seed/demo-seed.sql"]
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}
+      LEDGERSYNC_INITIALIZATION_MODE: ${LEDGERSYNC_INITIALIZATION_MODE:-demo}
+    command:
+      - "sh"
+      - "-ec"
+      - >-
+        case "$${LEDGERSYNC_INITIALIZATION_MODE}" in
+          demo) exec psql -h postgres -U ledgersync -d ledgersync -f /seed/demo-seed.sql ;;
+          empty) echo 'Fresh empty initialization selected; deterministic demo seed skipped.' ;;
+          *) echo 'Unsupported LedgerSync initialization mode.' >&2; exit 64 ;;
+        esac
     volumes:
       - ./demo-seed.sql:/seed/demo-seed.sql:ro
     depends_on:
@@ -167,14 +206,9 @@ services:
         condition: service_completed_successfully
     networks: [private]
     restart: "no"
-
-  legacy-simulation:
-    # This intentionally remains a diagnostics-only profile and never joins the
-    # edge network or publishes a port. It is excluded from pilot deployment.
-    profiles: [diagnostic]
-    image: python:3.11-slim
-    command: ["sh", "-c", "echo 'Legacy simulation is deliberately excluded from the production runtime'; sleep infinity"]
-    networks: [private]
+    user: postgres
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
 

@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { readPublicOrigin } from "@/lib/security";
+
 export const sessionCookieName = "ledgersync_session";
 
 export type Session = Readonly<{
@@ -12,8 +14,6 @@ export type Session = Readonly<{
   consistencyRequirements?: Readonly<Record<string, string>>;
 }>;
 
-type SignedSession = Session & { signature: string };
-
 function secret(): string {
   const value = process.env.LEDGERSYNC_WEB_SESSION_SECRET;
   if (!value || value.length < 32) {
@@ -22,25 +22,29 @@ function secret(): string {
   return value;
 }
 
-function sign(payload: Session): string {
-  return createHmac("sha256", secret()).update(JSON.stringify(payload)).digest("base64url");
+function sign(encodedPayload: string): string {
+  return createHmac("sha256", secret()).update(encodedPayload).digest("base64url");
 }
 
 export function createSession(payload: Session): string {
-  const signed: SignedSession = { ...payload, signature: sign(payload) };
-  return Buffer.from(JSON.stringify(signed)).toString("base64url");
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `${encodedPayload}.${sign(encodedPayload)}`;
 }
 
 export function readSession(raw: string | undefined): Session | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as Partial<SignedSession>;
+    const parts = raw.split(".");
+    if (parts.length !== 2 || parts[0].length > 16_384 || parts[1].length > 256) return null;
+    const expected = Buffer.from(sign(parts[0]));
+    const supplied = Buffer.from(parts[1]);
+    if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) return null;
+    const parsed = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8")) as Partial<Session>;
     if (
       typeof parsed.subjectId !== "string" ||
       typeof parsed.tenantId !== "string" ||
       typeof parsed.csrfToken !== "string" ||
       typeof parsed.expiresAt !== "number" ||
-      typeof parsed.signature !== "string" ||
       parsed.expiresAt <= Date.now()
     ) {
       return null;
@@ -56,9 +60,7 @@ export function readSession(raw: string | undefined): Session | null {
       scopes: validStringList(parsed.scopes) ? parsed.scopes : undefined,
       consistencyRequirements: requirements as Readonly<Record<string, string>> | undefined,
     };
-    const expected = Buffer.from(sign(payload));
-    const supplied = Buffer.from(parsed.signature);
-    return expected.length === supplied.length && timingSafeEqual(expected, supplied) ? payload : null;
+    return payload;
   } catch {
     return null;
   }
@@ -69,6 +71,7 @@ function validStringList(value: unknown): value is string[] {
 }
 
 export function sessionCookie(value: string) {
+  readPublicOrigin();
   const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? process.env.NODE_ENV ?? "development").trim().toLowerCase();
   const production = deploymentEnvironment === "production" || deploymentEnvironment === "prod";
   const explicitlyInsecureLocal = process.env.LEDGERSYNC_COOKIE_SECURE === "false" && !production;

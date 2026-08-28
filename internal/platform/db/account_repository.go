@@ -61,7 +61,7 @@ func (r *AccountRepository) ListOwnedPage(ctx context.Context, tenantID, actorID
 	}
 	search := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query.Search)
 	rows, err := r.database.QueryContext(ctx, `
-SELECT a.id, a.currency, a.status, COALESCE(a.display_name, ''), COALESCE(a.category, 'operating'), COALESCE(a.external_reference, ''), b.available_minor, b.ledger_minor, b.balance_version, b.updated_at, a.created_at
+SELECT a.id, a.version, a.currency, a.status, COALESCE(a.display_name, ''), COALESCE(a.category, 'operating'), COALESCE(a.external_reference, ''), b.available_minor, b.ledger_minor, b.balance_version, b.updated_at, a.created_at
 FROM accounts a
 JOIN account_owners owner ON owner.tenant_id = a.tenant_id AND owner.account_id = a.id
 JOIN account_balance_projections b ON b.account_id = a.id
@@ -82,7 +82,7 @@ ORDER BY a.created_at ASC, a.id ASC LIMIT $8`, tenantID, actorID, query.Status, 
 	result := make([]row, 0, query.Limit+1)
 	for rows.Next() {
 		var item row
-		if err := rows.Scan(&item.Summary.AccountID, &item.Summary.Currency, &item.Summary.Status, &item.Summary.DisplayName, &item.Summary.Category, &item.Summary.ExternalReference, &item.Summary.Balance.AvailableMinor, &item.Summary.Balance.LedgerMinor, &item.Summary.Balance.Version, &item.Summary.Balance.AsOf, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.Summary.AccountID, &item.Summary.AccountVersion, &item.Summary.Currency, &item.Summary.Status, &item.Summary.DisplayName, &item.Summary.Category, &item.Summary.ExternalReference, &item.Summary.Balance.AvailableMinor, &item.Summary.Balance.LedgerMinor, &item.Summary.Balance.Version, &item.Summary.Balance.AsOf, &item.CreatedAt); err != nil {
 			return accounts.Page{}, fmt.Errorf("scan owned account: %w", err)
 		}
 		item.Summary.Balance.TenantID, item.Summary.Balance.AccountID, item.Summary.Balance.Currency = tenantID, item.Summary.AccountID, item.Summary.Currency
@@ -111,11 +111,11 @@ ORDER BY a.created_at ASC, a.id ASC LIMIT $8`, tenantID, actorID, query.Status, 
 func (r *AccountRepository) GetOwned(ctx context.Context, tenantID, actorID, accountID string) (accounts.Summary, error) {
 	var item accounts.Summary
 	err := r.database.QueryRowContext(ctx, `
-SELECT a.id,a.currency,a.status,COALESCE(a.display_name,''),COALESCE(a.category,'operating'),COALESCE(a.external_reference,''),b.available_minor,b.ledger_minor,b.balance_version,b.updated_at
+SELECT a.id,a.version,a.currency,a.status,COALESCE(a.display_name,''),COALESCE(a.category,'operating'),COALESCE(a.external_reference,''),b.available_minor,b.ledger_minor,b.balance_version,b.updated_at
 FROM accounts a
 JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id
 JOIN account_balance_projections b ON b.account_id=a.id
-WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN ('read','debit')`, tenantID, accountID, actorID).Scan(&item.AccountID, &item.Currency, &item.Status, &item.DisplayName, &item.Category, &item.ExternalReference, &item.Balance.AvailableMinor, &item.Balance.LedgerMinor, &item.Balance.Version, &item.Balance.AsOf)
+WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN ('read','debit')`, tenantID, accountID, actorID).Scan(&item.AccountID, &item.AccountVersion, &item.Currency, &item.Status, &item.DisplayName, &item.Category, &item.ExternalReference, &item.Balance.AvailableMinor, &item.Balance.LedgerMinor, &item.Balance.Version, &item.Balance.AsOf)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, accounts.ErrAccountNotFound
 	}
@@ -124,7 +124,20 @@ WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN
 	}
 	item.Balance.TenantID, item.Balance.AccountID, item.Balance.Currency = tenantID, item.AccountID, item.Currency
 	item.Balance.AsOf = item.Balance.AsOf.UTC()
-	rows, err := r.database.QueryContext(ctx, `SELECT id,event_type,COALESCE(actor_subject_id,''),outcome,correlation_id,occurred_at FROM audit_events WHERE tenant_id=$1 AND target_type='account' AND target_id=$2 ORDER BY occurred_at DESC,id DESC LIMIT 25`, tenantID, accountID)
+	rows, err := r.database.QueryContext(ctx, `
+SELECT id,event_type,COALESCE(actor_subject_id,''),outcome,correlation_id,
+	CASE
+		WHEN event_type='account.status_changed'
+			OR (event_type='account.command_denied' AND sanitized_metadata->>'operation'='account_status_change')
+		THEN COALESCE(sanitized_metadata->>'reason','')
+		ELSE ''
+	END,
+	occurred_at
+FROM audit_events
+WHERE tenant_id=$1 AND target_type='account' AND target_id=$2
+ORDER BY occurred_at DESC,
+  CASE WHEN event_type='account.status_changed' THEN 1 ELSE 0 END DESC,
+  id DESC LIMIT 25`, tenantID, accountID)
 	if err != nil {
 		return item, fmt.Errorf("get account audit context: %w", err)
 	}
@@ -132,8 +145,11 @@ WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN
 	item.AuditContext = []accounts.AuditEvent{}
 	for rows.Next() {
 		var event accounts.AuditEvent
-		if err := rows.Scan(&event.EventID, &event.EventType, &event.ActorSubjectID, &event.Outcome, &event.CorrelationID, &event.OccurredAt); err != nil {
+		if err := rows.Scan(&event.EventID, &event.EventType, &event.ActorSubjectID, &event.Outcome, &event.CorrelationID, &event.Reason, &event.OccurredAt); err != nil {
 			return item, fmt.Errorf("scan account audit context: %w", err)
+		}
+		if !allowedAuditMetadataValue("reason", event.Reason) {
+			event.Reason = ""
 		}
 		event.OccurredAt = event.OccurredAt.UTC()
 		item.AuditContext = append(item.AuditContext, event)

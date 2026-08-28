@@ -1,5 +1,7 @@
 # LedgerSync future-scope implementation plan
 
+> **Historical roadmap:** retained for strategic context. The [master completion plan](ledgersync-master-product-system-and-website-completion-plan.md) and [master delivery register](ledgersync-master-progress.md) are authoritative from 2026-08-28.
+
 **Prepared:** 2026-08-24  
 **Status:** implementation-ready strategic plan  
 **Planning basis:** current repository, secure-transfer specification, architecture assessment, product roadmap, and pilot-readiness evidence  

@@ -75,9 +75,13 @@ TRUNCATE TABLE audit_events, outbox_events, idempotency_requests, ledger_posting
 	if _, err := database.ExecContext(ctx, `INSERT INTO tenants (id, external_reference) VALUES ($1, 'integration-tenant')`, testTenantID); err != nil {
 		return err
 	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES ($1,$2,'operator')`, testTenantID, testActorID); err != nil {
+		return err
+	}
 	if _, err := database.ExecContext(ctx, `
-INSERT INTO accounts (id, tenant_id, currency, status) VALUES
-    ($1, $3, 'USD', 'active'), ($2, $3, 'USD', 'active')`, testSourceID, testDestinationID, testTenantID); err != nil {
+INSERT INTO accounts (id, tenant_id, currency, status, created_at, updated_at) VALUES
+    ($1, $3, 'USD', 'active', '2026-08-18T09:00:00Z', '2026-08-18T09:00:00Z'),
+    ($2, $3, 'USD', 'active', '2026-08-18T09:00:00Z', '2026-08-18T09:00:00Z')`, testSourceID, testDestinationID, testTenantID); err != nil {
 		return err
 	}
 	if _, err := database.ExecContext(ctx, `INSERT INTO account_owners (tenant_id, account_id, subject_id, permission) VALUES ($1, $2, $3, 'debit')`, testTenantID, testSourceID, testActorID); err != nil {

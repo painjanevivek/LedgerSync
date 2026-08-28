@@ -37,12 +37,38 @@ function Assert-LedgerSyncDependencyUnavailableResponse {
     }
 }
 
+function Assert-LedgerSyncRedisDiagnosticDegradation {
+    param([Parameter(Mandatory = $true)][Microsoft.PowerShell.Commands.WebRequestSession]$Session)
+
+    $response = Invoke-WebRequest -UseBasicParsing -SkipHttpErrorCheck `
+        -WebSession $Session -TimeoutSec 8 `
+        -Uri "$script:LedgerSyncWebUrl/api/local/diagnostics"
+    if ([int]$response.StatusCode -ne 200) {
+        throw "Redis outage diagnostics returned HTTP $([int]$response.StatusCode); expected a truthful partial response."
+    }
+    $payload = $response.Content | ConvertFrom-Json
+    if ($payload.overall_state -cne "degraded" -or
+        $payload.financial_authority.postgres.state -cne "reachable" -or
+        $payload.delivery_cache.redis.state -cne "unavailable" -or
+        $payload.delivery_cache.redis.label -cne "disposable_cache") {
+        throw "Redis outage diagnostics did not separate financial authority from disposable-cache degradation."
+    }
+    foreach ($forbidden in @("password", "token", "container", "docker", "dsn", "connection_string", "payload")) {
+        if ($response.Content -cmatch $forbidden) {
+            throw "Redis outage diagnostics exposed forbidden infrastructure or payload vocabulary: $forbidden"
+        }
+    }
+}
+
 try {
     Assert-LedgerSyncDockerAvailable
     Assert-LedgerSyncOneShotServicesCompleted
     Assert-LedgerSyncLongRunningServicesHealthy
     Invoke-LedgerSyncWebSmoke
     $baseline = Get-LedgerSyncFinancialFingerprint
+    $operationsSession = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+    Invoke-WebRequest -UseBasicParsing -WebSession $operationsSession -TimeoutSec 8 `
+        -Uri "$script:LedgerSyncWebUrl/api/session" | Out-Null
 
     $redisContainerOutput = @(Invoke-LedgerSyncCompose -ComposeArguments @("ps", "-q", "redis") -CaptureOutput)
     $redisContainer = ([string]($redisContainerOutput | Select-Object -Last 1)).Trim()
@@ -67,8 +93,9 @@ try {
     Write-Output "REDIS_FLUSH_REBUILD=PASS keys=$redisKeyCount"
 
     Invoke-LedgerSyncCompose -ComposeArguments @("stop", "redis") | Out-Null
+    Assert-LedgerSyncRedisDiagnosticDegradation -Session $operationsSession
     Invoke-LedgerSyncWebSmoke -TimeoutSeconds 8
-    Write-Output "REDIS_UNAVAILABLE_PRIMARY_FALLBACK=PASS"
+    Write-Output "REDIS_UNAVAILABLE_DIAGNOSTICS_AND_PRIMARY_FALLBACK=PASS"
     Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "redis", "outbox-worker", "api", "web") | Out-Null
 
     Invoke-LedgerSyncCompose -ComposeArguments @("restart", "outbox-worker") | Out-Null

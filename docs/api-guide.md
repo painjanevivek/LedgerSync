@@ -4,6 +4,12 @@ The production integration point is the private API behind an authenticated BFF
 or trusted service boundary. Do not expose the private API directly to public
 browsers.
 
+The versioned local API examples, account/transfer/reconciliation/event reads,
+strict query handling, exact exports, same-key retries, and failure envelopes
+passed the [complete Phase 10 local acceptance](release-evidence/local-product-phase-10-acceptance.md).
+The executable product remains loopback-only; this guide does not turn the
+private API into a public or production endpoint.
+
 ## Create an internal transfer
 
 `POST /api/transfers` requires an `Idempotency-Key`, trusted caller

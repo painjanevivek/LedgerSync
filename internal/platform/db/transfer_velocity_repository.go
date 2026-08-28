@@ -67,8 +67,7 @@ SELECT currency, minimum_transfer_minor, maximum_transfer_minor,
        actor_rolling_24h_minor, source_account_rolling_24h_minor,
        tenant_rolling_24h_minor
 FROM tenant_transfer_policies
-WHERE tenant_id = $1
-FOR UPDATE`, tenantID).Scan(
+WHERE tenant_id = $1`, tenantID).Scan(
 		&policy.currency, &policy.minimum, &policy.maximum,
 		&policy.actorLimit, &policy.sourceLimit, &policy.tenantLimit,
 	)
