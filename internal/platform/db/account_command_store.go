@@ -91,12 +91,19 @@ FOR UPDATE OF a,b`, tenantID, accountID, actorID).Scan(&aggregate.ID, &aggregate
 }
 
 func authoritativeCloseState(ctx context.Context, tx *sql.Tx, accountID string, available, projectedLedger int64) (accountdomain.FinancialState, error) {
-	var inFlight bool
-	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM transfers WHERE status='pending' AND (debit_account_id=$1 OR credit_account_id=$1))`, accountID).Scan(&inFlight); err != nil {
-		return accountdomain.FinancialState{}, fmt.Errorf("check in-flight account transfers: %w", err)
+	var unresolved bool
+	if err := tx.QueryRowContext(ctx, `
+SELECT EXISTS(SELECT 1 FROM transfers WHERE status='pending' AND (debit_account_id=$1 OR credit_account_id=$1))
+ OR EXISTS(SELECT 1 FROM funding_events WHERE status IN ('requested','approved') AND destination_account_id=$1)
+ OR EXISTS(
+   SELECT 1 FROM transfer_corrections correction
+   JOIN transfers original ON original.id=correction.original_transfer_id
+   WHERE correction.status IN ('requested','approved') AND (original.debit_account_id=$1 OR original.credit_account_id=$1)
+ )`, accountID).Scan(&unresolved); err != nil {
+		return accountdomain.FinancialState{}, fmt.Errorf("check unresolved account obligations: %w", err)
 	}
-	if inFlight {
-		return accountdomain.FinancialState{}, accountdomain.ErrFinancialStateUnavailable
+	if unresolved {
+		return accountdomain.FinancialState{}, accountdomain.ErrOperationalObligations
 	}
 	var authoritative string
 	err := tx.QueryRowContext(ctx, `

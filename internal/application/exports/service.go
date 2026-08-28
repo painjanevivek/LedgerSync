@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	SchemaVersion   = "1"
+	SchemaVersion   = "2"
 	DefaultMaxRows  = 10_000
 	DefaultPageSize = 250
 )
@@ -80,10 +80,10 @@ func (s *Service) StreamTransfers(ctx context.Context, tenantID string, filter i
 		return Result{}, err
 	}
 	writer := newQuotedCSVWriter(destination)
-	if err := writer.Row([]string{"schema_version", "transfer_id", "source_account_id", "destination_account_id", "amount_minor", "currency", "financial_status", "delivery_status", "created_at_utc", "completed_at_utc", "journal_transaction_id", "rejection_code"}); err != nil {
+	if err := writer.Row([]string{"schema_version", "transfer_id", "source_account_id", "destination_account_id", "amount_minor", "currency", "financial_status", "delivery_status", "created_at_utc", "completed_at_utc", "journal_transaction_id", "rejection_code", "correction_id", "correction_status", "correction_role", "original_transfer_id", "compensation_transfer_id", "original_journal_id", "compensation_journal_id"}); err != nil {
 		return Result{}, err
 	}
-	result := Result{SchemaName: "ledgersync.transfers.v1"}
+	result := Result{SchemaName: "ledgersync.transfers.v2"}
 	filter.Cursor = ""
 	for result.Rows < limit {
 		if err := ctx.Err(); err != nil {
@@ -122,10 +122,10 @@ func (s *Service) StreamAccountLedger(ctx context.Context, tenantID, actorID, ac
 		return Result{}, ErrInvalidRequest
 	}
 	writer := newQuotedCSVWriter(destination)
-	if err := writer.Row([]string{"schema_version", "transfer_id", "direction", "amount_minor", "currency", "status", "occurred_at_utc"}); err != nil {
+	if err := writer.Row([]string{"schema_version", "transfer_id", "direction", "amount_minor", "currency", "status", "occurred_at_utc", "correction_id", "correction_status", "correction_role", "original_transfer_id", "compensation_transfer_id"}); err != nil {
 		return Result{}, err
 	}
-	result, cursor := Result{SchemaName: "ledgersync.account-ledger.v1"}, ""
+	result, cursor := Result{SchemaName: "ledgersync.account-ledger.v2"}, ""
 	for result.Rows < limit {
 		if err := ctx.Err(); err != nil {
 			return result, err
@@ -166,7 +166,7 @@ func (s *Service) StreamReconciliation(ctx context.Context, tenantID string, fil
 	if err := writer.Row(header); err != nil {
 		return Result{}, err
 	}
-	result := Result{SchemaName: "ledgersync.reconciliation.v1"}
+	result := Result{SchemaName: "ledgersync.reconciliation.v2"}
 	filter.Cursor = ""
 	for result.Rows < limit {
 		filter.Limit = min(s.pageSize, limit-result.Rows)
@@ -244,14 +244,14 @@ func transferRow(item investigation.TransferSummary) ([]string, error) {
 	if !exactMinorPattern.MatchString(item.AmountMinor) || !currencyPattern.MatchString(item.Currency) {
 		return nil, fmt.Errorf("%w: transfer exact fields", ErrUnavailable)
 	}
-	return []string{SchemaVersion, item.ID, item.DebitAccountID, item.CreditAccountID, item.AmountMinor, item.Currency, safeText(item.FinancialStatus), safeText(item.DeliveryStatus), utc(item.CreatedAt), utc(item.CompletedAt), item.JournalTransactionID, safeText(item.RejectionCode)}, nil
+	return []string{SchemaVersion, item.ID, item.DebitAccountID, item.CreditAccountID, item.AmountMinor, item.Currency, safeText(item.FinancialStatus), safeText(item.DeliveryStatus), utc(item.CreatedAt), utc(item.CompletedAt), item.JournalTransactionID, safeText(item.RejectionCode), item.CorrectionID, safeText(item.CorrectionStatus), safeText(item.CorrectionRole), item.OriginalTransferID, item.CompensationTransferID, item.OriginalJournalID, item.CompensationJournalID}, nil
 }
 
 func accountLedgerRow(item transactions.Entry) ([]string, error) {
 	if !exactMinorPattern.MatchString(item.Amount) || !currencyPattern.MatchString(item.Currency) {
 		return nil, fmt.Errorf("%w: account ledger exact fields", ErrUnavailable)
 	}
-	return []string{SchemaVersion, item.TransferID, safeText(item.Direction), item.Amount, item.Currency, safeText(item.Status), utc(item.OccurredAt)}, nil
+	return []string{SchemaVersion, item.TransferID, safeText(item.Direction), item.Amount, item.Currency, safeText(item.Status), utc(item.OccurredAt), item.CorrectionID, safeText(item.CorrectionStatus), safeText(item.CorrectionRole), item.OriginalTransferID, item.CompensationTransferID}, nil
 }
 
 func reconciliationRunRow(item investigation.ReconciliationRun) ([]string, error) {

@@ -7,7 +7,7 @@ import _ "embed"
 
 // Version is shared by the canonical OpenAPI document, developer metadata,
 // and the stable download filename. Contract tests prevent version drift.
-const Version = "1.10.0"
+const Version = "1.11.0"
 
 // OpenAPIYAML returns the canonical private API description.
 //

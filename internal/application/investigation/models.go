@@ -12,17 +12,24 @@ type TransferFilter struct {
 }
 
 type TransferSummary struct {
-	ID                   string    `json:"transfer_id"`
-	DebitAccountID       string    `json:"source_account_id"`
-	CreditAccountID      string    `json:"destination_account_id"`
-	AmountMinor          string    `json:"amount_minor"`
-	Currency             string    `json:"currency"`
-	FinancialStatus      string    `json:"financial_status"`
-	DeliveryStatus       string    `json:"delivery_status"`
-	CreatedAt            time.Time `json:"created_at"`
-	CompletedAt          time.Time `json:"completed_at"`
-	JournalTransactionID string    `json:"journal_transaction_id,omitempty"`
-	RejectionCode        string    `json:"rejection_code,omitempty"`
+	ID                     string    `json:"transfer_id"`
+	DebitAccountID         string    `json:"source_account_id"`
+	CreditAccountID        string    `json:"destination_account_id"`
+	AmountMinor            string    `json:"amount_minor"`
+	Currency               string    `json:"currency"`
+	FinancialStatus        string    `json:"financial_status"`
+	DeliveryStatus         string    `json:"delivery_status"`
+	CreatedAt              time.Time `json:"created_at"`
+	CompletedAt            time.Time `json:"completed_at"`
+	JournalTransactionID   string    `json:"journal_transaction_id,omitempty"`
+	RejectionCode          string    `json:"rejection_code,omitempty"`
+	CorrectionID           string    `json:"correction_id,omitempty"`
+	CorrectionStatus       string    `json:"correction_status,omitempty"`
+	CorrectionRole         string    `json:"correction_role,omitempty"`
+	OriginalTransferID     string    `json:"original_transfer_id,omitempty"`
+	CompensationTransferID string    `json:"compensation_transfer_id,omitempty"`
+	OriginalJournalID      string    `json:"original_journal_id,omitempty"`
+	CompensationJournalID  string    `json:"compensation_journal_id,omitempty"`
 }
 
 type Posting struct {

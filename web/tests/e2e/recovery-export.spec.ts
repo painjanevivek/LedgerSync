@@ -41,7 +41,7 @@ test("transfer export review discloses exact filters and uses one native bounded
   await expect(dialog.getByText("Search: 11111111 · Financial status: posted",{exact:true})).toBeVisible();
   await expect(dialog.getByText("10,000",{exact:true})).toBeVisible(); await expect(dialog.getByText("This export is not a backup.",{exact:true})).toBeVisible();
   const downloadPromise=page.waitForEvent("download"); await dialog.getByRole("button",{name:"Download CSV"}).click(); const download=await downloadPromise;
-  expect(download.suggestedFilename()).toBe("ledgersync-transfers-20260819T120000Z-v1.csv");
+  expect(download.suggestedFilename()).toBe("ledgersync-transfers-20260819T120000Z-v2.csv");
   await expect(page.getByRole("heading",{name:"Downloading exact CSV"})).toBeFocused();
   await expect(page.getByRole("button",{name:"Preparing export…"})).toBeDisabled();
 });

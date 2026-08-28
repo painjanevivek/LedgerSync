@@ -68,6 +68,6 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
   await page.route(/\/api\/exports\/.*\.csv(?:\?.*)?$/, (route) => {
     const path=new URL(route.request().url()).pathname;
     const family=path.includes("/accounts/")?"account-ledger":path.includes("reconciliation")?"reconciliation":"transfers";
-    return route.fulfill({status:200,contentType:"text/csv; charset=utf-8",headers:{"Content-Disposition":`attachment; filename="ledgersync-${family}-20260819T120000Z-v1.csv"`,"X-LedgerSync-Export-Schema":"1"},body:"schema_version,record_id,amount_minor,currency\r\n1,record-1,\"500\",INR\r\n"});
+    return route.fulfill({status:200,contentType:"text/csv; charset=utf-8",headers:{"Content-Disposition":`attachment; filename="ledgersync-${family}-20260819T120000Z-v2.csv"`,"X-LedgerSync-Export-Schema":"2"},body:"schema_version,record_id,amount_minor,currency\r\n2,record-1,\"500\",INR\r\n"});
   });
 }

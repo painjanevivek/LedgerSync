@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.10.0
+  version: 1.11.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -617,7 +617,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.10.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.11.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -835,6 +835,13 @@ components:
         completed_at: { type: string, format: date-time }
         journal_transaction_id: { type: string, format: uuid }
         rejection_code: { type: string }
+        correction_id: { type: string, format: uuid }
+        correction_status: { type: string, enum: [requested, approved, rejected, cancelled, expired, posted] }
+        correction_role: { type: string, enum: [original, compensation] }
+        original_transfer_id: { type: string, format: uuid }
+        compensation_transfer_id: { type: string, format: uuid }
+        original_journal_id: { type: string, format: uuid }
+        compensation_journal_id: { type: string, format: uuid }
     Posting:
       type: object
       required: [posting_id, account_id, direction, amount_minor, currency, occurred_at]
@@ -864,6 +871,11 @@ components:
         currency: { $ref: '#/components/schemas/Currency' }
         status: { type: string, enum: [posted] }
         occurred_at: { type: string, format: date-time }
+        correction_id: { type: string, format: uuid }
+        correction_status: { type: string, enum: [requested, approved, rejected, cancelled, expired, posted] }
+        correction_role: { type: string, enum: [original, compensation] }
+        original_transfer_id: { type: string, format: uuid }
+        compensation_transfer_id: { type: string, format: uuid }
     TransactionPage: { type: object, required: [transactions, next_cursor], properties: { transactions: { type: array, items: { $ref: '#/components/schemas/TransactionEntry' } }, next_cursor: { type: string } } }
     TransferPage: { type: object, required: [transfers, next_cursor], properties: { transfers: { type: array, items: { $ref: '#/components/schemas/TransferSummary' } }, next_cursor: { type: string } } }
     ReconciliationMismatch:
@@ -1302,8 +1314,8 @@ components:
         stream is bounded to 10,000 rows and ten seconds. Completion, row
         count, and limit-reached evidence are returned as HTTP trailers.
       headers:
-        Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-transfers-20260825T120000Z-v1.csv"' }
-        X-LedgerSync-Export-Schema: { schema: { type: string, enum: ['1'] } }
+        Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-transfers-20260825T120000Z-v2.csv"' }
+        X-LedgerSync-Export-Schema: { schema: { type: string, enum: ['2'] } }
         X-LedgerSync-Export-Row-Limit: { schema: { type: string, pattern: '^[1-9][0-9]{0,4}$' } }
         Trailer: { schema: { type: string }, example: 'X-LedgerSync-Export-Status, X-LedgerSync-Export-Rows, X-LedgerSync-Export-Limit-Reached' }
         X-LedgerSync-Export-Status: { description: HTTP trailer set after streaming finishes., schema: { type: string, enum: [complete, failed] } }

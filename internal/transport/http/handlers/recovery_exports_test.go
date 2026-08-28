@@ -137,7 +137,7 @@ func TestTransferExportStreamsQuotedExactCSVAndAuditSummary(t *testing.T) {
 	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "text/csv; charset=utf-8" || response.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("status=%d headers=%v body=%s", response.Code, response.Header(), response.Body.String())
 	}
-	if response.Header().Get("Content-Disposition") != `attachment; filename="ledgersync-transfers-20260825T120000Z-v1.csv"` || response.Header().Get("X-LedgerSync-Export-Schema") != "1" {
+	if response.Header().Get("Content-Disposition") != `attachment; filename="ledgersync-transfers-20260825T120000Z-v2.csv"` || response.Header().Get("X-LedgerSync-Export-Schema") != "2" {
 		t.Fatalf("export headers=%v", response.Header())
 	}
 	if !strings.Contains(response.Body.String(), `"12550","INR"`) || !strings.Contains(response.Body.String(), `"'=unsafe"`) {

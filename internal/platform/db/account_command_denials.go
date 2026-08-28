@@ -89,6 +89,8 @@ func accountDenialCode(err error) (string, bool) {
 		return "non_zero_balance", true
 	case errors.Is(err, accountdomain.ErrFinancialStateUnavailable):
 		return "financial_state_unavailable", true
+	case errors.Is(err, accountdomain.ErrOperationalObligations):
+		return "operational_obligations", true
 	case errors.Is(err, accountdomain.ErrVersionConflict):
 		return "version_conflict", true
 	default:
@@ -110,6 +112,8 @@ func accountDenialError(code string) error {
 		return accounts.ErrNonZeroClose
 	case "financial_state_unavailable":
 		return accounts.ErrFinancialUnavailable
+	case "operational_obligations":
+		return accounts.ErrOperationalObligations
 	case "version_conflict":
 		return accounts.ErrVersionConflict
 	default:

@@ -72,6 +72,26 @@ INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'correctio
 		countRows(t, database, `SELECT count(*) FROM transfer_corrections WHERE id=$1 AND status='posted'`, created.Event.CorrectionID) != 1 {
 		t.Fatal("correction evidence was partial or duplicated")
 	}
+	investigationRepository, err := db.NewInvestigationRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err := investigationRepository.GetTransfer(ctx, testTenantID, original.Result.TransferID)
+	if err != nil || detail.CorrectionRole != "original" || detail.CorrectionStatus != "posted" || detail.OriginalJournalID != posted.Event.OriginalJournalID || detail.CompensationJournalID != posted.Event.CompensationJournalID {
+		t.Fatalf("original correction detail=%#v err=%v", detail, err)
+	}
+	compensationDetail, err := investigationRepository.GetTransfer(ctx, testTenantID, posted.Event.CompensationTransferID)
+	if err != nil || compensationDetail.CorrectionRole != "compensation" || compensationDetail.OriginalTransferID != original.Result.TransferID {
+		t.Fatalf("compensation detail=%#v err=%v", compensationDetail, err)
+	}
+	historyRepository, err := db.NewTransactionHistoryRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	history, _, err := historyRepository.ListAccountHistory(ctx, testTenantID, testActorID, testDestinationID, "", 10)
+	if err != nil || len(history) < 2 || history[0].CorrectionRole != "compensation" || history[1].CorrectionRole != "original" {
+		t.Fatalf("compensated account history=%#v err=%v", history, err)
+	}
 	_, err = service.Request(ctx, appcorrections.RequestCommand{TenantID: testTenantID, ActorSubjectID: testActorID, OriginalTransferID: original.Result.TransferID, ReasonCode: "duplicate", OperatorNote: "A second correction must never be created.", IdempotencyKey: "correction-request-0002", CorrelationID: "00000000-0000-0000-0000-000000000905"})
 	if !errors.Is(err, appcorrections.ErrConflict) {
 		t.Fatalf("second correction error=%v", err)

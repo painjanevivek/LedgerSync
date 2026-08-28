@@ -20,6 +20,7 @@ var (
 	ErrTerminalStatus            = errors.New("closed account status is terminal")
 	ErrNonZeroBalance            = errors.New("account cannot close with a non-zero balance")
 	ErrFinancialStateUnavailable = errors.New("account financial state is inconsistent or unavailable")
+	ErrOperationalObligations    = errors.New("account has unresolved operational obligations")
 	ErrVersionConflict           = errors.New("account version conflict")
 )
 
