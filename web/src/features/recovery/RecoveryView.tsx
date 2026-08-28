@@ -21,7 +21,7 @@ export function RecoveryView({diagnostics,recovery,diagnosticsError,recoveryErro
   const blockingDiagnosticsError=diagnostics?null:diagnosticsError;
   const blockingRecoveryError=recovery?null:recoveryError;
   return <>
-    <PageHeader eyebrow="Local tools / Protected recovery" title="Recovery Center" description="Verify the recovery custody chain, then copy a reviewed host command when new evidence is required."><button className="button secondary" type="button" disabled={!online||loading||!canRead} onClick={onRefresh}>{loading?"Refreshing…":"Refresh evidence"}</button></PageHeader>
+    <PageHeader eyebrow="Local tools / Recovery" title="Recovery" description="Check your latest backup and restore result. Copy a local command when you need to run one."><button className="button secondary" type="button" disabled={!online||loading||!canRead} onClick={onRefresh}>{loading?"Refreshing…":"Refresh evidence"}</button></PageHeader>
     {!canRead&&<StatePanel kind="denied" title="Recovery evidence not authorized" message="This operator session does not include recovery:read. No backup or restore evidence is disclosed."/>}
     {canRead&&loading&&!diagnostics&&!recovery&&<StatePanel title="Loading recovery evidence" message="Current PostgreSQL truth and protected host evidence are loading through separate read boundaries."/>}
     {diagnostics&&diagnosticsError&&<StatePanel kind="error" title="Current database evidence not refreshed" message={diagnosticsError}/>}

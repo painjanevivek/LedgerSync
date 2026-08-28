@@ -8,7 +8,7 @@ import { AccountLifecycleActions } from "@/features/accounts/AccountLifecycleAct
 import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
 import { TransactionLedger } from "@/features/accounts/TransactionLedger";
 import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
-import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, PageHeader, Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, FormField, PageHeader, Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { formatMinorUnits } from "@/lib/money";
@@ -86,16 +86,16 @@ export function AccountsView({ accounts, selected, detailRequested, balance, tra
   }
 
   return <>
-    <PageHeader eyebrow="Ledger / Account directory" title={selected ? accountLabel(selected) : detailRequested ? "Account detail" : "Accounts"} description={selected ? "Authoritative balance, account identity, and immutable posting history." : detailRequested ? "Loading only the requested account details." : "Search only the accounts authorized for this operator."}>
+    <PageHeader eyebrow="Ledger / Accounts" title={selected ? accountLabel(selected) : detailRequested ? "Account details" : "Accounts"} description={selected ? "See this account’s balance, details, and transaction history." : detailRequested ? "Loading this account’s details." : "Find and manage the accounts you are allowed to use."}>
       <div className="header-actions"><button className="button secondary" type="button" onClick={onRefresh} disabled={!online || directoryLoading}>Refresh accounts</button>{!selected && !detailRequested && canWrite && <Link className="button primary guarded-control" href={`/accounts/new?return_to=${encodeURIComponent(accountDirectoryHref(filters))}`}>Create account</Link>}</div>
     </PageHeader>
     {error && <StatePanel kind="error" title="Accounts unavailable" message={error} action={<FocusedRetry label={detailRequested ? "Retry this account only" : "Retry account directory only"} onRetry={onRefresh} disabled={!online} busy={directoryLoading} />} />}
     {detailRequested && !selected && !error && <StatePanel title="Loading account details" message="Balance and immutable history are verified independently before they are presented as current." />}
     {!detailRequested && !selected && <>
       <form className="filter-bar" role="search" onSubmit={submit}>
-        <label>Search accounts<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name/reference prefix or exact ID" maxLength={128} /></label>
-        <label>Status<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option><option value="active">Active</option><option value="frozen">Frozen</option><option value="closed">Closed</option></select></label>
-        <label>Category<select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option><option value="operating">Operating</option><option value="customer_funds">Customer funds</option><option value="payroll">Payroll</option><option value="payables">Payables</option><option value="expenses">Expenses</option><option value="reserve">Reserve</option></select></label>
+        <FormField label="Search accounts" requirement="optional" hint="Search by name, reference, or account ID."><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Example: ACME-OPERATING-01" maxLength={128} /></FormField>
+        <FormField label="Status" requirement="optional"><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option><option value="active">Active</option><option value="frozen">Frozen</option><option value="closed">Closed</option></select></FormField>
+        <FormField label="Category" requirement="optional"><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option><option value="operating">Operating</option><option value="customer_funds">Customer funds</option><option value="payroll">Payroll</option><option value="payables">Payables</option><option value="expenses">Expenses</option><option value="reserve">Reserve</option></select></FormField>
         <button className="button primary" type="submit" disabled={!online || directoryLoading}>Apply filters</button>
         <span aria-live="polite">{error ? "Authorized result count unavailable" : `Showing ${accounts.length} authorized result${accounts.length === 1 ? "" : "s"}`}</span>
       </form>

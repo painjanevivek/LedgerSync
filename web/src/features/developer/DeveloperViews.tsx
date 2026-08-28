@@ -37,7 +37,7 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
   const transfer = metadata?.examples.find((example) => example.id === "create_transfer");
   const account = metadata?.examples.find((example) => example.id === "create_account");
   return <>
-    <PageHeader eyebrow="API-first local workspace" title="Developer" description="Build one exact request, preserve its retry identity, and trace the authorized result.">
+    <PageHeader eyebrow="Developer tools" title="Developer" description="Use the local API examples, keep the same retry key, and check the result.">
       <div className="header-actions"><button className="button secondary guarded-control" type="button" disabled={!online||loading||!canRead} onClick={onRefresh}>Refresh contract</button>{online&&canRead&&metadata ? <a className="button primary guarded-control" href="/api/developer/openapi" download="ledgersync-openapi.yaml"><DownloadSimple aria-hidden="true"/>Download OpenAPI YAML</a> : <span className="permission-note">Download unavailable until the current authorized contract is loaded.</span>}</div>
     </PageHeader>
     {!canRead && <StatePanel kind="denied" title="Developer contract not authorized" message="This session does not include developer:read. No contract metadata or download has been requested."/>}

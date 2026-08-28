@@ -11,6 +11,7 @@ import {
   CopyControl,
   DataTableRegion,
   EvidenceFreshness,
+  FormField,
   PageHeader,
   Pagination,
   StatePanel,
@@ -377,9 +378,9 @@ function CorrectionList({
   return (
     <>
       <PageHeader
-        eyebrow="Controls / Dual authorization"
+        eyebrow="Ledger / Corrections"
         title="Transfer corrections"
-        description="Review additive, policy-versioned compensation requests without rewriting original financial evidence."
+        description="Review and correct a transfer without changing the original record."
       />
       <section className="correction-boundary">
         <ArrowsCounterClockwise aria-hidden="true" />
@@ -395,9 +396,7 @@ function CorrectionList({
         <strong>Policy-bound</strong>
       </section>
       <div className="filter-bar">
-        <label>
-          Status
-          <select
+        <FormField label="Status" requirement="optional"><select
             value={status}
             onChange={(event) =>
               onStatus(event.target.value as CorrectionStatus | "all")
@@ -408,8 +407,7 @@ function CorrectionList({
                 {label(value)}
               </option>
             ))}
-          </select>
-        </label>
+          </select></FormField>
         <button
           className="button secondary"
           type="button"
@@ -572,9 +570,9 @@ function CorrectionDetail({
   return (
     <>
       <PageHeader
-        eyebrow="Controls / Immutable correction"
+          eyebrow="Ledger / Correction"
         title="Correction control record"
-        description="One request, one independent decision, and at most one exact compensating transfer."
+          description="See the correction request, review decision, and any linked reverse transfer."
       />
       <section className="identity-strip">
         <div>
@@ -758,16 +756,13 @@ function CorrectionDetail({
             <StatusBadge tone="warning">step-up protected</StatusBadge>
           </header>
           {!canPost && (
-            <label>
-              Decision or cancellation reason
-              <textarea
+            <FormField label="Decision or cancellation reason" requirement="required" hint="Explain why you approve, reject, or cancel this correction."><textarea
                 rows={3}
                 maxLength={500}
                 required
                 value={decisionReason}
                 onChange={(change) => onReason(change.target.value)}
-              />
-            </label>
+              /></FormField>
           )}
           <div>
             {canDecide && (

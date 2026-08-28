@@ -22,7 +22,7 @@ export function EventsListView({ events, filters, nextCursor, verifiedAt, loadin
   if (nextCursor) next.set("cursor", nextCursor);
   const current = new URLSearchParams(); for (const [key,value] of Object.entries(filters)) if(value) current.set(key,value); const returnTo=current.size?`/events?${current}`:"/events";
       return <>
-    <PageHeader eyebrow="Delivery evidence / Tenant-scoped" title="Event investigation" description="Inspect downstream delivery without changing or replaying an event."><button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true" />Refresh events</button></PageHeader>
+    <PageHeader eyebrow="Operations / Delivery" title="Delivery events" description="Check whether LedgerSync sent each update. This page does not change money or resend an event."><button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true" />Refresh events</button></PageHeader>
     <div className="financial-separation-note"><CheckCircle weight="fill" aria-hidden="true"/><div><strong>Financial truth remains separate</strong><p>An event can be pending, retrying, or dead after its PostgreSQL transaction has committed. Verify any money result through its linked transfer or account evidence.</p></div></div>
     {!canRead && <StatePanel kind="denied" title="Event evidence not authorized" message="This session does not include events:read. No event records have been requested." />}
     {!online && <StatePanel kind="offline" title="Offline — event evidence is not current" message="Reconnect before refreshing or treating this list as current." />}

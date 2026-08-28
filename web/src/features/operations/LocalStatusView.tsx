@@ -32,7 +32,7 @@ export function localCapabilityGuidance(evidence: LocalDiagnostics): LocalCapabi
 export function LocalStatusView({ evidence, verifiedAt, loading, error, online, canRead, onRefresh }: Readonly<{ evidence: LocalDiagnostics | null; verifiedAt?: string; loading: boolean; error: string | null; online: boolean; canRead: boolean; onRefresh: () => void }>) {
   const guidance = evidence ? localCapabilityGuidance(evidence) : [];
   return <>
-    <PageHeader eyebrow="Local operations / Read-only evidence" title="Local status" description="Identify the affected truth domain before taking a local recovery step.">
+    <PageHeader eyebrow="Local tools / Status" title="Local status" description="See what is working and what needs attention before you take a recovery step.">
       <button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true" />{loading ? "Refreshing evidence…" : "Refresh evidence"}</button>
     </PageHeader>
     {!canRead && <StatePanel kind="denied" title="Local diagnostics not authorized" message="This session does not include local:read. No dependency evidence has been requested." />}

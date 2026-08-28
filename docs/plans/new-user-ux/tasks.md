@@ -19,9 +19,9 @@
 
 ## Phase 4 — Simplify existing screens
 
-- [ ] UX-009 Simplify Accounts and Transfers.
-- [ ] UX-010 Simplify Funding details and Corrections.
-- [ ] UX-011 Simplify Reconciliation, Events, Recovery, Local Status, and Developer.
+- [X] UX-009 Simplify Accounts and Transfers.
+- [X] UX-010 Simplify Funding details and Corrections.
+- [X] UX-011 Simplify Reconciliation, Events, Recovery, Local Status, and Developer.
 
 ## Phase 5 — Verification and release evidence
 
