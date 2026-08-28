@@ -1,5 +1,27 @@
 \set ON_ERROR_STOP on
 
+-- This local-only compatibility marker makes seed changes explicit. A newer
+-- persisted version is never replayed by older checkout code.
+CREATE TABLE IF NOT EXISTS local_demo_seed_metadata (
+  singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+  seed_version integer NOT NULL CHECK (seed_version > 0),
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+DECLARE persisted_version integer;
+BEGIN
+  SELECT seed_version INTO persisted_version FROM local_demo_seed_metadata WHERE singleton = true;
+  IF persisted_version > 1 THEN
+    RAISE EXCEPTION 'local demo seed version % is newer than supported version 1; use a compatible checkout or back up and explicitly reset', persisted_version;
+  END IF;
+END;
+$$;
+
+INSERT INTO local_demo_seed_metadata (singleton, seed_version)
+VALUES (true, 1)
+ON CONFLICT (singleton) DO UPDATE SET seed_version = EXCLUDED.seed_version, applied_at = now();
+
 INSERT INTO tenants (id, external_reference) VALUES ('00000000-0000-4000-8000-000000000001', 'ledgersync-local-demo') ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO tenant_subject_roles (tenant_id,subject_id,role)

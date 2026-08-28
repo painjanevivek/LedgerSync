@@ -15,7 +15,7 @@ param(
 
 try {
     Assert-LedgerSyncDockerAvailable
-    $lines = @(Invoke-LedgerSyncCompose -ComposeArguments @("logs", "--no-color", "--tail", [string]$Tail, "--since", $Since, $Service) -CaptureOutput)
+    $lines = @(Invoke-LedgerSyncCompose -ComposeArguments @("logs", "--no-color", "--timestamps", "--tail", [string]$Tail, "--since", $Since, $Service) -CaptureOutput)
     foreach ($line in $lines) {
         Write-Output (ConvertTo-LedgerSyncRedactedLogLine -Line ([string]$line))
     }

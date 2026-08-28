@@ -5,8 +5,8 @@ param()
 
 try {
     Assert-LedgerSyncDockerAvailable
-    Invoke-LedgerSyncCompose -ComposeArguments @("stop")
-    Write-Host "LedgerSync stopped. PostgreSQL and Redis volumes were preserved." -ForegroundColor Green
+    Invoke-LedgerSyncCompose -ComposeArguments @("stop", "--timeout", "30")
+    Write-Host "LedgerSync stopped after a bounded graceful-shutdown window. PostgreSQL and Redis volumes were preserved." -ForegroundColor Green
 }
 catch {
     Write-Error $_

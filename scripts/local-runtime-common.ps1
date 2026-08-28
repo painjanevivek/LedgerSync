@@ -6,6 +6,8 @@ $script:LedgerSyncComposeFile = Join-Path $script:LedgerSyncRepositoryRoot "depl
 $script:LedgerSyncWebUrl = "http://127.0.0.1:3000"
 $script:LedgerSyncLongRunningServices = @("postgres", "redis", "api", "outbox-worker", "web")
 $script:LedgerSyncOneShotServices = @("migrate", "demo-seed")
+$script:LedgerSyncMinimumComposeVersion = [Version]::new(2, 20, 0)
+$script:LedgerSyncMinimumFreeDiskBytes = 5GB
 
 $requestedProject = [Environment]::GetEnvironmentVariable("LEDGERSYNC_LOCAL_COMPOSE_PROJECT")
 if ([string]::IsNullOrWhiteSpace($requestedProject)) {
@@ -188,15 +190,193 @@ function Initialize-LedgerSyncLocalSecrets {
     Protect-LedgerSyncLocalSecretFile -Path $script:LedgerSyncRuntimeEnvironmentFile
 }
 
+function Resolve-LedgerSyncDockerFailure {
+    param([AllowEmptyString()][string]$Details)
+
+    if ($Details -match '(?i)(permission denied|access is denied|unauthorized|forbidden)') {
+        return "Docker is installed, but this user cannot access the engine. Open Docker Desktop with your normal user, verify Docker permissions, then run scripts/doctor-local.ps1 again."
+    }
+    if ($Details -match '(?i)(cannot connect|failed to connect|is the docker daemon running|docker_engine|connection refused|the system cannot find the file specified)') {
+        return "Docker is installed, but its engine is stopped or still starting. Start Docker Desktop, wait for Engine running, then run scripts/doctor-local.ps1 again."
+    }
+    return "Docker is installed, but the engine health check failed. Run 'docker info', resolve the reported engine error, then run scripts/doctor-local.ps1 again."
+}
+
 function Assert-LedgerSyncDockerAvailable {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-        throw "Docker was not found. Install or start Docker Desktop, then try again."
+        throw "Docker is not installed or is not on PATH. Install Docker Desktop, open a new PowerShell window, then run scripts/doctor-local.ps1."
     }
 
-    & docker info --format '{{json .ServerVersion}}' *> $null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Docker Desktop is not ready. Start it and wait until the engine reports healthy."
+    $nativePreference = $PSNativeCommandUseErrorActionPreference
+    try {
+        $PSNativeCommandUseErrorActionPreference = $false
+        $details = @(& docker info --format '{{json .ServerVersion}}' 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            throw (Resolve-LedgerSyncDockerFailure -Details ($details -join " "))
+        }
     }
+    finally {
+        $PSNativeCommandUseErrorActionPreference = $nativePreference
+    }
+}
+
+function Get-LedgerSyncComposeVersion {
+    $nativePreference = $PSNativeCommandUseErrorActionPreference
+    try {
+        $PSNativeCommandUseErrorActionPreference = $false
+        $output = @(& docker compose version --short 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            throw "Docker Compose is unavailable. Update Docker Desktop so the Compose v2 plugin is installed, then run scripts/doctor-local.ps1 again."
+        }
+    }
+    finally {
+        $PSNativeCommandUseErrorActionPreference = $nativePreference
+    }
+    $text = ($output -join " ").Trim()
+    if ($text -notmatch '(?i)v?(\d+)\.(\d+)\.(\d+)') {
+        throw "Docker Compose returned an unreadable version. Update Docker Desktop, then run scripts/doctor-local.ps1 again."
+    }
+    $version = [Version]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3])
+    if ($version -lt $script:LedgerSyncMinimumComposeVersion) {
+        throw "Docker Compose $version is too old. Install Compose $($script:LedgerSyncMinimumComposeVersion) or newer, then run scripts/doctor-local.ps1 again."
+    }
+    return $version
+}
+
+function Get-LedgerSyncRepositoryFreeBytes {
+    $root = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($script:LedgerSyncRepositoryRoot))
+    return [int64]([IO.DriveInfo]::new($root).AvailableFreeSpace)
+}
+
+function Assert-LedgerSyncLocalPrerequisites {
+    if ($PSVersionTable.PSVersion -lt [Version]::new(7, 2, 0)) {
+        throw "PowerShell $($PSVersionTable.PSVersion) is too old. Install PowerShell 7.2 or newer, then run scripts/doctor-local.ps1 again."
+    }
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        throw "Git is not installed or is not on PATH. Install Git, open a new PowerShell window, then run scripts/doctor-local.ps1 again."
+    }
+    Assert-LedgerSyncDockerAvailable
+    Get-LedgerSyncComposeVersion | Out-Null
+    $freeBytes = Get-LedgerSyncRepositoryFreeBytes
+    if ($freeBytes -lt $script:LedgerSyncMinimumFreeDiskBytes) {
+        $freeGiB = [Math]::Round($freeBytes / 1GB, 1)
+        throw "Only $freeGiB GiB is free on the repository drive. Free at least 5 GiB for images, volumes, backups, and build layers, then run scripts/doctor-local.ps1 again."
+    }
+    Test-LedgerSyncPortAvailableOrOwned
+}
+
+function Get-LedgerSyncServiceRecoveryGuidance {
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet("postgres", "redis", "api", "outbox-worker", "web", "migrate", "demo-seed")][string]$Service,
+        [AllowEmptyString()][string]$State,
+        [AllowEmptyString()][string]$Health,
+        [AllowNull()][Nullable[int]]$ExitCode
+    )
+
+    $impact = switch ($Service) {
+        "postgres" { "Authoritative ledger reads and writes are unavailable." }
+        "redis" { "Cached reads and event delivery are unavailable; PostgreSQL ledger data remains authoritative." }
+        "api" { "LedgerSync reads and commands are unavailable." }
+        "outbox-worker" { "New ledger commits remain authoritative, but downstream event delivery is paused." }
+        "web" { "The browser console is unavailable; private services remain isolated." }
+        "migrate" { "The schema was not proven compatible, so dependent services must not start." }
+        "demo-seed" { "Demo initialization did not complete; no ready result may be trusted." }
+    }
+    $action = switch ($Service) {
+        "postgres" { "Run scripts/logs-local.ps1 -Service postgres. If storage is suspect, stop commands and follow docs/runbooks/restore.md." }
+        "redis" { "Run scripts/logs-local.ps1 -Service redis, then scripts/start-local.ps1 -SkipBuild. Do not edit PostgreSQL to repair a cache symptom." }
+        "api" { "Run scripts/logs-local.ps1 -Service api, then scripts/start-local.ps1 -SkipBuild after PostgreSQL and Redis are healthy." }
+        "outbox-worker" { "Run scripts/logs-local.ps1 -Service outbox-worker, then scripts/start-local.ps1 -SkipBuild. Do not replay events manually." }
+        "web" { "Run scripts/logs-local.ps1 -Service web, verify port 3000 with scripts/doctor-local.ps1, then scripts/start-local.ps1 -SkipBuild." }
+        "migrate" { "Run scripts/logs-local.ps1 -Service migrate and repair the migration error. Never mark or skip a failed migration." }
+        "demo-seed" { "Run scripts/logs-local.ps1 -Service demo-seed. If it reports incompatible demo evidence, back up and use the explicit reset workflow." }
+    }
+    $condition = if ($Service -in $script:LedgerSyncOneShotServices) {
+        "state=$State; exit=$ExitCode"
+    } else {
+        "state=$State; health=$Health"
+    }
+    return [pscustomobject]@{ Service = $Service; Condition = $condition; Impact = $impact; NextAction = $action }
+}
+
+function Get-LedgerSyncLocalDoctorChecks {
+    $checks = [Collections.Generic.List[object]]::new()
+    $add = {
+        param([string]$Name, [string]$Status, [string]$Detail, [string]$NextAction)
+        $checks.Add([pscustomobject]@{ Check = $Name; Status = $Status; Detail = $Detail; NextAction = $NextAction })
+    }
+
+    if ($PSVersionTable.PSVersion -lt [Version]::new(7, 2, 0)) {
+        & $add "PowerShell" "fail" "$($PSVersionTable.PSVersion)" "Install PowerShell 7.2 or newer and rerun this command."
+    } else {
+        & $add "PowerShell" "pass" "$($PSVersionTable.PSVersion)" "None"
+    }
+    foreach ($binary in @("git", "docker")) {
+        if (Get-Command $binary -ErrorAction SilentlyContinue) {
+            & $add $binary "pass" "Available on PATH" "None"
+        } else {
+            & $add $binary "fail" "Not found on PATH" "Install $binary, open a new PowerShell window, and rerun this command."
+        }
+    }
+    $engineAvailable = $false
+    if (Get-Command docker -ErrorAction SilentlyContinue) {
+        try {
+            Assert-LedgerSyncDockerAvailable
+            $engineAvailable = $true
+            & $add "Docker engine" "pass" "Engine responded" "None"
+        }
+        catch { & $add "Docker engine" "fail" $_.Exception.Message "Follow the stated Docker recovery action." }
+    } else {
+        & $add "Docker engine" "blocked" "Docker executable is unavailable" "Install Docker Desktop first."
+    }
+    if ($engineAvailable) {
+        try { $composeVersion = Get-LedgerSyncComposeVersion; & $add "Docker Compose" "pass" "$composeVersion" "None" }
+        catch { & $add "Docker Compose" "fail" $_.Exception.Message "Update Docker Desktop and rerun this command." }
+    } else {
+        & $add "Docker Compose" "blocked" "Docker engine prerequisite is unavailable" "Restore Docker access, then rerun this command."
+    }
+    try {
+        $freeBytes = Get-LedgerSyncRepositoryFreeBytes
+        $freeGiB = [Math]::Round($freeBytes / 1GB, 1)
+        if ($freeBytes -lt $script:LedgerSyncMinimumFreeDiskBytes) {
+            & $add "Disk space" "fail" "$freeGiB GiB free" "Free at least 5 GiB on the repository drive."
+        } else { & $add "Disk space" "pass" "$freeGiB GiB free" "None" }
+    } catch { & $add "Disk space" "fail" "Could not measure repository drive" "Verify the repository drive is mounted and writable." }
+    if ($engineAvailable) {
+        try { Test-LedgerSyncPortAvailableOrOwned; & $add "Loopback port 3000" "pass" "Free or owned by this LedgerSync web container" "None" }
+        catch { & $add "Loopback port 3000" "fail" $_.Exception.Message "Stop the conflicting process yourself; LedgerSync will not terminate it." }
+    } else {
+        & $add "Loopback port 3000" "blocked" "Container ownership cannot be proven without Docker" "Restore Docker access, then rerun this command."
+    }
+
+    if (-not (Test-Path -LiteralPath $script:LedgerSyncComposeFile -PathType Leaf)) {
+        & $add "Compose file" "fail" "Missing deploy/compose/docker-compose.yml" "Restore the repository checkout before starting LedgerSync."
+    } else { & $add "Compose file" "pass" "Present" "None" }
+    if (-not (Test-Path -LiteralPath $script:LedgerSyncRuntimeEnvironmentFile -PathType Leaf)) {
+        & $add "Runtime environment" "info" "Not initialized" "scripts/start-local.ps1 will create a protected local secret file."
+    } elseif (Test-LedgerSyncRuntimeEnvironmentFile -Path $script:LedgerSyncRuntimeEnvironmentFile) {
+        & $add "Runtime environment" "pass" "Protected secret schema is complete" "None"
+    } else {
+        & $add "Runtime environment" "fail" "Existing file is malformed or incomplete" "Preserve it for investigation; do not replace it until the matching PostgreSQL credential state is understood."
+    }
+    if ($engineAvailable) {
+        foreach ($volume in @("postgres-data", "redis-data")) {
+            $volumeName = "$($script:LedgerSyncComposeProject)_$volume"
+            $nativePreference = $PSNativeCommandUseErrorActionPreference
+            try {
+                $PSNativeCommandUseErrorActionPreference = $false
+                & docker volume inspect $volumeName *> $null
+                $state = if ($LASTEXITCODE -eq 0) { "present and preserved" } else { "absent; first start will create it" }
+            }
+            finally {
+                $PSNativeCommandUseErrorActionPreference = $nativePreference
+            }
+            & $add "Volume $volume" "info" $state "Normal stop/start preserves this volume; only reset-local deletes it."
+        }
+    } else {
+        & $add "Volume state" "blocked" "Docker engine prerequisite is unavailable" "Restore Docker access; the doctor will then inspect exact project volumes read-only."
+    }
+    return @($checks)
 }
 
 function Invoke-LedgerSyncCompose {
@@ -253,7 +433,10 @@ function Assert-LedgerSyncOneShotServicesCompleted {
     foreach ($service in $script:LedgerSyncOneShotServices) {
         $row = @(Get-LedgerSyncServiceRow -Service $service -Rows $rows)
         if ($row.Count -ne 1 -or $row[0].State -ne "exited" -or [int]$row[0].ExitCode -ne 0) {
-            throw "The $service setup step did not complete successfully. Run scripts/logs-local.ps1 -Service $service for bounded diagnostics."
+            $state = if ($row.Count -eq 1) { [string]$row[0].State } else { "missing" }
+            $exitCode = if ($row.Count -eq 1) { [int]$row[0].ExitCode } else { $null }
+            $guidance = Get-LedgerSyncServiceRecoveryGuidance -Service $service -State $state -ExitCode $exitCode
+            throw "The $service setup step did not complete successfully ($($guidance.Condition)). $($guidance.Impact) Next action: $($guidance.NextAction)"
         }
     }
 }
@@ -263,10 +446,14 @@ function Assert-LedgerSyncLongRunningServicesHealthy {
     foreach ($service in $script:LedgerSyncLongRunningServices) {
         $row = @(Get-LedgerSyncServiceRow -Service $service -Rows $rows)
         if ($row.Count -ne 1 -or $row[0].State -ne "running") {
-            throw "The $service service is not running. Run scripts/status-local.ps1 and bounded service logs for details."
+            $state = if ($row.Count -eq 1) { [string]$row[0].State } else { "missing" }
+            $health = if ($row.Count -eq 1) { [string]$row[0].Health } else { "unknown" }
+            $guidance = Get-LedgerSyncServiceRecoveryGuidance -Service $service -State $state -Health $health
+            throw "The $service service is not running ($($guidance.Condition)). $($guidance.Impact) Next action: $($guidance.NextAction)"
         }
         if ($row[0].Health -and $row[0].Health -ne "healthy") {
-            throw "The $service service is running but not healthy (health=$($row[0].Health))."
+            $guidance = Get-LedgerSyncServiceRecoveryGuidance -Service $service -State ([string]$row[0].State) -Health ([string]$row[0].Health)
+            throw "The $service service is running but not healthy ($($guidance.Condition)). $($guidance.Impact) Next action: $($guidance.NextAction)"
         }
     }
 }

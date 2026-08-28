@@ -24,6 +24,19 @@ try {
 
     $display | Format-Table -AutoSize
 
+    $unhealthy = @($display | Where-Object {
+        ($_.Service -in $script:LedgerSyncOneShotServices -and ($_.State -ne "exited" -or $_.SetupExit -ne "0")) -or
+        ($_.Service -in $script:LedgerSyncLongRunningServices -and ($_.State -ne "running" -or $_.Health -notin @("healthy", "-")))
+    })
+    if ($unhealthy.Count -gt 0) {
+        Write-Host "Affected capabilities and recovery actions:" -ForegroundColor Yellow
+        foreach ($item in $unhealthy) {
+            $exitCode = if ($item.SetupExit -match '^\d+$') { [int]$item.SetupExit } else { $null }
+            $guidance = Get-LedgerSyncServiceRecoveryGuidance -Service $item.Service -State $item.State -Health $item.Health -ExitCode $exitCode
+            Write-Host "- $($guidance.Service): $($guidance.Impact) $($guidance.NextAction)"
+        }
+    }
+
     try {
         Invoke-LedgerSyncWebSmoke -TimeoutSeconds 5
         Write-Host "Browser/BFF check: healthy ($script:LedgerSyncWebUrl)" -ForegroundColor Green
