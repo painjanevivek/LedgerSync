@@ -12,6 +12,7 @@ export type Session = Readonly<{
   tenantId: string;
   csrfToken: string;
   expiresAt: number;
+  authenticatedAt?: number;
   roles?: readonly string[];
   scopes?: readonly string[];
   consistencyRequirements?: Readonly<Record<string, string>>;
@@ -62,6 +63,7 @@ export function readSession(raw: string | undefined): Session | null {
       roles: validStringList(parsed.roles, maxSessionRoles) ? parsed.roles : undefined,
       scopes: validStringList(parsed.scopes, maxSessionScopes) ? parsed.scopes : undefined,
       consistencyRequirements: requirements as Readonly<Record<string, string>> | undefined,
+      ...(typeof parsed.authenticatedAt === "number" && parsed.authenticatedAt > 0 && parsed.authenticatedAt <= Date.now() + 30_000 ? { authenticatedAt: parsed.authenticatedAt } : {}),
     };
     return payload;
   } catch {

@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "1.9.0",
+  "contract_version": "1.10.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -40,6 +40,19 @@
         { "operation_id": "listTransfers", "method": "GET", "path": "/transfers", "scope": "transfers:read" },
         { "operation_id": "createTransfer", "method": "POST", "path": "/transfers", "scope": "transfers:write" },
         { "operation_id": "getTransfer", "method": "GET", "path": "/transfers/{transferId}", "scope": "transfers:read" }
+      ]
+    },
+    {
+      "id": "corrections",
+      "label": "Transfer corrections",
+      "operations": [
+        { "operation_id": "requestTransferCorrection", "method": "POST", "path": "/transfers/{transferId}/corrections", "scope": "corrections:write" },
+        { "operation_id": "listTransferCorrections", "method": "GET", "path": "/transfer-corrections", "scope": "corrections:read" },
+        { "operation_id": "getTransferCorrection", "method": "GET", "path": "/transfer-corrections/{correctionId}", "scope": "corrections:read" },
+        { "operation_id": "approveTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/approve", "scope": "corrections:approve" },
+        { "operation_id": "rejectTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/reject", "scope": "corrections:approve" },
+        { "operation_id": "cancelTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/cancel", "scope": "corrections:write" },
+        { "operation_id": "postTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/post", "scope": "corrections:approve" }
       ]
     },
     {

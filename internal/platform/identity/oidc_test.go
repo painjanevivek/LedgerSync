@@ -61,7 +61,7 @@ func (workloadProvider) Authenticate(context.Context, string) (Principal, error)
 func TestBFFActorAssertionRequiresSignedShortLivedActorContext(t *testing.T) {
 	key := "this-is-a-phase-five-test-secret-long-enough"
 	now := time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC)
-	payload, _ := json.Marshal(actorAssertionPayload{Issuer: DefaultActorAssertionIssuer, Audience: DefaultActorAssertionAudience, KeyID: DefaultActorAssertionKeyID, AssertionID: "assertion-001", SubjectID: "customer-user", TenantID: "tenant-a", Scopes: []string{"accounts:read", "accounts:write"}, IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix()})
+	payload, _ := json.Marshal(actorAssertionPayload{Issuer: DefaultActorAssertionIssuer, Audience: DefaultActorAssertionAudience, KeyID: DefaultActorAssertionKeyID, AssertionID: "assertion-001", SubjectID: "customer-user", TenantID: "tenant-a", Scopes: []string{"accounts:read", "accounts:write"}, IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix(), AuthenticatedAt: now.Add(-time.Minute).Unix()})
 	mac := hmac.New(sha256.New, []byte(key))
 	_, _ = mac.Write(payload)
 	assertion := base64.RawURLEncoding.EncodeToString(payload) + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
@@ -76,6 +76,9 @@ func TestBFFActorAssertionRequiresSignedShortLivedActorContext(t *testing.T) {
 	}
 	if principal.TenantID != "tenant-a" {
 		t.Fatalf("expected workload-bound tenant tenant-a, got %q", principal.TenantID)
+	}
+	if !principal.AuthenticatedAt.Equal(now.Add(-time.Minute)) {
+		t.Fatalf("expected signed authentication time, got %s", principal.AuthenticatedAt)
 	}
 	if _, err := authenticator.Authenticate(context.Background(), "workload-token", assertion+"x"); err == nil {
 		t.Fatal("tampered actor assertion was accepted")

@@ -27,7 +27,8 @@ export function createDemoSession(configuration: DemoConfiguration, now = Date.n
     tenantId: configuration.tenantId,
     csrfToken: crypto.randomUUID(),
     expiresAt: now + 30 * 60 * 1000,
+    authenticatedAt: now,
     roles: ["tenant:operator"],
-    scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read", "funding:read", "funding:write", "funding:approve"],
+    scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve"],
   };
 }

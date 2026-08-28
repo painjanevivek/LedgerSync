@@ -5,6 +5,7 @@ package identity
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 var ErrUnauthenticated = errors.New("unauthenticated")
@@ -15,6 +16,9 @@ type Principal struct {
 	TenantID  string
 	Roles     map[string]struct{}
 	Scopes    map[string]struct{}
+	// AuthenticatedAt is established only by a verified identity token or a
+	// signed BFF actor assertion. Sensitive commands use it as step-up evidence.
+	AuthenticatedAt time.Time
 }
 
 func (p Principal) HasScope(scope string) bool {

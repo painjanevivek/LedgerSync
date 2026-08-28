@@ -9,11 +9,11 @@ const transactionLifetimeMs = 10 * 60 * 1000;
 
 type Discovery = Readonly<{ issuer: string; authorization_endpoint: string; token_endpoint: string; jwks_uri: string }>;
 type Transaction = Readonly<{ state: string; codeVerifier: string; nonce: string; expiresAt: number }>;
-export type VerifiedIdentity = Readonly<{ subjectId: string; tenantId: string; roles: string[]; scopes: string[]; expiresAt: number }>;
+export type VerifiedIdentity = Readonly<{ subjectId: string; tenantId: string; roles: string[]; scopes: string[]; expiresAt: number; authenticatedAt?: number }>;
 type OperatorAuthorization = Readonly<{ tenantId: string; roles: string[]; scopes: string[] }>;
 
 const allowedRoles = new Set(["tenant:operator", "tenant:admin"]);
-const allowedScopes = new Set(["accounts:read", "accounts:write", "transfers:read", "transfers:write", "transactions:read", "reconciliation:read", "reconciliation:write", "audit:read", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read", "funding:read", "funding:write", "funding:approve"]);
+const allowedScopes = new Set(["accounts:read", "accounts:write", "transfers:read", "transfers:write", "transactions:read", "reconciliation:read", "reconciliation:write", "audit:read", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve"]);
 
 export function resolveOperatorAuthorization(subjectId: string): OperatorAuthorization {
   const raw = process.env.LEDGERSYNC_OIDC_SUBJECT_PERMISSIONS;
@@ -111,7 +111,8 @@ export async function completeAuthorization(code: string, state: string, transac
   if (protectedHeader.alg !== "RS256" && protectedHeader.alg !== "ES256" && protectedHeader.alg !== "PS256") throw new Error("OIDC signing algorithm is not allowed");
   if (payload.nonce !== transaction.nonce || payload.token_use !== "id" || typeof payload.sub !== "string" || typeof payload.exp !== "number") throw new Error("OIDC identity claims are invalid");
   const authorization = resolveOperatorAuthorization(payload.sub);
-  return { subjectId: payload.sub, ...authorization, expiresAt: Math.min(payload.exp * 1000, Date.now() + 30 * 60 * 1000) };
+  const authenticatedAt = typeof payload.auth_time === "number" && payload.auth_time > 0 ? payload.auth_time * 1000 : undefined;
+  return { subjectId: payload.sub, ...authorization, expiresAt: Math.min(payload.exp * 1000, Date.now() + 30 * 60 * 1000), authenticatedAt };
 }
 
 export { transactionCookieName };

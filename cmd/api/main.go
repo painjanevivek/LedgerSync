@@ -136,7 +136,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -274,6 +274,14 @@ func main() {
 				RateLimiter: rateLimiter, AuditRecorder: auditRepository, RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
 			}); err != nil {
 				slog.Error("guidance route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerCorrectionRoutes(router, correctionRouteConfig{
+				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
+				ReadRatePerMinute: configuration.ReadRateLimitPerMinute, WriteRatePerMinute: configuration.WriteRateLimitPerMinute,
+				CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
+			}); err != nil {
+				slog.Error("correction route initialization failed", "error", err)
 				os.Exit(1)
 			}
 			router.Handle("POST /api/transfers", transferHandler)

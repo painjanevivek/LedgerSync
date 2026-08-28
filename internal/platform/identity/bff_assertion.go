@@ -102,20 +102,25 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 	if err := a.config.ReplayGuard.Use(ctx, payload.AssertionID, time.Unix(payload.ExpiresAt, 0)); err != nil {
 		return Principal{}, ErrUnauthenticated
 	}
-	return Principal{SubjectID: payload.SubjectID, TenantID: payload.TenantID, Roles: allowedSet(payload.Roles, allowedRoles), Scopes: allowedSet(payload.Scopes, allowedScopes)}, nil
+	actorPrincipal := Principal{SubjectID: payload.SubjectID, TenantID: payload.TenantID, Roles: allowedSet(payload.Roles, allowedRoles), Scopes: allowedSet(payload.Scopes, allowedScopes)}
+	if payload.AuthenticatedAt > 0 {
+		actorPrincipal.AuthenticatedAt = time.Unix(payload.AuthenticatedAt, 0).UTC()
+	}
+	return actorPrincipal, nil
 }
 
 type actorAssertionPayload struct {
-	Issuer      string   `json:"iss"`
-	Audience    string   `json:"aud"`
-	KeyID       string   `json:"kid"`
-	AssertionID string   `json:"jti"`
-	SubjectID   string   `json:"sub"`
-	TenantID    string   `json:"tenant_id"`
-	Roles       []string `json:"roles,omitempty"`
-	Scopes      []string `json:"scopes,omitempty"`
-	IssuedAt    int64    `json:"iat"`
-	ExpiresAt   int64    `json:"exp"`
+	Issuer          string   `json:"iss"`
+	Audience        string   `json:"aud"`
+	KeyID           string   `json:"kid"`
+	AssertionID     string   `json:"jti"`
+	SubjectID       string   `json:"sub"`
+	TenantID        string   `json:"tenant_id"`
+	Roles           []string `json:"roles,omitempty"`
+	Scopes          []string `json:"scopes,omitempty"`
+	IssuedAt        int64    `json:"iat"`
+	ExpiresAt       int64    `json:"exp"`
+	AuthenticatedAt int64    `json:"authenticated_at,omitempty"`
 }
 
 func verifyActorAssertion(raw string, config ActorAssertionConfig, now time.Time) (actorAssertionPayload, error) {
@@ -148,6 +153,7 @@ func verifyActorAssertion(raw string, config ActorAssertionConfig, now time.Time
 	if strings.TrimSpace(payload.SubjectID) == "" || strings.TrimSpace(payload.TenantID) == "" || strings.TrimSpace(payload.AssertionID) == "" || len(payload.AssertionID) > 128 ||
 		payload.Issuer != config.Issuer || payload.Audience != config.Audience || payload.IssuedAt > nowUnix+int64(config.ClockSkew.Seconds()) ||
 		payload.ExpiresAt <= nowUnix-int64(config.ClockSkew.Seconds()) || payload.ExpiresAt <= payload.IssuedAt ||
+		payload.AuthenticatedAt > nowUnix+int64(config.ClockSkew.Seconds()) ||
 		time.Duration(payload.ExpiresAt-payload.IssuedAt)*time.Second > config.MaxLifetime || len(payload.Roles) > maxActorAssertionRoles || len(payload.Scopes) > maxActorAssertionScopes {
 		return actorAssertionPayload{}, ErrUnauthenticated
 	}

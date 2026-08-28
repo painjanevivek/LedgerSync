@@ -46,7 +46,7 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
 
 test("signed sessions preserve the complete bounded operator scope set", () => {
   const demoSession = createDemoSession({ enabled: true, environment: "development", subjectId: "operator-a", tenantId: "tenant-a" });
-  assert.equal(demoSession.scopes?.length, 17);
+  assert.equal(demoSession.scopes?.length, 20);
   assert.deepEqual(readSession(createSession(demoSession))?.scopes, demoSession.scopes);
   assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 33 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
 });
