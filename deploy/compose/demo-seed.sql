@@ -12,21 +12,36 @@ DO $$
 DECLARE persisted_version integer;
 BEGIN
   SELECT seed_version INTO persisted_version FROM local_demo_seed_metadata WHERE singleton = true;
-  IF persisted_version > 1 THEN
-    RAISE EXCEPTION 'local demo seed version % is newer than supported version 1; use a compatible checkout or back up and explicitly reset', persisted_version;
+  IF persisted_version > 2 THEN
+    RAISE EXCEPTION 'local demo seed version % is newer than supported version 2; use a compatible checkout or back up and explicitly reset', persisted_version;
   END IF;
 END;
 $$;
 
 INSERT INTO local_demo_seed_metadata (singleton, seed_version)
-VALUES (true, 1)
+VALUES (true, 2)
 ON CONFLICT (singleton) DO UPDATE SET seed_version = EXCLUDED.seed_version, applied_at = now();
 
 INSERT INTO tenants (id, external_reference) VALUES ('00000000-0000-4000-8000-000000000001', 'ledgersync-local-demo') ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO tenant_subject_roles (tenant_id,subject_id,role)
-VALUES ('00000000-0000-4000-8000-000000000001','demo-operator','operator')
+VALUES
+  ('00000000-0000-4000-8000-000000000001','demo-operator','operator'),
+  ('00000000-0000-4000-8000-000000000001','demo-operator','finance')
 ON CONFLICT DO NOTHING;
+
+INSERT INTO tenant_funding_policies(
+  tenant_id,currency,mode,finance_activated,policy_version,
+  per_command_minor,operator_rolling_24h_minor,tenant_rolling_24h_minor
+) VALUES(
+  '00000000-0000-4000-8000-000000000001','INR','local_demo_single_operator',false,1,
+  10000000,50000000,500000000
+)
+ON CONFLICT (tenant_id,currency) DO UPDATE SET
+  mode=EXCLUDED.mode,finance_activated=EXCLUDED.finance_activated,
+  per_command_minor=EXCLUDED.per_command_minor,
+  operator_rolling_24h_minor=EXCLUDED.operator_rolling_24h_minor,
+  tenant_rolling_24h_minor=EXCLUDED.tenant_rolling_24h_minor,updated_at=now();
 
 DO $$
 BEGIN
@@ -53,11 +68,11 @@ INSERT INTO accounts (id, tenant_id, currency, status, display_name, category, e
 ON CONFLICT (id) DO UPDATE SET display_name=EXCLUDED.display_name, category=EXCLUDED.category, external_reference=EXCLUDED.external_reference;
 
 INSERT INTO account_owners (tenant_id, account_id, subject_id, permission)
-SELECT '00000000-0000-4000-8000-000000000001', id, 'demo-operator', CASE WHEN status='active' THEN 'debit' ELSE 'read' END FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001'
+SELECT '00000000-0000-4000-8000-000000000001', id, 'demo-operator', CASE WHEN status='active' THEN 'debit' ELSE 'read' END FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND account_kind='customer'
 ON CONFLICT (account_id, subject_id) DO NOTHING;
 
 INSERT INTO account_credit_permissions (tenant_id,account_id,subject_id)
-SELECT '00000000-0000-4000-8000-000000000001',id,'demo-operator' FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND status='active'
+SELECT '00000000-0000-4000-8000-000000000001',id,'demo-operator' FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND status='active' AND account_kind='customer'
 ON CONFLICT (account_id,subject_id) DO NOTHING;
 
 INSERT INTO account_balance_projections (account_id, available_minor, ledger_minor, balance_version, updated_at) VALUES

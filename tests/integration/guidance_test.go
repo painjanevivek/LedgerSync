@@ -104,14 +104,46 @@ func TestGuidancePostgreSQLAuthorizationAndOrientationTruth(t *testing.T) {
 	}
 
 	orientation, err := service.Orientation(context.Background(), testTenantID, testActorID)
-	if err != nil || len(orientation.Steps) != 7 {
+	if err != nil || len(orientation.Steps) != 12 {
 		t.Fatalf("orientation=%+v error=%v", orientation, err)
 	}
-	if orientation.Steps[0].State != "evidence_available" || orientation.Steps[0].ReasonCode != "browser_action_not_recorded" || orientation.Steps[2].State != "completed" || orientation.Steps[3].State != "evidence_available" || orientation.Steps[6].State != "completed" {
+	if orientation.Steps[2].State != "evidence_available" || orientation.Steps[5].State != "completed" || orientation.Steps[6].State != "evidence_available" || orientation.Steps[7].State != "evidence_available" || orientation.Steps[10].State != "evidence_available" || orientation.Steps[11].State != "completed" {
 		t.Fatalf("orientation fabricated or omitted durable progress: %+v", orientation.Steps)
 	}
-	if orientation.Steps[1].State != "missing" || orientation.Steps[4].State != "missing" || orientation.Steps[5].State != "missing" {
+	if orientation.Steps[0].State != "missing" || orientation.Steps[1].State != "missing" || orientation.Steps[3].State != "missing" || orientation.Steps[4].State != "missing" || orientation.Steps[4].ReasonCode != "no_posted_funding_journal" || orientation.Steps[8].State != "missing" || orientation.Steps[9].State != "missing" {
 		t.Fatalf("unstored actions were marked complete: %+v", orientation.Steps)
+	}
+	concurrentResults := make(chan error, 2)
+	for range 2 {
+		go func() {
+			_, updateErr := service.UpdateOrientationPreferences(context.Background(), testTenantID, testActorID+"-concurrent", "0", false, []string{"confirm_health"})
+			concurrentResults <- updateErr
+		}()
+	}
+	var concurrentSuccesses, concurrentConflicts int
+	for range 2 {
+		switch updateErr := <-concurrentResults; {
+		case updateErr == nil:
+			concurrentSuccesses++
+		case errors.Is(updateErr, guidance.ErrPreferenceConflict):
+			concurrentConflicts++
+		default:
+			t.Fatalf("concurrent first preference update error=%v", updateErr)
+		}
+	}
+	if concurrentSuccesses != 1 || concurrentConflicts != 1 {
+		t.Fatalf("concurrent first preference updates successes=%d conflicts=%d", concurrentSuccesses, concurrentConflicts)
+	}
+	updated, err := service.UpdateOrientationPreferences(context.Background(), testTenantID, testActorID, "0", true, []string{"confirm_health", "inspect_accounts", "retry_transfer", "inspect_postings", "export_evidence"})
+	if err != nil || updated.PreferenceVersion != "1" || !updated.Dismissed || len(updated.OperatorCompletedSteps) != 5 || updated.Steps[2].State != "operator_confirmed" {
+		t.Fatalf("server-owned preference=%+v error=%v", updated, err)
+	}
+	if _, err := service.UpdateOrientationPreferences(context.Background(), testTenantID, testActorID, "0", false, []string{}); !errors.Is(err, guidance.ErrPreferenceConflict) {
+		t.Fatalf("stale preference update error=%v", err)
+	}
+	resumed, err := service.Orientation(context.Background(), testTenantID, testActorID)
+	if err != nil || resumed.PreferenceVersion != "1" || !resumed.Dismissed || resumed.Steps[0].State != "operator_confirmed" {
+		t.Fatalf("preference did not survive a fresh read: %+v error=%v", resumed, err)
 	}
 	if _, err := database.ExecContext(context.Background(), `UPDATE outbox_events SET event_type='supersecret' WHERE id=(SELECT id FROM outbox_events WHERE tenant_id=$1 AND transfer_id=$2 ORDER BY id LIMIT 1)`, testTenantID, submission.Result.TransferID); err != nil {
 		t.Fatal(err)

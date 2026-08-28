@@ -15,8 +15,10 @@ import (
 	"time"
 
 	accountapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	fundingapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
 	reconciliationapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
 	transferapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
@@ -26,10 +28,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 16 {
-		t.Fatalf("migration versions=%d, want 16", versions)
+	if versions != 18 {
+		t.Fatalf("migration versions=%d, want 18", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -52,12 +54,16 @@ WHERE table_schema = 'public'
     ('outbox_events', 'aggregate_type'),
     ('outbox_events', 'aggregate_id'),
     ('accounts', 'version'),
-    ('accounts', 'updated_at')
+    ('accounts', 'updated_at'),
+    ('accounts', 'account_kind'),
+    ('account_balance_projections', 'allow_negative'),
+    ('journal_transactions', 'funding_event_id'),
+    ('outbox_events', 'funding_event_id')
   )`).Scan(&columns); err != nil {
 		t.Fatal(err)
 	}
-	if columns != 9 {
-		t.Fatalf("legacy and additive account contract columns=%d, want 9", columns)
+	if columns != 13 {
+		t.Fatalf("legacy and additive account contract columns=%d, want 13", columns)
 	}
 }
 
@@ -97,7 +103,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
@@ -154,14 +160,16 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: os.DirFS(migrationDirectory)}); err != nil {
 		t.Fatal(err)
 	}
-	var canReadOutbox, canReadAudit bool
+	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
-       has_table_privilege('ledgersync_api','audit_events','SELECT')`).Scan(&canReadOutbox, &canReadAudit); err != nil {
+       has_table_privilege('ledgersync_api','audit_events','SELECT'),
+       has_table_privilege('ledgersync_api','tenant_funding_policies','SELECT'),
+       has_table_privilege('ledgersync_api','tenant_funding_policies','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy); err != nil {
 		t.Fatal(err)
 	}
-	if !canReadOutbox || !canReadAudit {
-		t.Fatalf("guided read-model migration did not upgrade API evidence grants: outbox=%t audit=%t", canReadOutbox, canReadAudit)
+	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy {
+		t.Fatalf("migrations did not preserve least-privilege API evidence grants: outbox=%t audit=%t funding_policy_read=%t funding_policy_update=%t", canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy)
 	}
 	wantBalances := map[string][3]int64{
 		legacyAccounts[0]: {725, 725, 9}, legacyAccounts[1]: {10, 10, 2}, legacyAccounts[2]: {20, 20, 3}, legacyAccounts[3]: {30, 30, 4},
@@ -253,14 +261,55 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1`, created.Result.AccountID) != 1 {
 		t.Fatalf("limited-role account create result=%#v", created.Result)
 	}
-	if err := seedTransferFixture(context.Background(), upgradeDatabase, 10_000); err != nil {
-		t.Fatalf("seed limited-role transfer fixture: %v", err)
+	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'upgrade-operator','finance')`, legacyTenant); err != nil {
+		t.Fatal(err)
 	}
-	transferRepository, err := db.NewTransferRepository(limitedDatabase, func() time.Time { return createdAt.Add(3 * time.Hour) })
+	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_funding_policies(tenant_id,currency,mode,finance_activated,policy_version,per_command_minor,operator_rolling_24h_minor,tenant_rolling_24h_minor) VALUES($1,'INR','local_demo_single_operator',false,1,100000,200000,500000)`, legacyTenant); err != nil {
+		t.Fatal(err)
+	}
+	fundingRepository, err := db.NewFundingRepository(limitedDatabase, func() time.Time { return createdAt.Add(3 * time.Hour) })
 	if err != nil {
 		t.Fatal(err)
 	}
-	transferService, err := transferapp.NewService(transferRepository, func() time.Time { return createdAt.Add(3 * time.Hour) })
+	fundingService, err := fundingapp.NewService(fundingRepository, fundingapp.PolicyLocalDemoSingleOperator, func() time.Time { return createdAt.Add(3 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingAmount, err := money.New("INR", 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingRequest, err := fundingService.Request(context.Background(), fundingapp.RequestCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", DestinationAccountID: created.Result.AccountID, Amount: fundingAmount,
+		ExternalReference: "upgrade-funding-evidence", EvidenceReference: "customer-evidence://upgrade/funding",
+		IdempotencyKey: "upgrade-role-funding-0001", CorrelationID: "00000000-0000-0000-0000-000000000897",
+	})
+	if err != nil {
+		t.Fatalf("funding request with fresh migrated system account: %v", err)
+	}
+	approvedFunding, err := fundingService.Approve(context.Background(), fundingapp.DecisionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
+		Reason: "verified upgrade evidence", CorrelationID: "00000000-0000-0000-0000-000000000896",
+	})
+	if err != nil || approvedFunding.Status != "approved" {
+		t.Fatalf("funding approval after upgrade=%#v error=%v", approvedFunding, err)
+	}
+	postedFunding, err := fundingService.Post(context.Background(), fundingapp.ActionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
+		CorrelationID: "00000000-0000-0000-0000-000000000895",
+	})
+	if err != nil || postedFunding.Event.Status != "posted" ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND account_kind='funding_clearing' AND category='system'`, legacyTenant) != 1 {
+		t.Fatalf("fresh migrated funding journal=%#v error=%v", postedFunding, err)
+	}
+	if err := seedTransferFixture(context.Background(), upgradeDatabase, 10_000); err != nil {
+		t.Fatalf("seed limited-role transfer fixture: %v", err)
+	}
+	transferRepository, err := db.NewTransferRepository(limitedDatabase, func() time.Time { return createdAt.Add(4 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	transferService, err := transferapp.NewService(transferRepository, func() time.Time { return createdAt.Add(4 * time.Hour) })
 	if err != nil {
 		t.Fatal(err)
 	}

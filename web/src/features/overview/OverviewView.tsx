@@ -10,7 +10,7 @@ import { LocalOrientationPanel } from "@/features/orientation/LocalOrientationPa
 import { TransferList } from "@/features/transfers/TransferViews";
 import { formatMinorUnits } from "@/lib/money";
 import { approvedCurrencyGroups, isAuthoritativelyReconciled } from "@/lib/financial-ui";
-import type { LocalOrientation } from "@/lib/api/orientation";
+import type { LocalOrientation, OperatorPreferenceStepID } from "@/lib/api/orientation";
 import { uiDataState } from "@/lib/api/client";
 
 type Props = Readonly<{
@@ -27,11 +27,13 @@ type Props = Readonly<{
   transfersVerifiedAt?: string;
   reconciliationVerifiedAt?: string;
   online: boolean;
-  tenantId: string;
   orientation: LocalOrientation | null;
   orientationLoading: boolean;
   orientationError: string | null;
+  orientationPreferenceError: string | null;
+  orientationPreferenceSaving: boolean;
   canReadOrientation: boolean;
+  canWriteOrientation: boolean;
   localDemo: boolean;
   forceOrientation?: boolean;
   onRefreshAccounts: () => void;
@@ -39,9 +41,10 @@ type Props = Readonly<{
   onRefreshReconciliation: () => void;
   onRefreshAll: () => void;
   onRefreshOrientation: () => void;
+  onUpdateOrientationPreferences: (change: Readonly<{ dismissed: boolean; completedStepIDs: OperatorPreferenceStepID[] }>) => Promise<boolean>;
 }>;
 
-export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, tenantId, orientation, orientationLoading, orientationError, canReadOrientation, localDemo, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation }: Props) {
+export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, orientation, orientationLoading, orientationError, orientationPreferenceError, orientationPreferenceSaving, canReadOrientation, canWriteOrientation, localDemo, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation, onUpdateOrientationPreferences }: Props) {
   const { currency, mixedCurrency, operatingMinor: operating, customerFundsMinor: customerFunds }=approvedCurrencyGroups(accounts);
   const asOf=accounts.map((account)=>account.as_of).filter(Boolean).sort().at(0);
   const busy = accountsLoading || transfersLoading || reconciliationLoading;
@@ -50,7 +53,7 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
   const reconciliationState = uiDataState({ loading: reconciliationLoading, hasData: Boolean(reconciliation), hasError: Boolean(reconciliationError), online });
   return <>
     <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description="Fresh financial evidence and exceptions for the current tenant."><button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing evidence…" : "Refresh evidence"}</button></PageHeader>
-    {localDemo&&<LocalOrientationPanel tenantId={tenantId} evidence={orientation} loading={orientationLoading} error={orientationError} online={online} canRead={canReadOrientation} forceOpen={forceOrientation} onRefresh={onRefreshOrientation}/>}
+    {localDemo&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} forceOpen={forceOrientation} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
     <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account evidence state">
       {accountsError && <StatePanel
         kind="error"

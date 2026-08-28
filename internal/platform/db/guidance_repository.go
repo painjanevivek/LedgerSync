@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -38,8 +39,11 @@ func (r *GuidanceRepository) Orientation(ctx context.Context, tenantID, actorID 
 	if facts.CreatedAccount, err = r.reference(ctx, `SELECT a.id::text,audit.occurred_at FROM audit_events audit JOIN accounts a ON a.tenant_id=audit.tenant_id AND a.id::text=audit.target_id WHERE audit.tenant_id=$1 AND audit.actor_subject_id=$2 AND audit.event_type='account.created' AND audit.outcome='succeeded' ORDER BY audit.occurred_at DESC,audit.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation account creation: %w", err)
 	}
-	if facts.PostedTransfer, err = r.reference(ctx, `SELECT id::text,completed_at FROM transfers WHERE tenant_id=$1 AND actor_subject_id=$2 AND status='posted' ORDER BY completed_at DESC,id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.FundingJournal, err = r.reference(ctx, `SELECT event.id::text,COALESCE(event.posted_at,event.updated_at) FROM funding_events event WHERE event.tenant_id=$1 AND event.requester_subject_id=$2 AND event.compensation_of_event_id IS NULL AND event.status IN ('posted','compensated') ORDER BY COALESCE(event.posted_at,event.updated_at) DESC,event.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation funding: %w", err)
+	}
+	if facts.PostedTransfer, err = r.reference(ctx, `SELECT id::text,completed_at FROM transfers WHERE tenant_id=$1 AND actor_subject_id=$2 AND status='posted' ORDER BY completed_at DESC,id DESC LIMIT 1`, tenantID, actorID); err != nil {
+		return facts, fmt.Errorf("read orientation posted transfer: %w", err)
 	}
 	if facts.AuthorizedTransfer, err = r.reference(ctx, `SELECT t.id::text,COALESCE(t.completed_at,t.created_at) FROM transfers t WHERE t.tenant_id=$1 AND (t.actor_subject_id=$2 OR EXISTS(SELECT 1 FROM account_owners owner WHERE owner.tenant_id=t.tenant_id AND owner.subject_id=$2 AND owner.account_id IN(t.debit_account_id,t.credit_account_id) AND owner.permission IN ('read','debit'))) ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation transfer: %w", err)
@@ -51,6 +55,61 @@ func (r *GuidanceRepository) Orientation(ctx context.Context, tenantID, actorID 
 		return facts, fmt.Errorf("read orientation delivery: %w", err)
 	}
 	return facts, nil
+}
+
+func (r *GuidanceRepository) OrientationPreference(ctx context.Context, tenantID, actorID string) (guidance.OrientationPreference, error) {
+	if r == nil || r.database == nil || ctx == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" {
+		return guidance.OrientationPreference{}, guidance.ErrEvidenceUnavailable
+	}
+	var preference guidance.OrientationPreference
+	var completedJSON []byte
+	var updatedAt time.Time
+	err := r.database.QueryRowContext(ctx, `SELECT dismissed,completed_step_ids,version,updated_at FROM operator_onboarding_preferences WHERE tenant_id=$1 AND subject_id=$2`, tenantID, actorID).
+		Scan(&preference.Dismissed, &completedJSON, &preference.Version, &updatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		preference.CompletedStepIDs = []string{}
+		return preference, nil
+	}
+	if err != nil {
+		return guidance.OrientationPreference{}, fmt.Errorf("read orientation preference: %w", err)
+	}
+	if err := json.Unmarshal(completedJSON, &preference.CompletedStepIDs); err != nil {
+		return guidance.OrientationPreference{}, fmt.Errorf("decode orientation preference: %w", err)
+	}
+	updatedAt = updatedAt.UTC()
+	preference.UpdatedAt = &updatedAt
+	return preference, nil
+}
+
+func (r *GuidanceRepository) UpdateOrientationPreference(ctx context.Context, tenantID, actorID string, update guidance.PreferenceUpdate) (guidance.OrientationPreference, error) {
+	if r == nil || r.database == nil || ctx == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" || update.ExpectedVersion < 0 {
+		return guidance.OrientationPreference{}, guidance.ErrInvalidPreference
+	}
+	completed := append([]string{}, update.CompletedStepIDs...)
+	completedJSON, err := json.Marshal(completed)
+	if err != nil {
+		return guidance.OrientationPreference{}, guidance.ErrInvalidPreference
+	}
+	var version int64
+	var updatedAt time.Time
+	if update.ExpectedVersion == 0 {
+		err = r.database.QueryRowContext(ctx, `INSERT INTO operator_onboarding_preferences(tenant_id,subject_id,dismissed,completed_step_ids,version,updated_at) VALUES($1,$2,$3,$4::jsonb,1,now()) ON CONFLICT (tenant_id,subject_id) DO NOTHING RETURNING version,updated_at`, tenantID, actorID, update.Dismissed, string(completedJSON)).Scan(&version, &updatedAt)
+	} else {
+		err = r.database.QueryRowContext(ctx, `UPDATE operator_onboarding_preferences SET dismissed=$3,completed_step_ids=$4::jsonb,version=version+1,updated_at=now() WHERE tenant_id=$1 AND subject_id=$2 AND version=$5 RETURNING version,updated_at`, tenantID, actorID, update.Dismissed, string(completedJSON), update.ExpectedVersion).Scan(&version, &updatedAt)
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		return guidance.OrientationPreference{}, guidance.ErrPreferenceConflict
+	}
+	if err != nil {
+		return guidance.OrientationPreference{}, fmt.Errorf("persist orientation preference: %w", err)
+	}
+	updatedAt = updatedAt.UTC()
+	return guidance.OrientationPreference{
+		Dismissed:        update.Dismissed,
+		CompletedStepIDs: completed,
+		Version:          version,
+		UpdatedAt:        &updatedAt,
+	}, nil
 }
 
 func (r *GuidanceRepository) reference(ctx context.Context, statement string, arguments ...any) (*guidance.DurableReference, error) {

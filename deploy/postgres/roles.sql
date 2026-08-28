@@ -36,6 +36,22 @@ BEGIN
   END IF;
 END $$;
 
+DO $$
+BEGIN
+  IF to_regclass('public.operator_onboarding_preferences') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON operator_onboarding_preferences TO ledgersync_api';
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF to_regclass('public.funding_events') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON funding_events TO ledgersync_api';
+    EXECUTE 'GRANT SELECT,INSERT ON approval_records,funding_velocity_events TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON tenant_funding_policies TO ledgersync_api';
+  END IF;
+END $$;
+
 GRANT SELECT, UPDATE ON outbox_events TO ledgersync_worker;
 GRANT INSERT ON delivery_attempts, audit_events, outbox_replay_actions, delivery_replay_actions TO ledgersync_worker;
 GRANT SELECT ON transfers, tenants, outbox_replay_actions, delivery_attempts, delivery_replay_actions TO ledgersync_worker;

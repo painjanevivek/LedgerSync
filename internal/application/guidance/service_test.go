@@ -3,6 +3,7 @@ package guidance
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,12 +14,25 @@ const guidanceTransferID = "70000000-0000-4000-8000-000000000001"
 
 type guidanceRepositoryStub struct {
 	orientation OrientationFacts
+	preference  OrientationPreference
 	transfer    TransferFacts
 	err         error
+	update      func(PreferenceUpdate) (OrientationPreference, error)
 }
 
 func (s guidanceRepositoryStub) Orientation(context.Context, string, string) (OrientationFacts, error) {
 	return s.orientation, s.err
+}
+
+func (s guidanceRepositoryStub) OrientationPreference(context.Context, string, string) (OrientationPreference, error) {
+	return s.preference, s.err
+}
+
+func (s guidanceRepositoryStub) UpdateOrientationPreference(_ context.Context, _, _ string, update PreferenceUpdate) (OrientationPreference, error) {
+	if s.update != nil {
+		return s.update(update)
+	}
+	return s.preference, s.err
 }
 
 func (s guidanceRepositoryStub) ExplainTransfer(context.Context, string, string, string) (TransferFacts, error) {
@@ -40,21 +54,21 @@ func TestOrientationDistinguishesCompletedActionsFromAvailableInspectionEvidence
 		return &DurableReference{ID: "70000000-0000-4000-8000-0000000000" + suffix, OccurredAt: when}
 	}
 	service, err := NewService(guidanceRepositoryStub{orientation: OrientationFacts{
-		AuthorizedAccount: reference("01"), CreatedAccount: reference("02"), PostedTransfer: reference("03"), AuthorizedTransfer: reference("04"), ReconciliationRun: reference("05"), DeliveryAttempt: reference("06"),
+		AuthorizedAccount: reference("01"), CreatedAccount: reference("02"), FundingJournal: reference("07"), PostedTransfer: reference("03"), AuthorizedTransfer: reference("04"), ReconciliationRun: reference("05"), DeliveryAttempt: reference("06"),
 	}}, guidanceRecoveryStub{snapshot: apprecovery.ManifestSnapshot{LatestBackup: &apprecovery.BackupManifestEvidence{BackupID: "backup-20260825T120000Z-abcdef0", FinalizedAtUTC: when.Format(time.RFC3339)}}}, func() time.Time { return when })
 	if err != nil {
 		t.Fatal(err)
 	}
 	summary, err := service.Orientation(context.Background(), "tenant", "actor")
-	if err != nil || summary.EvidenceState != "partial" || len(summary.Steps) != 7 {
+	if err != nil || summary.EvidenceState != "partial" || len(summary.Steps) != 12 {
 		t.Fatalf("summary=%+v error=%v", summary, err)
 	}
-	for _, index := range []int{0, 3, 5} {
-		if summary.Steps[index].State != "evidence_available" || summary.Steps[index].ReasonCode != "browser_action_not_recorded" {
+	for _, index := range []int{2, 6, 7, 9, 10} {
+		if summary.Steps[index].State != "evidence_available" || summary.Steps[index].ReasonCode != "operator_confirmation_required" {
 			t.Fatalf("inspection step fabricated completion: %+v", summary.Steps[index])
 		}
 	}
-	for _, index := range []int{1, 2, 4, 6} {
+	for _, index := range []int{3, 4, 5, 8, 11} {
 		if summary.Steps[index].State != "completed" || summary.Steps[index].OccurredAt == nil {
 			t.Fatalf("durable action not completed: %+v", summary.Steps[index])
 		}
@@ -64,11 +78,54 @@ func TestOrientationDistinguishesCompletedActionsFromAvailableInspectionEvidence
 func TestOrientationKeepsMissingAndUnavailableEvidenceExplicit(t *testing.T) {
 	service, _ := NewService(guidanceRepositoryStub{}, guidanceRecoveryStub{err: errors.New("index unavailable")}, nil)
 	summary, err := service.Orientation(context.Background(), "tenant", "actor")
-	if err != nil || summary.EvidenceState != "partial" || len(summary.Steps) != 7 {
+	if err != nil || summary.EvidenceState != "partial" || len(summary.Steps) != 12 {
 		t.Fatalf("summary=%+v error=%v", summary, err)
 	}
-	if summary.Steps[0].State != "missing" || summary.Steps[0].ReasonCode != "no_authorized_account" || summary.Steps[6].State != "unavailable" || summary.Steps[6].ReasonCode != "recovery_evidence_unavailable" {
+	if summary.Steps[2].State != "missing" || summary.Steps[2].ReasonCode != "no_authorized_account" || summary.Steps[11].State != "unavailable" || summary.Steps[11].ReasonCode != "recovery_evidence_unavailable" {
 		t.Fatalf("missing/unavailable truth drifted: %+v", summary.Steps)
+	}
+	if summary.Steps[4].State != "missing" || summary.Steps[4].ReasonCode != "no_posted_funding_journal" {
+		t.Fatalf("missing funding evidence was overstated: %+v", summary.Steps[4])
+	}
+}
+
+func TestOrientationPreferencesAreVersionedServerStateAndCannotBypassEvidence(t *testing.T) {
+	when := time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)
+	reference := &DurableReference{ID: guidanceTransferID, OccurredAt: when}
+	var captured PreferenceUpdate
+	repository := guidanceRepositoryStub{
+		orientation: OrientationFacts{AuthorizedAccount: reference, PostedTransfer: reference, DeliveryAttempt: reference},
+		update: func(update PreferenceUpdate) (OrientationPreference, error) {
+			captured = update
+			return OrientationPreference{Dismissed: update.Dismissed, CompletedStepIDs: update.CompletedStepIDs, Version: 4, UpdatedAt: &when}, nil
+		},
+	}
+	service, _ := NewService(repository, guidanceRecoveryStub{}, func() time.Time { return when })
+	summary, err := service.UpdateOrientationPreferences(context.Background(), "tenant", "actor", "3", true, []string{"retry_transfer", "confirm_health", "inspect_accounts"})
+	if err != nil || !summary.Dismissed || summary.PreferenceVersion != "4" || len(summary.OperatorCompletedSteps) != 3 {
+		t.Fatalf("summary=%+v error=%v", summary, err)
+	}
+	if captured.ExpectedVersion != 3 || strings.Join(captured.CompletedStepIDs, ",") != "confirm_health,inspect_accounts,retry_transfer" {
+		t.Fatalf("update was not normalized: %+v", captured)
+	}
+	for _, index := range []int{0, 2, 6} {
+		if summary.Steps[index].State != "operator_confirmed" {
+			t.Fatalf("preference completion missing at %d: %+v", index, summary.Steps[index])
+		}
+	}
+	if _, err := service.UpdateOrientationPreferences(context.Background(), "tenant", "actor", "4", false, []string{}); err != nil {
+		t.Fatalf("empty preference update error=%v", err)
+	}
+	if captured.CompletedStepIDs == nil || len(captured.CompletedStepIDs) != 0 {
+		t.Fatalf("empty preference must be canonical JSON-array input: %+v", captured)
+	}
+
+	withoutEvidence, _ := NewService(guidanceRepositoryStub{}, guidanceRecoveryStub{}, nil)
+	if _, err := withoutEvidence.UpdateOrientationPreferences(context.Background(), "tenant", "actor", "0", false, []string{"inspect_postings"}); !errors.Is(err, ErrInvalidPreference) {
+		t.Fatalf("missing evidence preference error=%v", err)
+	}
+	if _, err := withoutEvidence.UpdateOrientationPreferences(context.Background(), "tenant", "actor", "0", false, []string{"fund_account"}); !errors.Is(err, ErrInvalidPreference) {
+		t.Fatalf("automated/unavailable preference error=%v", err)
 	}
 }
 

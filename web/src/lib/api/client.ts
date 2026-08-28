@@ -50,6 +50,35 @@ export async function readJSON<T>(path: string): Promise<ReadJSONResult<T>> {
   }
 }
 
+export async function writeJSON<T>(path: string, method: "PUT" | "POST" | "PATCH" | "DELETE", csrfToken: string, body: Readonly<Record<string, unknown>>): Promise<ReadJSONResult<T>> {
+  const localReference = requestReference();
+  try {
+    const response = await fetch(path, {
+      method,
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken, "X-Request-ID": localReference },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(8_000),
+    });
+    const data = await response.json().catch(() => ({})) as T & APIError;
+    return {
+      ok: response.ok,
+      status: response.status,
+      data,
+      requestReference: response.headers.get("X-Request-ID") ?? localReference,
+      errorCode: data.error?.code,
+    };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      data: {} as T & APIError,
+      requestReference: localReference,
+      errorCode: "connection_unavailable",
+    };
+  }
+}
+
 export function unavailableMessage(status: number, subject: string, reference?: string) {
   const evidence = "Previously verified evidence, if shown, remains historical; no empty or successful result is being inferred.";
   const next = status === 401

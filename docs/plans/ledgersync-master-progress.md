@@ -4,9 +4,9 @@
 
 **Established:** 2026-08-28
 
-**Current milestone:** Local MVP requalification
+**Current milestone:** Guided first-run operator journey
 
-**Current phase:** Phase 3 — make every degraded and unknown UI state financially truthful
+**Current phase:** Phase 4 — build a guided first-run operator journey
 
 This register is the single repository status source for the master plan. Earlier plans and registers are retained as historical evidence. A phase is complete only when every exit criterion has evidence for the exact commit. Code, documentation, emulation, or a local test cannot substitute for a managed-provider result, physical-device review, legal decision, named owner, partner action, or production approval.
 
@@ -28,8 +28,8 @@ This register is the single repository status source for the master plan. Earlie
 | M00 | Canonical baseline | `COMPLETE` | None | Engineering/release | This plan, this register, preserved `1fa7709`, clean-tree baseline | Keep source, status, tasks, and evidence synchronized on every phase commit. |
 | M01 | Current-main quality reconvergence | `COMPLETE` | M00 | Engineering/release | [Exact-commit Phase 1 quality evidence](../release-evidence/master-phase-1-quality.md) for `417bd0b`; responsive, CLS, ledger, browser, recovery, security, container, and real-stack gates passed | Requalify after any source, workflow, dependency, image, migration, contract, or supported-runtime change. |
 | M02 | Deterministic local runtime | `COMPLETE` | M01 | Engineering/operations | [Exact-commit Phase 2 local-runtime evidence](../release-evidence/master-phase-2-local-runtime.md) for `bddc35c`; dependency-aware doctor, private health-gated Compose, graceful lifecycle, seed compatibility, backup/restore, and reset disclosure passed | Requalify after any lifecycle script, Compose definition, seed contract, migration, backup, restore, or supported-runtime change. |
-| M03 | Truthful dependency-aware UI | `ACTIVE` | M01 | Product/web | Operator state components, degraded-state tests, reconciliation evidence UI | Eliminate every remaining unavailable-versus-empty inference, gate actions on verified prerequisites, and prove focused retry, freshness, correlation, focus-return, and unknown-response behavior. |
-| M04 | Guided first-run journey | `PARTIAL` | M02, M03 | Product/web | Existing onboarding guide and local-product Phase 8 evidence | Add server-owned resumable progress and connect the full funding-to-backup journey after M05 exists. |
+| M03 | Truthful dependency-aware UI | `COMPLETE` | M01 | Product/web | [Exact-commit Phase 3 UI truthfulness evidence](../release-evidence/master-phase-3-ui-truthfulness.md) for `1a67b89`; canonical state contract, focused recovery, retained evidence, action gating, unknown-response safety, reviewed visuals, accessibility, performance, and real-stack gates passed | Requalify after any UI state, request, dependency, mutation, accessibility, visual, or performance-contract change. |
+| M04 | Guided first-run journey | `ACTIVE` | M02, M03 | Product/web | [Exact-commit twelve-step server-owned onboarding foundation](../release-evidence/master-phase-4-onboarding-foundation.md) for `8800eaf`; [journey contract](../product/onboarding-journey-contract.md) | Bind the Phase 5 funding workflow into step 5, execute the complete first-time health-to-backup loop, and requalify the exact commit before marking this phase complete. |
 | M05 | Controlled funding journals | `PENDING` | M01–M04 | Financial engineering + finance | Funding boundary is specified; no completed funding workflow is claimed | Approve accounting semantics, then implement test-first funding, approval, posting, reconciliation, UI, and compensation paths. |
 | M06 | Compensation and approvals | `PENDING` | M05 | Financial engineering + finance/security | Existing immutable-transfer invariant only | Implement additive corrections, separation of duties, policy versioning, lifecycle safeguards, and step-up controls. |
 | M07 | API-first developer product | `PARTIAL` | M05, M06 | Developer platform | Complete MVP OpenAPI and local developer view | Add credentials, webhooks, compatibility/deprecation policy, reviewed examples, and reproducible SDK workflow. |

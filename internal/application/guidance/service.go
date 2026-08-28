@@ -7,6 +7,7 @@ import (
 	"errors"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,8 +17,15 @@ import (
 var (
 	ErrEvidenceUnavailable = errors.New("guided evidence unavailable")
 	ErrTransferNotFound    = errors.New("guided transfer not found")
+	ErrPreferenceConflict  = errors.New("guided preference version conflict")
+	ErrInvalidPreference   = errors.New("invalid guided preference")
 	canonicalUUID          = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 )
+
+var operatorPreferenceSteps = map[string]struct{}{
+	"confirm_health": {}, "understand_authority": {}, "inspect_accounts": {},
+	"retry_transfer": {}, "inspect_postings": {}, "inspect_delivery": {}, "export_evidence": {},
+}
 
 type DurableReference struct {
 	ID         string
@@ -27,6 +35,7 @@ type DurableReference struct {
 type OrientationFacts struct {
 	AuthorizedAccount  *DurableReference
 	CreatedAccount     *DurableReference
+	FundingJournal     *DurableReference
 	PostedTransfer     *DurableReference
 	AuthorizedTransfer *DurableReference
 	ReconciliationRun  *DurableReference
@@ -65,8 +74,23 @@ type TransferFacts struct {
 	Reconciliation  EvidenceLink
 }
 
+type OrientationPreference struct {
+	Dismissed        bool
+	CompletedStepIDs []string
+	Version          int64
+	UpdatedAt        *time.Time
+}
+
+type PreferenceUpdate struct {
+	Dismissed        bool
+	CompletedStepIDs []string
+	ExpectedVersion  int64
+}
+
 type Repository interface {
 	Orientation(context.Context, string, string) (OrientationFacts, error)
+	OrientationPreference(context.Context, string, string) (OrientationPreference, error)
+	UpdateOrientationPreference(context.Context, string, string, PreferenceUpdate) (OrientationPreference, error)
 	ExplainTransfer(context.Context, string, string, string) (TransferFacts, error)
 }
 
@@ -100,9 +124,13 @@ type OrientationStep struct {
 }
 
 type OrientationSummary struct {
-	GeneratedAt   time.Time         `json:"generated_at"`
-	EvidenceState string            `json:"evidence_state"`
-	Steps         []OrientationStep `json:"steps"`
+	GeneratedAt            time.Time         `json:"generated_at"`
+	EvidenceState          string            `json:"evidence_state"`
+	Dismissed              bool              `json:"dismissed"`
+	PreferenceVersion      string            `json:"preference_version"`
+	PreferenceUpdatedAt    *time.Time        `json:"preference_updated_at,omitempty"`
+	OperatorCompletedSteps []string          `json:"operator_completed_step_ids"`
+	Steps                  []OrientationStep `json:"steps"`
 }
 
 func (s *Service) Orientation(ctx context.Context, tenantID, actorID string) (OrientationSummary, error) {
@@ -113,13 +141,63 @@ func (s *Service) Orientation(ctx context.Context, tenantID, actorID string) (Or
 	if err != nil {
 		return OrientationSummary{}, errors.Join(ErrEvidenceUnavailable, err)
 	}
+	preference, err := s.repository.OrientationPreference(ctx, tenantID, actorID)
+	if err != nil {
+		return OrientationSummary{}, errors.Join(ErrEvidenceUnavailable, err)
+	}
+	return s.orientationSummary(ctx, facts, preference), nil
+}
+
+func (s *Service) UpdateOrientationPreferences(ctx context.Context, tenantID, actorID, expectedVersion string, dismissed bool, completedStepIDs []string) (OrientationSummary, error) {
+	if s == nil || ctx == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" {
+		return OrientationSummary{}, ErrInvalidPreference
+	}
+	version, err := strconv.ParseInt(expectedVersion, 10, 64)
+	if err != nil || version < 0 || len(completedStepIDs) > len(operatorPreferenceSteps) {
+		return OrientationSummary{}, ErrInvalidPreference
+	}
+	completed := append([]string{}, completedStepIDs...)
+	sort.Strings(completed)
+	for index, stepID := range completed {
+		if _, allowed := operatorPreferenceSteps[stepID]; !allowed || (index > 0 && stepID == completed[index-1]) {
+			return OrientationSummary{}, ErrInvalidPreference
+		}
+	}
+	facts, err := s.repository.Orientation(ctx, tenantID, actorID)
+	if err != nil {
+		return OrientationSummary{}, errors.Join(ErrEvidenceUnavailable, err)
+	}
+	for _, stepID := range completed {
+		if !orientationPreferencePrerequisite(stepID, facts) {
+			return OrientationSummary{}, ErrInvalidPreference
+		}
+	}
+	preference, err := s.repository.UpdateOrientationPreference(ctx, tenantID, actorID, PreferenceUpdate{Dismissed: dismissed, CompletedStepIDs: completed, ExpectedVersion: version})
+	if err != nil {
+		return OrientationSummary{}, err
+	}
+	return s.orientationSummary(ctx, facts, preference), nil
+}
+
+func (s *Service) orientationSummary(ctx context.Context, facts OrientationFacts, preference OrientationPreference) OrientationSummary {
+	completed := make(map[string]bool, len(preference.CompletedStepIDs))
+	for _, stepID := range preference.CompletedStepIDs {
+		if _, allowed := operatorPreferenceSteps[stepID]; allowed && orientationPreferencePrerequisite(stepID, facts) {
+			completed[stepID] = true
+		}
+	}
 	steps := []OrientationStep{
-		orientationStep("inspect_account", "account_record", facts.AuthorizedAccount, false, "no_authorized_account", "browser_action_not_recorded"),
+		preferenceStep("confirm_health", "local_health_confirmation", completed["confirm_health"], nil, "operator_confirmation_required"),
+		preferenceStep("understand_authority", "authority_acknowledgement", completed["understand_authority"], nil, "operator_confirmation_required"),
+		preferenceStep("inspect_accounts", "account_record", completed["inspect_accounts"], facts.AuthorizedAccount, "no_authorized_account"),
 		orientationStep("create_account", "account_created_audit", facts.CreatedAccount, true, "no_account_creation_evidence", ""),
-		orientationStep("fund_account", "posted_transfer", facts.PostedTransfer, true, "no_posted_transfer", ""),
-		orientationStep("inspect_transfer", "transfer_record", facts.AuthorizedTransfer, false, "no_authorized_transfer", "browser_action_not_recorded"),
+		orientationStep("fund_account", "funding_journal", facts.FundingJournal, true, "no_posted_funding_journal", ""),
+		orientationStep("post_transfer", "posted_transfer", facts.PostedTransfer, true, "no_posted_transfer", ""),
+		preferenceStep("retry_transfer", "idempotency_outcome", completed["retry_transfer"], facts.PostedTransfer, "no_posted_transfer"),
+		preferenceStep("inspect_postings", "journal_postings", completed["inspect_postings"], facts.PostedTransfer, "no_posted_transfer"),
 		orientationStep("run_reconciliation", "reconciliation_run", facts.ReconciliationRun, true, "no_reconciliation_run", ""),
-		orientationStep("inspect_delivery", "delivery_attempt", facts.DeliveryAttempt, false, "no_delivery_attempt", "browser_action_not_recorded"),
+		preferenceStep("inspect_delivery", "delivery_attempt", completed["inspect_delivery"], facts.DeliveryAttempt, "no_delivery_attempt"),
+		preferenceStep("export_evidence", "evidence_export", completed["export_evidence"], bestOrientationReference(facts), "no_exportable_evidence"),
 	}
 	backupStep := OrientationStep{ID: "create_backup", State: "missing", EvidenceType: "recovery_backup", ReasonCode: "no_validated_backup"}
 	snapshot, recoveryErr := s.recovery.Snapshot(ctx)
@@ -144,7 +222,58 @@ func (s *Service) Orientation(ctx context.Context, tenantID, actorID string) (Or
 			break
 		}
 	}
-	return OrientationSummary{GeneratedAt: s.clock().UTC(), EvidenceState: state, Steps: steps}, nil
+	return OrientationSummary{
+		GeneratedAt: s.clock().UTC(), EvidenceState: state, Dismissed: preference.Dismissed,
+		PreferenceVersion: strconv.FormatInt(preference.Version, 10), PreferenceUpdatedAt: preference.UpdatedAt,
+		OperatorCompletedSteps: sortedCompletedSteps(completed), Steps: steps,
+	}
+}
+
+func orientationPreferencePrerequisite(stepID string, facts OrientationFacts) bool {
+	switch stepID {
+	case "confirm_health", "understand_authority":
+		return true
+	case "inspect_accounts":
+		return validReference(facts.AuthorizedAccount)
+	case "retry_transfer", "inspect_postings":
+		return validReference(facts.PostedTransfer)
+	case "inspect_delivery":
+		return validReference(facts.DeliveryAttempt)
+	case "export_evidence":
+		return validReference(bestOrientationReference(facts))
+	default:
+		return false
+	}
+}
+
+func preferenceStep(id, evidenceType string, confirmed bool, reference *DurableReference, missingReason string) OrientationStep {
+	step := orientationStep(id, evidenceType, reference, false, missingReason, "operator_confirmation_required")
+	if confirmed && (id == "confirm_health" || id == "understand_authority" || validReference(reference)) {
+		step.State, step.ReasonCode = "operator_confirmed", ""
+	}
+	return step
+}
+
+func validReference(reference *DurableReference) bool {
+	return reference != nil && canonicalUUID.MatchString(strings.ToLower(reference.ID)) && !reference.OccurredAt.IsZero()
+}
+
+func bestOrientationReference(facts OrientationFacts) *DurableReference {
+	for _, reference := range []*DurableReference{facts.PostedTransfer, facts.FundingJournal, facts.ReconciliationRun, facts.CreatedAccount, facts.AuthorizedAccount} {
+		if validReference(reference) {
+			return reference
+		}
+	}
+	return nil
+}
+
+func sortedCompletedSteps(completed map[string]bool) []string {
+	result := make([]string, 0, len(completed))
+	for stepID := range completed {
+		result = append(result, stepID)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func orientationStep(id, evidenceType string, reference *DurableReference, actionProvable bool, missingReason, availableReason string) OrientationStep {

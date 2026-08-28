@@ -88,7 +88,7 @@ try {
     $session = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
     $sessionPayload = (Invoke-LedgerSyncAcceptanceJSON -Session $session -Method GET -Path '/api/session').Payload
     Assert-LedgerSyncAcceptance ([string]$sessionPayload.environment -ceq 'demo' -and [string]$sessionPayload.subject_id -ceq 'demo-operator' -and [string]$sessionPayload.tenant_id -ceq $tenantID) "Direct demo session identity drifted."
-    $requiredScopes = @('accounts:read','accounts:write','transactions:read','transfers:read','transfers:write','reconciliation:read','reconciliation:write','local:read','events:read','explainability:read','recovery:read','exports:read')
+    $requiredScopes = @('accounts:read','accounts:write','transactions:read','transfers:read','transfers:write','reconciliation:read','reconciliation:write','local:read','local:write','events:read','explainability:read','recovery:read','exports:read')
     Assert-LedgerSyncAcceptance (@($requiredScopes | Where-Object { @($sessionPayload.scopes) -notcontains $_ }).Count -eq 0) "Direct demo session omitted a required acceptance scope."
     $csrf = [string]$sessionPayload.csrf_token
     Assert-LedgerSyncAcceptance ($csrf.Length -ge 32) "Direct demo session omitted its CSRF value."

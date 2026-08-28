@@ -408,14 +408,14 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     expect(orientationResponse.status()).toBe(200);
     expect(orientationResponse.headers()["cache-control"]).toContain("no-store");
     const orientation = await orientationResponse.json() as { evidence_state?: unknown; steps?: Array<{ id?: unknown; state?: unknown }> };
-    expect(orientation.steps).toHaveLength(7);
-    expect(orientation.steps?.map((step) => step.id)).toEqual(["inspect_account", "create_account", "fund_account", "inspect_transfer", "run_reconciliation", "inspect_delivery", "create_backup"]);
-    expect(orientation.steps?.every((step) => ["completed", "evidence_available", "missing", "unavailable"].includes(String(step.state)))).toBe(true);
+    expect(orientation.steps).toHaveLength(12);
+    expect(orientation.steps?.map((step) => step.id)).toEqual(["confirm_health", "understand_authority", "inspect_accounts", "create_account", "fund_account", "post_transfer", "retry_transfer", "inspect_postings", "run_reconciliation", "inspect_delivery", "export_evidence", "create_backup"]);
+    expect(orientation.steps?.every((step) => ["completed", "operator_confirmed", "evidence_available", "missing", "unavailable"].includes(String(step.state)))).toBe(true);
 
     await page.goto("/?guide=1");
     await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Follow one INR ledger record from intent to evidence" })).toBeVisible();
-    await expect(page.locator(".orientation-checklist > li")).toHaveCount(7);
+    await expect(page.locator(".orientation-checklist > li")).toHaveCount(12);
     await expectAccessibleReflow(page, 320, 800);
 
     await page.goto(`/transfers?q=${encodeURIComponent(fundingTransfer.transferID)}&status=posted`);

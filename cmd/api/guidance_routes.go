@@ -50,6 +50,7 @@ func registerGuidanceRoutes(router *http.ServeMux, config guidanceRouteConfig) e
 		handler.WithRequestAuthenticator(config.Authenticator)
 	}
 	router.HandleFunc("GET /api/local/orientation", handler.Orientation)
+	router.HandleFunc("PUT /api/local/orientation/preferences", handler.UpdateOrientationPreferences)
 	router.HandleFunc("GET /api/transfers/{transferID}/explainability", handler.ExplainTransfer)
 	return nil
 }
