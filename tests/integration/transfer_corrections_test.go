@@ -89,7 +89,7 @@ func TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	history, _, err := historyRepository.ListAccountHistory(ctx, testTenantID, testActorID, testDestinationID, "", 10)
+	history, _, err := historyRepository.ListAccountHistory(ctx, testTenantID, testActorID, testSourceID, "", 10)
 	if err != nil || len(history) < 2 || history[0].CorrectionRole != "compensation" || history[1].CorrectionRole != "original" {
 		t.Fatalf("compensated account history=%#v err=%v", history, err)
 	}
