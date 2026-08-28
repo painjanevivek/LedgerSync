@@ -360,6 +360,7 @@ func TestAccountLifecycleCloseRulesVersionAndTenantBoundary(t *testing.T) {
 func TestAccountClosureBlocksObligationsAndPreservesSettledHistory(t *testing.T) {
 	service, database := requireAccountCommandService(t)
 	ctx := context.Background()
+	seedINRAccountCommandFixture(t, database)
 	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,$2,'finance') ON CONFLICT DO NOTHING`, testTenantID, testActorID); err != nil {
 		t.Fatal(err)
 	}
