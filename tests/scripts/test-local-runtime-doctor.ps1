@@ -34,7 +34,7 @@ foreach ($privatePort in @("5432", "6379", "8080")) {
 Assert-LocalRuntimeDoctor (([regex]::Matches($composeSource, 'stop_grace_period:\s*30s')).Count -eq 5) "Long-running services do not share the graceful shutdown window."
 
 $seedSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "deploy\compose\demo-seed.sql") -Raw
-Assert-LocalRuntimeDoctor ($seedSource -match "local_demo_seed_metadata" -and $seedSource -match "persisted_version > 1") "Demo seed version compatibility is not fail-closed."
+Assert-LocalRuntimeDoctor ($seedSource -match "local_demo_seed_metadata" -and $seedSource -match "persisted_version > 2") "Demo seed version compatibility is not fail-closed."
 $resetSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "scripts\reset-local.ps1") -Raw
 Assert-LocalRuntimeDoctor ($resetSource -match "Latest validated backup" -and $resetSource -match "No validated LedgerSync backup exists") "Reset does not disclose backup state."
 $logsSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "scripts\logs-local.ps1") -Raw

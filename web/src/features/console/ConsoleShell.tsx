@@ -14,12 +14,13 @@ import {
   UserCircle,
   List,
   Compass,
+  Receipt,
   X,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-export type ConsoleSection = "overview" | "accounts" | "transfers" | "reconciliation" | "local-status" | "events" | "developer" | "recovery";
+export type ConsoleSection = "overview" | "accounts" | "funding" | "transfers" | "reconciliation" | "local-status" | "events" | "developer" | "recovery";
 
 type Props = Readonly<{
   section: ConsoleSection;
@@ -37,6 +38,7 @@ const navigation = [
   { label: "Financial workspace", items: [
     { section: "overview" as const, label: "Overview", href: "/", icon: ChartDonut },
     { section: "accounts" as const, label: "Accounts", href: "/accounts", icon: Bank },
+    { section: "funding" as const, label: "Funding evidence", href: "/funding", icon: Receipt },
     { section: "transfers" as const, label: "Transfers", href: "/transfers", icon: ArrowsLeftRight },
     { section: "reconciliation" as const, label: "Reconciliation", href: "/reconciliation", icon: ShieldCheck },
   ] },

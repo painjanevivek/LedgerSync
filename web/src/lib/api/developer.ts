@@ -32,11 +32,11 @@ const identifier = /^[A-Za-z][A-Za-z0-9._:-]{0,127}$/;
 const pathPattern = /^\/[A-Za-z0-9{}._/-]{1,255}$/;
 const versionPattern = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 const visibleKey = /^[\x21-\x7e]{16,255}$/;
-const endpointGroupIDs = new Set(["accounts", "transfers", "reconciliation", "operations", "recovery_exports", "developer"]);
-const scopes = new Set(["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"]);
-const retryCodes = new Set(["request_in_progress", "response_unknown", "temporary_unavailable", "transaction_conflict_retryable", "idempotency_conflict", "reconciliation_already_running"]);
-const errorCodes = new Set(["invalid_request", "unauthorized", "forbidden", "not_found", "account_version_conflict", "invalid_account_transition", "account_not_zero", "external_reference_conflict", "transfer_policy_denied", "evidence_unavailable"]);
-const lookupFields = new Set(["account_id", "transfer_id", "run_id", "event_id", "correlation_id"]);
+const endpointGroupIDs = new Set(["accounts", "transfers", "funding", "reconciliation", "operations", "recovery_exports", "developer"]);
+const scopes = new Set(["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"]);
+const retryCodes = new Set(["request_in_progress", "response_unknown", "funding_outcome_unknown", "temporary_unavailable", "transaction_conflict_retryable", "idempotency_conflict", "reconciliation_already_running"]);
+const errorCodes = new Set(["invalid_request", "unauthorized", "forbidden", "not_found", "account_version_conflict", "invalid_account_transition", "account_not_zero", "external_reference_conflict", "transfer_policy_denied", "invalid_funding_request", "funding_conflict", "funding_limit_exceeded", "evidence_unavailable"]);
+const lookupFields = new Set(["account_id", "transfer_id", "funding_event_id", "run_id", "event_id", "correlation_id"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function exactKeys(value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []) {

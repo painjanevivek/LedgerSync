@@ -145,6 +145,7 @@
   "retry_outcomes": [
     { "code": "request_in_progress", "safe_action": "Retry the identical request with the same idempotency key." },
     { "code": "response_unknown", "safe_action": "Retry the identical request with the same idempotency key." },
+    { "code": "funding_outcome_unknown", "safe_action": "Refresh the funding event, then retry the identical evidence intent with the same idempotency key when applicable." },
     { "code": "temporary_unavailable", "safe_action": "Retry the identical request with the same idempotency key." },
     { "code": "transaction_conflict_retryable", "safe_action": "Retry the identical transfer with the same idempotency key." },
     { "code": "idempotency_conflict", "safe_action": "Stop. The key belongs to a different intent; inspect the original request before choosing a new key." },
@@ -160,11 +161,14 @@
     { "code": "account_not_zero", "meaning": "Both authoritative available and ledger balances must be exactly zero before close." },
     { "code": "external_reference_conflict", "meaning": "The external reference already belongs to another account." },
     { "code": "transfer_policy_denied", "meaning": "The transfer is outside the configured tenant policy." },
+    { "code": "invalid_funding_request", "meaning": "The funding evidence request failed exact input validation." },
+    { "code": "funding_conflict", "meaning": "The funding evidence changed, was already compensated, or is no longer actionable." },
+    { "code": "funding_limit_exceeded", "meaning": "The request is outside approved per-command or rolling funding limits." },
     { "code": "evidence_unavailable", "meaning": "Authoritative read evidence is temporarily unavailable; an empty result was not inferred." }
   ],
   "record_lookup": {
     "summary": "Use returned resource identifiers and X-Request-ID to find authorized records in account history, transfer detail, reconciliation, and event evidence views.",
     "correlation_header": "X-Request-ID",
-    "safe_fields": ["account_id", "transfer_id", "run_id", "event_id", "correlation_id"]
+    "safe_fields": ["account_id", "transfer_id", "funding_event_id", "run_id", "event_id", "correlation_id"]
   }
 }

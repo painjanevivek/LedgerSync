@@ -1108,7 +1108,7 @@ components:
       properties:
         summary: { type: string, maxLength: 512 }
         correlation_header: { type: string, enum: [X-Request-ID] }
-        safe_fields: { type: array, minItems: 1, maxItems: 8, uniqueItems: true, items: { type: string, enum: [account_id, transfer_id, run_id, event_id, correlation_id] } }
+        safe_fields: { type: array, minItems: 1, maxItems: 8, uniqueItems: true, items: { type: string, enum: [account_id, transfer_id, funding_event_id, run_id, event_id, correlation_id] } }
     Error:
       type: object
       required: [error]

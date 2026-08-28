@@ -28,6 +28,6 @@ export function createDemoSession(configuration: DemoConfiguration, now = Date.n
     csrfToken: crypto.randomUUID(),
     expiresAt: now + 30 * 60 * 1000,
     roles: ["tenant:operator"],
-    scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"],
+    scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read", "funding:read", "funding:write", "funding:approve"],
   };
 }
