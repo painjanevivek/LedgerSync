@@ -14,50 +14,51 @@ type transferPolicy struct {
 	currency                             string
 	minimum, maximum                     int64
 	actorLimit, sourceLimit, tenantLimit int64
+	version                              int64
 }
 
 type velocityTotals struct {
 	actor, source, tenant int64
 }
 
-func (r *TransferRepository) validateTransferPolicy(ctx context.Context, tx *sql.Tx, command transfers.Command) error {
+func (r *TransferRepository) validateTransferPolicy(ctx context.Context, tx *sql.Tx, command transfers.Command) (int64, error) {
 	if command.Amount.Currency().Code != r.pilotCurrency {
-		return ErrUnsupportedPilotCurrency
+		return 0, ErrUnsupportedPilotCurrency
 	}
 	policy, err := loadTransferPolicy(ctx, tx, command.TenantID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if policy.currency != r.pilotCurrency || policy.currency != command.Amount.Currency().Code {
-		return ErrUnsupportedPilotCurrency
+		return 0, ErrUnsupportedPilotCurrency
 	}
 	minor := command.Amount.Minor()
 	if minor < policy.minimum {
-		return ErrTransferBelowMinimum
+		return 0, ErrTransferBelowMinimum
 	}
 	if minor > policy.maximum {
-		return ErrTransferAboveMaximum
+		return 0, ErrTransferAboveMaximum
 	}
 	if err := ensureVelocityTotals(ctx, tx, command); err != nil {
-		return err
+		return 0, err
 	}
 	if err := pruneExpiredVelocity(ctx, tx, command.TenantID, command.OccurredAt.UTC()); err != nil {
-		return err
+		return 0, err
 	}
 	totals, err := loadVelocityTotals(ctx, tx, command)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if totals.actor > policy.actorLimit-minor {
-		return ErrActorVelocityExceeded
+		return 0, ErrActorVelocityExceeded
 	}
 	if totals.source > policy.sourceLimit-minor {
-		return ErrSourceVelocityExceeded
+		return 0, ErrSourceVelocityExceeded
 	}
 	if totals.tenant > policy.tenantLimit-minor {
-		return ErrTenantVelocityExceeded
+		return 0, ErrTenantVelocityExceeded
 	}
-	return nil
+	return policy.version, nil
 }
 
 func loadTransferPolicy(ctx context.Context, tx *sql.Tx, tenantID string) (transferPolicy, error) {
@@ -65,11 +66,11 @@ func loadTransferPolicy(ctx context.Context, tx *sql.Tx, tenantID string) (trans
 	err := tx.QueryRowContext(ctx, `
 SELECT currency, minimum_transfer_minor, maximum_transfer_minor,
        actor_rolling_24h_minor, source_account_rolling_24h_minor,
-       tenant_rolling_24h_minor
+       tenant_rolling_24h_minor, policy_version
 FROM tenant_transfer_policies
 WHERE tenant_id = $1`, tenantID).Scan(
 		&policy.currency, &policy.minimum, &policy.maximum,
-		&policy.actorLimit, &policy.sourceLimit, &policy.tenantLimit,
+		&policy.actorLimit, &policy.sourceLimit, &policy.tenantLimit, &policy.version,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return transferPolicy{}, ErrTenantPolicyMissing

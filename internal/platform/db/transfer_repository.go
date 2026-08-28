@@ -203,7 +203,8 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err := validateAccounts(ctx, tx, command, source, destination); err != nil {
 		return transfers.Result{}, err
 	}
-	if err := r.validateTransferPolicy(ctx, tx, command); err != nil {
+	policyVersion, err := r.validateTransferPolicy(ctx, tx, command)
+	if err != nil {
 		return transfers.Result{}, err
 	}
 
@@ -216,7 +217,7 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err != nil {
 		return transfers.Result{}, err
 	}
-	if err := createTransfer(ctx, tx, entry); err != nil {
+	if err := createTransfer(ctx, tx, entry, policyVersion); err != nil {
 		return transfers.Result{}, err
 	}
 
@@ -403,13 +404,13 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 	return err
 }
 
-func createTransfer(ctx context.Context, tx *sql.Tx, entry transferdomain.Transfer) error {
+func createTransfer(ctx context.Context, tx *sql.Tx, entry transferdomain.Transfer, policyVersion int64) error {
 	const statement = `
 INSERT INTO transfers (
     id, tenant_id, actor_subject_id, debit_account_id, credit_account_id,
-    amount_minor, currency, status, created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-	_, err := tx.ExecContext(ctx, statement, entry.ID, entry.TenantID, entry.ActorID, entry.DebitAccountID, entry.CreditAccountID, entry.Amount.Minor(), entry.Amount.Currency().Code, transferStatusSQL, entry.CreatedAt)
+    amount_minor, currency, status, created_at, policy_version
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	_, err := tx.ExecContext(ctx, statement, entry.ID, entry.TenantID, entry.ActorID, entry.DebitAccountID, entry.CreditAccountID, entry.Amount.Minor(), entry.Amount.Currency().Code, transferStatusSQL, entry.CreatedAt, policyVersion)
 	return wrap("create transfer", err)
 }
 

@@ -50,6 +50,10 @@ BEGIN
     EXECUTE 'GRANT SELECT,INSERT ON approval_records,funding_velocity_events TO ledgersync_api';
     EXECUTE 'GRANT SELECT ON tenant_funding_policies TO ledgersync_api';
   END IF;
+  IF to_regclass('public.transfer_corrections') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON transfer_corrections TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON transfer_policy_versions TO ledgersync_api';
+  END IF;
 END $$;
 
 GRANT SELECT, UPDATE ON outbox_events TO ledgersync_worker;

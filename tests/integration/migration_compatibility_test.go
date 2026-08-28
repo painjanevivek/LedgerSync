@@ -28,10 +28,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 18 {
-		t.Fatalf("migration versions=%d, want 18", versions)
+	if versions != 19 {
+		t.Fatalf("migration versions=%d, want 19", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -58,12 +58,18 @@ WHERE table_schema = 'public'
     ('accounts', 'account_kind'),
     ('account_balance_projections', 'allow_negative'),
     ('journal_transactions', 'funding_event_id'),
-    ('outbox_events', 'funding_event_id')
+    ('outbox_events', 'funding_event_id'),
+    ('transfers', 'policy_version'),
+    ('transfers', 'compensation_of_transfer_id'),
+    ('tenant_transfer_policies', 'policy_version'),
+    ('tenant_transfer_policies', 'control_mode'),
+    ('tenant_transfer_policies', 'requires_step_up'),
+    ('tenant_transfer_policies', 'approval_ttl_minutes')
   )`).Scan(&columns); err != nil {
 		t.Fatal(err)
 	}
-	if columns != 13 {
-		t.Fatalf("legacy and additive account contract columns=%d, want 13", columns)
+	if columns != 19 {
+		t.Fatalf("legacy and additive account contract columns=%d, want 19", columns)
 	}
 }
 
@@ -103,7 +109,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") || strings.HasPrefix(entry.Name(), "000019_") {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
