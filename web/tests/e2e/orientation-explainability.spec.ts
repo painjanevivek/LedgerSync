@@ -101,7 +101,7 @@ test("transfer detail renders seven linked stored-evidence stages and preserves 
   await page.getByRole("link",{name:"← Back to previous view"}).click();
   await expect(page).toHaveURL(/\/transfers\?q=3333&status=posted/);
   await expect(page.getByLabel("Search transfers")).toHaveValue("3333");
-  await expect(page.getByLabel("Financial status")).toHaveValue("posted");
+  await expect(page.getByLabel("Status")).toHaveValue("posted");
 });
 
 test("partial, out-of-order, denied, and compact timeline states remain explicit and accessible",async({page})=>{

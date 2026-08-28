@@ -37,10 +37,10 @@ const populatedRoutes = [
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
   { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation detail" },
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
-  { name: "events-populated", path: "/events", heading: "Event investigation" },
+  { name: "events-populated", path: "/events", heading: "Delivery events" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
   { name: "developer-contract", path: "/developer", heading: "Developer" },
-  { name: "recovery-evidence", path: "/recovery", heading: "Recovery Center" },
+  { name: "recovery-evidence", path: "/recovery", heading: "Recovery" },
 ] as const;
 
 for (const route of populatedRoutes) {

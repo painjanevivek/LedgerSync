@@ -25,5 +25,5 @@
 
 ## Phase 5 — Verification and release evidence
 
-- [ ] UX-012 Run unit, build, responsive, accessibility, visual, and empty-workspace tests.
-- [ ] UX-013 Inspect changed screenshots and record verification results.
+- [X] UX-012 Run unit, build, responsive, accessibility, visual, and empty-workspace tests.
+- [X] UX-013 Inspect changed screenshots and record verification results.
