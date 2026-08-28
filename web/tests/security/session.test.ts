@@ -119,6 +119,19 @@ test("the production CSP uses a per-request nonce instead of unsafe inline scrip
   assert.doesNotMatch(csp, /unsafe-inline/);
 });
 
+test("security headers expose a server-owned sandbox or production mode", () => {
+  const original = process.env.LEDGERSYNC_DEPLOYMENT_ENV;
+  try {
+    process.env.LEDGERSYNC_DEPLOYMENT_ENV = "development";
+    assert.equal(addSecurityHeaders(NextResponse.json({ ok: true })).headers.get("x-ledgersync-mode"), "sandbox");
+    process.env.LEDGERSYNC_DEPLOYMENT_ENV = "production";
+    assert.equal(addSecurityHeaders(NextResponse.json({ ok: true })).headers.get("x-ledgersync-mode"), "production");
+  } finally {
+    if (original === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV;
+    else process.env.LEDGERSYNC_DEPLOYMENT_ENV = original;
+  }
+});
+
 test("OIDC transaction cookies reject tampering and expired authorizations", () => {
   const payload = Buffer.from(JSON.stringify({ state: "state", codeVerifier: "verifier", nonce: "nonce", expiresAt: Date.now() + 60_000 })).toString("base64url");
   const signature = createHmac("sha256", process.env.LEDGERSYNC_WEB_SESSION_SECRET!).update(payload).digest("base64url");

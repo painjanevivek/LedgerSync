@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.11.0
+  version: 1.12.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -12,6 +12,13 @@ info:
   license: { name: Apache License 2.0, identifier: Apache-2.0 }
 servers: [{ url: /api }]
 security: [{ bearerAuth: [], actorAssertion: [] }]
+x-ledgersync-lifecycle:
+  semantic_version: 1.12.0
+  supported_window: current minor and immediately preceding minor, with at least 180 days notice before sunset
+  changelog: ./CHANGELOG.md
+  policy: ./api-lifecycle-policy.md
+  response_headers: [X-Request-ID, X-LedgerSync-API-Version, X-LedgerSync-Mode]
+  modes: [sandbox, production]
 paths:
 
   /accounts:
@@ -617,7 +624,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.11.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.12.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }

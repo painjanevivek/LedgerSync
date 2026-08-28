@@ -5,6 +5,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
+	"strings"
+
+	contractassets "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/contracts"
 )
 
 type correlationKey struct{}
@@ -22,6 +25,21 @@ func Correlation(next http.Handler) http.Handler {
 		id := newID()
 		writer.Header().Set("X-Request-ID", id)
 		next.ServeHTTP(writer, request.WithContext(context.WithValue(request.Context(), correlationKey{}, id)))
+	})
+}
+
+// Contract identifies the reviewed API contract and the financial-data mode on
+// every response, including errors and health endpoints. The mode is derived
+// only from trusted process configuration; callers cannot select or override it.
+func Contract(environment string, next http.Handler) http.Handler {
+	mode := "production"
+	if strings.EqualFold(strings.TrimSpace(environment), "development") || strings.EqualFold(strings.TrimSpace(environment), "test") {
+		mode = "sandbox"
+	}
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("X-LedgerSync-API-Version", contractassets.Version)
+		writer.Header().Set("X-LedgerSync-Mode", mode)
+		next.ServeHTTP(writer, request)
 	})
 }
 

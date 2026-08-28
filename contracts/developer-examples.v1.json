@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "1.11.0",
+  "contract_version": "1.12.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
