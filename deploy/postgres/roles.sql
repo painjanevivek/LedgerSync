@@ -15,7 +15,8 @@ REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO ledgersync_api, ledgersync_worker, ledgersync_reconciliation, ledgersync_provisioning, ledgersync_support_readonly;
 
 GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections, account_opening_balances,
-  tenant_transfer_policies, tenant_subject_roles, partner_credential_events, developer_credentials, developer_credential_events, developer_command_idempotency, transfers, idempotency_requests, api_rate_limit_windows,
+  tenant_transfer_policies, tenant_subject_roles, partner_credential_events, developer_credentials, developer_credential_events, developer_command_idempotency,
+  developer_webhook_endpoints, developer_webhook_events, developer_webhook_command_idempotency, transfers, idempotency_requests, api_rate_limit_windows,
   transfer_velocity_events, transfer_velocity_totals,
   journal_transactions, ledger_postings, delivery_attempts, delivery_replay_actions,
   reconciliation_runs, reconciliation_mismatches, outbox_events, audit_events, schema_migrations TO ledgersync_api;
@@ -24,9 +25,11 @@ GRANT INSERT ON accounts, account_balance_projections, account_opening_balances,
   reconciliation_runs, reconciliation_mismatches,
   outbox_events, audit_events, api_rate_limit_windows, retention_runs,
   transfer_velocity_events, transfer_velocity_totals,
-  outbox_replay_actions, delivery_replay_actions, developer_credentials, developer_credential_events, developer_command_idempotency TO ledgersync_api;
+  outbox_replay_actions, delivery_replay_actions, developer_credentials, developer_credential_events, developer_command_idempotency,
+  developer_webhook_endpoints, developer_webhook_events, developer_webhook_command_idempotency TO ledgersync_api;
 GRANT UPDATE ON accounts, transfers, idempotency_requests, account_balance_projections,
-  api_rate_limit_windows, transfer_velocity_totals, developer_credentials, developer_command_idempotency TO ledgersync_api;
+  api_rate_limit_windows, transfer_velocity_totals, developer_credentials, developer_command_idempotency,
+  developer_webhook_endpoints, developer_webhook_command_idempotency TO ledgersync_api;
 GRANT DELETE ON transfer_velocity_events TO ledgersync_api;
 
 DO $$
@@ -58,7 +61,8 @@ END $$;
 
 GRANT SELECT, UPDATE ON outbox_events TO ledgersync_worker;
 GRANT INSERT ON delivery_attempts, audit_events, outbox_replay_actions, delivery_replay_actions TO ledgersync_worker;
-GRANT SELECT ON transfers, tenants, outbox_replay_actions, delivery_attempts, delivery_replay_actions TO ledgersync_worker;
+GRANT SELECT ON transfers, tenants, outbox_replay_actions, delivery_attempts, delivery_replay_actions,
+  developer_webhook_endpoints TO ledgersync_worker;
 
 GRANT SELECT ON tenants, accounts, account_opening_balances,
   account_balance_projections, transfers, journal_transactions, ledger_postings,
@@ -76,7 +80,8 @@ GRANT SELECT ON tenants, accounts, account_owners, account_balance_projections,
   transfers, journal_transactions, ledger_postings, delivery_attempts,
   reconciliation_runs, reconciliation_mismatches, audit_events TO ledgersync_support_readonly;
 GRANT SELECT ON retention_runs, outbox_replay_actions, delivery_replay_actions, partner_provisioning_requests,
-  tenant_subject_roles, partner_credential_events, developer_credentials, developer_credential_events TO ledgersync_support_readonly;
+  tenant_subject_roles, partner_credential_events, developer_credentials, developer_credential_events,
+  developer_webhook_endpoints, developer_webhook_events TO ledgersync_support_readonly;
 
 -- Break-glass has no standing object grants. Incident-authorized grants must be
 -- time bounded, ticket correlated, audited, and revoked by the platform owner.

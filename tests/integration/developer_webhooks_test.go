@@ -23,7 +23,7 @@ func TestDeveloperWebhookLifecycleIsVerifiedVersionedAndAppendOnly(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := developerplatform.NewWebhookService(repository, replayRepository, "production", func() time.Time { return now }, strings.NewReader(strings.Repeat("e", 32)))
+	service, err := developerplatform.NewWebhookService(repository, replayRepository, "production", func() time.Time { return now }, strings.NewReader(strings.Repeat("e", 64)))
 	if err != nil {
 		t.Fatal(err)
 	}

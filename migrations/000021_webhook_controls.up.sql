@@ -56,3 +56,16 @@ CREATE TABLE developer_webhook_command_idempotency (
 );
 CREATE INDEX developer_webhook_command_expiry_idx ON developer_webhook_command_idempotency (created_at);
 
+DO $$
+BEGIN
+  IF to_regrole('ledgersync_api') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT ON developer_webhook_endpoints,developer_webhook_events,developer_webhook_command_idempotency TO ledgersync_api';
+    EXECUTE 'GRANT UPDATE ON developer_webhook_endpoints,developer_webhook_command_idempotency TO ledgersync_api';
+  END IF;
+  IF to_regrole('ledgersync_worker') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT ON developer_webhook_endpoints TO ledgersync_worker';
+  END IF;
+  IF to_regrole('ledgersync_support_readonly') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT ON developer_webhook_endpoints,developer_webhook_events TO ledgersync_support_readonly';
+  END IF;
+END $$;
