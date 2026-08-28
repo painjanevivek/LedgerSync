@@ -6,7 +6,7 @@
 
 **Current milestone:** Local MVP requalification
 
-**Current phase:** Phase 1 — reconverge current main and restore green quality gates
+**Current phase:** Phase 2 — make local startup deterministic and understandable
 
 This register is the single repository status source for the master plan. Earlier plans and registers are retained as historical evidence. A phase is complete only when every exit criterion has evidence for the exact commit. Code, documentation, emulation, or a local test cannot substitute for a managed-provider result, physical-device review, legal decision, named owner, partner action, or production approval.
 
@@ -26,8 +26,8 @@ This register is the single repository status source for the master plan. Earlie
 | ID | Phase | Status | Depends on | Accountable owner | Current evidence | Next stop-ship action |
 |---|---|---|---|---|---|---|
 | M00 | Canonical baseline | `COMPLETE` | None | Engineering/release | This plan, this register, preserved `1fa7709`, clean-tree baseline | Keep source, status, tasks, and evidence synchronized on every phase commit. |
-| M01 | Current-main quality reconvergence | `ACTIVE` | M00 | Engineering/release | Responsive fix `1fa7709`; earlier local acceptance and responsive evidence require exact-HEAD requalification | Run the full exact-commit quality, browser, security, container, recovery, and real-stack gates; fix CLS without changing the 0.1 budget. |
-| M02 | Deterministic local runtime | `PARTIAL` | M01 | Engineering/operations | `scripts/*-local.ps1`, local MVP evidence, loopback-only Compose | Audit every prerequisite/failure branch and prove start, diagnose, stop, backup, restore, and confirmed reset on the current commit. |
+| M01 | Current-main quality reconvergence | `COMPLETE` | M00 | Engineering/release | [Exact-commit Phase 1 quality evidence](../release-evidence/master-phase-1-quality.md) for `417bd0b`; responsive, CLS, ledger, browser, recovery, security, container, and real-stack gates passed | Requalify after any source, workflow, dependency, image, migration, contract, or supported-runtime change. |
+| M02 | Deterministic local runtime | `ACTIVE` | M01 | Engineering/operations | `scripts/*-local.ps1`, local MVP evidence, loopback-only Compose | Audit every prerequisite/failure branch and prove start, diagnose, stop, backup, restore, and confirmed reset on the current commit. |
 | M03 | Truthful dependency-aware UI | `PARTIAL` | M01 | Product/web | Operator state components, degraded-state tests, reconciliation evidence UI | Close remaining unavailable-versus-empty and prerequisite-gating gaps across every supported screen. |
 | M04 | Guided first-run journey | `PARTIAL` | M02, M03 | Product/web | Existing onboarding guide and local-product Phase 8 evidence | Add server-owned resumable progress and connect the full funding-to-backup journey after M05 exists. |
 | M05 | Controlled funding journals | `PENDING` | M01–M04 | Financial engineering + finance | Funding boundary is specified; no completed funding workflow is claimed | Approve accounting semantics, then implement test-first funding, approval, posting, reconciliation, UI, and compensation paths. |
