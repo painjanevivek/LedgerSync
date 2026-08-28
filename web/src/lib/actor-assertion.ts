@@ -38,6 +38,7 @@ export function createActorAssertion(session: Session, options: AssertionOptions
     tenant_id: session.tenantId,
     roles: session.roles ?? [],
     scopes: session.scopes ?? [],
+    authenticated_at: session.authenticatedAt ? Math.floor(session.authenticatedAt / 1000) : undefined,
     iat: issuedAt,
     exp: expiresAt,
   })).toString("base64url");

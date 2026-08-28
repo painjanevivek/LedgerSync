@@ -30,7 +30,7 @@ function Assert-DemoRejected {
 
 try {
     New-Item -ItemType Directory -Path $testRoot | Out-Null
-    Assert-DemoTooling ((Resolve-LedgerSyncInitializationModeDecision -PostgresVolumeExists $false) -ceq "demo") "Fresh default initialization was not demo."
+    Assert-DemoTooling ((Resolve-LedgerSyncInitializationModeDecision -PostgresVolumeExists $false) -ceq "empty") "Fresh default initialization was not empty."
     Assert-DemoTooling ((Resolve-LedgerSyncInitializationModeDecision -RequestedMode "empty" -PostgresVolumeExists $false) -ceq "empty") "Fresh empty initialization was not accepted."
     Assert-DemoTooling ((Resolve-LedgerSyncInitializationModeDecision -ExistingMode "demo" -PostgresVolumeExists $true) -ceq "demo") "Existing demo mode was not retained."
     Assert-DemoTooling ((Resolve-LedgerSyncInitializationModeDecision -ExistingMode "demo" -RequestedMode "empty" -PostgresVolumeExists $false) -ceq "empty") "Mode did not change after the PostgreSQL volume was absent."
@@ -109,7 +109,8 @@ try {
 
     $composeSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "deploy\compose\docker-compose.yml") -Raw
     Assert-DemoTooling ($composeSource -match 'LEDGERSYNC_INITIALIZATION_MODE' -and
-        $composeSource -match 'demo\) exec psql' -and $composeSource -match 'empty\).*seed skipped' -and
+        $composeSource -match 'local-bootstrap.sql' -and $composeSource -match 'demo\) exec psql' -and
+        $composeSource -match 'empty\).*Fresh workspace initialized without sample financial records' -and
         $composeSource -match 'Unsupported LedgerSync initialization mode') "Compose does not distinguish strict demo/empty fresh initialization."
     $startSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "scripts\start-local.ps1") -Raw
     $resetSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "scripts\reset-local.ps1") -Raw

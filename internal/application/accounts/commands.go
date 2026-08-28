@@ -22,16 +22,17 @@ const (
 )
 
 var (
-	ErrInvalidCommand       = errors.New("invalid account command")
-	ErrAccountConflict      = errors.New("account conflicts with existing state")
-	ErrInvalidTransition    = accountdomain.ErrInvalidTransition
-	ErrNonZeroClose         = accountdomain.ErrNonZeroBalance
-	ErrTerminalStatus       = accountdomain.ErrTerminalStatus
-	ErrVersionConflict      = accountdomain.ErrVersionConflict
-	ErrFinancialUnavailable = accountdomain.ErrFinancialStateUnavailable
-	ErrIdempotencyConflict  = idempotency.ErrConflict
-	ErrCommandInProgress    = idempotency.ErrInProgress
-	ErrCommandUnavailable   = errors.New("account command dependency is temporarily unavailable")
+	ErrInvalidCommand         = errors.New("invalid account command")
+	ErrAccountConflict        = errors.New("account conflicts with existing state")
+	ErrInvalidTransition      = accountdomain.ErrInvalidTransition
+	ErrNonZeroClose           = accountdomain.ErrNonZeroBalance
+	ErrTerminalStatus         = accountdomain.ErrTerminalStatus
+	ErrVersionConflict        = accountdomain.ErrVersionConflict
+	ErrFinancialUnavailable   = accountdomain.ErrFinancialStateUnavailable
+	ErrOperationalObligations = accountdomain.ErrOperationalObligations
+	ErrIdempotencyConflict    = idempotency.ErrConflict
+	ErrCommandInProgress      = idempotency.ErrInProgress
+	ErrCommandUnavailable     = errors.New("account command dependency is temporarily unavailable")
 )
 
 type CreateAccountCommand struct {

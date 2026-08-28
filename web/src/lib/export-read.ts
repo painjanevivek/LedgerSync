@@ -71,9 +71,9 @@ export function sanitizeExportHeaders(headers: Headers, family: ExportFamily) {
   const type = headers.get("content-type")?.toLowerCase();
   const disposition = headers.get("content-disposition");
   const schema = headers.get("x-ledgersync-export-schema");
-  const pattern = new RegExp(`^attachment; filename="ledgersync-${family}-\\d{8}T\\d{6}Z-v1\\.csv"$`);
-  if (!type || !/^text\/csv(?:;\s*charset=utf-8)?$/.test(type) || !disposition || !pattern.test(disposition) || schema !== "1") return null;
-  const result: Record<string, string> = { "Cache-Control": "no-store", "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": disposition, "X-LedgerSync-Export-Schema": "1", "X-Content-Type-Options": "nosniff" };
+  const pattern = new RegExp(`^attachment; filename="ledgersync-${family}-\\d{8}T\\d{6}Z-v2\\.csv"$`);
+  if (!type || !/^text\/csv(?:;\s*charset=utf-8)?$/.test(type) || !disposition || !pattern.test(disposition) || schema !== "2") return null;
+  const result: Record<string, string> = { "Cache-Control": "no-store", "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": disposition, "X-LedgerSync-Export-Schema": "2", "X-Content-Type-Options": "nosniff" };
   const requestID = headers.get("x-request-id"); if (requestID && /^[A-Za-z0-9._:-]{1,128}$/.test(requestID)) result["X-Request-ID"] = requestID;
   const length = headers.get("content-length"); if (length && /^\d+$/.test(length) && Number(length) <= maximumCSVBytes) result["Content-Length"] = length;
   return result;

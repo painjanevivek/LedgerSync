@@ -68,7 +68,11 @@ SELECT json_build_object(
     FROM transfers t
     LEFT JOIN journal_transactions j ON j.id=t.journal_transaction_id AND j.transfer_id=t.id
     WHERE t.status='posted' AND j.id IS NULL),
-  'negative_balances', (SELECT count(*) FROM account_balance_projections WHERE available_minor < 0 OR ledger_minor < 0)
+  'negative_balances', (SELECT count(*)
+    FROM account_balance_projections balance
+    JOIN accounts account ON account.id=balance.account_id
+    WHERE (balance.available_minor < 0 OR balance.ledger_minor < 0)
+      AND account.account_kind <> 'funding_clearing')
 )::text;
 "@
     $output = @(& docker exec $PostgresContainer psql -U ledgersync -d ledgersync -Atc $sql 2>&1)

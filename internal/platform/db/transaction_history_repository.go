@@ -61,11 +61,15 @@ func (r *TransactionHistoryRepository) ListAccountHistory(ctx context.Context, t
 		return nil, "", err
 	}
 	rows, err := r.database.QueryContext(ctx, `
-SELECT id, CASE WHEN debit_account_id = $2 THEN 'debit' ELSE 'credit' END, amount_minor, currency, status, completed_at
-FROM transfers
-WHERE tenant_id=$1 AND status='posted' AND (debit_account_id=$2 OR credit_account_id=$2)
-  AND ($3::timestamptz IS NULL OR (completed_at, id) < ($3::timestamptz, $4::uuid))
-ORDER BY completed_at DESC, id DESC LIMIT $5`, tenantID, accountID, nullableTime(cursor.CompletedAt), nullableString(cursor.TransferID), limit+1)
+SELECT transfer.id, CASE WHEN transfer.debit_account_id = $2 THEN 'debit' ELSE 'credit' END, transfer.amount_minor,
+ transfer.currency,transfer.status,transfer.completed_at,COALESCE(correction.id::text,''),COALESCE(correction.status,''),
+ CASE WHEN correction.id IS NULL THEN '' WHEN correction.original_transfer_id=transfer.id THEN 'original' ELSE 'compensation' END,
+ COALESCE(correction.original_transfer_id::text,''),COALESCE(correction.compensation_transfer_id::text,'')
+FROM transfers transfer
+LEFT JOIN transfer_corrections correction ON correction.tenant_id=transfer.tenant_id AND (correction.original_transfer_id=transfer.id OR correction.compensation_transfer_id=transfer.id)
+WHERE transfer.tenant_id=$1 AND transfer.status='posted' AND (transfer.debit_account_id=$2 OR transfer.credit_account_id=$2)
+  AND ($3::timestamptz IS NULL OR (transfer.completed_at, transfer.id) < ($3::timestamptz, $4::uuid))
+ORDER BY transfer.completed_at DESC, transfer.id DESC LIMIT $5`, tenantID, accountID, nullableTime(cursor.CompletedAt), nullableString(cursor.TransferID), limit+1)
 	if err != nil {
 		return nil, "", fmt.Errorf("list history: %w", err)
 	}
@@ -73,7 +77,7 @@ ORDER BY completed_at DESC, id DESC LIMIT $5`, tenantID, accountID, nullableTime
 	var entries []transactions.Entry
 	for rows.Next() {
 		var item transactions.Entry
-		if err := rows.Scan(&item.TransferID, &item.Direction, &item.Amount, &item.Currency, &item.Status, &item.OccurredAt); err != nil {
+		if err := rows.Scan(&item.TransferID, &item.Direction, &item.Amount, &item.Currency, &item.Status, &item.OccurredAt, &item.CorrectionID, &item.CorrectionStatus, &item.CorrectionRole, &item.OriginalTransferID, &item.CompensationTransferID); err != nil {
 			return nil, "", fmt.Errorf("scan history: %w", err)
 		}
 		item.OccurredAt = item.OccurredAt.UTC()

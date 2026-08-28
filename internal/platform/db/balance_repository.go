@@ -65,11 +65,12 @@ WHERE a.tenant_id = $1 AND a.id = $2 AND owner.subject_id = $3
 	return balance, nil
 }
 
-// ListCurrentForTenant is an operational-only projection read for the cache
-// rebuild command. It performs no financial write and must not be exposed via
-// a customer HTTP route.
+// ListCurrentForTenant is an operational-only projection read for the
+// customer-facing cache rebuild command. Internal contra accounts are excluded:
+// their controlled negative projections are authoritative in PostgreSQL but are
+// neither customer-visible nor valid customer cache records.
 func (r *BalanceRepository) ListCurrentForTenant(ctx context.Context, tenantID string) ([]accounts.Balance, error) {
-	rows, err := r.database.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 ORDER BY a.id`, tenantID)
+	rows, err := r.database.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 AND a.account_kind='customer' ORDER BY a.id`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("list current balances: %w", err)
 	}

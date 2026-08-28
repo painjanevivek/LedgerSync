@@ -47,9 +47,9 @@ test("export queries are strict, bounded, typed, and cannot select tenant, filen
 });
 
 test("CSV headers retain only a canonical filename, schema, media type, and safe correlation",()=>{
-  const canonical=new Headers({"content-type":"text/csv; charset=utf-8","content-disposition":"attachment; filename=\"ledgersync-transfers-20260825T101112Z-v1.csv\"","x-ledgersync-export-schema":"1","x-request-id":"request-1","authorization":"Bearer secret","x-internal-path":"C:\\backup"});
-  assert.deepEqual(sanitizeExportHeaders(canonical,"transfers"),{"Cache-Control":"no-store","Content-Type":"text/csv; charset=utf-8","Content-Disposition":"attachment; filename=\"ledgersync-transfers-20260825T101112Z-v1.csv\"","X-LedgerSync-Export-Schema":"1","X-Content-Type-Options":"nosniff","X-Request-ID":"request-1"});
-  for(const headers of [new Headers({...Object.fromEntries(canonical),"content-disposition":"attachment; filename=\"../../secret.csv\""}),new Headers({...Object.fromEntries(canonical),"content-disposition":"attachment; filename=\"ledgersync-reconciliation-20260825T101112Z-v1.csv\""}),new Headers({...Object.fromEntries(canonical),"x-ledgersync-export-schema":"2"}),new Headers({...Object.fromEntries(canonical),"content-type":"application/octet-stream"})])assert.equal(sanitizeExportHeaders(headers,"transfers"),null);
+  const canonical=new Headers({"content-type":"text/csv; charset=utf-8","content-disposition":"attachment; filename=\"ledgersync-transfers-20260825T101112Z-v2.csv\"","x-ledgersync-export-schema":"2","x-request-id":"request-1","authorization":"Bearer secret","x-internal-path":"C:\\backup"});
+  assert.deepEqual(sanitizeExportHeaders(canonical,"transfers"),{"Cache-Control":"no-store","Content-Type":"text/csv; charset=utf-8","Content-Disposition":"attachment; filename=\"ledgersync-transfers-20260825T101112Z-v2.csv\"","X-LedgerSync-Export-Schema":"2","X-Content-Type-Options":"nosniff","X-Request-ID":"request-1"});
+  for(const headers of [new Headers({...Object.fromEntries(canonical),"content-disposition":"attachment; filename=\"../../secret.csv\""}),new Headers({...Object.fromEntries(canonical),"content-disposition":"attachment; filename=\"ledgersync-reconciliation-20260825T101112Z-v2.csv\""}),new Headers({...Object.fromEntries(canonical),"x-ledgersync-export-schema":"1"}),new Headers({...Object.fromEntries(canonical),"content-type":"application/octet-stream"})])assert.equal(sanitizeExportHeaders(headers,"transfers"),null);
 });
 
 test("web recovery and exports remain GET-only, fixed-route, streamed, and non-executing",async()=>{

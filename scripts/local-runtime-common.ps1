@@ -494,10 +494,25 @@ function Test-LedgerSyncPortAvailableOrOwned {
     }
 }
 
+function Initialize-LedgerSyncLocalWebSession {
+    param(
+        [Parameter(Mandatory = $true)][Microsoft.PowerShell.Commands.WebRequestSession]$Session,
+        [int]$TimeoutSeconds = 15
+    )
+
+    $response = Invoke-WebRequest -UseBasicParsing -WebSession $Session `
+        -Uri "$($script:LedgerSyncWebUrl)/api/auth/sign-in?return_to=%2F" `
+        -TimeoutSec $TimeoutSeconds
+    if ([int]$response.StatusCode -ne 200) {
+        throw "Local login request failed with HTTP $($response.StatusCode)."
+    }
+}
+
 function Invoke-LedgerSyncWebSmoke {
     param([int]$TimeoutSeconds = 15)
 
     $session = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+    Initialize-LedgerSyncLocalWebSession -Session $session -TimeoutSeconds $TimeoutSeconds
     $targets = @(
         "/api/session",
         "/api/me/accounts?limit=1",

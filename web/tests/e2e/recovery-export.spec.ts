@@ -41,7 +41,7 @@ test("transfer export review discloses exact filters and uses one native bounded
   await expect(dialog.getByText("Search: 11111111 · Financial status: posted",{exact:true})).toBeVisible();
   await expect(dialog.getByText("10,000",{exact:true})).toBeVisible(); await expect(dialog.getByText("This export is not a backup.",{exact:true})).toBeVisible();
   const downloadPromise=page.waitForEvent("download"); await dialog.getByRole("button",{name:"Download CSV"}).click(); const download=await downloadPromise;
-  expect(download.suggestedFilename()).toBe("ledgersync-transfers-20260819T120000Z-v1.csv");
+  expect(download.suggestedFilename()).toBe("ledgersync-transfers-20260819T120000Z-v2.csv");
   await expect(page.getByRole("heading",{name:"Downloading exact CSV"})).toBeFocused();
   await expect(page.getByRole("button",{name:"Preparing export…"})).toBeDisabled();
 });
@@ -60,7 +60,7 @@ test("account and reconciliation exports retain their exact contextual scope",as
 test("recovery and export controls reflow, deny missing scopes, and fail closed offline",async({page,context})=>{
   await mockOperatorConsole(page); await page.setViewportSize({width:320,height:760}); await page.goto("/recovery");
   await expect(page.locator("body")).toHaveJSProperty("scrollWidth",320); await expectAccessible(page);
-  await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["local:read"],environment:"demo"}));
+  await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["local:read"],environment:"local"}));
   await page.goto("/recovery"); await expect(page.getByText("Recovery evidence not authorized",{exact:true})).toBeVisible();
   await mockOperatorConsole(page); await page.goto("/transfers"); await context.setOffline(true);
   await expect(page.getByRole("button",{name:"Export transfer evidence"})).toBeDisabled(); await context.setOffline(false);

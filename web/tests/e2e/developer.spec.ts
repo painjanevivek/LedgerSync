@@ -72,7 +72,7 @@ test("OpenAPI is an authenticated full YAML download with no browser credential"
 test("developer scope denial is distinct and suppresses metadata requests",async({page})=>{
   await mockOperatorConsole(page);
   let requested=false;
-  await page.route("**/api/session",(route)=>json(route,{subject_id:"auditor",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["events:read"],environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Auditor"}));
+  await page.route("**/api/session",(route)=>json(route,{subject_id:"auditor",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["events:read"],environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Auditor"}));
   await page.route("**/api/developer/metadata",(route)=>{requested=true;return json(route,developerMetadata);});
   await page.goto("/developer");
   await expect(page.getByText("Developer contract not authorized")).toBeVisible();

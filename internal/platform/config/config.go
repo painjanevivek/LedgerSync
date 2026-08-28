@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -49,6 +50,7 @@ type Config struct {
 	TelemetryServiceName       string
 	OTLPHTTPEndpoint           string
 	RecoveryEvidenceRoot       string
+	WebhookSigningKeys         map[string][]byte
 }
 
 func Load() (Config, error) {
@@ -67,6 +69,14 @@ func Load() (Config, error) {
 			return Config{}, parseErr
 		}
 		clientTenantMap = parsed
+	}
+	webhookSigningKeys := map[string][]byte{}
+	if raw := strings.TrimSpace(os.Getenv("LEDGERSYNC_WEBHOOK_SIGNING_KEYS_JSON")); raw != "" {
+		parsed, parseErr := parseWebhookSigningKeys(raw)
+		if parseErr != nil {
+			return Config{}, parseErr
+		}
+		webhookSigningKeys = parsed
 	}
 	timeout, err := time.ParseDuration(valueOrDefault("LEDGERSYNC_SHUTDOWN_TIMEOUT", "10s"))
 	if err != nil || timeout <= 0 {
@@ -166,6 +176,7 @@ func Load() (Config, error) {
 		TelemetryServiceName:       valueOrDefault("LEDGERSYNC_TELEMETRY_SERVICE_NAME", "ledgersync-api"),
 		OTLPHTTPEndpoint:           os.Getenv("LEDGERSYNC_OTLP_HTTP_ENDPOINT"),
 		RecoveryEvidenceRoot:       valueOrDefault("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "/run/ledgersync/recovery"),
+		WebhookSigningKeys:         webhookSigningKeys,
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
 		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/resource audience/client mapping, and 32-byte BFF assertion secret are required outside development")
@@ -186,6 +197,33 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT must be an absolute directory")
 	}
 	return config, nil
+}
+
+// parseWebhookSigningKeys accepts only a JSON object mapping a non-secret key
+// reference to a standard-base64 raw key. It is used exclusively by the
+// outbound worker after secret injection; neither the API nor audit records
+// expose the resulting key bytes.
+func parseWebhookSigningKeys(raw string) (map[string][]byte, error) {
+	var encoded map[string]string
+	if err := json.Unmarshal([]byte(raw), &encoded); err != nil || len(encoded) == 0 || len(encoded) > 128 {
+		return nil, fmt.Errorf("LEDGERSYNC_WEBHOOK_SIGNING_KEYS_JSON must be a JSON object with 1-128 entries")
+	}
+	keys := make(map[string][]byte, len(encoded))
+	for reference, value := range encoded {
+		reference, value = strings.TrimSpace(reference), strings.TrimSpace(value)
+		if len(reference) < 3 || len(reference) > 200 || value == "" {
+			return nil, fmt.Errorf("LEDGERSYNC_WEBHOOK_SIGNING_KEYS_JSON contains an invalid key reference")
+		}
+		key, err := base64.StdEncoding.DecodeString(value)
+		if err != nil {
+			key, err = base64.RawStdEncoding.DecodeString(value)
+		}
+		if err != nil || len(key) < 32 || len(key) > 8192 {
+			return nil, fmt.Errorf("LEDGERSYNC_WEBHOOK_SIGNING_KEYS_JSON contains an invalid key value")
+		}
+		keys[reference] = key
+	}
+	return keys, nil
 }
 
 func parseOIDCClientTenantMap(raw string) (map[string]string, error) {

@@ -16,7 +16,7 @@ test("local guide persists confirmation, dismissal, and reopening in server-owne
     current={...current,dismissed:body.dismissed,preference_version:String(Number(body.expected_version)+1),preference_updated_at:"2026-08-19T12:06:00Z",operator_completed_step_ids:body.completed_step_ids as OperatorPreferenceStepID[],steps:current.steps.map(step=>body.completed_step_ids.includes(step.id)?{...step,state:"operator_confirmed" as const,reason_code:undefined}:step)};
     return json(route,current);
   });
-  await page.goto("/");
+  await page.goto("/?guide=1");
   await expect(page.getByRole("heading",{name:"Follow one INR ledger record from system health to recovery"})).toBeVisible();
   await expect(page.getByText("PostgreSQL ledger",{exact:true})).toBeVisible();
   await expect(page.getByText("Ready to inspect",{exact:true}).first()).toBeVisible();
@@ -43,7 +43,7 @@ test("unknown preference response refreshes server truth without optimistic comp
   let reads=0; let writes=0;
   await page.route("**/api/local/orientation",route=>{reads+=1;return json(route,orientationEvidence);});
   await page.route("**/api/local/orientation/preferences",route=>{writes+=1;return json(route,{error:{code:"upstream_timeout"}},504);});
-  await page.goto("/");
+  await page.goto("/?guide=1");
   await page.getByRole("button",{name:"I checked current health"}).first().click();
   await expect(page.getByText(/The response was unknown, so current server state was refreshed without assuming the change succeeded/)).toBeVisible();
   await expect(page.getByText("Not yet evidenced",{exact:true}).first()).toBeVisible();
@@ -112,6 +112,6 @@ test("partial, out-of-order, denied, and compact timeline states remain explicit
   await expect(page.getByText("No downstream delivery attempt is stored.",{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)).toBe(false);
   await expectAccessible(page);
-  await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["transfers:read"],environment:"demo"})); await page.reload();
+  await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["transfers:read"],environment:"local"})); await page.reload();
   await expect(page.getByText("Stored evidence timeline not authorized",{exact:true})).toBeVisible();
 });

@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 
 import { mockOperatorConsole } from "./fixtures";
 
-test("an unauthenticated visitor sees no invented financial data", async ({ page }) => {
+test("an unauthenticated visitor sees the login layer and no invented financial data", async ({ page }) => {
   await page.route("**/api/session", (route) => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: { code: "unauthorized" } }) }));
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Operator workspace unavailable" })).toBeVisible();
-  await expect(page.getByText("No authorized session")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your ledger starts empty." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
   await expect(page.getByText("12,458,974.21")).toHaveCount(0);
 });
 

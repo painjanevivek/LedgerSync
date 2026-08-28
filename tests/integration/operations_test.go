@@ -33,7 +33,7 @@ func TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth(t *testing.T) {
 		t.Fatal("cursor was accepted after its filter changed")
 	}
 	correlated, _, err := events.List(context.Background(), testTenantID, testActorID, operations.EventFilter{CorrelationID: "00000000-0000-0000-0000-000000000099", Limit: 25})
-	if err != nil || len(correlated) != 2 {
+	if err != nil || len(correlated) != 3 {
 		t.Fatalf("transfer correlation evidence=%#v error=%v", correlated, err)
 	}
 	notCorrelated, _, err := events.List(context.Background(), testTenantID, testActorID, operations.EventFilter{CorrelationID: "00000000-0000-0000-0000-000000000098", Limit: 25})
@@ -117,7 +117,7 @@ func TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.SchemaVersion != "000018_controlled_funding_journals.up.sql" || facts.PendingOutboxCount != 2 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
+	if facts.SchemaVersion != "000023_transfer_webhook_outbox_invariant.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
 		t.Fatalf("unexpected database-derived facts: %#v", facts)
 	}
 }

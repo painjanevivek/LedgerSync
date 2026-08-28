@@ -41,7 +41,7 @@ function json(route: Route, body: unknown, status = 200) {
 export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
-    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"demo",tenant_label:"Meridian Labs · Test",operator_label:"Test operator" });
+    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
   });
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
@@ -68,6 +68,6 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
   await page.route(/\/api\/exports\/.*\.csv(?:\?.*)?$/, (route) => {
     const path=new URL(route.request().url()).pathname;
     const family=path.includes("/accounts/")?"account-ledger":path.includes("reconciliation")?"reconciliation":"transfers";
-    return route.fulfill({status:200,contentType:"text/csv; charset=utf-8",headers:{"Content-Disposition":`attachment; filename="ledgersync-${family}-20260819T120000Z-v1.csv"`,"X-LedgerSync-Export-Schema":"1"},body:"schema_version,record_id,amount_minor,currency\r\n1,record-1,\"500\",INR\r\n"});
+    return route.fulfill({status:200,contentType:"text/csv; charset=utf-8",headers:{"Content-Disposition":`attachment; filename="ledgersync-${family}-20260819T120000Z-v2.csv"`,"X-LedgerSync-Export-Schema":"2"},body:"schema_version,record_id,amount_minor,currency\r\n2,record-1,\"500\",INR\r\n"});
   });
 }

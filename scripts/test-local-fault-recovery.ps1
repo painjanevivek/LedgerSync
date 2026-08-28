@@ -67,8 +67,7 @@ try {
     Invoke-LedgerSyncWebSmoke
     $baseline = Get-LedgerSyncFinancialFingerprint
     $operationsSession = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
-    Invoke-WebRequest -UseBasicParsing -WebSession $operationsSession -TimeoutSec 8 `
-        -Uri "$script:LedgerSyncWebUrl/api/session" | Out-Null
+    Initialize-LedgerSyncLocalWebSession -Session $operationsSession -TimeoutSeconds 8
 
     $redisContainerOutput = @(Invoke-LedgerSyncCompose -ComposeArguments @("ps", "-q", "redis") -CaptureOutput)
     $redisContainer = ([string]($redisContainerOutput | Select-Object -Last 1)).Trim()
@@ -108,8 +107,7 @@ try {
     Write-Output "STATELESS_SERVICE_RESTART=PASS"
 
     $session = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
-    Invoke-WebRequest -UseBasicParsing -WebSession $session -TimeoutSec 8 `
-        -Uri "$script:LedgerSyncWebUrl/api/session" | Out-Null
+    Initialize-LedgerSyncLocalWebSession -Session $session -TimeoutSeconds 8
     Invoke-LedgerSyncCompose -ComposeArguments @("stop", "postgres") | Out-Null
     Assert-LedgerSyncDependencyUnavailableResponse -Session $session
     Write-Output "POSTGRES_UNAVAILABLE_503=PASS"

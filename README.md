@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Release status:** the complete expanded **local-only product is qualified** for one Windows workstation at `http://127.0.0.1:3000`, with INR demo data and no external deployment. Current-main [quality reconvergence evidence](docs/release-evidence/master-phase-1-quality.md) covers exact-commit ledger, browser, CLS, recovery, security, container, and real-stack gates. Phase 2 of the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) is now hardening local startup diagnostics; see the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. This status does not approve LAN, cloud, shared-host, pilot, or production deployment.
+**Release status:** the complete expanded **local-only product is qualified** for one Windows workstation at `http://127.0.0.1:3000`, with a clean INR workspace and no external deployment. Current-main [quality reconvergence evidence](docs/release-evidence/master-phase-1-quality.md) covers exact-commit ledger, browser, CLS, recovery, security, container, and real-stack gates. Phase 2 of the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) is now hardening local startup diagnostics; see the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. This status does not approve LAN, cloud, shared-host, pilot, or production deployment.
 
 ## Contents
 
@@ -436,7 +436,7 @@ The repository-root `docker-compose.yml` is the canonical local entry point and 
 
 1. From this repository in PowerShell, run `.\scripts\doctor-local.ps1`. It is read-only and distinguishes a missing Docker installation, stopped engine, permission failure, outdated Compose plugin, disk shortage, malformed local environment, volume state, and a port conflict.
 2. Start Docker Desktop if the doctor asks you to, then run `.\scripts\start-local.ps1`.
-3. Open `http://127.0.0.1:3000`. The server-controlled local demo operator goes directly to **Overview**; it does not require a password or external identity provider. Read the reopenable local guide for the INR, internal-only, PostgreSQL-authority, persistence, and safe-stop boundaries.
+3. Open `http://127.0.0.1:3000`, choose **Log in**, and open the clean **Overview** workspace. Local login does not require a password or external identity provider. Use **Guide** in the upper workspace bar for the account → funding → transfer → reconciliation sequence.
 4. Open **Accounts**. Inspect an existing account or choose **Create account**. Creation records identity and category only: currency is fixed to INR and the exact opening balance is `INR 0.00`; there is no browser balance editor.
 5. From a created account, choose **Fund account** to reuse the normal **Transfers** form with that destination selected. Choose a different active funded source, enter the exact decimal amount, review it, and post. If the result is unknown, use **Retry same transfer** so the exact body and idempotency key are retained.
 6. Open the transfer record to inspect the immutable result, debit and credit postings, and seven-stage stored-evidence chain. Delivery state is separate from the PostgreSQL financial result. Use server-backed transfer filters or **Events** filters to investigate a specific identifier without changing evidence.
@@ -490,7 +490,7 @@ npm --prefix web run lint
 npm --prefix web run build
 ```
 
-`start-local.ps1` validates PowerShell, Git, Docker, Compose 2.20+, free disk, loopback-port ownership, environment state, and Compose configuration. It waits for PostgreSQL and Redis health, requires migrations and the versioned idempotent demo seed to finish, verifies every long-running service, and tests the real browser/BFF read path before printing “ready.” API startup never mutates the financial schema. The destructive reset command is deliberately separate, reports the latest validated backup and restore-drill state, and refuses to run without the exact confirmation documented in the [local runtime runbook](docs/runbooks/local-runtime-smoke.md).
+`start-local.ps1` validates PowerShell, Git, Docker, Compose 2.20+, free disk, loopback-port ownership, environment state, and Compose configuration. It waits for PostgreSQL and Redis health, requires migrations and the non-financial local workspace bootstrap to finish, verifies every long-running service, and tests the real browser/BFF read path before printing “ready.” Fresh initialization adds tenant authorization and policy boundaries but no accounts, balances, journals, transfers, or reconciliation results. API startup never mutates the financial schema. The destructive reset command is deliberately separate, reports the latest validated backup and restore-drill state, and refuses to run without the exact confirmation documented in the [local runtime runbook](docs/runbooks/local-runtime-smoke.md).
 
 To rebuild the disposable cache from PostgreSQL projections:
 

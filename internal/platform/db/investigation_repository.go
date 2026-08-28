@@ -114,8 +114,15 @@ func (r *InvestigationRepository) ListTransfers(ctx context.Context, tenantID st
 	rows, err := r.database.QueryContext(ctx, `
 SELECT t.id,t.debit_account_id,t.credit_account_id,t.amount_minor,t.currency,t.status,
  CASE WHEN t.status<>'posted' THEN 'not_applicable' ELSE COALESCE((SELECT d.status FROM delivery_attempts d WHERE d.tenant_id=t.tenant_id AND d.transfer_id=t.id ORDER BY d.created_at DESC,d.id DESC LIMIT 1),'not_applicable') END,
- t.created_at,COALESCE(t.completed_at,t.created_at),COALESCE(t.journal_transaction_id::text,''),COALESCE(t.rejection_code,'')
-FROM transfers t WHERE t.tenant_id=$1
+ t.created_at,COALESCE(t.completed_at,t.created_at),COALESCE(t.journal_transaction_id::text,''),COALESCE(t.rejection_code,''),
+ COALESCE(c.id::text,''),COALESCE(c.status,''),CASE WHEN c.id IS NULL THEN '' WHEN c.original_transfer_id=t.id THEN 'original' ELSE 'compensation' END,
+ COALESCE(c.original_transfer_id::text,''),COALESCE(c.compensation_transfer_id::text,''),
+ COALESCE(original.journal_transaction_id::text,''),COALESCE(compensation.journal_transaction_id::text,'')
+FROM transfers t
+LEFT JOIN transfer_corrections c ON c.tenant_id=t.tenant_id AND (c.original_transfer_id=t.id OR c.compensation_transfer_id=t.id)
+LEFT JOIN transfers original ON original.id=c.original_transfer_id
+LEFT JOIN transfers compensation ON compensation.id=c.compensation_transfer_id
+WHERE t.tenant_id=$1
 	 AND ($2='' OR t.status=$2) AND ($3='' OR t.debit_account_id=NULLIF($3,'')::uuid OR t.credit_account_id=NULLIF($3,'')::uuid)
  AND ($4='' OR t.id::text ILIKE '%'||$4||'%' OR t.debit_account_id::text ILIKE '%'||$4||'%' OR t.credit_account_id::text ILIKE '%'||$4||'%')
  AND ($5::timestamptz IS NULL OR COALESCE(t.completed_at,t.created_at) >= $5)
@@ -129,7 +136,7 @@ ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT $9`, tenantI
 	items := make([]investigation.TransferSummary, 0, filter.Limit)
 	for rows.Next() {
 		var item investigation.TransferSummary
-		if err := rows.Scan(&item.ID, &item.DebitAccountID, &item.CreditAccountID, &item.AmountMinor, &item.Currency, &item.FinancialStatus, &item.DeliveryStatus, &item.CreatedAt, &item.CompletedAt, &item.JournalTransactionID, &item.RejectionCode); err != nil {
+		if err := rows.Scan(&item.ID, &item.DebitAccountID, &item.CreditAccountID, &item.AmountMinor, &item.Currency, &item.FinancialStatus, &item.DeliveryStatus, &item.CreatedAt, &item.CompletedAt, &item.JournalTransactionID, &item.RejectionCode, &item.CorrectionID, &item.CorrectionStatus, &item.CorrectionRole, &item.OriginalTransferID, &item.CompensationTransferID, &item.OriginalJournalID, &item.CompensationJournalID); err != nil {
 			return nil, "", err
 		}
 		item.CreatedAt = item.CreatedAt.UTC()
@@ -150,7 +157,18 @@ ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT $9`, tenantI
 
 func (r *InvestigationRepository) GetTransfer(ctx context.Context, tenantID, transferID string) (investigation.TransferDetail, error) {
 	var item investigation.TransferDetail
-	err := r.database.QueryRowContext(ctx, `SELECT t.id,t.debit_account_id,t.credit_account_id,t.amount_minor,t.currency,t.status,CASE WHEN t.status<>'posted' THEN 'not_applicable' ELSE COALESCE((SELECT d.status FROM delivery_attempts d WHERE d.tenant_id=t.tenant_id AND d.transfer_id=t.id ORDER BY d.created_at DESC,d.id DESC LIMIT 1),'not_applicable') END,t.created_at,COALESCE(t.completed_at,t.created_at),COALESCE(t.journal_transaction_id::text,''),COALESCE(t.rejection_code,''),t.actor_subject_id FROM transfers t WHERE t.tenant_id=$1 AND t.id=$2`, tenantID, transferID).Scan(&item.ID, &item.DebitAccountID, &item.CreditAccountID, &item.AmountMinor, &item.Currency, &item.FinancialStatus, &item.DeliveryStatus, &item.CreatedAt, &item.CompletedAt, &item.JournalTransactionID, &item.RejectionCode, &item.ActorSubjectID)
+	err := r.database.QueryRowContext(ctx, `
+SELECT t.id,t.debit_account_id,t.credit_account_id,t.amount_minor,t.currency,t.status,
+ CASE WHEN t.status<>'posted' THEN 'not_applicable' ELSE COALESCE((SELECT d.status FROM delivery_attempts d WHERE d.tenant_id=t.tenant_id AND d.transfer_id=t.id ORDER BY d.created_at DESC,d.id DESC LIMIT 1),'not_applicable') END,
+ t.created_at,COALESCE(t.completed_at,t.created_at),COALESCE(t.journal_transaction_id::text,''),COALESCE(t.rejection_code,''),t.actor_subject_id,
+ COALESCE(c.id::text,''),COALESCE(c.status,''),CASE WHEN c.id IS NULL THEN '' WHEN c.original_transfer_id=t.id THEN 'original' ELSE 'compensation' END,
+ COALESCE(c.original_transfer_id::text,''),COALESCE(c.compensation_transfer_id::text,''),
+ COALESCE(original.journal_transaction_id::text,''),COALESCE(compensation.journal_transaction_id::text,'')
+FROM transfers t
+LEFT JOIN transfer_corrections c ON c.tenant_id=t.tenant_id AND (c.original_transfer_id=t.id OR c.compensation_transfer_id=t.id)
+LEFT JOIN transfers original ON original.id=c.original_transfer_id
+LEFT JOIN transfers compensation ON compensation.id=c.compensation_transfer_id
+WHERE t.tenant_id=$1 AND t.id=$2`, tenantID, transferID).Scan(&item.ID, &item.DebitAccountID, &item.CreditAccountID, &item.AmountMinor, &item.Currency, &item.FinancialStatus, &item.DeliveryStatus, &item.CreatedAt, &item.CompletedAt, &item.JournalTransactionID, &item.RejectionCode, &item.ActorSubjectID, &item.CorrectionID, &item.CorrectionStatus, &item.CorrectionRole, &item.OriginalTransferID, &item.CompensationTransferID, &item.OriginalJournalID, &item.CompensationJournalID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, ErrInvestigationNotFound
 	}
@@ -174,6 +192,9 @@ func (r *InvestigationRepository) GetTransfer(ctx context.Context, tenantID, tra
 		item.Postings = append(item.Postings, p)
 	}
 	item.Timeline = []investigation.EvidenceEvent{{ID: item.ID, Kind: "transfer_created", Outcome: item.FinancialStatus, Reference: item.JournalTransactionID, OccurredAt: item.CreatedAt}}
+	if item.CorrectionID != "" {
+		item.Timeline = append(item.Timeline, investigation.EvidenceEvent{ID: item.CorrectionID, Kind: "transfer_correction_" + item.CorrectionRole, Outcome: item.CorrectionStatus, Reference: item.CompensationJournalID, OccurredAt: item.CompletedAt})
+	}
 	return item, nil
 }
 

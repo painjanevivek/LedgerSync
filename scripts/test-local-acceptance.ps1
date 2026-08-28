@@ -86,12 +86,13 @@ try {
     Assert-LedgerSyncAcceptanceRuntimeHardening -Project $acceptanceProject -RuntimeEnvironmentFile $script:LedgerSyncRuntimeEnvironmentFile
 
     $session = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+    Initialize-LedgerSyncLocalWebSession -Session $session
     $sessionPayload = (Invoke-LedgerSyncAcceptanceJSON -Session $session -Method GET -Path '/api/session').Payload
-    Assert-LedgerSyncAcceptance ([string]$sessionPayload.environment -ceq 'demo' -and [string]$sessionPayload.subject_id -ceq 'demo-operator' -and [string]$sessionPayload.tenant_id -ceq $tenantID) "Direct demo session identity drifted."
+    Assert-LedgerSyncAcceptance ([string]$sessionPayload.environment -ceq 'local' -and [string]$sessionPayload.subject_id -ceq 'local-user' -and [string]$sessionPayload.tenant_id -ceq $tenantID) "Direct local session identity drifted."
     $requiredScopes = @('accounts:read','accounts:write','transactions:read','transfers:read','transfers:write','reconciliation:read','reconciliation:write','local:read','local:write','events:read','explainability:read','recovery:read','exports:read')
-    Assert-LedgerSyncAcceptance (@($requiredScopes | Where-Object { @($sessionPayload.scopes) -notcontains $_ }).Count -eq 0) "Direct demo session omitted a required acceptance scope."
+    Assert-LedgerSyncAcceptance (@($requiredScopes | Where-Object { @($sessionPayload.scopes) -notcontains $_ }).Count -eq 0) "Direct local session omitted a required acceptance scope."
     $csrf = [string]$sessionPayload.csrf_token
-    Assert-LedgerSyncAcceptance ($csrf.Length -ge 32) "Direct demo session omitted its CSRF value."
+    Assert-LedgerSyncAcceptance ($csrf.Length -ge 32) "Direct local session omitted its CSRF value."
     $overview = Invoke-WebRequest -UseBasicParsing -WebSession $session -TimeoutSec 15 -Uri $script:LedgerSyncWebUrl
     Assert-LedgerSyncAcceptance ([int]$overview.StatusCode -eq 200 -and $overview.Content -match 'Exact, explainable internal ledger transfers and balances') "Acceptance overview omitted the trust promise."
     Test-LedgerSyncAcceptanceOrientation -Session $session | Out-Null

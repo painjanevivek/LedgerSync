@@ -16,6 +16,7 @@ test("actor assertion uses Unix seconds and bounded identity claims", () => {
     tenantId: "tenant-a",
     csrfToken: "csrf",
     expiresAt: now.getTime() + 30 * 60_000,
+    authenticatedAt: now.getTime() - 30_000,
     roles: ["tenant:operator"],
     scopes: ["accounts:read"],
   }, { now, assertionId: "assertion-contract-001" });
@@ -28,6 +29,7 @@ test("actor assertion uses Unix seconds and bounded identity claims", () => {
   assert.equal(payload.jti, "assertion-contract-001");
   assert.equal(payload.iat, Math.floor(now.getTime() / 1000));
   assert.equal(payload.exp, Math.floor(now.getTime() / 1000) + 60);
+  assert.equal(payload.authenticated_at, Math.floor(now.getTime() / 1000) - 30);
   assert.ok((payload.exp as number) < 10_000_000_000, "NumericDate must be Unix seconds, not milliseconds");
 
   const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));

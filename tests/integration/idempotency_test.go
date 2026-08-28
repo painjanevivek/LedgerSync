@@ -25,7 +25,7 @@ func TestTransferIdempotencyReplaysOriginalOutcomeWithoutSecondMovement(t *testi
 	if first.Replayed || !second.Replayed || first.Result.TransferID != second.Result.TransferID {
 		t.Fatalf("unexpected replay results: first=%#v second=%#v", first, second)
 	}
-	if countRows(t, database, `SELECT count(*) FROM transfers`) != 1 || countRows(t, database, `SELECT count(*) FROM ledger_postings`) != 2 || countRows(t, database, `SELECT count(*) FROM outbox_events`) != 2 {
+	if countRows(t, database, `SELECT count(*) FROM transfers`) != 1 || countRows(t, database, `SELECT count(*) FROM ledger_postings`) != 2 || countRows(t, database, `SELECT count(*) FROM outbox_events`) != 3 {
 		t.Fatal("idempotent replay created additional financial side effects")
 	}
 }

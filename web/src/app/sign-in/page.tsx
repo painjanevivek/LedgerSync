@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { LoginScreen } from "@/features/auth/LoginScreen";
 
 export default function SignInPage() {
-  redirect("/");
+  return <LoginScreen />;
 }

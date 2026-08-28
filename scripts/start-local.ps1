@@ -27,7 +27,7 @@ try {
     }
     $upArguments += @("--wait", "--wait-timeout", [string]$WaitTimeoutSeconds)
 
-    Write-Host "Starting PostgreSQL, Redis, migrations, demo seed, API, worker, and web..."
+    Write-Host "Starting PostgreSQL, Redis, migrations, local workspace bootstrap, API, worker, and web..."
     Invoke-LedgerSyncCompose -ComposeArguments $upArguments
     Assert-LedgerSyncOneShotServicesCompleted
     Assert-LedgerSyncLongRunningServicesHealthy

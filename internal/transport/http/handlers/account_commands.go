@@ -279,6 +279,8 @@ func publicAccountCommandError(err error) error {
 		return &httptransport.PublicError{Status: http.StatusUnprocessableEntity, Code: "account_not_zero", Message: "The account must have exact zero available and ledger balances before closing."}
 	case errors.Is(err, accounts.ErrFinancialUnavailable):
 		return &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "temporary_unavailable", Message: "The account financial state cannot be proven safe for closing. Retry the identical request with the same idempotency key."}
+	case errors.Is(err, accounts.ErrOperationalObligations):
+		return &httptransport.PublicError{Status: http.StatusConflict, Code: "account_obligations_unresolved", Message: "Resolve or cancel pending financial commands before closing this account."}
 	case errors.Is(err, accounts.ErrCommandUnavailable), db.IsRetryableTransactionError(err):
 		return &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "temporary_unavailable", Message: "The account command outcome is unavailable. Retry the identical request with the same idempotency key."}
 	default:

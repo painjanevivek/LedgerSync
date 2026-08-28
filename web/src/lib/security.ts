@@ -43,6 +43,7 @@ export function addSecurityHeaders(response: NextResponse, nonce?: string): Next
   response.headers.set("Content-Security-Policy", contentSecurityPolicy(nonce));
   for (const [name, value] of Object.entries(securityHeaders)) response.headers.set(name, value);
   const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? "development").trim().toLowerCase();
+  response.headers.set("X-LedgerSync-Mode", deploymentEnvironment === "production" || deploymentEnvironment === "prod" ? "production" : "sandbox");
   if (deploymentEnvironment === "production" || deploymentEnvironment === "prod") {
     response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }

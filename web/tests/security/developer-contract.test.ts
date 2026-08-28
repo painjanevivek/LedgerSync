@@ -68,7 +68,7 @@ test("OpenAPI download validation accepts the canonical contract and rejects sec
   assert.equal(isSafeOpenAPIYAML("not yaml"),false);
 });
 
-test("developer browser boundary has no arbitrary request runner or raw credential endpoint",async()=>{
+test("developer documentation boundary has no arbitrary runner or raw credential endpoint",async()=>{
   const sources=await Promise.all(["src/app/api/developer/metadata/route.ts","src/app/api/developer/openapi/route.ts","src/lib/developer-read.ts","src/features/developer/DeveloperViews.tsx"].map((path)=>readFile(path,"utf8")));
   assert.ok(sources.slice(0,2).every((source)=>source.includes("export async function GET")&&!source.includes("export async function POST")));
   assert.match(sources[2],/\/api\/openapi\.yaml/);

@@ -11,16 +11,36 @@ trap 'rm -f "$cookie_jar"' EXIT HUP INT TERM
 
 attempt=1
 while [ "$attempt" -le "$max_attempts" ]; do
-  if curl --fail --silent --show-error --connect-timeout 2 --max-time 5 \
+  session_status="$(curl --silent --show-error --connect-timeout 2 --max-time 5 \
+    --noproxy '127.0.0.1,localhost,::1' \
     --cookie "$cookie_jar" \
     --cookie-jar "$cookie_jar" \
-    "$base_url/api/session" >/dev/null 2>&1 && \
-    curl --fail --silent --show-error --connect-timeout 2 --max-time 5 \
-      --cookie "$cookie_jar" \
-      --cookie-jar "$cookie_jar" \
-      "$base_url/api/me/accounts?limit=1&status=active" >/dev/null 2>&1; then
+    --output /dev/null \
+    --write-out '%{http_code}' \
+    "$base_url/api/session" 2>/dev/null || true)"
+  [ -n "$session_status" ] || session_status="000"
+  accounts_status="not-attempted"
+  case "$session_status" in
+    2??)
+      accounts_status="$(curl --silent --show-error --connect-timeout 2 --max-time 5 \
+        --noproxy '127.0.0.1,localhost,::1' \
+        --cookie "$cookie_jar" \
+        --cookie-jar "$cookie_jar" \
+        --output /dev/null \
+        --write-out '%{http_code}' \
+        "$base_url/api/me/accounts?limit=1&status=active" 2>/dev/null || true)"
+      [ -n "$accounts_status" ] || accounts_status="000"
+      ;;
+  esac
+
+  if [ "${session_status#2}" != "$session_status" ] && [ "${accounts_status#2}" != "$accounts_status" ]; then
     printf 'LedgerSync BFF, API, and PostgreSQL path ready after %s attempt(s).\n' "$attempt"
     exit 0
+  fi
+
+  if [ "$attempt" -eq 1 ] || [ "$attempt" -eq "$max_attempts" ] || [ $((attempt % 10)) -eq 0 ]; then
+    printf 'LedgerSync readiness pending at attempt %s/%s (session=%s accounts=%s).\n' \
+      "$attempt" "$max_attempts" "$session_status" "$accounts_status" >&2
   fi
 
   if [ "$attempt" -lt "$max_attempts" ]; then

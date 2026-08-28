@@ -1,22 +1,24 @@
 # Local initialization modes and retry lab
 
-LedgerSync remains a one-workstation, loopback-only INR demonstration. The
-server-controlled demo operator is available in both initialization modes;
+LedgerSync remains a one-workstation, loopback-only INR product. The
+server-controlled local operator is available in both initialization modes;
 only the initial ledger contents differ.
 
 ## Fresh initialization choices
 
-`demo` is the default. It applies every migration and then runs the existing
-deterministic, replay-safe INR seed. Use it for the guided product journey.
+`empty` is the default. It applies every migration and a non-financial bootstrap
+for the tenant, operator permissions, funding policy, and transfer policy. It
+creates no sample accounts, balances, journals, transfers, or reconciliation
+results.
 
-`empty` applies every migration but skips the deterministic seed. It is useful
-for demonstrating account creation from an empty ledger. It does not remove or
-zero existing accounts, transfers, journals, postings, or balances.
+`demo` is retained only for the isolated same-key retry lab. It applies the
+deterministic legacy records after the same non-financial bootstrap. Selecting a
+mode does not remove or zero existing financial records.
 
-Choose `empty` only on a truly fresh PostgreSQL volume:
+On a truly fresh PostgreSQL volume, the normal command selects `empty`:
 
 ```powershell
-.\scripts\start-local.ps1 -InitializationMode empty
+.\scripts\start-local.ps1
 ```
 
 The host records the selected mode in the protected local runtime state. Later

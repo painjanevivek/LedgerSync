@@ -16,7 +16,9 @@
     "test:e2e:performance": "playwright test --grep @performance --workers=1",
     "test:visual": "playwright test tests/e2e/visual-regression.spec.ts",
     "test:visual:update": "playwright test tests/e2e/visual-regression.spec.ts --update-snapshots",
-    "test:performance": "node scripts/check-performance-budgets.mjs"
+    "test:performance": "node scripts/check-performance-budgets.mjs",
+    "generate:developer-artifacts": "node ../scripts/generate-developer-artifacts.mjs",
+    "check:developer-artifacts": "node ../scripts/generate-developer-artifacts.mjs --check"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -35,6 +37,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.0.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "yaml": "^1.10.0"
   }
 }

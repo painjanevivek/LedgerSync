@@ -28,6 +28,7 @@ type accessTokenClaims struct {
 	ClientID string   `json:"client_id"`
 	TokenUse string   `json:"token_use"`
 	Scope    string   `json:"scope"`
+	AuthTime int64    `json:"auth_time"`
 	Audience []string `json:"-"`
 }
 
@@ -82,12 +83,16 @@ func principalFromAccessTokenClaims(claims accessTokenClaims, resourceAudience s
 	if tenantID == "" {
 		return Principal{}, ErrUnauthenticated
 	}
-	return Principal{
+	principal := Principal{
 		SubjectID: "oauth-client:" + claims.ClientID,
 		TenantID:  tenantID,
 		Roles:     map[string]struct{}{},
 		Scopes:    allowedSet(strings.Fields(claims.Scope), allowedScopes),
-	}, nil
+	}
+	if claims.AuthTime > 0 {
+		principal.AuthenticatedAt = time.Unix(claims.AuthTime, 0).UTC()
+	}
+	return principal, nil
 }
 
 func containsAudience(audiences []string, required string) bool {
@@ -120,6 +125,11 @@ var allowedScopes = map[string]struct{}{
 	"local:write":          {},
 	"events:read":          {},
 	"developer:read":       {},
+	"credentials:read":     {},
+	"credentials:write":    {},
+	"webhooks:read":        {},
+	"webhooks:write":       {},
+	"webhooks:replay":      {},
 	"recovery:read":        {},
 	"exports:read":         {},
 	"explainability:read":  {},
@@ -127,6 +137,9 @@ var allowedScopes = map[string]struct{}{
 	"funding:read":         {},
 	"funding:write":        {},
 	"funding:approve":      {},
+	"corrections:read":     {},
+	"corrections:write":    {},
+	"corrections:approve":  {},
 	BFFActorScope:          {},
 }
 

@@ -39,8 +39,8 @@ async function expectSafeCSV(response: APIResponse, family: "transfers" | "accou
   expect(response.headers()["cache-control"]).toContain("no-store");
   expect(response.headers()["content-type"]).toBe("text/csv; charset=utf-8");
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
-  expect(response.headers()["x-ledgersync-export-schema"]).toBe("1");
-  expect(response.headers()["content-disposition"]).toMatch(new RegExp(`^attachment; filename="ledgersync-${family}-[0-9]{8}T[0-9]{6}Z-v1\\.csv"$`));
+  expect(response.headers()["x-ledgersync-export-schema"]).toBe("2");
+  expect(response.headers()["content-disposition"]).toMatch(new RegExp(`^attachment; filename="ledgersync-${family}-[0-9]{8}T[0-9]{6}Z-v2\\.csv"$`));
   const body = await response.text();
   expect(body.startsWith(header), `${family} export header`).toBe(true);
   for (const identifier of identifiers) expect(body, `${family} export identifier ${identifier}`).toContain(`"${identifier}"`);
@@ -514,13 +514,13 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     await expectSafeCSV(
       await page.request.get(`${run.baseURL}/api/exports/transfers.csv?q=${fundingTransfer.transferID}&status=posted&limit=10`),
       "transfers",
-      '"schema_version","transfer_id","source_account_id","destination_account_id","amount_minor","currency","financial_status","delivery_status","created_at_utc","completed_at_utc","journal_transaction_id","rejection_code"',
+      '"schema_version","transfer_id","source_account_id","destination_account_id","amount_minor","currency","financial_status","delivery_status","created_at_utc","completed_at_utc","journal_transaction_id","rejection_code","correction_id","correction_status","correction_role","original_transfer_id","compensation_transfer_id","original_journal_id","compensation_journal_id"',
       [fundingTransfer.transferID, fundingTransfer.sourceAccountID, fundingTransfer.destinationAccountID, "100", "INR"],
     );
     await expectSafeCSV(
       await page.request.get(`${run.baseURL}/api/exports/accounts/${accountID}/transactions.csv?limit=100`),
       "account-ledger",
-      '"schema_version","transfer_id","direction","amount_minor","currency","status","occurred_at_utc"',
+      '"schema_version","transfer_id","direction","amount_minor","currency","status","occurred_at_utc","correction_id","correction_status","correction_role","original_transfer_id","compensation_transfer_id"',
       [fundingTransfer.transferID, returnTransfer.transferID, "100", "INR"],
     );
     await expectSafeCSV(

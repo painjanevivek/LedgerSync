@@ -16,6 +16,21 @@ The implementation must preserve the defining product promise:
 
 > Every transfer is exact, explainable, and visible when it matters.
 
+### Execution status — 2026-08-28
+
+| Phase | Status | Evidence |
+|---|---|---|
+| 0 — canonical baseline | Complete | `docs/release-evidence/master-phase-0-baseline.md` |
+| 1 — green quality gates | Complete | `docs/release-evidence/master-phase-1-quality.md` |
+| 2 — deterministic local runtime | Complete | `docs/release-evidence/master-phase-2-local-runtime.md` |
+| 3 — truthful dependency-aware UI | Complete | `docs/release-evidence/master-phase-3-ui-truthfulness.md` |
+| 4 — guided first-run journey | Complete | `docs/release-evidence/master-phase-4-onboarding-foundation.md` |
+| 5 — controlled funding journals | Complete | `docs/release-evidence/master-phase-5-controlled-funding.md` |
+| 6 — correction and approval controls | Complete | `docs/release-evidence/master-phase-6-correction-controls.md` |
+| 7 — API-first developer product | Active | Implementation follows Phase 6 exact-commit qualification. |
+
+Later phases remain pending in the dependency order below. A phase is marked complete only when its repository-supported exit gate has durable evidence; provider, legal, partner, and production approvals remain explicit manual gates.
+
 ## 2. Current verified position
 
 LedgerSync already contains substantial working foundations:

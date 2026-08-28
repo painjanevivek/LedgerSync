@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"strings"
+	"time"
 )
 
 // DevelopmentProvider exists only for explicit local development. Production
@@ -31,5 +32,5 @@ func (p DevelopmentProvider) Authenticate(_ context.Context, credential string) 
 	for _, scope := range p.Scopes {
 		scopes[scope] = struct{}{}
 	}
-	return Principal{SubjectID: p.SubjectID, TenantID: p.TenantID, Roles: roles, Scopes: scopes}, nil
+	return Principal{SubjectID: p.SubjectID, TenantID: p.TenantID, Roles: roles, Scopes: scopes, AuthenticatedAt: time.Now().UTC()}, nil
 }

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	appfunding "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	accountdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
@@ -353,6 +354,82 @@ func TestAccountLifecycleCloseRulesVersionAndTenantBoundary(t *testing.T) {
 	}
 	if got := countRows(t, database, `SELECT count(*) FROM accounts WHERE tenant_id=$1`, otherTenant); got != 0 {
 		t.Fatalf("cross-tenant account count=%d, want zero", got)
+	}
+}
+
+func TestAccountClosureBlocksObligationsAndPreservesSettledHistory(t *testing.T) {
+	service, database := requireAccountCommandService(t)
+	ctx := context.Background()
+	seedINRAccountCommandFixture(t, database)
+	if _, err := database.ExecContext(ctx, `INSERT INTO account_credit_permissions(tenant_id,account_id,subject_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`, testTenantID, testSourceID, testActorID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,$2,'finance') ON CONFLICT DO NOTHING`, testTenantID, testActorID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_funding_policies(tenant_id,currency,mode,finance_activated,policy_version,per_command_minor,operator_rolling_24h_minor,tenant_rolling_24h_minor) VALUES($1,'INR','local_demo_single_operator',false,1,100000,200000,500000)`, testTenantID); err != nil {
+		t.Fatal(err)
+	}
+	pendingTarget, err := service.Create(ctx, createAccountCommand("account-create-obligation-01", "pending-obligation"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingRepository, err := db.NewFundingRepository(database, func() time.Time { return accountCommandTime })
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingService, err := appfunding.NewService(fundingRepository, appfunding.PolicyLocalDemoSingleOperator, func() time.Time { return accountCommandTime })
+	if err != nil {
+		t.Fatal(err)
+	}
+	amount, _ := money.New("INR", 100)
+	if _, err = fundingService.Request(ctx, appfunding.RequestCommand{
+		TenantID: testTenantID, ActorSubjectID: testActorID, DestinationAccountID: pendingTarget.Result.AccountID,
+		Amount: amount, ExternalReference: "pending-close-evidence", EvidenceReference: "evidence://pending-close",
+		IdempotencyKey: "funding-close-obligation-01", CorrelationID: "00000000-0000-0000-0000-000000000099",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	closePending := accounts.ChangeAccountStatusCommand{TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099", IdempotencyKey: "account-close-obligation-01", AccountID: pendingTarget.Result.AccountID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed, Reason: "Closure must wait for pending funding evidence"}
+	if _, err = service.ChangeStatus(ctx, closePending); !errors.Is(err, accounts.ErrOperationalObligations) {
+		t.Fatalf("pending obligation close error=%v", err)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM audit_events WHERE target_id=$1 AND sanitized_metadata->>'denial_code'='operational_obligations'`, pendingTarget.Result.AccountID); got != 1 {
+		t.Fatalf("operational obligation denial audits=%d, want one", got)
+	}
+
+	settled, err := service.Create(ctx, createAccountCommand("account-create-history-01", "settled-history"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	transferRepository, err := db.NewTransferRepository(database, func() time.Time { return accountCommandTime })
+	if err != nil {
+		t.Fatal(err)
+	}
+	transferRepository.WithPilotCurrency("INR")
+	transferService, err := transfers.NewService(transferRepository, func() time.Time { return accountCommandTime })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []transfers.Command{
+		{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: testSourceID, CreditAccountID: settled.Result.AccountID, Amount: amount, IdempotencyKey: "closed-history-transfer-01", CorrelationID: "00000000-0000-0000-0000-000000000099"},
+		{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: settled.Result.AccountID, CreditAccountID: testSourceID, Amount: amount, IdempotencyKey: "closed-history-transfer-02", CorrelationID: "00000000-0000-0000-0000-000000000099"},
+	} {
+		if _, err = transferService.Submit(ctx, command); err != nil {
+			t.Fatal(err)
+		}
+	}
+	closed, err := service.ChangeStatus(ctx, accounts.ChangeAccountStatusCommand{TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099", IdempotencyKey: "account-close-history-01", AccountID: settled.Result.AccountID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed, Reason: "Settled account retention proof"})
+	if err != nil || closed.Result.Status != "closed" {
+		t.Fatalf("closed=%#v err=%v", closed, err)
+	}
+	historyRepository, err := db.NewTransactionHistoryRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	history, _, err := historyRepository.ListAccountHistory(ctx, testTenantID, testActorID, settled.Result.AccountID, "", 10)
+	if err != nil || len(history) != 2 {
+		t.Fatalf("closed account history=%#v err=%v", history, err)
 	}
 }
 

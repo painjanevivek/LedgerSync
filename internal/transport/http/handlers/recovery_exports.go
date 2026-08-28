@@ -167,7 +167,7 @@ func (h *RecoveryExportHandler) streamCSV(writer http.ResponseWriter, request *h
 		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "export_unavailable", Message: "The export could not establish required audit evidence."})
 		return
 	}
-	filename := "ledgersync-" + filenameFamily + "-" + h.clock().UTC().Format("20060102T150405Z") + "-v1.csv"
+	filename := "ledgersync-" + filenameFamily + "-" + h.clock().UTC().Format("20060102T150405Z") + "-v" + appexports.SchemaVersion + ".csv"
 	destination := newDelayedCSVWriter(writer, filename, rowLimit)
 	ctx, cancel := context.WithTimeout(request.Context(), exportDeadline)
 	defer cancel()

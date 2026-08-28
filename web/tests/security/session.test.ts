@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { NextRequest, NextResponse } from "next/server";
 
+import { createLocalSession } from "../../src/lib/local-access";
 import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF, hasValidHost, readPublicOrigin } from "../../src/lib/security";
 import { createSession, readSession, sessionCookie, type Session } from "../../src/lib/session";
 import { readTransaction, transactionCookie } from "../../src/lib/oidc";
@@ -41,6 +42,13 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
     if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
     if (previousDeployment === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV; else process.env.LEDGERSYNC_DEPLOYMENT_ENV = previousDeployment;
   }
+});
+
+test("signed sessions preserve the complete bounded operator scope set", () => {
+  const localSession = createLocalSession({ enabled: true, environment: "development", subjectId: "operator-a", tenantId: "tenant-a" });
+  assert.equal(localSession.scopes?.length, 25);
+  assert.deepEqual(readSession(createSession(localSession))?.scopes, localSession.scopes);
+  assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 33 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
 });
 
 test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts", () => {
@@ -109,6 +117,19 @@ test("the production CSP uses a per-request nonce instead of unsafe inline scrip
   const csp = contentSecurityPolicy("test-nonce");
   assert.match(csp, /script-src 'self' 'nonce-test-nonce'/);
   assert.doesNotMatch(csp, /unsafe-inline/);
+});
+
+test("security headers expose a server-owned sandbox or production mode", () => {
+  const original = process.env.LEDGERSYNC_DEPLOYMENT_ENV;
+  try {
+    process.env.LEDGERSYNC_DEPLOYMENT_ENV = "development";
+    assert.equal(addSecurityHeaders(NextResponse.json({ ok: true })).headers.get("x-ledgersync-mode"), "sandbox");
+    process.env.LEDGERSYNC_DEPLOYMENT_ENV = "production";
+    assert.equal(addSecurityHeaders(NextResponse.json({ ok: true })).headers.get("x-ledgersync-mode"), "production");
+  } finally {
+    if (original === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV;
+    else process.env.LEDGERSYNC_DEPLOYMENT_ENV = original;
+  }
 });
 
 test("OIDC transaction cookies reject tampering and expired authorizations", () => {

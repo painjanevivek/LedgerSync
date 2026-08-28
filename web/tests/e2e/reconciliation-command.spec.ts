@@ -167,7 +167,7 @@ test("polling stops at its fixed deadline and manual refresh remains single-flig
 
 test("read-only and offline operators retain history without an enabled run action", async ({ page, context }) => {
   await mockOperatorConsole(page);
-  await page.route("**/api/session", (route) => json(route, { subject_id: "reader", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["reconciliation:read"], environment: "demo" }));
+  await page.route("**/api/session", (route) => json(route, { subject_id: "reader", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["reconciliation:read"], environment: "local" }));
   await page.goto("/reconciliation");
   const action = page.getByRole("button", { name: "Run reconciliation", exact: true });
   await expect(action).toBeDisabled();

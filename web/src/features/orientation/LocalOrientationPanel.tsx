@@ -12,7 +12,7 @@ type StepCopy = Readonly<{ title: string; description: string; href?: string; co
 const stepCopy: Record<OrientationStep["id"], StepCopy> = {
   confirm_health: { title: "Confirm local system health", description: "Check each dependency before treating financial evidence as current.", href: "/local-status", confirmation: "I checked current health" },
   understand_authority: { title: "Understand the authority boundary", description: "PostgreSQL owns ledger truth. Redis is disposable acceleration, never financial authority.", confirmation: "I understand the boundary" },
-  inspect_accounts: { title: "Inspect demo accounts", description: "Read an authorized account's exact INR balance and immutable history.", href: "/accounts", confirmation: "I inspected the account" },
+  inspect_accounts: { title: "Inspect your accounts", description: "Read an authorized account's exact INR balance and immutable history.", href: "/accounts", confirmation: "I inspected the account" },
   create_account: { title: "Create a zero-balance account", description: "Create an active INR account; value must enter through an approved ledger event.", href: "/accounts/new?return_to=%2Faccounts" },
   fund_account: { title: "Fund through an approved ledger event", description: "Record external value evidence, obtain the required finance decision, and post one balanced journal.", href: "/funding" },
   post_transfer: { title: "Transfer an exact amount", description: "Move integer minor units between eligible same-currency accounts.", href: "/transfers" },
@@ -97,7 +97,7 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
       <div><p className="eyebrow">Local operator journey / {completedCount} of 12 complete</p><h2 id="local-orientation-title">Follow one INR ledger record from system health to recovery</h2><p>Each green state names its source: authoritative stored evidence or an explicit operator confirmation. They are never interchangeable.</p></div>
       <button className="orientation-dismiss" type="button" disabled={!writable} aria-describedby={!writable ? "orientation-preference-help" : undefined} onClick={() => void setDismissed(true)} aria-label="Dismiss setup guide"><X aria-hidden="true" /></button>
     </header>
-    <div className="orientation-boundary" aria-label="Local demo boundaries">
+    <div className="orientation-boundary" aria-label="Local workspace boundaries">
       <div><strong>Currency</strong><span>INR only</span></div><div><strong>Movement</strong><span>Authorized internal accounts</span></div><div><strong>Authority</strong><span>PostgreSQL ledger</span></div><div><strong>Cache</strong><span>Redis is disposable</span></div>
     </div>
     {!canRead ? <div className="orientation-state"><WarningCircle weight="fill" aria-hidden="true"/><p><strong>Checklist permission required</strong><span>The guide remains readable, but durable progress needs the local:read scope.</span></p></div>

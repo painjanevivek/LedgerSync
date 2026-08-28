@@ -1,15 +1,15 @@
-# Isolated operator demo environment
+# Local operator workspace
 
-The local Compose profile uses a deterministic demo tenant in PostgreSQL and the same signed session, CSRF, actor assertion, BFF, API authorization, exact-money, and ledger paths as an OIDC-backed operator after identity creation.
+The local Compose profile starts as a clean operator workspace. It creates only the local tenant, operator roles, and required policies; it does not create accounts, balances, journals, transfers, or reconciliation evidence. The browser uses the same signed session, CSRF, actor assertion, BFF, API authorization, exact-money, and ledger paths as an OIDC-backed operator after identity creation.
 
 ## Safety boundary
 
-- Demo mode is enabled only by `LEDGERSYNC_DEMO_MODE=true` on the server.
-- `LEDGERSYNC_DEPLOYMENT_ENV=production` rejects all demo identity/seed configuration during server registration.
-- The browser cannot select or enable a demo identity.
-- The demo tenant and subject are fixed only inside local Compose.
-- Demo records are non-production and are labelled in the persistent shell.
-- Absence of OIDC or demo configuration renders an authentication-unavailable state with no invented balances.
+- One-click local login is enabled only when `LEDGERSYNC_LOCAL_LOGIN_ENABLED=true`, the application is running in development, and the request comes from a loopback host.
+- `LEDGERSYNC_DEPLOYMENT_ENV=production` rejects local identity configuration during server registration.
+- The browser cannot select or forge a local identity. The server creates a short-lived signed session for the fixed local operator.
+- A signed-out browser renders only the login layer and no financial evidence.
+- The clean workspace never invents balances, reconciliation results, transfers, or delivery outcomes.
+- OIDC remains the production authentication path.
 
 ## Start locally
 
@@ -19,6 +19,15 @@ From the repository root:
 docker compose -f deploy/compose/docker-compose.yml up --build
 ```
 
-The `migrate` one-shot service applies versioned schema changes. The `demo-seed` one-shot service then idempotently seeds six categorized INR accounts, posted/rejected transfers, ledger postings, an empty-history account, a frozen account, and matched/mismatch reconciliation evidence. API and web services start only after this sequence succeeds.
+The `migrate` one-shot service applies versioned schema changes. The initialization service then applies `local-bootstrap.sql`, which idempotently creates the local identity boundary and policies without financial records. API and web services start only after this sequence succeeds.
 
-Reset only the disposable local environment by explicitly removing the Compose volumes, then starting the stack again. Never reuse the demo tenant, credentials, cookies, or database in a shared or production environment.
+To replace an older demo-initialized volume with a clean workspace, run:
+
+```powershell
+.\scripts\reset-local.ps1 -Confirmation 'DELETE LEDGERSYNC LOCAL DATA' -InitializationMode empty
+.\scripts\start-local.ps1
+```
+
+This reset deletes the disposable local database volume. Never use the local tenant, credentials, cookies, or database in a shared or production environment.
+
+Legacy deterministic fixtures remain available only when explicitly requested for the retry/fault lab. They are not part of the normal product path or a fresh local start.

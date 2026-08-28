@@ -189,15 +189,24 @@ func TestNamedOpenAPIExamplesValidateAgainstTheirSchemas(t *testing.T) {
 	}
 }
 
-func TestDeveloperContractSurfaceHasNoRunnerOrCredentialEndpoint(t *testing.T) {
+func TestDeveloperContractSurfaceHasNoRunnerOrRawCredentialEndpoint(t *testing.T) {
 	document := loadOpenAPIDocument(t)
 	paths := objectAt(t, document, "paths")
+	credentialPaths := map[string]bool{
+		"/developer/credentials":                            true,
+		"/developer/credentials/{credentialId}":             true,
+		"/developer/credentials/{credentialId}/rotations":   true,
+		"/developer/credentials/{credentialId}/revocations": true,
+	}
 	for path, rawPathItem := range paths {
 		lower := strings.ToLower(path)
-		for _, forbidden := range []string{"credential", "token", "secret", "execute", "request-runner", "proxy"} {
+		for _, forbidden := range []string{"token", "secret", "execute", "request-runner", "proxy", "reveal"} {
 			if strings.Contains(lower, forbidden) {
 				t.Errorf("OpenAPI exposes forbidden developer surface %q", path)
 			}
+		}
+		if strings.Contains(lower, "credential") && !credentialPaths[path] {
+			t.Errorf("OpenAPI exposes an unreviewed credential surface %q", path)
 		}
 		if path == "/developer/metadata" || path == "/openapi.yaml" {
 			for method := range asObject(t, rawPathItem) {

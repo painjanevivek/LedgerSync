@@ -165,9 +165,10 @@ try {
     Invoke-LedgerSyncWebSmoke
 
     $session = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+    Initialize-LedgerSyncLocalWebSession -Session $session
     $sessionPayload = Invoke-LedgerSyncAcceptanceGET -Session $session -Path "/api/session"
     $csrf = [string]$sessionPayload.csrf_token
-    Assert-RetryLab ($csrf.Length -ge 32 -and [string]$sessionPayload.tenant_id -ceq $tenantID) "Retry lab demo session is invalid."
+    Assert-RetryLab ($csrf.Length -ge 32 -and [string]$sessionPayload.tenant_id -ceq $tenantID) "Retry lab local session is invalid."
     $body = [ordered]@{
         sourceAccountId = $sourceAccountID
         destinationAccountId = $destinationAccountID

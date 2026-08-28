@@ -26,8 +26,8 @@ INSERT INTO tenants (id, external_reference) VALUES ('00000000-0000-4000-8000-00
 
 INSERT INTO tenant_subject_roles (tenant_id,subject_id,role)
 VALUES
-  ('00000000-0000-4000-8000-000000000001','demo-operator','operator'),
-  ('00000000-0000-4000-8000-000000000001','demo-operator','finance')
+  ('00000000-0000-4000-8000-000000000001','local-user','operator'),
+  ('00000000-0000-4000-8000-000000000001','local-user','finance')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO tenant_funding_policies(
@@ -68,11 +68,11 @@ INSERT INTO accounts (id, tenant_id, currency, status, display_name, category, e
 ON CONFLICT (id) DO UPDATE SET display_name=EXCLUDED.display_name, category=EXCLUDED.category, external_reference=EXCLUDED.external_reference;
 
 INSERT INTO account_owners (tenant_id, account_id, subject_id, permission)
-SELECT '00000000-0000-4000-8000-000000000001', id, 'demo-operator', CASE WHEN status='active' THEN 'debit' ELSE 'read' END FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND account_kind='customer'
+SELECT '00000000-0000-4000-8000-000000000001', id, 'local-user', CASE WHEN status='active' THEN 'debit' ELSE 'read' END FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND account_kind='customer'
 ON CONFLICT (account_id, subject_id) DO NOTHING;
 
 INSERT INTO account_credit_permissions (tenant_id,account_id,subject_id)
-SELECT '00000000-0000-4000-8000-000000000001',id,'demo-operator' FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND status='active' AND account_kind='customer'
+SELECT '00000000-0000-4000-8000-000000000001',id,'local-user' FROM accounts WHERE tenant_id='00000000-0000-4000-8000-000000000001' AND status='active' AND account_kind='customer'
 ON CONFLICT (account_id,subject_id) DO NOTHING;
 
 INSERT INTO account_balance_projections (account_id, available_minor, ledger_minor, balance_version, updated_at) VALUES
@@ -96,11 +96,11 @@ ON CONFLICT (account_id) DO NOTHING;
 BEGIN;
 SET CONSTRAINTS transfers_journal_transaction_fk DEFERRED;
 INSERT INTO transfers (id,tenant_id,actor_subject_id,debit_account_id,credit_account_id,amount_minor,currency,status,journal_transaction_id,created_at,completed_at) VALUES
- ('20000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','demo-operator','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000004',1250000,'INR','posted','30000000-0000-4000-8000-000000000001','2026-08-20T11:58:30Z','2026-08-20T11:58:34Z'),
- ('20000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001','demo-operator','10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001',2500000,'INR','posted','30000000-0000-4000-8000-000000000002','2026-08-20T11:47:10Z','2026-08-20T11:47:12Z')
+ ('20000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','local-user','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000004',1250000,'INR','posted','30000000-0000-4000-8000-000000000001','2026-08-20T11:58:30Z','2026-08-20T11:58:34Z'),
+ ('20000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001','local-user','10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000001',2500000,'INR','posted','30000000-0000-4000-8000-000000000002','2026-08-20T11:47:10Z','2026-08-20T11:47:12Z')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO transfers (id,tenant_id,actor_subject_id,debit_account_id,credit_account_id,amount_minor,currency,status,rejection_code,created_at,completed_at) VALUES
- ('20000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000001','demo-operator','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000005',385000,'INR','rejected','account_inactive','2026-08-20T10:22:39Z','2026-08-20T10:22:41Z')
+ ('20000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000001','local-user','10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000005',385000,'INR','rejected','account_inactive','2026-08-20T10:22:39Z','2026-08-20T10:22:41Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO journal_transactions (id,tenant_id,transfer_id,occurred_at) VALUES
