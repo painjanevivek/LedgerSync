@@ -226,7 +226,7 @@ func (r *GuidanceRepository) journalEvidence(ctx context.Context, tenantID, tran
 
 func (r *GuidanceRepository) outboxEvidence(ctx context.Context, tenantID, transferID string) (guidance.EvidenceLink, guidance.EvidenceLink) {
 	rows, err := r.database.QueryContext(ctx, `
-SELECT id::text,event_type,account_id::text,aggregate_version::text,
+SELECT id::text,event_type,COALESCE(account_id::text,''),aggregate_version::text,
  CASE WHEN published_at IS NOT NULL THEN 'published' WHEN dead_at IS NOT NULL THEN 'dead' WHEN last_error_code IS NOT NULL AND attempt_count>0 THEN 'retrying' ELSE 'pending' END,
  occurred_at
 FROM outbox_events WHERE tenant_id=$1 AND transfer_id=$2 ORDER BY occurred_at,id LIMIT $3`, tenantID, transferID, maxTimelineOutbox+1)

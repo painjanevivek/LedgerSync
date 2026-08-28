@@ -24,7 +24,7 @@ func TestAcceptedTransferCommitsCompleteFinancialEvidenceTogether(t *testing.T) 
 		{"credit", `SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.transfer_id=$1 AND p.direction='credit'`, 1},
 		{"audit", `SELECT count(*) FROM audit_events WHERE target_id=$1 AND event_type='transfer.posted' AND outcome='succeeded'`, 1},
 		{"idempotency outcome", `SELECT count(*) FROM idempotency_requests WHERE transfer_id=$1 AND state='completed' AND response_status=201`, 1},
-		{"outbox events", `SELECT count(*) FROM outbox_events WHERE transfer_id=$1`, 2},
+		{"outbox events", `SELECT count(*) FROM outbox_events WHERE transfer_id=$1`, 3},
 		{"velocity event", `SELECT count(*) FROM transfer_velocity_events WHERE transfer_id=$1`, 1},
 	}
 	for _, check := range checks {

@@ -33,10 +33,10 @@ func TestRetentionIsBoundedAndProtectsFinalEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dryRun.PublishedOutbox != 2 || dryRun.RetainedIdempotency != 1 || dryRun.ExpiredRates != 1 {
+	if dryRun.PublishedOutbox != 3 || dryRun.RetainedIdempotency != 1 || dryRun.ExpiredRates != 1 {
 		t.Fatalf("unexpected dry-run counts: %+v", dryRun)
 	}
-	if countRows(t, database, `SELECT count(*) FROM outbox_events`) != 2 {
+	if countRows(t, database, `SELECT count(*) FROM outbox_events`) != 3 {
 		t.Fatal("dry-run changed outbox state")
 	}
 	applied, err := repository.Run(ctx, policy, true, "00000000-0000-0000-0000-000000000202")
@@ -46,7 +46,7 @@ func TestRetentionIsBoundedAndProtectsFinalEvidence(t *testing.T) {
 	if applied.PublishedOutbox != 1 || applied.RetainedIdempotency != 1 || applied.ExpiredRates != 1 {
 		t.Fatalf("unexpected apply counts: %+v", applied)
 	}
-	if countRows(t, database, `SELECT count(*) FROM outbox_events`) != 1 || countRows(t, database, `SELECT count(*) FROM idempotency_requests`) != 1 || countRows(t, database, `SELECT count(*) FROM api_rate_limit_windows`) != 0 {
+	if countRows(t, database, `SELECT count(*) FROM outbox_events`) != 2 || countRows(t, database, `SELECT count(*) FROM idempotency_requests`) != 1 || countRows(t, database, `SELECT count(*) FROM api_rate_limit_windows`) != 0 {
 		t.Fatal("retention did not delete only eligible disposable rows")
 	}
 	if countRows(t, database, `SELECT count(*) FROM retention_runs`) != 2 || countRows(t, database, `SELECT count(*) FROM audit_events WHERE event_type='retention.completed'`) != 2 {
