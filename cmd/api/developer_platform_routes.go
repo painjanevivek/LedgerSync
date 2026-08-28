@@ -46,5 +46,32 @@ func registerDeveloperPlatformRoutes(router *http.ServeMux, config developerPlat
 	router.HandleFunc("GET /api/developer/credentials/{credentialId}", handler.Get)
 	router.HandleFunc("POST /api/developer/credentials/{credentialId}/rotations", handler.Rotate)
 	router.HandleFunc("POST /api/developer/credentials/{credentialId}/revocations", handler.Revoke)
+
+	webhookRepository, err := db.NewDeveloperWebhookRepository(config.Database, nil)
+	if err != nil {
+		return err
+	}
+	deliveryReplayRepository, err := db.NewDeliveryReplayRepository(config.Database, nil)
+	if err != nil {
+		return err
+	}
+	webhookService, err := developerplatform.NewWebhookService(webhookRepository, deliveryReplayRepository, config.Environment, nil, nil)
+	if err != nil {
+		return err
+	}
+	webhookHandler := handlers.NewDeveloperWebhookHandler(webhookService, config.Identity).
+		WithRequestAuthenticator(config.Authenticator).
+		WithRateLimiter(config.RateLimiter, config.ReadRatePerMinute, config.WriteRatePerMinute, config.CapacityLimitPerSecond).
+		WithAuditRecorder(config.AuditRecorder).
+		WithProductionStepUp(config.Environment != "development")
+	router.HandleFunc("POST /api/developer/webhooks", webhookHandler.Register)
+	router.HandleFunc("GET /api/developer/webhooks", webhookHandler.List)
+	router.HandleFunc("GET /api/developer/webhooks/{webhookId}", webhookHandler.Get)
+	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/verifications", webhookHandler.Verify)
+	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/signature-rotations", webhookHandler.Rotate)
+	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/disablements", webhookHandler.Disable)
+	router.HandleFunc("GET /api/developer/webhooks/{webhookId}/deliveries", webhookHandler.Deliveries)
+	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", webhookHandler.ApproveReplay)
+	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", webhookHandler.Replay)
 	return nil
 }

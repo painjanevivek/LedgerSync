@@ -154,7 +154,7 @@ AND ($4::timestamptz IS NULL OR (updated_at,id)<($4,$5::uuid)) ORDER BY updated_
 	if err != nil {
 		return developerplatform.CredentialPage{}, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]developerplatform.Credential, 0, query.Limit+1)
 	for rows.Next() {
 		item, scanErr := scanDeveloperCredential(rows, now)

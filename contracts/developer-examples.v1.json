@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "1.13.0",
+  "contract_version": "1.14.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -109,6 +109,21 @@
         { "operation_id": "getDeveloperCredential", "method": "GET", "path": "/developer/credentials/{credentialId}", "scope": "credentials:read" },
         { "operation_id": "rotateDeveloperCredential", "method": "POST", "path": "/developer/credentials/{credentialId}/rotations", "scope": "credentials:write" },
         { "operation_id": "revokeDeveloperCredential", "method": "POST", "path": "/developer/credentials/{credentialId}/revocations", "scope": "credentials:write" }
+      ]
+    },
+    {
+      "id": "webhooks",
+      "label": "Webhook lifecycle",
+      "operations": [
+        { "operation_id": "listDeveloperWebhooks", "method": "GET", "path": "/developer/webhooks", "scope": "webhooks:read" },
+        { "operation_id": "registerDeveloperWebhook", "method": "POST", "path": "/developer/webhooks", "scope": "webhooks:write" },
+        { "operation_id": "getDeveloperWebhook", "method": "GET", "path": "/developer/webhooks/{webhookId}", "scope": "webhooks:read" },
+        { "operation_id": "verifyDeveloperWebhook", "method": "POST", "path": "/developer/webhooks/{webhookId}/verifications", "scope": "webhooks:write" },
+        { "operation_id": "rotateDeveloperWebhookSignature", "method": "POST", "path": "/developer/webhooks/{webhookId}/signature-rotations", "scope": "webhooks:write" },
+        { "operation_id": "disableDeveloperWebhook", "method": "POST", "path": "/developer/webhooks/{webhookId}/disablements", "scope": "webhooks:write" },
+        { "operation_id": "listDeveloperWebhookDeliveries", "method": "GET", "path": "/developer/webhooks/{webhookId}/deliveries", "scope": "webhooks:read" },
+        { "operation_id": "approveDeveloperWebhookReplay", "method": "POST", "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", "scope": "webhooks:replay" },
+        { "operation_id": "replayDeveloperWebhookDelivery", "method": "POST", "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", "scope": "webhooks:replay" }
       ]
     },
     {

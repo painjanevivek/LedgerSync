@@ -2,6 +2,13 @@
 
 All dates are UTC. Contract artifacts are reviewed and released together.
 
+## 1.14.0 — 2026-08-28
+
+- Added tenant-scoped webhook registration, verification, external signing-key rotation, disablement, and stable delivery history.
+- Added approval-backed replay scheduling that preserves dead attempts and requires requester-approver separation.
+- Production registration requires HTTPS; sandbox HTTP is restricted to loopback, and raw signing material is never accepted.
+- No operation is deprecated and no sunset is scheduled.
+
 ## 1.13.0 — 2026-08-28
 
 - Added tenant-scoped credential metadata create, list, detail, rotate, and revoke operations.

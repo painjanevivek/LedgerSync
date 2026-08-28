@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.13.0
+  version: 1.14.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -13,7 +13,7 @@ info:
 servers: [{ url: /api }]
 security: [{ bearerAuth: [], actorAssertion: [] }]
 x-ledgersync-lifecycle:
-  semantic_version: 1.13.0
+  semantic_version: 1.14.0
   supported_window: current minor and immediately preceding minor, with at least 180 days notice before sunset
   changelog: ./CHANGELOG.md
   policy: ./api-lifecycle-policy.md
@@ -688,6 +688,138 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks:
+    get:
+      operationId: listDeveloperWebhooks
+      x-required-scope: webhooks:read
+      summary: List stable, tenant-scoped webhook endpoint metadata.
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [pending_verification, active, disabled] } }
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200': { description: Stable webhook page., content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperWebhookPage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      operationId: registerDeveloperWebhook
+      x-required-scope: webhooks:write
+      summary: Register an HTTPS endpoint and issue a one-time verification challenge.
+      description: Production accepts HTTPS on the standard port; sandbox additionally permits loopback HTTP. Query strings, URL credentials, signing secrets, and private keys are rejected. Unknown outcomes use the identical idempotency key; replayed responses intentionally do not reveal the challenge again.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterDeveloperWebhookRequest' } } } }
+      responses:
+        '201': { description: Registered endpoint and one-time challenge; the challenge is omitted on idempotent replay., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterDeveloperWebhookResponse' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks/{webhookId}:
+    get:
+      operationId: getDeveloperWebhook
+      x-required-scope: webhooks:read
+      summary: Read one tenant-owned webhook endpoint without signing material.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }]
+      responses:
+        '200': { description: Webhook endpoint metadata., content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperWebhook' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks/{webhookId}/verifications:
+    post:
+      operationId: verifyDeveloperWebhook
+      x-required-scope: webhooks:write
+      summary: Activate a pending endpoint with its unexpired one-time challenge.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/VerifyDeveloperWebhookRequest' } } } }
+      responses:
+        '200': { description: Verified endpoint or exact replay., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperWebhook' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks/{webhookId}/signature-rotations:
+    post:
+      operationId: rotateDeveloperWebhookSignature
+      x-required-scope: webhooks:write
+      summary: Replace the external signing-key reference using optimistic versioning.
+      description: LedgerSync records key-manager references and key IDs only. Raw signing keys never cross this boundary.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RotateDeveloperWebhookSignatureRequest' } } } }
+      responses:
+        '200': { description: Rotated endpoint metadata or exact replay., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperWebhook' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks/{webhookId}/disablements:
+    post:
+      operationId: disableDeveloperWebhook
+      x-required-scope: webhooks:write
+      summary: Disable future delivery while preserving endpoint and delivery history.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DisableDeveloperWebhookRequest' } } } }
+      responses:
+        '200': { description: Disabled endpoint metadata or exact replay., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperWebhook' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks/{webhookId}/deliveries:
+    get:
+      operationId: listDeveloperWebhookDeliveries
+      x-required-scope: webhooks:read
+      summary: List bounded delivery attempts with sanitized outcomes.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { in: query, name: status, schema: { type: string, enum: [pending, retrying, delivered, dead] } }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200': { description: Stable delivery page., content: { application/json: { schema: { $ref: '#/components/schemas/WebhookDeliveryPage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals:
+    post:
+      operationId: approveDeveloperWebhookReplay
+      x-required-scope: webhooks:replay
+      summary: Approve replay of one dead attempt under the request correlation ID.
+      description: The eventual replay must use the same X-Request-ID and a different authenticated actor.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/DeliveryAttemptID' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WebhookReplayApprovalRequest' } } } }
+      responses:
+        '201': { description: Immutable replay approval evidence., content: { application/json: { schema: { $ref: '#/components/schemas/WebhookReplayApproval' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/webhooks/{webhookId}/deliveries/{attemptId}/replays:
+    post:
+      operationId: replayDeveloperWebhookDelivery
+      x-required-scope: webhooks:replay
+      summary: Schedule a new attempt for an approved dead delivery.
+      description: Requires the approval correlation ID and an actor other than the approver. The dead attempt remains immutable.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/DeliveryAttemptID' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EmptyCommand' } } } }
+      responses:
+        '201': { description: Newly scheduled delivery attempt., content: { application/json: { schema: { $ref: '#/components/schemas/WebhookReplayResult' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
   /openapi.yaml:
     get:
       operationId: downloadOpenAPI
@@ -698,7 +830,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.13.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.14.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -718,6 +850,8 @@ components:
     CorrectionID: { in: path, name: correctionId, required: true, schema: { type: string, format: uuid } }
     RunID: { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
     CredentialID: { in: path, name: credentialId, required: true, schema: { type: string, format: uuid } }
+    WebhookID: { in: path, name: webhookId, required: true, schema: { type: string, format: uuid } }
+    DeliveryAttemptID: { in: path, name: attemptId, required: true, schema: { type: string, format: uuid } }
     Cursor: { in: query, name: cursor, schema: { type: string, maxLength: 512 } }
     Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
     ExportLimit: { in: query, name: limit, description: Maximum evidence rows; generation stops at this server-enforced bound., schema: { type: integer, minimum: 1, maximum: 10000, default: 10000 } }
@@ -782,6 +916,87 @@ components:
       properties:
         expected_version: { type: string, pattern: '^[1-9][0-9]*$' }
         reason: { type: string, minLength: 3, maxLength: 500 }
+    DeveloperWebhookEvent:
+      type: string
+      enum: [account.created, account.status_changed, correction.posted, funding.posted, reconciliation.completed, transfer.posted, transfer.rejected]
+    DeveloperWebhook:
+      type: object
+      additionalProperties: false
+      required: [webhook_id, display_name, endpoint_url, subscribed_events, signing_key_reference, signing_key_id, status, version, created_at, updated_at]
+      properties:
+        webhook_id: { type: string, format: uuid }
+        display_name: { type: string, minLength: 1, maxLength: 100 }
+        endpoint_url: { type: string, format: uri, maxLength: 2048 }
+        subscribed_events: { type: array, minItems: 1, maxItems: 32, uniqueItems: true, items: { $ref: '#/components/schemas/DeveloperWebhookEvent' } }
+        signing_key_reference: { type: string, minLength: 3, maxLength: 200, description: External key-manager reference; never signing material. }
+        signing_key_id: { type: string, minLength: 3, maxLength: 100 }
+        status: { type: string, enum: [pending_verification, active, disabled] }
+        version: { type: string, pattern: '^[1-9][0-9]*$' }
+        challenge_expires_at: { type: string, format: date-time }
+        verified_at: { type: string, format: date-time }
+        disabled_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    DeveloperWebhookPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties: { items: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/DeveloperWebhook' } }, next_cursor: { type: string, maxLength: 512 } }
+    RegisterDeveloperWebhookRequest:
+      type: object
+      additionalProperties: false
+      required: [display_name, endpoint_url, subscribed_events, signing_key_reference, signing_key_id]
+      properties:
+        display_name: { type: string, minLength: 1, maxLength: 100 }
+        endpoint_url: { type: string, format: uri, minLength: 8, maxLength: 2048 }
+        subscribed_events: { type: array, minItems: 1, maxItems: 32, uniqueItems: true, items: { $ref: '#/components/schemas/DeveloperWebhookEvent' } }
+        signing_key_reference: { type: string, minLength: 3, maxLength: 200 }
+        signing_key_id: { type: string, minLength: 3, maxLength: 100, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{2,99}$' }
+    RegisterDeveloperWebhookResponse:
+      type: object
+      additionalProperties: false
+      required: [webhook]
+      properties: { webhook: { $ref: '#/components/schemas/DeveloperWebhook' }, verification_challenge: { type: string, minLength: 32, maxLength: 255, description: Returned once on original registration and omitted on replay. } }
+    VerifyDeveloperWebhookRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_version, challenge]
+      properties: { expected_version: { type: string, pattern: '^[1-9][0-9]*$' }, challenge: { type: string, minLength: 32, maxLength: 255 } }
+    RotateDeveloperWebhookSignatureRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_version, signing_key_reference, signing_key_id]
+      properties: { expected_version: { type: string, pattern: '^[1-9][0-9]*$' }, signing_key_reference: { type: string, minLength: 3, maxLength: 200 }, signing_key_id: { type: string, minLength: 3, maxLength: 100, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{2,99}$' } }
+    DisableDeveloperWebhookRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_version, reason]
+      properties: { expected_version: { type: string, pattern: '^[1-9][0-9]*$' }, reason: { type: string, minLength: 3, maxLength: 500 } }
+    WebhookDelivery:
+      type: object
+      additionalProperties: false
+      required: [attempt_id, transfer_id, attempt_number, status, due_at, created_at]
+      properties:
+        attempt_id: { type: string, format: uuid }
+        transfer_id: { type: string, format: uuid }
+        outbox_event_id: { type: string, format: uuid }
+        attempt_number: { type: integer, minimum: 1 }
+        status: { type: string, enum: [pending, retrying, delivered, dead] }
+        response_class: { type: string, maxLength: 128 }
+        error_code: { type: string, maxLength: 128 }
+        due_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    WebhookDeliveryPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties: { items: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/WebhookDelivery' } }, next_cursor: { type: string, maxLength: 512 } }
+    WebhookReplayApprovalRequest: { type: object, additionalProperties: false, required: [reason_code], properties: { reason_code: { type: string, pattern: '^[a-z0-9_]{3,64}$' } } }
+    WebhookReplayApproval: { type: object, additionalProperties: false, required: [status], properties: { status: { type: string, const: approved } } }
+    WebhookReplayResult: { type: object, additionalProperties: false, required: [attempt_id, status], properties: { attempt_id: { type: string, format: uuid }, status: { type: string, const: pending } } }
+    EmptyCommand: { type: object, additionalProperties: false, maxProperties: 0 }
     Balance:
       type: object
       required: [account_id, currency, available_minor, ledger_minor, version, as_of]
