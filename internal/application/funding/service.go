@@ -70,23 +70,26 @@ type CompensationCommand struct {
 }
 
 type Event struct {
-	FundingEventID       string `json:"funding_event_id"`
-	Status               string `json:"status"`
-	DestinationAccountID string `json:"destination_account_id"`
-	SystemAccountID      string `json:"system_account_id,omitempty"`
-	Currency             string `json:"currency"`
-	AmountMinor          string `json:"amount_minor"`
-	ExternalReference    string `json:"external_reference"`
-	EvidenceReference    string `json:"evidence_reference"`
-	RequesterSubjectID   string `json:"requester_subject_id"`
-	ApproverSubjectID    string `json:"approver_subject_id,omitempty"`
-	DecisionReason       string `json:"decision_reason,omitempty"`
-	DemoPolicy           bool   `json:"demo_policy"`
-	JournalTransactionID string `json:"journal_transaction_id,omitempty"`
-	CompensationEventID  string `json:"compensation_event_id,omitempty"`
-	RequestedAt          string `json:"requested_at"`
-	UpdatedAt            string `json:"updated_at"`
-	BalanceVersion       string `json:"balance_version,omitempty"`
+	FundingEventID           string `json:"funding_event_id"`
+	Status                   string `json:"status"`
+	DestinationAccountID     string `json:"destination_account_id"`
+	SystemAccountID          string `json:"system_account_id,omitempty"`
+	Currency                 string `json:"currency"`
+	AmountMinor              string `json:"amount_minor"`
+	ExternalReference        string `json:"external_reference"`
+	EvidenceReference        string `json:"evidence_reference"`
+	RequesterSubjectID       string `json:"requester_subject_id"`
+	ApproverSubjectID        string `json:"approver_subject_id,omitempty"`
+	DecisionReason           string `json:"decision_reason,omitempty"`
+	DemoPolicy               bool   `json:"demo_policy"`
+	JournalTransactionID     string `json:"journal_transaction_id,omitempty"`
+	CompensationOfEventID    string `json:"compensation_of_event_id,omitempty"`
+	CompensationEventID      string `json:"compensation_event_id,omitempty"`
+	CompensationReasonCode   string `json:"compensation_reason_code,omitempty"`
+	CompensationOperatorNote string `json:"compensation_operator_note,omitempty"`
+	RequestedAt              string `json:"requested_at"`
+	UpdatedAt                string `json:"updated_at"`
+	BalanceVersion           string `json:"balance_version,omitempty"`
 }
 
 type Submission struct {

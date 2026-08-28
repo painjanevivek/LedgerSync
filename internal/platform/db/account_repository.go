@@ -65,7 +65,7 @@ SELECT a.id, a.version, a.currency, a.status, COALESCE(a.display_name, ''), COAL
 FROM accounts a
 JOIN account_owners owner ON owner.tenant_id = a.tenant_id AND owner.account_id = a.id
 JOIN account_balance_projections b ON b.account_id = a.id
-WHERE a.tenant_id = $1 AND owner.subject_id = $2 AND owner.permission IN ('read', 'debit')
+WHERE a.tenant_id = $1 AND a.account_kind='customer' AND owner.subject_id = $2 AND owner.permission IN ('read', 'debit')
 	AND ($3='' OR a.status=$3)
 	AND ($4='' OR COALESCE(a.category,'operating')=$4)
 	AND ($5='' OR lower(COALESCE(a.display_name,'')) LIKE lower($5)||'%' ESCAPE '\' OR lower(COALESCE(a.external_reference,'')) LIKE lower($5)||'%' ESCAPE '\' OR a.id::text=$5)
@@ -115,7 +115,7 @@ SELECT a.id,a.version,a.currency,a.status,COALESCE(a.display_name,''),COALESCE(a
 FROM accounts a
 JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id
 JOIN account_balance_projections b ON b.account_id=a.id
-WHERE a.tenant_id=$1 AND a.id=$2 AND owner.subject_id=$3 AND owner.permission IN ('read','debit')`, tenantID, accountID, actorID).Scan(&item.AccountID, &item.AccountVersion, &item.Currency, &item.Status, &item.DisplayName, &item.Category, &item.ExternalReference, &item.Balance.AvailableMinor, &item.Balance.LedgerMinor, &item.Balance.Version, &item.Balance.AsOf)
+WHERE a.tenant_id=$1 AND a.id=$2 AND a.account_kind='customer' AND owner.subject_id=$3 AND owner.permission IN ('read','debit')`, tenantID, accountID, actorID).Scan(&item.AccountID, &item.AccountVersion, &item.Currency, &item.Status, &item.DisplayName, &item.Category, &item.ExternalReference, &item.Balance.AvailableMinor, &item.Balance.LedgerMinor, &item.Balance.Version, &item.Balance.AsOf)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, accounts.ErrAccountNotFound
 	}
