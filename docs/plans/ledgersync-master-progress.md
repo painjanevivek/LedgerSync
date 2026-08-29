@@ -4,7 +4,7 @@
 
 **Established:** 2026-08-28
 
-**Current milestone:** API-first developer product
+**Current milestone:** API-first developer product and provider-led payout foundation
 
 **Current phase:** Phase 7 — complete the API-first developer product
 
@@ -32,7 +32,7 @@ This register is the single repository status source for the master plan. Earlie
 | M04 | Guided first-run journey | `COMPLETE` | M02, M03 | Product/web | [Exact-commit twelve-step server-owned onboarding foundation](../release-evidence/master-phase-4-onboarding-foundation.md) for `8800eaf`, completed by the qualified Phase 5 funding workflow and first-run financial evidence | Requalify whenever onboarding evidence, ordering, funding integration, recovery, or completion semantics change. |
 | M05 | Controlled funding journals | `COMPLETE` | M01–M04 | Financial engineering + finance | [Exact-commit Phase 5 controlled-funding evidence](../release-evidence/master-phase-5-controlled-funding.md) for `98ef566` | Keep production finance activation manual and requalify after any funding, policy, journal, reconciliation, or compensation change. |
 | M06 | Compensation and approvals | `COMPLETE` | M05 | Financial engineering + finance/security | [Exact-commit Phase 6 correction-control evidence](../release-evidence/master-phase-6-correction-controls.md) for `64d3fe8` | Requalify after any correction, approval, role-separation, step-up, export, or lifecycle-obligation change. |
-| M07 | API-first developer product | `ACTIVE` | M05, M06 | Developer platform | OpenAPI 1.14, safe local developer view, credential and webhook lifecycles, server-owned mode/correlation/version headers, lifecycle policy, generated TypeScript/Go catalogues, and Postman collection | Add real signed webhook delivery, complete multi-language integration recipes, bounded bulk provisioning, and exact-commit Phase 7 qualification. |
+| M07 | API-first developer product | `ACTIVE` | M05, M06 | Developer platform | OpenAPI 1.14, safe local developer view, credential and webhook lifecycles, server-owned mode/correlation/version headers, lifecycle policy, generated TypeScript/Go catalogues, and Postman collection | Complete multi-language recipes, bounded bulk provisioning, shared replay protection, server-initiated endpoint verification, and exact-commit Phase 7 qualification. |
 | M08 | Operator-console IA | `PARTIAL` | M03, M05–M07 | Product/operations | Accounts, transfers, reconciliation, events, recovery, developer, local status | Add funding, approvals, webhooks, administration, and standardized evidence/filter/export behavior. |
 | M09 | Unified design and accessibility | `PARTIAL` | M08 | Product design/accessibility | `DESIGN.md`, responsive tokens, automated browser/a11y/visual evidence | Extract shared primitives for both product surfaces and complete authorized physical-device/manual review. |
 | M10 | Separate public website | `PENDING` | M07, M09 | Product/marketing/legal | Product positioning exists in repository docs | Build `site/` with evidence-backed content, pilot request, trust/legal/accessibility pages, consent, abuse controls, and monitoring. |
@@ -43,6 +43,16 @@ This register is the single repository status source for the master plan. Earlie
 | M15 | Scale, resilience, backup, DR | `PARTIAL` | M12–M14 | Platform/operations/finance | Local 10,000-account, 25 TPS, fault, backup, restore, and reconciliation evidence | Prove managed load/fault behavior and provider-backed RDS PITR against the exact release candidate. |
 | M16 | Design-partner pilot | `EXTERNAL_GATE` | M05–M15 | Product/partner/operations | Partner templates and graduation gates only | Contract and provision 2–3 approved partners, operate staged traffic, and close or accept findings with named owners. |
 | M17 | Production release and operations | `EXTERNAL_GATE` | M16 | Product/release/operations/legal | Release workflow foundations only | Obtain go/no-go authority and execute staged production release with immutable traceability and ongoing reviews. |
+
+## Provider-led payout program
+
+The first external-money program is governed by the [provider-led payout
+production program](provider-led-payout-production-program.md). It is an
+engineering-planning boundary, not evidence that a payment provider, legal
+approval, AWS environment, or live payout path exists. The program starts with
+the shared platform controls in T122 and T123, then adds a separately modeled
+payout domain only after the provider/finance/legal stop-ship conditions are
+recorded.
 
 ## Previous-plan traceability
 
