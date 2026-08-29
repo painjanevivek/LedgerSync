@@ -228,7 +228,12 @@ func main() {
 			fundingHandler.WithAuditRecorder(auditRepository)
 			var authenticator *identity.RequestAuthenticator
 			if len(configuration.BFFAssertionSecret) >= 32 {
-				assertionConfig := identity.ActorAssertionConfig{Issuer: configuration.BFFAssertionIssuer, Audience: configuration.BFFAssertionAudience, CurrentKey: identity.ActorAssertionKey{ID: configuration.BFFAssertionKeyID, Secret: []byte(configuration.BFFAssertionSecret)}, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: identity.NewMemoryReplayGuard(100_000)}
+				replayGuard, guardErr := identity.NewPostgresReplayGuard(database, nil)
+				if guardErr != nil {
+					slog.Error("BFF actor assertion replay store initialization failed", "error", guardErr)
+					os.Exit(1)
+				}
+				assertionConfig := identity.ActorAssertionConfig{Issuer: configuration.BFFAssertionIssuer, Audience: configuration.BFFAssertionAudience, CurrentKey: identity.ActorAssertionKey{ID: configuration.BFFAssertionKeyID, Secret: []byte(configuration.BFFAssertionSecret)}, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: replayGuard}
 				if configuration.BFFAssertionPreviousSecret != "" {
 					assertionConfig.PreviousKey = &identity.ActorAssertionKey{ID: configuration.BFFAssertionPreviousKeyID, Secret: []byte(configuration.BFFAssertionPreviousSecret)}
 				}

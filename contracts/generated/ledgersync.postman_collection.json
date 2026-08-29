@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.15.0",
-    "_postman_id": "ledgersync-d277b96a-e46ef420-ccee42c8"
+    "version": "2.0.0",
+    "_postman_id": "ledgersync-43d791f6-702e8bb3-13928e8b"
   },
   "variable": [
     {
@@ -954,27 +954,6 @@
           }
         ],
         "url": "{{baseUrl}}/local/orientation/preferences"
-      }
-    },
-    {
-      "name": "verifyDeveloperWebhook",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{bearerToken}}"
-          },
-          {
-            "key": "X-LedgerSync-Actor-Assertion",
-            "value": "{{actorAssertion}}"
-          },
-          {
-            "key": "Idempotency-Key",
-            "value": "example-verifyDeveloperWebhook-key"
-          }
-        ],
-        "url": "{{baseUrl}}/developer/webhooks/{webhookId}/verifications"
       }
     }
   ]

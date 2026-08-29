@@ -15,6 +15,17 @@ LedgerSync uses managed secret references in production. Environment variables a
 
 `scripts/start-local.ps1` generates eight independent 32-byte values for the PostgreSQL owner, the least-privilege API and worker database logins, API session state, consistency proofs, BFF actor assertions, web sessions, and the development private-API credential. They are stored as 64-character hexadecimal values in ignored `data/local-runtime/runtime.env`. On Windows, inherited ACLs are removed and the current user receives the file permission. Values are never printed by the startup, status, bounded-log, backup, or security-evidence commands.
 
+## Production webhook keys
+
+The worker resolves each registered `signing_key_reference` from AWS Secrets
+Manager with its EC2 IAM role. The secret value must be base64 for a 32–8192
+byte HMAC key (or a binary value of that size). Production rejects
+`LEDGERSYNC_WEBHOOK_SIGNING_KEYS_JSON`; that map is local development only.
+The worker holds keys in a five-minute, 128-entry maximum cache. Rotate by
+registering the next secret reference/key ID, retaining the prior provider
+receiver key through the agreed delivery overlap, then revoke the old key only
+after the delivery/replay retention window and reconciliation review.
+
 On the first start against an older local stack, the script preserves every existing credential and appends independent API and worker database passwords before the migration job idempotently creates or rotates their LOGIN roles. The owner remains confined to one-shot migration, role provisioning, demo seed, and host recovery. Named-volume data is preserved. If a PostgreSQL volume exists but its matching container is missing, startup fails instead of guessing or resetting data.
 
 Deleting `runtime.env` is a credential-rotation operation, not ordinary cleanup. Stop the stack first and preserve the matching PostgreSQL container so the next start can rotate the database role safely.

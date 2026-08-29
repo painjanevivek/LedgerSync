@@ -52,10 +52,6 @@ type webhookRegisterRequest struct {
 	SigningKeyReference string   `json:"signing_key_reference"`
 	SigningKeyID        string   `json:"signing_key_id"`
 }
-type webhookVerifyRequest struct {
-	ExpectedVersion string `json:"expected_version"`
-	Challenge       string `json:"challenge"`
-}
 type webhookRotateRequest struct {
 	ExpectedVersion     string `json:"expected_version"`
 	SigningKeyReference string `json:"signing_key_reference"`
@@ -87,11 +83,7 @@ func (h *DeveloperWebhookHandler) Register(w http.ResponseWriter, r *http.Reques
 	if submission.Replayed {
 		w.Header().Set("Idempotent-Replay", "true")
 	}
-	response := struct {
-		Webhook               developerplatform.Webhook `json:"webhook"`
-		VerificationChallenge string                    `json:"verification_challenge,omitempty"`
-	}{submission.Webhook, submission.Challenge}
-	writeDeveloperCredentialJSON(w, http.StatusCreated, response)
+	writeDeveloperCredentialJSON(w, http.StatusCreated, submission.Webhook)
 }
 func (h *DeveloperWebhookHandler) List(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.authorize(w, r, "webhooks:read", "webhooks:list", false)
@@ -128,24 +120,6 @@ func (h *DeveloperWebhookHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeDeveloperCredentialJSON(w, http.StatusOK, item)
-}
-func (h *DeveloperWebhookHandler) Verify(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.authorize(w, r, "webhooks:write", "webhooks:verify", true)
-	if !ok {
-		return
-	}
-	var input webhookVerifyRequest
-	if decodeDeveloperCredentialJSON(w, r, &input) != nil {
-		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
-		return
-	}
-	version, err := strconv.ParseInt(input.ExpectedVersion, 10, 64)
-	if err != nil {
-		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
-		return
-	}
-	submission, err := h.service.Verify(r.Context(), developerplatform.VerifyWebhookCommand{TenantID: p.TenantID, ActorSubjectID: p.SubjectID, CorrelationID: middleware.CorrelationID(r.Context()), IdempotencyKey: r.Header.Get("Idempotency-Key"), WebhookID: r.PathValue("webhookId"), Challenge: input.Challenge, ExpectedVersion: version})
-	h.writeSubmission(w, r, submission, err)
 }
 func (h *DeveloperWebhookHandler) Rotate(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.authorize(w, r, "webhooks:write", "webhooks:rotate", true)

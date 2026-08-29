@@ -49,7 +49,7 @@ func TestDeveloperWebhookRegistrationIsStrictScopedAndOneTime(t *testing.T) {
 	request.Header.Set("Idempotency-Key", "webhook-register-0001")
 	response := httptest.NewRecorder()
 	middleware.Correlation(router).ServeHTTP(response, request)
-	if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"verification_challenge"`) || strings.Contains(strings.ToLower(response.Body.String()), "signing_secret") {
+	if response.Code != http.StatusCreated || strings.Contains(response.Body.String(), `"verification_challenge"`) || strings.Contains(strings.ToLower(response.Body.String()), "signing_secret") || !strings.Contains(response.Body.String(), `"pending_verification"`) {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 	unsafe := httptest.NewRequest(http.MethodPost, "/api/developer/webhooks", strings.NewReader(`{"display_name":"Accounting","endpoint_url":"https://partner.example.test/hooks","subscribed_events":["transfer.posted"],"signing_key_reference":"kms/webhook-001","signing_key_id":"key-001","signing_secret":"forbidden"}`))

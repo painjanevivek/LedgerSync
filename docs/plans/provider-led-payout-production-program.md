@@ -1,8 +1,8 @@
 # Provider-led payout production program
 
-**Status:** `ACTIVE — engineering foundation only`  
-**Recorded:** 2026-08-29  
-**Authority:** [Master delivery register](ledgersync-master-progress.md) and the approved production-completion plan.  
+**Status:** `ACTIVE — engineering foundation only`
+**Recorded:** 2026-08-29
+**Authority:** [Master delivery register](ledgersync-master-progress.md) and the approved production-completion plan.
 **Applies to:** the first provider-led outbound-payout program. It does not replace the existing closed-loop ledger until the gates below pass.
 
 ## Product boundary
@@ -80,4 +80,3 @@ Engineering can implement and test the provider-neutral boundary with a fake
 sandbox. It cannot mark a provider, legal, AWS, device, finance, partner, or
 live-money gate complete without the named authority's evidence. Every phase
 commit must update the master register and attach exact-commit test evidence.
-

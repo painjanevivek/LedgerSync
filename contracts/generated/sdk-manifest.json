@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "1.15.0",
+  "api_version": "2.0.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "d277b96a",
-    "e46ef420",
-    "ccee42c8",
-    "317d06a5",
-    "f20b27af",
-    "38007024",
-    "67fcd218",
-    "1b3b9852"
+    "43d791f6",
+    "702e8bb3",
+    "13928e8b",
+    "566461fb",
+    "ee0bc856",
+    "3bc1e89b",
+    "819ba2ce",
+    "6746fd37"
   ],
   "operations": [
     {
@@ -376,13 +376,6 @@
       "path": "/local/orientation/preferences",
       "scope": "local:write",
       "idempotent": false
-    },
-    {
-      "id": "verifyDeveloperWebhook",
-      "method": "POST",
-      "path": "/developer/webhooks/{webhookId}/verifications",
-      "scope": "webhooks:write",
-      "idempotent": true
     }
   ]
 }

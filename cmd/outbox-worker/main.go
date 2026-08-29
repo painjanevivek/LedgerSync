@@ -13,11 +13,13 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/outbox"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/projection"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/webhookdelivery"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/webhookverification"
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/events"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
+	managedsecrets "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/secrets"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/startup"
 	"github.com/redis/go-redis/v9"
 )
@@ -100,10 +102,24 @@ func main() {
 		slog.Error("webhook delivery store initialization failed", "error", err)
 		os.Exit(1)
 	}
-	webhookKeys, err := webhookdelivery.NewStaticKeyResolver(configuration.WebhookSigningKeys)
-	if err != nil {
-		slog.Error("webhook signing key configuration invalid", "error", err)
-		os.Exit(1)
+	var webhookKeys webhookdelivery.KeyResolver
+	if configuration.Environment == "development" {
+		webhookKeys, err = webhookdelivery.NewStaticKeyResolver(configuration.WebhookSigningKeys)
+		if err != nil {
+			slog.Error("webhook signing key configuration invalid", "error", err)
+			os.Exit(1)
+		}
+	} else {
+		managedKeys, managedErr := managedsecrets.NewAWSSecretsManager(ctx, configuration.AWSRegion)
+		if managedErr != nil {
+			slog.Error("managed webhook key resolver initialization failed", "error", managedErr)
+			os.Exit(1)
+		}
+		webhookKeys, err = webhookdelivery.NewCachedKeyResolver(managedKeys, 5*time.Minute, nil)
+		if err != nil {
+			slog.Error("managed webhook key cache initialization failed", "error", err)
+			os.Exit(1)
+		}
 	}
 	webhookDispatcher, err := webhookdelivery.NewDispatcher(webhookdelivery.NewSecureHTTPClient(), webhookKeys, nil)
 	if err != nil {
@@ -113,6 +129,21 @@ func main() {
 	webhookWorker, err := webhookdelivery.NewWorker(webhookStore, webhookDispatcher, nil, webhookdelivery.Config{WorkerID: fmt.Sprintf("%s-%d-webhooks", hostname, os.Getpid())})
 	if err != nil {
 		slog.Error("webhook worker initialization failed", "error", err)
+		os.Exit(1)
+	}
+	verificationStore, err := db.NewWebhookVerificationJobRepository(database, nil)
+	if err != nil {
+		slog.Error("webhook verification store initialization failed", "error", err)
+		os.Exit(1)
+	}
+	verificationDispatcher, err := webhookverification.NewDispatcher(webhookdelivery.NewSecureHTTPClient(), webhookKeys, nil)
+	if err != nil {
+		slog.Error("webhook verification dispatcher initialization failed", "error", err)
+		os.Exit(1)
+	}
+	verificationWorker, err := webhookverification.NewWorker(verificationStore, verificationDispatcher, nil, webhookverification.Config{WorkerID: fmt.Sprintf("%s-%d-webhook-verifications", hostname, os.Getpid())})
+	if err != nil {
+		slog.Error("webhook verification worker initialization failed", "error", err)
 		os.Exit(1)
 	}
 	balanceCache, err := cacheplatform.NewBalanceCache(redisClient, "", 5*time.Minute, telemetry)
@@ -150,6 +181,14 @@ func main() {
 		telemetry.ObserveBoundary(iterationCtx, "worker", "webhook_dispatch", iterationStarted, webhookErr)
 		if webhookErr != nil && ctx.Err() == nil {
 			slog.Error("webhook delivery iteration failed", "error", webhookErr)
+		}
+		iterationStarted = time.Now()
+		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.webhook_verification")
+		_, verificationErr := verificationWorker.RunOnce(iterationCtx)
+		span.End()
+		telemetry.ObserveBoundary(iterationCtx, "worker", "webhook_verification", iterationStarted, verificationErr)
+		if verificationErr != nil && ctx.Err() == nil {
+			slog.Error("webhook verification iteration failed", "error", verificationErr)
 		}
 		iterationStarted = time.Now()
 		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.project")
