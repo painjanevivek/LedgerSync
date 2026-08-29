@@ -106,7 +106,7 @@ WHERE job.id=$1 AND job.claim_owner=$2 FOR UPDATE OF job,endpoint`, completion.J
 			return err
 		}
 	}
-	result, err := tx.ExecContext(ctx, `UPDATE webhook_endpoint_verification_jobs SET status=$3,attempt_number=CASE WHEN $3='retrying' THEN attempt_number+1 ELSE attempt_number END,available_at=COALESCE($4,available_at),claim_owner=NULL,claimed_until=NULL,last_error_code=NULLIF($5,''),completed_at=CASE WHEN $3 IN ('verified','dead') THEN $6 ELSE NULL END,updated_at=$6 WHERE id=$1 AND claim_owner=$2`, completion.JobID, completion.WorkerID, completion.Status, retryAt, completion.ErrorCode, completion.CompletedAt.UTC())
+	result, err := tx.ExecContext(ctx, `UPDATE webhook_endpoint_verification_jobs SET status=$3,attempt_number=CASE WHEN $3='retrying' THEN attempt_number+1 ELSE attempt_number END,available_at=COALESCE($4,available_at),claim_owner=NULL,claimed_until=NULL,last_error_code=NULLIF($5,''),completed_at=CASE WHEN $3 IN ('verified','dead') THEN $6::timestamptz ELSE NULL END,updated_at=$6::timestamptz WHERE id=$1 AND claim_owner=$2`, completion.JobID, completion.WorkerID, completion.Status, retryAt, completion.ErrorCode, completion.CompletedAt.UTC())
 	if err != nil {
 		return err
 	}
