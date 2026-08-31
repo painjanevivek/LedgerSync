@@ -201,6 +201,24 @@ test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
   await capture(page, "overview-mixed-currency-error", desktop);
 });
 
+test("an unavailable route has a reviewed non-disclosing baseline", async ({ page }) => {
+  await mockOperatorConsole(page);
+  const response = await page.goto("/visual-unreleased-route");
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Page unavailable" })).toBeVisible();
+  await capture(page, "route-unavailable", desktop);
+  await capture(page, "route-unavailable-compact", compact);
+});
+
+test("a render interruption has a reviewed safe-retry baseline", async ({ page }) => {
+  await mockOperatorConsole(page);
+  const response = await page.goto("/test-support/route-error?attempt=14141414-1414-4141-8141-141414141414");
+  expect(response?.status()).toBe(500);
+  await expect(page.getByRole("heading", { name: "This page could not be shown safely." })).toBeVisible();
+  await capture(page, "route-render-error", desktop);
+  await capture(page, "route-render-error-compact", compact);
+});
+
 test("account create review has a Windows local-console baseline", async ({ page }) => {
   test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
   await mockOperatorConsole(page);

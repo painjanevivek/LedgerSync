@@ -22,7 +22,7 @@ test("invented production administration scope still receives a non-disclosing m
 
   const response = await page.goto("/admin");
   expect(response?.status()).toBe(404);
-  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Page unavailable" })).toBeVisible();
   await expect(page.getByText("This page could not be found.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Administration" })).toHaveCount(0);
   await expect(page.getByText(/tenant lifecycle|operator invite|scope grant|recovery account/i)).toHaveCount(0);
