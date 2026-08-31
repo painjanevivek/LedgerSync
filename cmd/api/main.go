@@ -307,6 +307,13 @@ func main() {
 				slog.Error("correction route initialization failed", "error", err)
 				os.Exit(1)
 			}
+			if err := registerApprovalRoutes(router, approvalRouteConfig{
+				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter,
+				ReadRatePerMinute: configuration.ReadRateLimitPerMinute,
+			}); err != nil {
+				slog.Error("approval route initialization failed", "error", err)
+				os.Exit(1)
+			}
 			router.Handle("POST /api/transfers", transferHandler)
 			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)
 			router.Handle("GET /api/me/accounts", accountsHandler)

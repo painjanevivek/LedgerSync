@@ -1,53 +1,57 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 
+import { ApprovalFiltersForm, ApprovalHeader, ApprovalList } from "@/features/approvals/ApprovalViews";
+import { approvalQuery, approvalURL, useApprovalWorkspace } from "@/features/approvals/useApprovalWorkspace";
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { deriveConsoleCapabilities } from "@/features/console/capabilities";
-import { PageHeader, StatePanel } from "@/features/console/components";
+import { StatePanel } from "@/features/console/components";
+import type { ApprovalFilters } from "@/lib/api/approvals";
+import { emptyApprovalFilters } from "@/lib/api/approvals";
 
-/**
- * Safe Phase 6 route boundary. Phase 7 replaces these source-workspace links
- * with the bounded, server-owned Approval Inbox query.
- */
-export function ApprovalsEntry() {
-  const { session } = useConsoleSession();
+export function ApprovalsEntry({ filters }: Readonly<{ filters: ApprovalFilters }>) {
+  const router = useRouter();
+  const { session, online } = useConsoleSession();
   const capabilities = deriveConsoleCapabilities(session);
-  const canApproveFunding = capabilities.fundingApprove;
-  const canApproveCorrections = capabilities.correctionsApprove;
-  const canOpen = canApproveFunding || canApproveCorrections;
+  const canOpen = capabilities.fundingApprove || capabilities.correctionsApprove;
+  const { items, pageCount, nextCursor, loading, error, denied, verifiedAt, load } = useApprovalWorkspace();
+  const filterKey = useMemo(() => approvalQuery(filters), [filters]);
+
+  useEffect(() => {
+    if (!session || !online || !canOpen) return;
+    void load(filters);
+  }, [canOpen, filterKey, filters, load, online, session]);
+
+  const returnTo = approvalURL(filters);
+  const nextHref = nextCursor
+    ? approvalURL({ ...filters, cursor: nextCursor })
+    : undefined;
 
   return (
-    <ConsoleRouteFrame section="approvals" loadingLabel="Approvals">
-      <PageHeader
-        eyebrow="Work / Independent decisions"
-        title="Approvals"
-        description="Review work that requires an authorized decision without mixing it with posting authority."
-      />
+    <ConsoleRouteFrame section="approvals" loadingLabel="Approvals" pending={loading}>
+      <ApprovalHeader verifiedAt={verifiedAt} loading={loading} error={error} />
       {!canOpen ? (
         <StatePanel
           kind="denied"
           title="Approval authority required"
           message="Your server-issued session has no funding or correction approval scope. No protected approval request was made."
         />
-      ) : (
-        <section className="ledger-section" aria-labelledby="approval-sources-heading">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Authorized sources</p>
-              <h2 id="approval-sources-heading">Open the relevant decision workspace</h2>
-              <p>
-                Until the unified inbox contract is released, LedgerSync keeps each decision in its authoritative domain workspace.
-              </p>
-            </div>
-          </div>
-          <div className="action-row">
-            {canApproveFunding ? <Link className="button primary" href="/funding">Review funding decisions</Link> : null}
-            {canApproveCorrections ? <Link className="button secondary" href="/corrections">Review correction decisions</Link> : null}
-          </div>
-        </section>
-      )}
+      ) : !online && items.length === 0 ? <StatePanel kind="offline" title="Approval evidence unavailable offline" message="Reconnect to request the tenant-scoped queue. No empty queue is inferred." /> : <>
+        <ApprovalFiltersForm
+          key={filterKey}
+          filters={filters}
+          capabilities={capabilities}
+          busy={loading}
+          onApply={(next) => router.push(approvalURL(next))}
+          onClear={() => router.push(approvalURL(emptyApprovalFilters))}
+        />
+        {denied ? <StatePanel kind="denied" title="Approval query denied" message="The server rejected this approval scope or domain. No empty queue is inferred." /> : null}
+        {error ? <StatePanel kind="error" title="Approval evidence unavailable" message={error} /> : null}
+        {!denied && !error ? <ApprovalList items={items} pageCount={pageCount} nextHref={nextHref} returnTo={returnTo} loading={loading} /> : null}
+      </>}
     </ConsoleRouteFrame>
   );
 }

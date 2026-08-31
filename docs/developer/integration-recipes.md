@@ -1,6 +1,6 @@
 # Partner integration recipes
 
-These recipes describe LedgerSync Private API contract `2.0.0`. The
+These recipes describe LedgerSync Private API contract `2.1.0`. The
 authoritative operation, schema, error, pagination and response-header source
 is [OpenAPI](../../contracts/openapi.yaml). Generated catalogues must converge
 with that file; this guide explains how to combine those operations safely.
@@ -126,7 +126,7 @@ credential store. Never commit a populated Postman environment.
 7. Register a webhook endpoint, complete server-initiated ownership
    verification, validate every delivery signature and deduplicate event IDs.
 
-There is no public bulk-provisioning API in contract `2.0.0`. Partner code must
+There is no public bulk-provisioning API in contract `2.1.0`. Partner code must
 use bounded single-account commands and its own concurrency/back-pressure
 limits. The internal host provisioning tool is an operator control, not a
 partner endpoint. Do not invent a `/bulk` route or infer bulk support from it.

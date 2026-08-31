@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "2.0.0",
+  "api_version": "2.1.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "6b509567",
-    "2b0a92da",
-    "4efcc918",
-    "28dc19ae",
-    "c5d169bb",
-    "180a109a",
-    "babe7888",
-    "8d0e309d"
+    "1e28f610",
+    "a2a8097c",
+    "0943f961",
+    "250cbbe4",
+    "a180d4b5",
+    "24a194a9",
+    "96a16877",
+    "ff0947fb"
   ],
   "operations": [
     {
@@ -200,6 +200,13 @@
       "method": "GET",
       "path": "/accounts/{accountId}/transactions",
       "scope": "transactions:read",
+      "idempotent": false
+    },
+    {
+      "id": "listApprovalEvidence",
+      "method": "GET",
+      "path": "/approvals",
+      "scope": "funding:approve",
       "idempotent": false
     },
     {

@@ -106,8 +106,8 @@ export function FundingListView({ events, accounts, nextCursor, verifiedAt, load
   </>;
 }
 
-export function FundingDetailView({ event, account, session, reconciliation, verifiedAt, loading, actionBusy, error, online, canWrite, canApprove, onRefresh, onAction, onReconcile }: Readonly<{
-  event: FundingEvent | null; account?: Account; session: ConsoleSession; reconciliation: FundingReconciliation | null; verifiedAt?: string; loading: boolean; actionBusy: boolean; error: string | null; online: boolean; canWrite: boolean; canApprove: boolean;
+export function FundingDetailView({ event, account, session, reconciliation, verifiedAt, loading, actionBusy, error, online, canWrite, canApprove, backHref, onRefresh, onAction, onReconcile }: Readonly<{
+  event: FundingEvent | null; account?: Account; session: ConsoleSession; reconciliation: FundingReconciliation | null; verifiedAt?: string; loading: boolean; actionBusy: boolean; error: string | null; online: boolean; canWrite: boolean; canApprove: boolean; backHref: string;
   onRefresh: () => Promise<FundingEvent | null>; onAction: (path: string, body?: Record<string, string>, idempotencyKey?: string) => Promise<boolean>; onReconcile: () => void;
 }>) {
   if (!event) return <><PageHeader eyebrow="Ledger / Funding" title="Funding details" description="Loading the selected funding record and what happened to it." />{error ? <StatePanel kind="error" title="Funding record unavailable" message={error} action={<FocusedRetry label="Retry this record" onRetry={onRefresh} disabled={!online} busy={loading} />} /> : <StatePanel title="Loading funding record" message="No approval or balance change is shown until this record is checked." />}</>;
@@ -115,7 +115,7 @@ export function FundingDetailView({ event, account, session, reconciliation, ver
   const journalComplete = ["posted", "compensated"].includes(event.status);
   return <>
     <PageHeader eyebrow="Ledger / Funding" title={event.compensation_of_event_id ? "Correction record" : "Funding record"} description="See the payment reference, review decision, and balance result in one place.">
-      <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={() => void onRefresh()}>Refresh record</button><Link className="button secondary" href="/funding">Back to funding</Link></div>
+      <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={() => void onRefresh()}>Refresh record</button><Link className="button secondary" href={backHref}>{backHref.startsWith("/approvals") ? "Back to approvals" : "Back to funding"}</Link></div>
     </PageHeader>
     {event.demo_policy && <div className="funding-demo-banner"><WarningCircle weight="fill" aria-hidden="true" /><div><strong>Single-operator local policy</strong><p>This label is server-owned. Production requires a different finance operator to approve the requester’s record.</p></div></div>}
     {verifiedAt && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Funding event" reason={error ?? (!online ? "Reconnect before making a financial decision." : undefined)} />}

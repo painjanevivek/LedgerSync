@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.0.0",
-    "_postman_id": "ledgersync-6b509567-2b0a92da-4efcc918"
+    "version": "2.1.0",
+    "_postman_id": "ledgersync-1e28f610-a2a8097c-0943f961"
   },
   "variable": [
     {
@@ -493,6 +493,23 @@
           }
         ],
         "url": "{{baseUrl}}/accounts/{accountId}/transactions"
+      }
+    },
+    {
+      "name": "listApprovalEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/approvals"
       }
     },
     {

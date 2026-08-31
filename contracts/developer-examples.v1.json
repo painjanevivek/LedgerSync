@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "2.0.0",
+  "contract_version": "2.1.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -76,6 +76,13 @@
         { "operation_id": "postFundingEvent", "method": "POST", "path": "/funding-events/{fundingEventId}/post", "scope": "funding:write" },
         { "operation_id": "requestFundingCompensation", "method": "POST", "path": "/funding-events/{fundingEventId}/compensations", "scope": "funding:write" },
         { "operation_id": "reconcileFundingEvent", "method": "GET", "path": "/funding-events/{fundingEventId}/reconciliation", "scope": "funding:read" }
+      ]
+    },
+    {
+      "id": "approvals",
+      "label": "Independent approval evidence",
+      "operations": [
+        { "operation_id": "listApprovalEvidence", "method": "GET", "path": "/approvals", "scope": "funding:approve" }
       ]
     },
     {

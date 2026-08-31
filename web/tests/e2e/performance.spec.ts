@@ -151,3 +151,36 @@ test("large bounded history progressively renders without blocking navigation", 
   await page.getByRole("link", { name: "Transfers" }).click();
   await expect(page.getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
 });
+
+test("bounded approval evidence progressively renders without blocking navigation", { tag: "@performance" }, async ({ page }) => {
+  await mockOperatorConsole(page);
+  const items = Array.from({ length:25 }, (_, index) => ({
+    domain:index % 2 === 0 ? "funding" : "correction",
+    record_id:`80000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    requester_subject_id:`operator-${index + 2}`,
+    requested_at:`2026-08-${String(index + 1).padStart(2, "0")}T09:00:00Z`,
+    age_seconds:String((25 - index) * 86_400),
+    status:"requested",
+    amount_minor:String(1_000 + index),
+    currency:"INR",
+    related_account_id:sourceAccount.account_id,
+    evidence_complete:true,
+    self_approval_blocked:false,
+    actionable_by_me:true,
+    required_scope:index % 2 === 0 ? "funding:approve" : "corrections:approve",
+    step_up_status:"not_required",
+    safe_next_action:"review_decision",
+  }));
+  await page.unroute("**/api/approvals?*");
+  await page.route("**/api/approvals?*", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await route.fulfill({ status:200,contentType:"application/json",body:JSON.stringify({ items,page_count:items.length,next_cursor:"next-page" }) });
+  });
+
+  await page.goto("/approvals");
+  await expect(page.getByText("Loading approval evidence")).toBeVisible();
+  await expect(page.locator(".approval-table tbody tr")).toHaveCount(25);
+  await expect(page.getByText("25 records on this page. A total is not calculated or implied.")).toBeVisible();
+  await page.getByRole("link", { name:"Transfers" }).click();
+  await expect(page.getByRole("heading", { name:"Transfers",exact:true })).toBeVisible();
+});

@@ -1,5 +1,14 @@
 # LedgerSync API changelog
 
+## 2.1.0 — 2026-08-31
+
+- Added the tenant-scoped `GET /approvals` evidence page for authorized funding
+  and correction decisions.
+- Preserved domain-qualified statuses, independent-review evidence, exact
+  values, step-up state, and oldest-first cursor ordering.
+- Defined `page_count` as the bounded current-page count; the contract does not
+  claim or expose a cross-domain total or an approval export.
+
 ## 2.0.0 — 2026-08-29
 
 - Removed API-client webhook activation. Endpoint control is now proven only by

@@ -34,6 +34,7 @@ const populatedRoutes = [
   { name: "accounts-populated", path: "/accounts", heading: "Accounts" },
   { name: "account-detail-populated", path: `/accounts/${sourceAccount.account_id}`, heading: sourceAccount.display_name },
   { name: "funding-records-populated", path: "/funding", heading: "Funding records" },
+  { name: "approvals-populated", path: "/approvals", heading: "Approvals" },
   { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
   { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },

@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "2.0.0"
+const APIVersion = "2.1.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string
@@ -38,6 +38,7 @@ var Operations = []Operation{
 	{ID: "getTransfer", Method: "GET", Path: "/transfers/{transferId}", Scope: "transfers:read", Idempotent: false},
 	{ID: "getTransferCorrection", Method: "GET", Path: "/transfer-corrections/{correctionId}", Scope: "corrections:read", Idempotent: false},
 	{ID: "listAccountTransactions", Method: "GET", Path: "/accounts/{accountId}/transactions", Scope: "transactions:read", Idempotent: false},
+	{ID: "listApprovalEvidence", Method: "GET", Path: "/approvals", Scope: "funding:approve", Idempotent: false},
 	{ID: "listDeveloperCredentials", Method: "GET", Path: "/developer/credentials", Scope: "credentials:read", Idempotent: false},
 	{ID: "listDeveloperWebhookDeliveries", Method: "GET", Path: "/developer/webhooks/{webhookId}/deliveries", Scope: "webhooks:read", Idempotent: false},
 	{ID: "listDeveloperWebhooks", Method: "GET", Path: "/developer/webhooks", Scope: "webhooks:read", Idempotent: false},

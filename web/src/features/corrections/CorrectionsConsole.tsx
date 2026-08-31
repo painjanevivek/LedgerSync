@@ -51,7 +51,8 @@ function label(value: string) {
 
 export function CorrectionsConsole({
   correctionId,
-}: Readonly<{ correctionId?: string }>) {
+  detailReturnTo,
+}: Readonly<{ correctionId?: string; detailReturnTo?: string }>) {
   const { session, sessionLoading, sessionError, online, hasScope } = useConsoleSession();
   const [events, setEvents] = useState<TransferCorrection[]>([]);
   const [selected, setSelected] = useState<TransferCorrection | null>(null);
@@ -297,6 +298,7 @@ export function CorrectionsConsole({
           decisionReason={decisionReason}
           stepUpRequired={stepUpRequired}
           returnTo={returnTo}
+          backHref={detailReturnTo ?? "/corrections"}
           onReason={setDecisionReason}
           onRefresh={loadEvent}
           onAction={(action) => void act(action)}
@@ -488,6 +490,7 @@ function CorrectionDetail({
   decisionReason,
   stepUpRequired,
   returnTo,
+  backHref,
   onReason,
   onRefresh,
   onAction,
@@ -506,6 +509,7 @@ function CorrectionDetail({
   decisionReason: string;
   stepUpRequired: boolean;
   returnTo: string;
+  backHref: string;
   onReason: (value: string) => void;
   onRefresh: () => Promise<TransferCorrection | null>;
   onAction: (action: "approve" | "reject" | "cancel") => void;
@@ -859,8 +863,8 @@ function CorrectionDetail({
             message="Dual control requires a different authorized subject. This UI hides the command, and the API enforces the same separation."
           />
         )}
-      <Link className="text-link back-link" href="/corrections">
-        ← Back to correction queue
+      <Link className="text-link back-link" href={backHref}>
+        ← {backHref.startsWith("/approvals") ? "Back to approvals" : "Back to correction queue"}
       </Link>
       <FinancialCommandDialog
         open={postReviewOpen}
