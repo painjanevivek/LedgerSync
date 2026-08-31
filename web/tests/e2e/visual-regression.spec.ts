@@ -124,6 +124,7 @@ test("permission denial remains distinct from an empty directory", async ({ page
 });
 
 test("offline state preserves already verified evidence and disables writes", async ({ page, context }) => {
+  await page.clock.setFixedTime(new Date("2026-08-28T19:23:41Z"));
   await mockOperatorConsole(page);
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();

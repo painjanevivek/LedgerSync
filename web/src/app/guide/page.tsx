@@ -1,5 +1,5 @@
-import { OperatorConsole } from "@/features/accounts/OperatorConsole";
+import { GuideController } from "@/features/orientation/GuideController";
 
 export default function GuidePage() {
-  return <OperatorConsole initialSection="guide" />;
+  return <GuideController />;
 }
