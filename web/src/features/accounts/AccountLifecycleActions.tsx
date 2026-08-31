@@ -62,6 +62,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
   const dialogOutcome = useRef<HTMLDivElement>(null);
   const validationSummary = useRef<HTMLDivElement>(null);
   const refreshSequence = useRef(0);
+  const focusOutcomeAfterClose = useRef(false);
   const exactZero = balance !== null && balance.available_minor === "0" && balance.ledger_minor === "0";
   const balanceCurrent = Boolean(balance) && !balanceLoading && !balanceError;
   const verifiedAccount = commandEvidence?.account?.account_id === account.account_id ? commandEvidence.account : null;
@@ -93,6 +94,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     setCommandEvidence(null);
     setEvidenceError(null);
     setEvidenceLoading(true);
+    focusOutcomeAfterClose.current = false;
     setDialogOpen(true);
     dialog.current?.showModal();
     const evidence = await onRefreshEvidence().catch(() => ({ account: null, balance: null }));
@@ -116,15 +118,17 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     if (result.kind === "success") {
       sessionStorage.removeItem(storageKey);
       setRetained(null);
+      focusOutcomeAfterClose.current = false;
       dialog.current?.close();
       await onChanged();
     } else if (result.kind !== "unknown") {
       sessionStorage.removeItem(storageKey);
       setRetained(null);
       if (result.kind === "conflict") {
+        focusOutcomeAfterClose.current = true;
         dialog.current?.close();
         await onChanged();
-        requestAnimationFrame(() => outcomeHeading.current?.focus());
+        requestAnimationFrame(() => { outcomeHeading.current?.focus(); focusOutcomeAfterClose.current = false; });
       }
     }
   }
@@ -178,7 +182,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
       <dl className="review-grid"><div><dt>Command</dt><dd>{actionLabel(retained.request.target_status)}</dd></div><div><dt>Expected account version</dt><dd><code>{retained.request.expected_version}</code></dd></div><div><dt>Audited reason</dt><dd>{retained.request.reason}</dd></div></dl>
       <div className="action-row account-command-actions"><p className="intent-lock-note"><WarningCircle weight="fill" aria-hidden="true" /> Do not issue a different lifecycle command while this result is unknown.</p><button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite} onClick={() => void submitIntent(retained)}>{pending ? "Retrying command…" : `Retry same ${actionLabel(retained.request.target_status).toLowerCase()}`}</button></div>
     </div>}
-    <dialog ref={dialog} className="confirmation-dialog" aria-labelledby="lifecycle-dialog-heading" aria-describedby="lifecycle-dialog-description" onClose={() => { refreshSequence.current += 1; setDialogOpen(false); setTarget(null); setValidation(null); setEvidenceLoading(false); requestAnimationFrame(() => dialogTrigger.current?.focus()); }}>
+    <dialog ref={dialog} className="confirmation-dialog" aria-labelledby="lifecycle-dialog-heading" aria-describedby="lifecycle-dialog-description" onClose={() => { refreshSequence.current += 1; setDialogOpen(false); setTarget(null); setValidation(null); setEvidenceLoading(false); if (!focusOutcomeAfterClose.current) requestAnimationFrame(() => dialogTrigger.current?.focus()); }}>
       {target && <form onSubmit={(event) => void confirm(event)} noValidate>
         <p className="eyebrow">Guarded lifecycle command</p>
         <h2 id="lifecycle-dialog-heading">{actionLabel(target)}</h2>

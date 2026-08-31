@@ -8,7 +8,7 @@ async function expectAccessible(page:Page){const result=await new AxeBuilder({pa
 
 test("Recovery separates current truth, backup, restore, retention, and copy-only host guidance",async({page,context})=>{
   await context.grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page); await page.goto("/recovery");
-  await expect(page.getByRole("heading",{name:"Recovery"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Recovery",exact:true})).toBeVisible();
   await expect(page.getByRole("heading",{name:"PostgreSQL now"})).toBeVisible();
   await expect(page.getByText("Digest verified",{exact:true})).toBeVisible();
   await expect(page.getByText("0 mismatches · normal environment unchanged",{exact:true})).toBeVisible();

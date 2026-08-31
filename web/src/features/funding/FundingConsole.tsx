@@ -12,7 +12,7 @@ import { FundingDetailView, FundingListView, FundingWorkspaceRail } from "@/feat
 import type { FundingEvent, FundingPage, FundingReconciliation, FundingSubmission } from "@/lib/api/funding";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
 
-type AccountPage = Readonly<{ accounts: Account[] }>;
+type AccountPage = Readonly<{ accounts: Account[]; next_cursor?: string }>;
 
 export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: string }>) {
   const router = useRouter();
@@ -21,6 +21,9 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
+  const [accountsScopeComplete, setAccountsScopeComplete] = useState(false);
   const [events, setEvents] = useState<FundingEvent[]>([]);
   const [selected, setSelected] = useState<FundingEvent | null>(null);
   const [reconciliation, setReconciliation] = useState<FundingReconciliation | null>(null);
@@ -31,10 +34,22 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   const [verifiedAt, setVerifiedAt] = useState<string>();
   const [requestOpen, setRequestOpen] = useState(false);
   const generation = useRef(0);
+  const accountGeneration = useRef(0);
 
   const loadAccounts = useCallback(async () => {
+    const current = ++accountGeneration.current;
+    setAccountsLoading(true);
+    setAccountsError(null);
     const response = await readJSON<AccountPage>("/api/me/accounts?limit=100&status=active");
-    if (response.ok && Array.isArray(response.data.accounts)) setAccounts(response.data.accounts);
+    if (current !== accountGeneration.current) return;
+    if (response.ok && Array.isArray(response.data.accounts)) {
+      setAccounts(response.data.accounts);
+      setAccountsScopeComplete(!response.data.next_cursor);
+    } else {
+      setAccountsError(unavailableMessage(response.status, "eligible funding accounts", response.requestReference));
+      setAccountsScopeComplete(false);
+    }
+    setAccountsLoading(false);
   }, []);
 
   const loadList = useCallback(async (cursor?: string) => {
@@ -88,7 +103,7 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   useEffect(() => {
     if (!session || !online || !session.scopes.includes("funding:read")) return;
     const timer = window.setTimeout(() => { void loadAccounts(); void (fundingEventId ? loadEvent() : loadList()); }, 0);
-    return () => { window.clearTimeout(timer); generation.current += 1; };
+    return () => { window.clearTimeout(timer); generation.current += 1; accountGeneration.current += 1; };
   }, [fundingEventId, loadAccounts, loadEvent, loadList, online, session]);
 
   async function signOut() {
@@ -138,7 +153,7 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   return <ConsoleShell section="funding" tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "local" ? "Local workspace" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "local" ? "This workstation" : "Authorized finance operator"} onSignOut={() => void signOut()}>
     <OperatorWorkspace className="funding-workspace" footer={<ConsoleFooter />} rail={<FundingWorkspaceRail events={events} event={selected} loading={loading} error={error} online={online} />} railLabel="Funding workflow context">
       {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Funding actions are disabled; retained evidence is historical until refreshed.</span></div>}
-      {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={() => void loadEvent()} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
+      {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={() => void loadEvent()} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} accountsLoading={accountsLoading} accountsError={accountsError} accountsScopeComplete={accountsScopeComplete} onRetryAccounts={() => void loadAccounts()} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
     </OperatorWorkspace>
   </ConsoleShell>;
 }

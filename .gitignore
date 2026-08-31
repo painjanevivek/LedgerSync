@@ -32,6 +32,7 @@ Thumbs.db
 *.swp
 data/
 .codebase-memory/
+.codex-tmp/
 .tools/
 .cache/
 .tmp/

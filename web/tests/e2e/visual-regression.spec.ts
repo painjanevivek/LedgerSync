@@ -35,7 +35,7 @@ const populatedRoutes = [
   { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
   { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
-  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation detail" },
+  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation details" },
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
   { name: "events-populated", path: "/events", heading: "Delivery events" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },

@@ -4,13 +4,17 @@ import { ArrowLeft, CheckCircle, Receipt, WarningCircle, X } from "@phosphor-ico
 import { FormEvent, useMemo, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
-import { FormField } from "@/features/console/components";
+import { FocusedRetry, FormField, StatePanel } from "@/features/console/components";
 import { accountLabel } from "@/features/console/format";
 import type { FundingEvent, FundingSubmission } from "@/lib/api/funding";
 import { minorUnitsFromDecimal, formatMinorUnits } from "@/lib/money";
 
 type Props = Readonly<{
   accounts: Account[];
+  accountsLoading: boolean;
+  accountsError: string | null;
+  accountsScopeComplete: boolean;
+  onRetryAccounts: () => void;
   csrfToken: string;
   online: boolean;
   canWrite: boolean;
@@ -28,7 +32,7 @@ type PreparedEvidence = Readonly<{
   idempotencyKey: string;
 }>;
 
-export function FundingRequestFlow({ accounts, csrfToken, online, canWrite, open, onClose, onCreated }: Props) {
+export function FundingRequestFlow({ accounts, accountsLoading, accountsError, accountsScopeComplete, onRetryAccounts, csrfToken, online, canWrite, open, onClose, onCreated }: Props) {
   const eligible = useMemo(() => accounts.filter((account) => account.status === "active"), [accounts]);
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [amount, setAmount] = useState("");
@@ -79,7 +83,7 @@ export function FundingRequestFlow({ accounts, csrfToken, online, canWrite, open
   if (!open) return null;
   return <section className="funding-request-panel" aria-labelledby="funding-request-heading">
     <header><div className="funding-panel-mark"><Receipt weight="fill" aria-hidden="true" /></div><div><p className="eyebrow">Step 1 of 2</p><h2 id="funding-request-heading">Add a funding record</h2><p>Add the four details needed for review. This creates an external value reference; it does not claim that LedgerSync holds the money or that a bank transfer has settled.</p></div><button className="icon-button funding-close" type="button" aria-label="Close funding request" onClick={onClose}><X aria-hidden="true" /></button></header>
-    {!canWrite ? <div className="funding-inline-notice"><WarningCircle weight="fill" aria-hidden="true" /><p><strong>Write scope required.</strong> Ask a tenant administrator for funding:write before recording funding.</p></div> : !prepared ? <form className="funding-evidence-form" onSubmit={prepare}>
+    {!canWrite ? <div className="funding-inline-notice"><WarningCircle weight="fill" aria-hidden="true" /><p><strong>Write scope required.</strong> Ask a tenant administrator for funding:write before recording funding.</p></div> : accountsLoading && accounts.length === 0 ? <StatePanel title="Loading eligible accounts" message="LedgerSync is verifying the complete authorized account scope before enabling funding entry." /> : accountsError ? <StatePanel kind="error" title="Eligible accounts unavailable" message={`${accountsError} Funding entry remains disabled so an unavailable directory is never presented as an empty one.`} action={<FocusedRetry label="Retry account verification" onRetry={onRetryAccounts} busy={accountsLoading} disabled={!online} />} /> : !accountsScopeComplete ? <StatePanel kind="unknown" title="Account selection is incomplete" message="More than 100 active accounts are available in this tenant scope. Funding entry remains disabled until a complete server-backed selector is available." action={<FocusedRetry label="Verify account scope again" onRetry={onRetryAccounts} busy={accountsLoading} disabled={!online} />} /> : eligible.length === 0 ? <StatePanel title="No eligible active accounts" message="The authorized account directory was verified and contains no active account that can receive funding." action={<FocusedRetry label="Refresh eligible accounts" onRetry={onRetryAccounts} busy={accountsLoading} disabled={!online} />} /> : !prepared ? <form className="funding-evidence-form" onSubmit={prepare}>
       <FormField label="Account" requirement="required" hint="Choose the account that should receive this amount."><select id="funding-destination-account" required value={destinationAccountId} onChange={(event) => setDestinationAccountId(event.target.value)}><option value="">Choose an account</option>{eligible.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></FormField>
       <FormField label="Amount" requirement="required" hint="Enter the amount in INR. Example: 1250.00."><input id="funding-amount" required inputMode="decimal" autoComplete="off" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="1250.00" /></FormField>
       <FormField label="Reference number" requirement="required" hint="Use the number from your bank, provider, or payment record."><input id="funding-reference" required maxLength={256} value={externalReference} onChange={(event) => setExternalReference(event.target.value)} placeholder="Example: BANK-REF-1234" /></FormField>
