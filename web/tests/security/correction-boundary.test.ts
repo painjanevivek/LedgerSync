@@ -89,6 +89,18 @@ test("correction mutation boundary requires method, scope, same-origin CSRF, JSO
     ),
     false,
   );
+  assert.equal(
+    isCorrectionDenial(
+      authorizeCorrectionMutation(
+        request("POST", { "content-type": "", "idempotency-key": "" }),
+        session,
+        "corrections:approve",
+        true,
+        false,
+      ),
+    ),
+    true,
+  );
   const cases = [
     authorizeCorrectionMutation(
       request("DELETE"),
@@ -206,4 +218,5 @@ test("correction browser surface stays fixed-route and exposes paired evidence",
     /different\s+authorized (?:operator|subject)/i,
   );
   assert.match(`${workspace}\n${requestPanel}`, /never (?:change|edits?)/i);
+  assert.match(sources.at(-1) ?? "", /idempotencyKey/);
 });

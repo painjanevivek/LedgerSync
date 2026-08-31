@@ -67,19 +67,22 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   }, []);
 
   const loadEvent = useCallback(async () => {
-    if (!fundingEventId) return;
+    if (!fundingEventId) return null;
     const current = ++generation.current;
     setLoading(true); setError(null); setReconciliation(null);
     const response = await readJSON<FundingEvent>(`/api/funding-events/${encodeURIComponent(fundingEventId)}`);
-    if (current !== generation.current) return;
+    if (current !== generation.current) return null;
     if (response.ok && response.data.funding_event_id) {
       setSelected(response.data);
       setVerifiedAt(new Date().toISOString());
+      setLoading(false);
+      return response.data;
     } else {
       setSelected(null);
       setError(response.status === 404 ? `The selected funding record was not found in this authorized tenant scope. Request reference: ${response.requestReference}.` : unavailableMessage(response.status, "funding records", response.requestReference));
     }
     setLoading(false);
+    return null;
   }, [fundingEventId]);
 
   useEffect(() => {
@@ -153,7 +156,7 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   return <ConsoleShell section="funding" tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "local" ? "Local workspace" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "local" ? "This workstation" : "Authorized finance operator"} onSignOut={() => void signOut()}>
     <OperatorWorkspace className="funding-workspace" footer={<ConsoleFooter />} rail={<FundingWorkspaceRail events={events} event={selected} loading={loading} error={error} online={online} />} railLabel="Funding workflow context">
       {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Funding actions are disabled; retained evidence is historical until refreshed.</span></div>}
-      {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={() => void loadEvent()} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} accountsLoading={accountsLoading} accountsError={accountsError} accountsScopeComplete={accountsScopeComplete} onRetryAccounts={() => void loadAccounts()} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
+      {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={loadEvent} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} accountsLoading={accountsLoading} accountsError={accountsError} accountsScopeComplete={accountsScopeComplete} onRetryAccounts={() => void loadAccounts()} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
     </OperatorWorkspace>
   </ConsoleShell>;
 }

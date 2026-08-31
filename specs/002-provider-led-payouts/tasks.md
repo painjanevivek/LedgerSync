@@ -2,7 +2,7 @@
 
 ## Phase 1: Foundations
 
-- [ ] T001 Add payout schema, immutable evidence protections, and role grants in `migrations/000026_payouts.up.sql`
+- [ ] T001 Add payout schema, immutable evidence protections, and role grants in `migrations/000027_payouts.up.sql`
 - [ ] T002 [P] Write payout domain-state and exact-fee tests in `internal/domain/payout/payout_test.go`
 - [ ] T003 [P] Write reservation and settlement integration scenarios in `tests/integration/payouts_test.go`
 - [ ] T004 Define provider-neutral adapter and deterministic fake sandbox in `internal/application/payouts/provider.go`

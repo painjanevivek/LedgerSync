@@ -3,7 +3,7 @@
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "2.0.0",
-    "_postman_id": "ledgersync-43d791f6-702e8bb3-13928e8b"
+    "_postman_id": "ledgersync-6b509567-2b0a92da-4efcc918"
   },
   "variable": [
     {
@@ -660,6 +660,10 @@
           {
             "key": "X-LedgerSync-Actor-Assertion",
             "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-postFundingEvent-key"
           }
         ],
         "url": "{{baseUrl}}/funding-events/{fundingEventId}/post"
@@ -677,6 +681,10 @@
           {
             "key": "X-LedgerSync-Actor-Assertion",
             "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-postTransferCorrection-key"
           }
         ],
         "url": "{{baseUrl}}/transfer-corrections/{correctionId}/post"

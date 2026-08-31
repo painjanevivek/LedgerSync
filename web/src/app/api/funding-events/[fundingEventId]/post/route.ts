@@ -9,10 +9,10 @@ import { readSession, sessionCookieName } from "@/lib/session";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ fundingEventId: string }> }) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
-  const authorization = authorizeFundingMutation(request, session, "funding:write", false, false);
+  const authorization = authorizeFundingMutation(request, session, "funding:write", true, false);
   if (isFundingDenial(authorization)) return authorization;
   if (!session) return jsonError("unauthorized", 401);
   const { fundingEventId } = await context.params;
   if (!isFundingEventID(fundingEventId)) return jsonError("not_found", 404);
-  return proxyFundingMutation(session, `/api/funding-events/${encodeURIComponent(fundingEventId)}/post`, undefined);
+  return proxyFundingMutation(session, `/api/funding-events/${encodeURIComponent(fundingEventId)}/post`, undefined, authorization.idempotencyKey);
 }

@@ -262,14 +262,14 @@ export const operations: readonly Operation[] = [
     "method": "POST",
     "path": "/funding-events/{fundingEventId}/post",
     "scope": "funding:write",
-    "idempotent": false
+    "idempotent": true
   },
   {
     "id": "postTransferCorrection",
     "method": "POST",
     "path": "/transfer-corrections/{correctionId}/post",
     "scope": "corrections:approve",
-    "idempotent": false
+    "idempotent": true
   },
   {
     "id": "reconcileFundingEvent",

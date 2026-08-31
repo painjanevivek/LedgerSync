@@ -2,13 +2,15 @@
 
 import { CheckCircle, Clock, Equals, LinkSimple, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
-import { FormEvent, useState, type ReactNode } from "react";
+import { FormEvent, useRef, useState, type ReactNode } from "react";
 
 import type { Account, ConsoleSession } from "@/features/accounts/types";
 import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, FormField, PageHeader, Pagination, StatePanel, StatusBadge } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
 import type { FundingEvent, FundingReconciliation, FundingStatus } from "@/lib/api/funding";
 import { formatMinorUnits } from "@/lib/money";
+import { useFundingCommand } from "@/features/funding/useFundingCommand";
+import { FinancialCommandDialog } from "@/ui/overlays/FinancialCommandDialog";
 
 function fundingTone(status: FundingStatus): "success" | "warning" | "danger" | "neutral" | "info" {
   if (status === "posted" || status === "compensated") return "success";
@@ -106,14 +108,14 @@ export function FundingListView({ events, accounts, nextCursor, verifiedAt, load
 
 export function FundingDetailView({ event, account, session, reconciliation, verifiedAt, loading, actionBusy, error, online, canWrite, canApprove, onRefresh, onAction, onReconcile }: Readonly<{
   event: FundingEvent | null; account?: Account; session: ConsoleSession; reconciliation: FundingReconciliation | null; verifiedAt?: string; loading: boolean; actionBusy: boolean; error: string | null; online: boolean; canWrite: boolean; canApprove: boolean;
-  onRefresh: () => void; onAction: (path: string, body?: Record<string, string>, idempotencyKey?: string) => Promise<boolean>; onReconcile: () => void;
+  onRefresh: () => Promise<FundingEvent | null>; onAction: (path: string, body?: Record<string, string>, idempotencyKey?: string) => Promise<boolean>; onReconcile: () => void;
 }>) {
   if (!event) return <><PageHeader eyebrow="Ledger / Funding" title="Funding details" description="Loading the selected funding record and what happened to it." />{error ? <StatePanel kind="error" title="Funding record unavailable" message={error} action={<FocusedRetry label="Retry this record" onRetry={onRefresh} disabled={!online} busy={loading} />} /> : <StatePanel title="Loading funding record" message="No approval or balance change is shown until this record is checked." />}</>;
   const reviewComplete = ["approved", "posted", "compensated"].includes(event.status);
   const journalComplete = ["posted", "compensated"].includes(event.status);
   return <>
     <PageHeader eyebrow="Ledger / Funding" title={event.compensation_of_event_id ? "Correction record" : "Funding record"} description="See the payment reference, review decision, and balance result in one place.">
-      <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh record</button><Link className="button secondary" href="/funding">Back to funding</Link></div>
+      <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={() => void onRefresh()}>Refresh record</button><Link className="button secondary" href="/funding">Back to funding</Link></div>
     </PageHeader>
     {event.demo_policy && <div className="funding-demo-banner"><WarningCircle weight="fill" aria-hidden="true" /><div><strong>Single-operator local policy</strong><p>This label is server-owned. Production requires a different finance operator to approve the requester’s record.</p></div></div>}
     {verifiedAt && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Funding event" reason={error ?? (!online ? "Reconnect before making a financial decision." : undefined)} />}
@@ -129,7 +131,7 @@ export function FundingDetailView({ event, account, session, reconciliation, ver
       {event.compensation_of_event_id && <div className="funding-linked-record"><LinkSimple aria-hidden="true" /><p><strong>Compensates original record</strong><Link href={`/funding/${encodeURIComponent(event.compensation_of_event_id)}`}>{event.compensation_of_event_id}</Link></p></div>}
       {event.compensation_event_id && <div className="funding-linked-record"><LinkSimple aria-hidden="true" /><p><strong>Preserved with additive compensation</strong><Link href={`/funding/${encodeURIComponent(event.compensation_event_id)}`}>{event.compensation_event_id}</Link></p></div>}
     </section>
-    <FundingActionPanel event={event} session={session} online={online} busy={actionBusy} canWrite={canWrite} canApprove={canApprove} onAction={onAction} onReconcile={onReconcile} />
+    <FundingActionPanel event={event} session={session} online={online} busy={actionBusy} canWrite={canWrite} canApprove={canApprove} onAction={onAction} onReconcile={onReconcile} onRefresh={onRefresh} />
     {reconciliation && <section className={`funding-reconciliation ${reconciliation.status}`} aria-labelledby="funding-reconciliation-heading"><Equals aria-hidden="true" /><div><p className="eyebrow">External reference reconciliation</p><h2 id="funding-reconciliation-heading">{reconciliation.status === "matched" ? "Journal totals match" : "Journal mismatch requires investigation"}</h2><p>Expected {formatMinorUnits(reconciliation.currency, reconciliation.expected_minor)} · debit {formatMinorUnits(reconciliation.currency, reconciliation.posted_debit_minor)} · credit {formatMinorUnits(reconciliation.currency, reconciliation.posted_credit_minor)}</p><small>Checked {utcDateTime(reconciliation.checked_at)}</small></div></section>}
   </>;
 }
@@ -138,13 +140,21 @@ function FundingStage({ sequence, state, title, meta, children }: Readonly<{ seq
   return <li className={`funding-stage ${state}`}><div className="funding-stage-index">{state === "complete" ? <CheckCircle weight="fill" aria-hidden="true" /> : <span>{sequence}</span>}</div><article><header><div><h3>{title}</h3><p>{meta}</p></div>{state === "current" && <Clock aria-hidden="true" />}</header>{children}</article></li>;
 }
 
-function FundingActionPanel({ event, session, online, busy, canWrite, canApprove, onAction, onReconcile }: Readonly<{ event: FundingEvent; session: ConsoleSession; online: boolean; busy: boolean; canWrite: boolean; canApprove: boolean; onAction: (path: string, body?: Record<string, string>, idempotencyKey?: string) => Promise<boolean>; onReconcile: () => void }>) {
+function FundingActionPanel({ event, session, online, busy, canWrite, canApprove, onAction, onReconcile, onRefresh }: Readonly<{ event: FundingEvent; session: ConsoleSession; online: boolean; busy: boolean; canWrite: boolean; canApprove: boolean; onAction: (path: string, body?: Record<string, string>, idempotencyKey?: string) => Promise<boolean>; onReconcile: () => void; onRefresh: () => Promise<FundingEvent | null> }>) {
   const [decision, setDecision] = useState<"approve" | "reject" | null>(null);
   const [reason, setReason] = useState("");
   const [compensating, setCompensating] = useState(false);
   const [reasonCode, setReasonCode] = useState("external_evidence_reversed");
   const [operatorNote, setOperatorNote] = useState("");
   const [compensationIdempotencyKey, setCompensationIdempotencyKey] = useState<string>();
+  const [postReviewOpen, setPostReviewOpen] = useState(false);
+  const [postEvidence, setPostEvidence] = useState<FundingEvent | null>(null);
+  const [postVerificationError, setPostVerificationError] = useState<string | null>(null);
+  const [verifyingPost, setVerifyingPost] = useState(false);
+  const postTrigger = useRef<HTMLButtonElement>(null);
+  const postOutcome = useRef<HTMLDivElement>(null);
+  const [restorePostTrigger, setRestorePostTrigger] = useState(true);
+  const postCommand = useFundingCommand(session.tenant_id, event.funding_event_id, session.csrf_token);
   const selfApprovalBlocked = session.environment !== "local" && event.requester_subject_id === session.subject_id;
 
   async function submitDecision(action: "approve" | "reject") {
@@ -162,12 +172,47 @@ function FundingActionPanel({ event, session, online, busy, canWrite, canApprove
     }
   }
 
+  async function beginPostReview() {
+    setRestorePostTrigger(true);
+    setPostVerificationError(null);
+    postCommand.setOutcome(null);
+    setPostEvidence(null);
+    setPostReviewOpen(true);
+    setVerifyingPost(true);
+    const current = await onRefresh();
+    setVerifyingPost(false);
+    if (current?.funding_event_id === event.funding_event_id && current.status === "approved") {
+      setPostEvidence(current);
+      return;
+    }
+    if (current?.status === "posted" || current?.status === "compensated") postCommand.discard();
+    setRestorePostTrigger(false);
+    setPostVerificationError(current
+      ? "This funding record is no longer approved for posting. Current evidence has been refreshed."
+      : "LedgerSync could not verify the current approved funding record. Posting remains disabled.");
+    setPostReviewOpen(false);
+    requestAnimationFrame(() => postOutcome.current?.focus());
+  }
+
+  async function confirmPost() {
+    if (!postEvidence || postEvidence.status !== "approved") return;
+    const result = await postCommand.send(postCommand.prepare());
+    setRestorePostTrigger(false);
+    setPostReviewOpen(false);
+    if (result.kind === "success") await onRefresh();
+    requestAnimationFrame(() => postOutcome.current?.focus());
+  }
+
   return <section className="funding-actions" aria-labelledby="funding-actions-heading"><header><div><p className="eyebrow">Permitted next step</p><h2 id="funding-actions-heading">Act on this funding record</h2></div><span>State · {event.status}</span></header>
     {event.status === "requested" && !decision && <div className="funding-action-choice"><p>{selfApprovalBlocked ? "A different production finance operator must decide this request." : "Approve only after independently matching the external reference and evidence location."}</p><div>{canApprove && !selfApprovalBlocked && <button className="button primary guarded-control" type="button" disabled={!online || busy} onClick={() => setDecision("approve")}>Review approval</button>}{canApprove && <button className="button secondary guarded-control" type="button" disabled={!online || busy} onClick={() => setDecision("reject")}>Review rejection</button>}</div></div>}
     {event.status === "requested" && decision && <form className="funding-decision-form" onSubmit={(formEvent) => { formEvent.preventDefault(); void submitDecision(decision); }}><FormField label={decision === "approve" ? "Why you approve this" : "Why you reject this"} requirement="required" hint="State what you checked before making this decision."><textarea required maxLength={500} rows={3} value={reason} onChange={(change) => setReason(change.target.value)} placeholder="Example: matched the payment reference and document" /></FormField><div><button className="button secondary" type="button" disabled={busy} onClick={() => { setDecision(null); setReason(""); }}>Cancel</button><button className={decision === "approve" ? "button primary guarded-control" : "button danger guarded-control"} type="submit" disabled={!online || busy || !reason.trim()}>{busy ? "Recording…" : decision === "approve" ? "Approve evidence" : "Reject evidence"}</button></div></form>}
-    {event.status === "approved" && <div className="funding-action-choice"><p>The decision is durable. Posting creates one balanced journal and updates the destination balance atomically.</p>{canWrite && <button className="button primary guarded-control" type="button" disabled={!online || busy} onClick={() => void onAction("post")}>{busy ? "Posting…" : "Post balanced journal"}</button>}</div>}
+    {(postVerificationError || postCommand.outcome) && <div ref={postOutcome} tabIndex={-1}>{postVerificationError ? <StatePanel kind="error" title="Posting evidence changed" message={postVerificationError} /> : postCommand.outcome?.kind === "success" ? <StatePanel title="Balanced journal posted" message={`The authoritative funding record confirms the permanent journal. Request reference: ${postCommand.outcome.requestReference}.`} /> : <StatePanel kind={postCommand.outcome?.kind === "unknown" ? "unknown" : postCommand.outcome?.kind === "denied" ? "denied" : "error"} title={postCommand.outcome?.kind === "unknown" ? "Posting outcome unknown" : "Funding posting not completed"} message={postCommand.outcome?.message ?? "The posting was not completed."} action={postCommand.outcome?.kind === "unknown" ? <button className="button primary guarded-control" type="button" disabled={!online || postCommand.pending} onClick={() => void beginPostReview()}>Refresh before retry</button> : undefined} />}</div>}
+    {event.status === "approved" && <div className="funding-action-choice"><p>The decision is durable. Posting creates one balanced journal and updates the destination balance atomically.</p>{canWrite && <button ref={postTrigger} className="button primary guarded-control" type="button" disabled={!online || busy || postCommand.pending} onClick={() => void beginPostReview()}>{verifyingPost ? "Verifying…" : postCommand.intent ? "Review same journal retry" : "Review journal posting"}</button>}</div>}
     {(event.status === "posted" || event.status === "compensated") && <div className="funding-action-choice"><p>Verify that the journal debit and credit still match the recorded exact evidence amount.</p><button className="button secondary" type="button" disabled={!online || busy} onClick={onReconcile}>Reconcile reference</button></div>}
     {event.status === "posted" && !event.compensation_of_event_id && !event.compensation_event_id && canWrite && <details className="funding-compensation-disclosure" open={compensating} onToggle={(toggle) => setCompensating(toggle.currentTarget.open)}><summary>Request an additive compensation</summary><p>The original event and journal remain immutable. Compensation requires its own review and balanced reversal.</p><form onSubmit={submitCompensation}><label>Reason code<select value={reasonCode} onChange={(change) => setReasonCode(change.target.value)}><option value="external_evidence_reversed">External evidence reversed</option><option value="duplicate_external_evidence">Duplicate external evidence</option><option value="operator_correction">Operator correction</option></select></label><label>Operator note<textarea required rows={3} maxLength={500} value={operatorNote} onChange={(change) => setOperatorNote(change.target.value)} placeholder="Describe the verified reversal evidence" /></label><button className="button danger guarded-control" type="submit" disabled={!online || busy || !operatorNote.trim()}>{busy ? "Recording…" : "Record compensation request"}</button></form></details>}
     {event.status === "rejected" && <div className="funding-terminal-note"><WarningCircle weight="fill" aria-hidden="true" /><p>This record is final and produced no journal posting. Record a new request only for a genuinely new external reference.</p></div>}
+    <FinancialCommandDialog open={postReviewOpen} eyebrow="Permanent financial command" title="Post balanced journal?" description="LedgerSync refreshed this record before review. Confirm only if the exact approved evidence below is still correct." confirmLabel={postCommand.intent ? "Retry same journal post" : "Post balanced journal"} busy={postCommand.pending || verifyingPost} confirmDisabled={!postEvidence || postEvidence.status !== "approved"} returnFocusRef={postTrigger} restoreTriggerFocus={restorePostTrigger} onDismiss={() => setPostReviewOpen(false)} onConfirm={() => void confirmPost()}>
+      {verifyingPost ? <StatePanel title="Verifying current approval" message="Posting remains disabled until the authoritative funding record is available." /> : postEvidence && <dl className="review-grid"><div><dt>Permanent effect</dt><dd>Create one immutable balanced journal</dd></div><div><dt>Exact amount</dt><dd>{formatMinorUnits(postEvidence.currency, postEvidence.amount_minor)}</dd></div><div><dt>Destination account</dt><dd><code>{postEvidence.destination_account_id}</code></dd></div><div><dt>External reference</dt><dd>{postEvidence.external_reference}</dd></div><div><dt>Approved by</dt><dd>{postEvidence.approver_subject_id ?? "Approval evidence unavailable"}</dd></div><div><dt>Record updated</dt><dd>{utcDateTime(postEvidence.updated_at)}</dd></div></dl>}
+    </FinancialCommandDialog>
   </section>;
 }

@@ -35,7 +35,7 @@ export function StatusBadge({ children, tone = "neutral" }: Readonly<{ children:
 }
 
 export function StatePanel({ title, message, kind = "empty", action }: Readonly<{ title: string; message: string; kind?: "empty" | "error" | "offline" | "denied" | "unknown"; action?: ReactNode }>) {
-  return <div className={`state-panel ${kind}`} role={kind === "error" ? "alert" : "status"}>{kind === "error" || kind === "offline" || kind === "unknown" ? <WarningCircle weight="fill" aria-hidden="true" /> : <Info weight="fill" aria-hidden="true" />}<div><strong>{title}</strong><p>{message}</p>{action}</div></div>;
+  return <div className={`state-panel ${kind}`} role={kind === "error" ? "alert" : "status"}>{kind === "error" || kind === "offline" || kind === "unknown" ? <WarningCircle weight="fill" aria-hidden="true" /> : <Info weight="fill" aria-hidden="true" />}<div><strong role="heading" aria-level={3}>{title}</strong><p>{message}</p>{action}</div></div>;
 }
 
 export function FocusedRetry({ label, onRetry, disabled = false, busy = false }: Readonly<{ label: string; onRetry: () => void; disabled?: boolean; busy?: boolean }>) {

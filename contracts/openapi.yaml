@@ -297,7 +297,7 @@ paths:
       x-required-scope: corrections:approve
       x-step-up-authentication: production
       summary: Atomically post the one exact balanced compensating transfer and journal.
-      parameters: [{ $ref: '#/components/parameters/CorrectionID' }, { $ref: '#/components/parameters/CorrelationID' }]
+      parameters: [{ $ref: '#/components/parameters/CorrectionID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       responses: { '200': { description: Original or safely replayed posted correction., content: { application/json: { schema: { $ref: '#/components/schemas/TransferCorrectionSubmission' } } } }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '409': { $ref: '#/components/responses/Conflict' }, '428': { $ref: '#/components/responses/StepUpRequired' }, '429': { $ref: '#/components/responses/RateLimited' } }
   /funding-requests:
     post:
@@ -379,7 +379,7 @@ paths:
       operationId: postFundingEvent
       x-required-scope: funding:write
       summary: Atomically post approved evidence as an immutable balanced journal.
-      parameters: [{ $ref: '#/components/parameters/FundingEventID' }, { $ref: '#/components/parameters/CorrelationID' }]
+      parameters: [{ $ref: '#/components/parameters/FundingEventID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       responses:
         '200': { description: Original or replayed posted outcome., content: { application/json: { schema: { $ref: '#/components/schemas/FundingSubmission' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }

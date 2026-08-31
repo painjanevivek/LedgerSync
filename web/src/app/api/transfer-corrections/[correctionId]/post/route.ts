@@ -18,7 +18,7 @@ export async function POST(
     request,
     session,
     "corrections:approve",
-    false,
+    true,
     false,
   );
   if (isCorrectionDenial(authorization)) return authorization;
@@ -28,5 +28,7 @@ export async function POST(
   return proxyCorrectionMutation(
     session,
     `/api/transfer-corrections/${encodeURIComponent(correctionId)}/post`,
+    undefined,
+    authorization.idempotencyKey,
   );
 }

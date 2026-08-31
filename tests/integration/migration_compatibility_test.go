@@ -302,7 +302,7 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 	}
 	postedFunding, err := fundingService.Post(context.Background(), fundingapp.ActionCommand{
 		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
-		CorrelationID: "00000000-0000-0000-0000-000000000895",
+		IdempotencyKey: "migration-funding-post-0001", CorrelationID: "00000000-0000-0000-0000-000000000895",
 	})
 	if err != nil || postedFunding.Event.Status != "posted" ||
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND account_kind='funding_clearing' AND category='system'`, legacyTenant) != 1 {

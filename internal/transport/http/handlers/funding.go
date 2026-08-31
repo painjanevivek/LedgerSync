@@ -182,7 +182,7 @@ func (h *FundingHandler) Post(writer http.ResponseWriter, request *http.Request)
 	}
 	submission, err := h.service.Post(request.Context(), appfunding.ActionCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID,
-		FundingEventID: request.PathValue("fundingEventId"), CorrelationID: middleware.CorrelationID(request.Context()),
+		FundingEventID: request.PathValue("fundingEventId"), IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()),
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicFundingError(err))
