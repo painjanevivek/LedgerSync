@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+import { PageHeader, StatePanel } from "@/features/console/components";
 import { ReconciliationView } from "@/features/reconciliation/ReconciliationViews";
 import { useReconciliationWorkspace } from "@/features/reconciliation/useReconciliationWorkspace";
 
@@ -15,6 +16,7 @@ export function ReconciliationController({ runId, returnTo }: Readonly<{ runId?:
 
   useEffect(() => {
     if (!session || !online) return;
+    if (!hasScope("reconciliation:read")) return;
     let active = true;
     const timer = window.setTimeout(() => {
       void (runId ? loadDetail(runId) : loadList()).finally(() => {
@@ -25,11 +27,13 @@ export function ReconciliationController({ runId, returnTo }: Readonly<{ runId?:
       active = false;
       window.clearTimeout(timer);
     };
-  }, [loadDetail, loadList, online, runId, session]);
+  }, [hasScope, loadDetail, loadList, online, runId, session]);
 
   return (
-    <ConsoleRouteFrame section="reconciliation" loadingLabel="Reconciliation" pending={!initialEvidenceSettled}>
-      {session && (
+    <ConsoleRouteFrame section="reconciliation" loadingLabel="Reconciliation" pending={hasScope("reconciliation:read") && !initialEvidenceSettled}>
+      {session && !hasScope("reconciliation:read") ? (
+        <><PageHeader eyebrow="Investigate / Reconciliation" title="Reconciliation" description="Compare stored ledger postings with authoritative balance evidence."/><StatePanel kind="denied" title="Reconciliation read authority required" message="Your server-issued session does not include reconciliation:read. No protected reconciliation request was made."/></>
+      ) : session && (
         <ReconciliationView
           runs={workspace.runs}
           detail={workspace.detail}

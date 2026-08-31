@@ -8,6 +8,7 @@ import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent"
 import { emptyAccountFilters, useAccountWorkspace } from "@/features/accounts/useAccountWorkspace";
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+import { PageHeader, StatePanel } from "@/features/console/components";
 
 type Props = Readonly<{
   accountId?: string;
@@ -39,6 +40,7 @@ export function AccountsController({
 
   useEffect(() => {
     if (!session || !online) return;
+    if (!hasScope("accounts:read")) return;
     let active = true;
     const timer = window.setTimeout(() => {
       void refresh().finally(() => {
@@ -49,11 +51,13 @@ export function AccountsController({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [online, refresh, session]);
+  }, [hasScope, online, refresh, session]);
 
   return (
-    <ConsoleRouteFrame section="accounts" loadingLabel="Accounts" pending={!initialEvidenceSettled}>
-      {session && (create ? (
+    <ConsoleRouteFrame section="accounts" loadingLabel="Accounts" pending={hasScope("accounts:read") && !initialEvidenceSettled}>
+      {session && !create && !hasScope("accounts:read") ? (
+        <><PageHeader eyebrow="Work / Accounts" title="Accounts" description="Find and manage the accounts you are allowed to use."/><StatePanel kind="denied" title="Account read authority required" message="Your server-issued session does not include accounts:read. No protected account request was made."/></>
+      ) : session && (create ? (
         <AccountCreateFlow
           tenantId={session.tenant_id}
           tenantLabel={session.tenant_label ?? "Ledger tenant"}

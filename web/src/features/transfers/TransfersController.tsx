@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { emptyAccountFilters, useAccountWorkspace } from "@/features/accounts/useAccountWorkspace";
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+import { PageHeader, StatePanel } from "@/features/console/components";
 import { TransfersView } from "@/features/transfers/TransferViews";
 import { useTransferWorkspace } from "@/features/transfers/useTransferWorkspace";
 
@@ -25,11 +26,12 @@ export function TransfersController({ transferId, preferredDestinationId, return
 
   useEffect(() => {
     if (!session || !online) return;
+    if (!hasScope("transfers:read")) return;
     let active = true;
     const canExplain = ["explainability:read", "transfers:read", "events:read", "reconciliation:read"].every(hasScope);
     const timer = window.setTimeout(() => {
       void Promise.all([
-        loadAccounts(emptyAccountFilters, 100),
+        hasScope("accounts:read") ? loadAccounts(emptyAccountFilters, 100) : Promise.resolve(),
         transferId ? loadDetail(transferId) : loadList(),
         transferId && canExplain ? loadExplainability(transferId) : Promise.resolve(),
       ]).finally(() => {
@@ -43,8 +45,10 @@ export function TransfersController({ transferId, preferredDestinationId, return
   }, [hasScope, loadAccounts, loadDetail, loadExplainability, loadList, online, session, transferId]);
 
   return (
-    <ConsoleRouteFrame section="transfers" loadingLabel="Transfers" pending={!initialEvidenceSettled}>
-      {session && (
+    <ConsoleRouteFrame section="transfers" loadingLabel="Transfers" pending={hasScope("transfers:read") && !initialEvidenceSettled}>
+      {session && !hasScope("transfers:read") ? (
+        <><PageHeader eyebrow="Work / Transfers" title="Transfers" description="Move an exact amount between authorized accounts, then check the immutable result."/><StatePanel kind="denied" title="Transfer read authority required" message="Your server-issued session does not include transfers:read. No protected transfer or account-picker request was made."/></>
+      ) : session && (
         <TransfersView
           accounts={accounts.accounts}
           accountsLoading={accounts.directoryLoading}

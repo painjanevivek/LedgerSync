@@ -5,17 +5,19 @@ import { useCallback, useEffect, useState } from "react";
 import { emptyAccountFilters, useAccountWorkspace } from "@/features/accounts/useAccountWorkspace";
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+import { deriveConsoleCapabilities } from "@/features/console/capabilities";
 import { useOrientationWorkspace } from "@/features/orientation/useOrientationWorkspace";
 import { OverviewView } from "@/features/overview/OverviewView";
 import { useReconciliationWorkspace } from "@/features/reconciliation/useReconciliationWorkspace";
 import { useTransferWorkspace } from "@/features/transfers/useTransferWorkspace";
 
 export function OverviewController({ showOrientation = false }: Readonly<{ showOrientation?: boolean }>) {
-  const { session, online, hasScope } = useConsoleSession();
+  const { session, online } = useConsoleSession();
   const accounts = useAccountWorkspace(undefined, emptyAccountFilters);
   const transfers = useTransferWorkspace();
   const reconciliation = useReconciliationWorkspace();
   const orientation = useOrientationWorkspace(session);
+  const capabilities = deriveConsoleCapabilities(session);
   const loadAccounts = accounts.load;
   const loadTransfers = transfers.loadList;
   const loadReconciliation = reconciliation.loadList;
@@ -24,11 +26,11 @@ export function OverviewController({ showOrientation = false }: Readonly<{ showO
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
-      loadAccounts(emptyAccountFilters, 100),
-      loadTransfers(),
-      loadReconciliation(),
+      capabilities.accountsRead ? loadAccounts(emptyAccountFilters, 100) : Promise.resolve(),
+      capabilities.transfersRead ? loadTransfers() : Promise.resolve(),
+      capabilities.reconciliationRead ? loadReconciliation() : Promise.resolve(),
     ]);
-  }, [loadAccounts, loadReconciliation, loadTransfers]);
+  }, [capabilities.accountsRead, capabilities.reconciliationRead, capabilities.transfersRead, loadAccounts, loadReconciliation, loadTransfers]);
 
   useEffect(() => {
     if (!session || !online) return;
@@ -36,7 +38,7 @@ export function OverviewController({ showOrientation = false }: Readonly<{ showO
     const timer = window.setTimeout(() => {
       void Promise.all([
         refreshAll(),
-        session.environment === "local" && hasScope("local:read") ? loadOrientation() : Promise.resolve(),
+        capabilities.localDiagnosticsRead ? loadOrientation() : Promise.resolve(),
       ]).finally(() => {
         if (active) setInitialEvidenceSettled(true);
       });
@@ -45,7 +47,7 @@ export function OverviewController({ showOrientation = false }: Readonly<{ showO
       active = false;
       window.clearTimeout(timer);
     };
-  }, [hasScope, loadOrientation, online, refreshAll, session]);
+  }, [capabilities.localDiagnosticsRead, loadOrientation, online, refreshAll, session]);
 
   return (
     <ConsoleRouteFrame section="overview" loadingLabel="Overview" pending={!initialEvidenceSettled}>
@@ -64,13 +66,14 @@ export function OverviewController({ showOrientation = false }: Readonly<{ showO
           transfersVerifiedAt={transfers.verifiedAt}
           reconciliationVerifiedAt={reconciliation.verifiedAt}
           online={online}
+          capabilities={capabilities}
           orientation={orientation.evidence}
           orientationLoading={orientation.loading}
           orientationError={orientation.error}
           orientationPreferenceError={orientation.preferenceError}
           orientationPreferenceSaving={orientation.preferenceSaving}
-          canReadOrientation={session.environment === "local" && hasScope("local:read")}
-          canWriteOrientation={session.environment === "local" && hasScope("local:write")}
+          canReadOrientation={capabilities.localDiagnosticsRead}
+          canWriteOrientation={capabilities.localOrientationWrite}
           localWorkspace={session.environment === "local"}
           forceOrientation={showOrientation}
           onRefreshAccounts={() => void accounts.load(emptyAccountFilters, 100)}

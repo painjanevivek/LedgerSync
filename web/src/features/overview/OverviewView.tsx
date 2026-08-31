@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import type { Account, ReconciliationRun, TransferSummary } from "@/features/accounts/types";
 import { EvidenceFreshness, FocusedRetry, PageHeader, RecordLink, StatePanel } from "@/features/console/components";
+import type { ConsoleCapabilities } from "@/features/console/capabilities";
 import { utcDateTime } from "@/features/console/format";
 import { LocalOrientationPanel } from "@/features/orientation/LocalOrientationPanel";
 import { TransferList } from "@/features/transfers/TransferViews";
@@ -27,6 +28,7 @@ type Props = Readonly<{
   transfersVerifiedAt?: string;
   reconciliationVerifiedAt?: string;
   online: boolean;
+  capabilities: ConsoleCapabilities;
   orientation: LocalOrientation | null;
   orientationLoading: boolean;
   orientationError: string | null;
@@ -44,7 +46,7 @@ type Props = Readonly<{
   onUpdateOrientationPreferences: (change: Readonly<{ dismissed: boolean; completedStepIDs: OperatorPreferenceStepID[] }>) => Promise<boolean>;
 }>;
 
-export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, orientation, orientationLoading, orientationError, orientationPreferenceError, orientationPreferenceSaving, canReadOrientation, canWriteOrientation, localWorkspace, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation, onUpdateOrientationPreferences }: Props) {
+export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, capabilities, orientation, orientationLoading, orientationError, orientationPreferenceError, orientationPreferenceSaving, canReadOrientation, canWriteOrientation, localWorkspace, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation, onUpdateOrientationPreferences }: Props) {
   const { currency, mixedCurrency, operatingMinor: operating, customerFundsMinor: customerFunds }=approvedCurrencyGroups(accounts);
   const asOf=accounts.map((account)=>account.as_of).filter(Boolean).sort().at(0);
   const busy = accountsLoading || transfersLoading || reconciliationLoading;
@@ -58,12 +60,15 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
     !accountsError &&
     !transfersError &&
     !reconciliationError &&
+    capabilities.accountsRead &&
+    capabilities.transfersRead &&
     accounts.length === 0 &&
     transfers.length === 0 &&
     !reconciliation;
   return <>
-    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}><button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button></PageHeader>
-    {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
+    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}>{(capabilities.accountsRead||capabilities.transfersRead||capabilities.reconciliationRead)&&<button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button>}</PageHeader>
+    {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} capabilities={capabilities} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
+    {!capabilities.accountsRead&&!capabilities.transfersRead&&!capabilities.reconciliationRead&&<StatePanel kind="denied" title="No financial read capability" message="Your server-issued session has no account, transfer, or reconciliation read scope. Protected overview requests were not made."/>}
     {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
       <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
       <div className="new-workspace-copy">
@@ -71,15 +76,15 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
         <h2 id="new-workspace-title">Start with four simple steps</h2>
         <p>Create an account, add a funding record, review it, then make a transfer.</p>
         <div className="new-workspace-actions">
-          <Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>
+          {capabilities.accountsWrite&&<Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>}
           <Link className="button secondary" href="/guide">Follow the guide</Link>
         </div>
       </div>
       <ol className="new-workspace-path" aria-label="First ledger steps">
-        <li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>
-        <li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>
-        <li><Link href="/funding"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>
-        <li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>
+        {capabilities.accountsWrite&&<li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>}
+        {capabilities.fundingWrite&&<li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>}
+        {capabilities.fundingApprove&&<li><Link href="/approvals"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>}
+        {capabilities.transfersWrite&&<li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>}
       </ol>
     </section>}
     <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account details state">

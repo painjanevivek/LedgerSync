@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 
 import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
 
@@ -16,13 +16,15 @@ function json(route: Route, body: unknown, status = 200) {
   });
 }
 
-async function capture(page: Page, name: string, viewport = desktop) {
+async function capture(page: Page, name: string, viewport = desktop, mask: Locator[] = []) {
   await page.setViewportSize(viewport);
   await page.evaluate(() => document.fonts.ready);
   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
     animations: "disabled",
     caret: "hide",
     fullPage: true,
+    mask,
+    maskColor: "#f4f6f8",
     maxDiffPixelRatio: 0.002,
   });
 }
@@ -130,7 +132,7 @@ test("offline state preserves already verified evidence and disables writes", as
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
   await context.setOffline(true);
   await expect(page.getByText("You are offline.")).toBeVisible();
-  await capture(page, "accounts-offline", compact);
+  await capture(page, "accounts-offline", compact, [page.locator(".console-footer")]);
   await context.setOffline(false);
 });
 
@@ -175,12 +177,12 @@ test("missing session renders the login layer with no financial evidence", async
 
 test("read-only transfer role explains why posting is disabled", async ({ page }) => {
   await mockOperatorConsole(page);
-  await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: [], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
+  await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "transfers:read"], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
   await page.goto("/transfers");
   await expect(
     page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),
   ).toHaveText("Read-only role: transfer posting is not permitted.");
-  await capture(page, "transfers-read-only", desktop);
+  await capture(page, "transfers-read-only-capability", desktop);
 });
 
 test("mixed-currency overview refuses a false aggregate", async ({ page }) => {

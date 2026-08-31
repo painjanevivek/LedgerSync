@@ -4,6 +4,7 @@ import { CheckCircle, Compass, Info, LockKey, WarningCircle, X } from "@phosphor
 import Link from "next/link";
 
 import { CopyControl, EvidenceFreshness, StatusBadge } from "@/features/console/components";
+import { canOpenOrientationStep, type ConsoleCapabilities } from "@/features/console/capabilities";
 import { utcDateTime } from "@/features/console/format";
 import type { LocalOrientation, OperatorPreferenceStepID, OrientationStep } from "@/lib/api/orientation";
 
@@ -63,15 +64,17 @@ type Props = Readonly<{
   online: boolean;
   canRead: boolean;
   canWrite: boolean;
+  capabilities: ConsoleCapabilities;
   forceOpen?: boolean;
   onRefresh: () => void;
   onUpdatePreferences: (change: PreferenceChange) => Promise<boolean>;
 }>;
 
-export function LocalOrientationPanel({ evidence, loading, error, preferenceError, preferenceSaving, online, canRead, canWrite, forceOpen = false, onRefresh, onUpdatePreferences }: Props) {
+export function LocalOrientationPanel({ evidence, loading, error, preferenceError, preferenceSaving, online, canRead, canWrite, capabilities, forceOpen = false, onRefresh, onUpdatePreferences }: Props) {
   const completedStepIDs = evidence?.operator_completed_step_ids ?? [];
   const completedCount = evidence?.steps.filter(complete).length ?? 0;
-  const nextStep = evidence?.steps.find((step) => !complete(step));
+  const hasIncompleteStep = evidence?.steps.some((step) => !complete(step)) ?? false;
+  const nextStep = evidence?.steps.find((step) => !complete(step) && canOpenOrientationStep(capabilities, step.id));
   const writable = online && canWrite && !preferenceSaving;
 
   async function setDismissed(dismissed: boolean) {
@@ -86,7 +89,7 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
 
   if (evidence?.dismissed && !forceOpen) return <section className="orientation-compact" aria-labelledby="orientation-compact-title">
     <Compass weight="fill" aria-hidden="true" />
-    <div><p className="eyebrow">Setup progress · {completedCount}/12</p><h2 id="orientation-compact-title">{nextStep ? `Recommended next: ${stepCopy[nextStep.id].title}` : "Operator journey complete"}</h2><p>Progress is stored for this operator in PostgreSQL, not only in this browser.</p></div>
+    <div><p className="eyebrow">Setup progress · {completedCount}/12</p><h2 id="orientation-compact-title">{nextStep ? `Recommended next: ${stepCopy[nextStep.id].title}` : hasIncompleteStep ? "No authorized next action" : "Operator journey complete"}</h2><p>Progress is stored for this operator in PostgreSQL, not only in this browser.</p></div>
     <button className="button secondary" type="button" disabled={!writable} aria-describedby={!writable ? "orientation-preference-help" : undefined} onClick={() => void setDismissed(false)}>Reopen setup guide</button>
     {!writable && <p id="orientation-preference-help" className="permission-note">{!online ? "Reconnect to update setup preferences." : !canWrite ? "The local:write scope is required to update setup preferences." : "Saving setup preferences…"}</p>}
   </section>;
@@ -107,11 +110,11 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
         {(Object.keys(stepCopy) as OrientationStep["id"][]).map((stepId, index) => <li key={stepId}><span className="orientation-step-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><strong>{stepCopy[stepId].title}</strong><p>{stepCopy[stepId].description}</p><small>Stored evidence is being checked</small></div><StatusBadge tone="info">Checking evidence</StatusBadge></li>)}
       </ol></>
       : <><EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={evidence.generated_at} label="Operator journey" reason={error ?? (!online ? "Reconnect before relying on checklist state." : undefined)} />
-        <article className={`recommended-action ${nextStep?.state === "unavailable" ? "blocked" : ""}`} aria-labelledby="recommended-action-title"><div><p className="eyebrow">Recommended next action</p><h3 id="recommended-action-title">{nextStep ? stepCopy[nextStep.id].title : "Journey complete"}</h3><p>{nextStep ? (reason(nextStep) ?? stepCopy[nextStep.id].description) : "Every available setup step has authoritative evidence or an explicit saved confirmation."}</p></div>{nextStep?.state === "unavailable" ? <span className="recommended-blocked"><LockKey weight="fill" aria-hidden="true" />Blocked safely</span> : nextStep && evidenceHref(nextStep) ? <Link className="button primary" href={evidenceHref(nextStep)!}>Open next step</Link> : nextStep && canConfirm(nextStep) ? <button className="button primary" type="button" disabled={!writable} onClick={() => void toggleStep(nextStep)}>{stepCopy[nextStep.id].confirmation}</button> : null}</article>
+        <article className={`recommended-action ${nextStep?.state === "unavailable" || (!nextStep && hasIncompleteStep) ? "blocked" : ""}`} aria-labelledby="recommended-action-title"><div><p className="eyebrow">Recommended next action</p><h3 id="recommended-action-title">{nextStep ? stepCopy[nextStep.id].title : hasIncompleteStep ? "No authorized next action" : "Journey complete"}</h3><p>{nextStep ? (reason(nextStep) ?? stepCopy[nextStep.id].description) : hasIncompleteStep ? "Your current server-issued capabilities do not permit any remaining setup step. Ask an administrator for the required access; no protected request was made." : "Every available setup step has authoritative evidence or an explicit saved confirmation."}</p></div>{nextStep?.state === "unavailable" || (!nextStep && hasIncompleteStep) ? <span className="recommended-blocked"><LockKey weight="fill" aria-hidden="true" />Blocked safely</span> : nextStep && evidenceHref(nextStep) ? <Link className="button primary" href={evidenceHref(nextStep)!}>Open next step</Link> : nextStep && canConfirm(nextStep) ? <button className="button primary" type="button" disabled={!writable} onClick={() => void toggleStep(nextStep)}>{stepCopy[nextStep.id].confirmation}</button> : null}</article>
         <ol className="orientation-checklist">{evidence.steps.map((step, index) => <li key={step.id} className={nextStep?.id === step.id ? "current" : undefined}>
           <span className="orientation-step-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span className={`orientation-check ${step.state}`} aria-hidden="true">{complete(step) ? <CheckCircle weight="fill" /> : step.state === "evidence_available" ? <Info weight="fill" /> : <WarningCircle weight="fill" />}</span>
           <div><strong>{stepCopy[step.id].title}</strong><p>{stepCopy[step.id].description}</p>{step.occurred_at ? <small>Stored evidence · {utcDateTime(step.occurred_at)}</small> : reason(step) ? <small>{reason(step)}</small> : step.state === "operator_confirmed" ? <small>Saved operator acknowledgement</small> : null}</div>
-          <StatusBadge tone={tone(step)}>{stateLabel(step)}</StatusBadge><div className="orientation-step-actions">{evidenceHref(step) && step.state !== "unavailable" && <Link className="record-link" href={evidenceHref(step)!}>{step.evidence_id ? "Open evidence" : "Open step"}</Link>}{canConfirm(step) && <button className="record-link orientation-confirm" type="button" disabled={!writable} onClick={() => void toggleStep(step)}>{step.state === "operator_confirmed" ? "Undo confirmation" : stepCopy[step.id].confirmation}</button>}</div>
+          <StatusBadge tone={tone(step)}>{stateLabel(step)}</StatusBadge><div className="orientation-step-actions">{canOpenOrientationStep(capabilities,step.id)&&evidenceHref(step) && step.state !== "unavailable" && <Link className="record-link" href={evidenceHref(step)!}>{step.evidence_id ? "Open evidence" : "Open step"}</Link>}{canOpenOrientationStep(capabilities,step.id)&&canConfirm(step) && <button className="record-link orientation-confirm" type="button" disabled={!writable} onClick={() => void toggleStep(step)}>{step.state === "operator_confirmed" ? "Undo confirmation" : stepCopy[step.id].confirmation}</button>}</div>
         </li>)}</ol>
       </>}
     {(preferenceError || !writable) && <div id="orientation-preference-help" className="orientation-preference-state" role={preferenceError ? "alert" : undefined}><Info weight="fill" aria-hidden="true"/><p>{preferenceError ?? (!online ? "Reconnect to update setup preferences." : !canWrite ? "The local:write scope is required to update setup preferences." : "Saving setup preferences…")}</p></div>}

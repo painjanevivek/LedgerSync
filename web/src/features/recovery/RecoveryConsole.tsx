@@ -26,12 +26,14 @@ export function RecoveryConsole() {
 
   const load=useCallback(async()=>{
     const request=++generation.current; setLoading(true);
-    const [database,index]=await Promise.all([readJSON<LocalDiagnostics>("/api/local/diagnostics"),readJSON<RecoveryEvidenceIndex>("/api/recovery/manifests")]);
+    const canReadDiagnostics=session?.environment==="local"&&hasScope("local:read");
+    const canReadRecovery=hasScope("recovery:read");
+    const [database,index]=await Promise.all([canReadDiagnostics?readJSON<LocalDiagnostics>("/api/local/diagnostics"):Promise.resolve(null),canReadRecovery?readJSON<RecoveryEvidenceIndex>("/api/recovery/manifests"):Promise.resolve(null)]);
     if(request!==generation.current)return;
-    if(database.ok&&database.data.overall_state){setDiagnostics(database.data);setDiagnosticsError(null);}else setDiagnosticsError(unavailableMessage(database.status,"current database evidence",database.requestReference));
-    if(index.ok&&index.data.format_version==="ledgersync-recovery-evidence-index/v1"){setRecovery(index.data);setRecoveryError(null);}else setRecoveryError(unavailableMessage(index.status,"protected recovery evidence",index.requestReference));
+    if(!database){setDiagnostics(null);setDiagnosticsError(null);}else if(database.ok&&database.data.overall_state){setDiagnostics(database.data);setDiagnosticsError(null);}else setDiagnosticsError(unavailableMessage(database.status,"current database evidence",database.requestReference));
+    if(!index){setRecovery(null);setRecoveryError(null);}else if(index.ok&&index.data.format_version==="ledgersync-recovery-evidence-index/v1"){setRecovery(index.data);setRecoveryError(null);}else setRecoveryError(unavailableMessage(index.status,"protected recovery evidence",index.requestReference));
     setLoading(false);
-  },[]);
+  },[hasScope,session]);
 
   useEffect(()=>{if(!session||!online||!hasScope("recovery:read"))return;const timer=window.setTimeout(()=>void load(),0);return()=>{window.clearTimeout(timer);generation.current+=1;};},[hasScope,load,online,session]);
 
@@ -40,7 +42,7 @@ export function RecoveryConsole() {
   const canRead=hasScope("recovery:read");
   return <ConsoleShell section="recovery" tenantLabel={session.tenant_label??"Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment==="local"?"Local workspace":"Verified production"} operatorLabel={session.operator_label??session.subject_id} operatorMeta={session.environment==="local"?"This workstation":"Authorized operator"}>
     {!online&&<div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true"/><span><strong>You are offline.</strong> Existing evidence is historical until it can be refreshed.</span></div>}
-    <RecoveryView diagnostics={diagnostics} recovery={recovery} diagnosticsError={diagnosticsError} recoveryError={recoveryError} loading={loading} online={online} canRead={canRead} canReadDiagnostics={hasScope("local:read")} onRefresh={()=>void load()}/>
+    <RecoveryView diagnostics={diagnostics} recovery={recovery} diagnosticsError={diagnosticsError} recoveryError={recoveryError} loading={loading} online={online} canRead={canRead} canReadDiagnostics={session.environment==="local"&&hasScope("local:read")} onRefresh={()=>void load()}/>
     <ConsoleFooter/>
   </ConsoleShell>;
 }

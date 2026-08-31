@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { readLocalAccessConfiguration } from "@/lib/local-access";
+import { isLocalSession, readLocalAccessConfiguration } from "@/lib/local-access";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { jsonError } from "@/lib/security";
 
@@ -14,12 +14,7 @@ export async function GET() {
   let local = false;
   try {
     const configuration = readLocalAccessConfiguration();
-    local = Boolean(
-      session &&
-        configuration.enabled &&
-        session.subjectId === configuration.subjectId &&
-        session.tenantId === configuration.tenantId,
-    );
+    local = isLocalSession(session, configuration);
   } catch {
     return jsonError("local_access_configuration_invalid", 503);
   }

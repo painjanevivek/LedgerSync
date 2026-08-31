@@ -42,7 +42,7 @@ function json(route: Route, body: unknown, status = 200) {
 export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
-    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
+    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
   });
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
