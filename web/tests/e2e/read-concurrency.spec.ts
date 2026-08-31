@@ -120,9 +120,10 @@ test("a correction filter change rejects an in-flight cursor page", async ({ pag
   });
 
   await page.goto("/corrections");
-  await page.getByRole("button", { name: "Load more" }).click();
+  await page.getByRole("link", { name: "Next page" }).click({ noWaitAfter: true });
   await expect.poll(() => Boolean(pendingCursor)).toBe(true);
-  await page.getByLabel("Status").selectOption("requested");
+  await page.getByLabel("Exact correction status").selectOption("requested");
+  await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.getByText(requested.correction_id, { exact: true })).toBeVisible();
 
   await json(pendingCursor!.route, { events: [stalePage], next_cursor: "" });

@@ -18,7 +18,12 @@ function json(route: Route, body: unknown, status = 200) {
 
 async function capture(page: Page, name: string, viewport = desktop, mask: Locator[] = []) {
   await page.setViewportSize(viewport);
-  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  });
+  await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
     animations: "disabled",
     caret: "hide",
