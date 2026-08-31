@@ -72,3 +72,20 @@ test("approval unavailability is never presented as an empty queue", async ({ pa
   await expect(page.getByText("Approval evidence unavailable")).toBeVisible();
   await expect(page.getByText("No approvals match these filters")).toHaveCount(0);
 });
+
+test("invalid shared approval queries fail before protected evidence is requested", async ({ page }) => {
+  let requested = false;
+  await page.unroute("**/api/approvals?*");
+  await page.route("**/api/approvals?*", (route) => {
+    requested = true;
+    return route.fulfill({ status: 500, body: "{}" });
+  });
+
+  await page.goto("/approvals?domain=funding&domain=correction");
+
+  await expect(page.getByText("Invalid approval investigation URL")).toBeVisible();
+  await expect(page.getByText("No protected approval request was made.")).toBeVisible();
+  expect(requested).toBe(false);
+  await page.getByRole("button", { name: "Clear invalid filters" }).click();
+  await expect(page).toHaveURL(/\/approvals$/);
+});

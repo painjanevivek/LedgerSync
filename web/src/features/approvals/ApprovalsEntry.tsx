@@ -12,7 +12,7 @@ import { StatePanel } from "@/features/console/components";
 import type { ApprovalFilters } from "@/lib/api/approvals";
 import { emptyApprovalFilters } from "@/lib/api/approvals";
 
-export function ApprovalsEntry({ filters }: Readonly<{ filters: ApprovalFilters }>) {
+export function ApprovalsEntry({ filters, invalidQuery = false }: Readonly<{ filters: ApprovalFilters; invalidQuery?: boolean }>) {
   const router = useRouter();
   const { session, online } = useConsoleSession();
   const capabilities = deriveConsoleCapabilities(session);
@@ -21,9 +21,9 @@ export function ApprovalsEntry({ filters }: Readonly<{ filters: ApprovalFilters 
   const filterKey = useMemo(() => approvalQuery(filters), [filters]);
 
   useEffect(() => {
-    if (!session || !online || !canOpen) return;
+    if (!session || !online || !canOpen || invalidQuery) return;
     void load(filters);
-  }, [canOpen, filterKey, filters, load, online, session]);
+  }, [canOpen, filterKey, filters, invalidQuery, load, online, session]);
 
   const returnTo = approvalURL(filters);
   const nextHref = nextCursor
@@ -39,7 +39,7 @@ export function ApprovalsEntry({ filters }: Readonly<{ filters: ApprovalFilters 
           title="Approval authority required"
           message="Your server-issued session has no funding or correction approval scope. No protected approval request was made."
         />
-      ) : !online && items.length === 0 ? <StatePanel kind="offline" title="Approval evidence unavailable offline" message="Reconnect to request the tenant-scoped queue. No empty queue is inferred." /> : <>
+      ) : invalidQuery ? <StatePanel kind="error" title="Invalid approval investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, or incompatible filter. No protected approval request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/approvals")}>Clear invalid filters</button>} /> : !online && items.length === 0 ? <StatePanel kind="offline" title="Approval evidence unavailable offline" message="Reconnect to request the tenant-scoped queue. No empty queue is inferred." /> : <>
         <ApprovalFiltersForm
           key={filterKey}
           filters={filters}
