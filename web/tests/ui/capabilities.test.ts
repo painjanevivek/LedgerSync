@@ -67,6 +67,14 @@ test("cross-domain search requires its dedicated entry scope and a readable doma
   assert.equal(canSearchInvestigations(authorized), true);
 });
 
+test("saved-view mutation discoverability requires the dedicated write scope", () => {
+  const reader = deriveConsoleCapabilities(session("production", ["investigation:read", "events:read"]));
+  const editor = deriveConsoleCapabilities(session("production", ["investigation:read", "investigation:write", "events:read"]));
+  assert.equal(reader.investigationRead, true);
+  assert.equal(reader.investigationWrite, false);
+  assert.equal(editor.investigationWrite, true);
+});
+
 test("recommended setup steps are eligible only when their capability exists", () => {
   const reader = deriveConsoleCapabilities(
     session("local", ["accounts:read", "transfers:read", "local:read"]),

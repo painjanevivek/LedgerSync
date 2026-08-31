@@ -16,6 +16,7 @@ export type ConsoleCapabilities = Readonly<{
   reconciliationWrite: boolean;
   eventsRead: boolean;
   investigationRead: boolean;
+  investigationWrite: boolean;
   webhooksRead: boolean;
   webhooksManage: boolean;
   recoveryRead: boolean;
@@ -40,6 +41,7 @@ const noCapabilities: ConsoleCapabilities = {
   reconciliationWrite: false,
   eventsRead: false,
   investigationRead: false,
+  investigationWrite: false,
   webhooksRead: false,
   webhooksManage: false,
   recoveryRead: false,
@@ -75,6 +77,7 @@ export function deriveConsoleCapabilities(
     reconciliationWrite: scopes.has("reconciliation:write"),
     eventsRead: scopes.has("events:read"),
     investigationRead: scopes.has("investigation:read"),
+    investigationWrite: scopes.has("investigation:write"),
     webhooksRead: scopes.has("webhooks:read"),
     webhooksManage:
       scopes.has("webhooks:write") || scopes.has("webhooks:replay"),

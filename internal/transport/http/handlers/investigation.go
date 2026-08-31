@@ -21,12 +21,13 @@ var boundedExactInvestigationReference = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z
 var boundedInvestigationSearchLimit = regexp.MustCompile(`^(?:[1-9]|1[0-9]|20)$`)
 
 type InvestigationHandler struct {
-	repository    investigation.Repository
-	identity      identity.Provider
-	authenticator *identity.RequestAuthenticator
-	rateLimiter   RateLimiter
-	rateLimit     int
-	audit         AuditRecorder
+	repository          investigation.Repository
+	identity            identity.Provider
+	authenticator       *identity.RequestAuthenticator
+	rateLimiter         RateLimiter
+	rateLimit           int
+	savedViewWriteLimit int
+	audit               AuditRecorder
 }
 
 func NewInvestigationHandler(repository investigation.Repository, provider identity.Provider) *InvestigationHandler {
@@ -38,6 +39,10 @@ func (h *InvestigationHandler) WithRequestAuthenticator(authenticator *identity.
 }
 func (h *InvestigationHandler) WithRateLimiter(limiter RateLimiter, requestsPerMinute int) *InvestigationHandler {
 	h.rateLimiter, h.rateLimit = limiter, requestsPerMinute
+	return h
+}
+func (h *InvestigationHandler) WithSavedViewWriteLimit(requestsPerMinute int) *InvestigationHandler {
+	h.savedViewWriteLimit = requestsPerMinute
 	return h
 }
 func (h *InvestigationHandler) WithAuditRecorder(audit AuditRecorder) *InvestigationHandler {

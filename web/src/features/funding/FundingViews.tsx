@@ -10,6 +10,7 @@ import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
 import { EvidenceFreshness } from "@/ui/display/Evidence";
 import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
+import { SavedViewCapture } from "@/features/investigation/SavedViewCapture";
 import { PageHeader } from "@/ui/display/PageHeader";
 import { StatePanel } from "@/ui/display/StatePanel";
 import { StatusBadge } from "@/ui/display/StatusBadge";
@@ -113,6 +114,7 @@ export function FundingListView({ events, accounts, filters, nextCursor, verifie
       <FormField label="Exact funding status" requirement="optional" hint="The server filters the complete funding history before pagination."><select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value as FundingFilters["status"])}><option value="">All statuses</option><option value="requested">Requested</option><option value="approved">Approved</option><option value="posted">Posted</option><option value="rejected">Rejected</option><option value="compensated">Compensated</option></select></FormField>
       <div className="action-row"><button className="button primary" type="submit" disabled={loading}>Apply filters</button><button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>Clear all</button></div>
     </form>
+    <SavedViewCapture domain="funding" filters={{ status: filters.status || undefined }} />
     {verifiedAt && events.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Funding records" reason={error ?? (!online ? "Reconnect before acting on these records." : undefined)} />}
     {error && <StatePanel kind="error" title="Funding records unavailable" message={error} action={<FocusedRetry label="Retry funding records" onRetry={onRefresh} disabled={!online} busy={loading} />} />}
     {loading && events.length === 0 ? <StatePanel title="Loading funding records" message="Checking your funding records now. An empty result will appear only after the check finishes." /> : events.length === 0 && !error ? <StatePanel title="No funding records yet" message="When money is confirmed outside LedgerSync, add its reference number and supporting document here. It will be checked before your balance changes." action={canWrite ? <button className="button primary" type="button" onClick={onOpenRequest}>Add first record</button> : undefined} /> : events.length > 0 && <section className="ledger-section funding-ledger" aria-labelledby="funding-ledger-heading" aria-busy={loading}>

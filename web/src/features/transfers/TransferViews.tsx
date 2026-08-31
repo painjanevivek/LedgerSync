@@ -21,6 +21,7 @@ import { TransferCorrectionPanel } from "@/features/corrections/TransferCorrecti
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { TransferEvidenceTimeline } from "@/features/transfers/TransferEvidenceTimeline";
 import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
+import { SavedViewCapture } from "@/features/investigation/SavedViewCapture";
 import { TransferForm } from "@/features/transfers/TransferForm";
 import type { TransferExplainability } from "@/lib/api/orientation";
 import { Money } from "@/ui/display/Money";
@@ -504,6 +505,7 @@ export function TransfersView({
           Refresh history
         </button>
       </form>
+      <SavedViewCapture domain="transfers" filters={{ q: initialFilters.query || undefined, accountId: initialFilters.accountId || undefined, status: initialFilters.status || undefined, from: initialFilters.from || undefined, to: initialFilters.to || undefined }} />
       <p className="filter-scope-note">
         Filters apply server-side to the bounded authorized history and remain
         active across pagination and export.

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { canSearchInvestigations, deriveConsoleCapabilities } from "@/features/console/capabilities";
+import { SavedViewsPanel } from "@/features/investigation/SavedViewsPanel";
 import { sanitizeInvestigationSearch, type InvestigationRecordType, type InvestigationSearchPage, type InvestigationSearchResult } from "@/lib/api/investigation-search";
 import { investigationSearchURL, parseInvestigationSearchPageQuery } from "@/lib/page-query/investigation-search";
 import { FormField } from "@/ui/forms/FormField.client";
@@ -119,6 +120,7 @@ export function InvestigationSearchController({ initialQuery, invalidQuery }: Re
   return <ConsoleRouteFrame section="search" loadingLabel="Search" pending={loading}>
     <div className="investigation-search-workspace">
       <PageHeader eyebrow="Investigate / Exact lookup" title="Search records" description="Locate authorized evidence by one complete immutable ID or approved external reference. LedgerSync does not perform broad or cross-tenant discovery." />
+      <SavedViewsPanel />
       {!canSearch && session ? <StatePanel kind="denied" title="Investigation authority required" message="Your server-issued role and scopes do not permit cross-domain lookup. No protected search was made." /> : invalidQuery ? <StatePanel kind="error" title="Invalid search URL" message="The shared URL contains an unknown, repeated, empty, oversized, partial, or malformed lookup. No protected search was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/search")}>Clear invalid lookup</button>} /> : <>
         <form className="investigation-search-form" role="search" onSubmit={submit}>
           <FormField label="Exact ID or approved reference" requirement="required" hint="Examples: a complete account/transfer UUID or an exact approved account or funding reference. Minimum reference length: 8." error={inputError}>

@@ -21,6 +21,7 @@ import { FormField } from "@/ui/forms/FormField.client";
 import { accountLabel } from "@/features/console/format";
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
+import { SavedViewCapture } from "@/features/investigation/SavedViewCapture";
 import { Money } from "@/ui/display/Money";
 import { Timestamp } from "@/ui/display/Timestamp";
 import { accountDetailURL, accountDirectoryURL, type AccountFilters } from "@/lib/page-query/accounts";
@@ -104,6 +105,7 @@ export function AccountsView({ accounts, selected, detailRequested, balance, tra
         <Link className="button secondary" href="/accounts">Clear filters</Link>
         <span aria-live="polite">{error ? "Authorized page count unavailable" : `${accounts.length} authorized account${accounts.length === 1 ? "" : "s"} on this page; no total is implied.`}</span>
       </form>
+      <SavedViewCapture domain="accounts" filters={{ status: filters.status || undefined, category: filters.category || undefined }} />
       {directoryVerifiedAt && accounts.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : directoryLoading ? "refreshing" : "current"} verifiedAt={directoryVerifiedAt} label="Account directory" reason={error ?? (!online ? "Reconnect before relying on directory balances." : undefined)} />}
       {directoryLoading && accounts.length === 0 ? <StatePanel title="Loading authorized accounts" message="LedgerSync is requesting one bounded page from the authoritative account directory." /> : accounts.length === 0 && !error ? <StatePanel title={filters.query || filters.status || filters.category ? "No matching accounts" : "No accounts yet"} message={filters.query || filters.status || filters.category ? "Clear or change the filters. LedgerSync does not broaden the authorized account scope." : "Create your first account to begin the ledger. It opens at an exact zero balance."} action={!filters.query && !filters.status && !filters.category && canWrite ? <Link className="button primary" href="/accounts/new">Create your first account</Link> : undefined} /> : accounts.length > 0 && <section className="ledger-section account-directory" aria-labelledby="accounts-heading" aria-busy={directoryLoading}>
         <div className="section-heading"><div><p className="eyebrow">Oldest created first</p><h2 id="accounts-heading">Available balances</h2><p>{accounts.length} account{accounts.length === 1 ? "" : "s"} on this page. A total is not calculated or implied.</p></div></div>

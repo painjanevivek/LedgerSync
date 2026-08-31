@@ -241,6 +241,87 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /investigation/saved-views:
+    get:
+      operationId: listSavedInvestigationViews
+      x-required-scope: investigation:read
+      x-required-scopes-any: [accounts:read, transfers:read, funding:read, funding:approve, corrections:read, corrections:approve, events:read, webhooks:read]
+      summary: List the current operator's server-owned investigation filter definitions.
+      description: >-
+        Returns at most 25 tenant-and-operator-scoped filter definitions. A saved
+        view is never a result snapshot and contains no balances, financial
+        amounts, free-text search, requesters, cursors, secrets, or payloads.
+        Target paths are derived by the server from the versioned allowlist and
+        open against current authorized evidence.
+      responses:
+        '200': { description: Current saved-view definitions., content: { application/json: { schema: { $ref: '#/components/schemas/SavedInvestigationViewPage' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      operationId: createSavedInvestigationView
+      x-required-scope: investigation:write
+      x-required-scopes-any: [accounts:read, transfers:read, funding:read, funding:approve, corrections:read, corrections:approve, events:read, webhooks:read]
+      summary: Save one allowlisted operational filter definition.
+      description: >-
+        Requires the matching domain authority. The server validates schema
+        version 1, re-derives the target path, enforces the 25-view cap and
+        unique operator-local name, and records an immutable preference audit
+        event without copying the name or filter values into audit metadata.
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateSavedInvestigationViewRequest' } } }
+      responses:
+        '201': { description: Saved filter definition., content: { application/json: { schema: { $ref: '#/components/schemas/SavedInvestigationView' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/SavedViewConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /investigation/saved-views/{savedViewId}:
+    put:
+      operationId: renameSavedInvestigationView
+      x-required-scope: investigation:write
+      x-required-scopes-any: [accounts:read, transfers:read, funding:read, funding:approve, corrections:read, corrections:approve, events:read, webhooks:read]
+      summary: Rename an owned saved investigation view with optimistic concurrency.
+      parameters: [{ $ref: '#/components/parameters/SavedViewID' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RenameSavedInvestigationViewRequest' } } }
+      responses:
+        '200': { description: Renamed saved filter definition., content: { application/json: { schema: { $ref: '#/components/schemas/SavedInvestigationView' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/SavedViewConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      operationId: deleteSavedInvestigationView
+      x-required-scope: investigation:write
+      x-required-scopes-any: [accounts:read, transfers:read, funding:read, funding:approve, corrections:read, corrections:approve, events:read, webhooks:read]
+      summary: Delete an owned saved filter definition without changing evidence.
+      parameters:
+        - { $ref: '#/components/parameters/SavedViewID' }
+        - in: header
+          name: If-Match
+          required: true
+          description: Quoted current saved-view version, for example "3".
+          schema: { type: string, pattern: '^"[1-9][0-9]{0,18}"$' }
+      responses:
+        '204': { description: Saved filter definition deleted. }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/SavedViewConflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /reconciliation/runs:
     get:
       operationId: listReconciliationRuns
@@ -959,6 +1040,7 @@ components:
     WebhookID: { in: path, name: webhookId, required: true, schema: { type: string, format: uuid } }
     WebhookEndpointEvidenceID: { in: path, name: endpointId, required: true, schema: { type: string, format: uuid } }
     DeliveryAttemptID: { in: path, name: attemptId, required: true, schema: { type: string, format: uuid } }
+    SavedViewID: { in: path, name: savedViewId, required: true, schema: { type: string, format: uuid } }
     Cursor: { in: query, name: cursor, schema: { type: string, maxLength: 512 } }
     Limit: { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
     ExportLimit: { in: query, name: limit, description: Maximum evidence rows; generation stops at this server-enforced bound., schema: { type: integer, minimum: 1, maximum: 10000, default: 10000 } }
@@ -1403,6 +1485,61 @@ components:
         relationships: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/Relationship' } }
         generated_at: { type: string, format: date-time }
         truncated: { type: boolean }
+    SavedInvestigationViewDomain: { type: string, enum: [accounts, transfers, funding, approvals, corrections, events, webhooks] }
+    SavedInvestigationViewFilters:
+      description: The server validates this allowlisted filter object against the accompanying domain and rejects domain/filter mismatches.
+      anyOf:
+        - { $ref: '#/components/schemas/SavedAccountFilters' }
+        - { $ref: '#/components/schemas/SavedTransferFilters' }
+        - { $ref: '#/components/schemas/SavedFundingFilters' }
+        - { $ref: '#/components/schemas/SavedApprovalFilters' }
+        - { $ref: '#/components/schemas/SavedCorrectionFilters' }
+        - { $ref: '#/components/schemas/SavedEventFilters' }
+        - { $ref: '#/components/schemas/SavedWebhookFilters' }
+    SavedAccountFilters: { type: object, additionalProperties: false, minProperties: 1, maxProperties: 2, properties: { status: { type: string, enum: [active, frozen, closed] }, category: { type: string, enum: [operating, customer_funds, payroll, payables, expenses, reserve] } } }
+    SavedTransferFilters: { type: object, additionalProperties: false, minProperties: 1, maxProperties: 5, properties: { q: { type: string, minLength: 1, maxLength: 128, pattern: '^[0-9a-f-]+$' }, accountId: { type: string, format: uuid }, status: { type: string, enum: [pending, posted, rejected] }, from: { type: string, format: date-time }, to: { type: string, format: date-time } } }
+    SavedFundingFilters: { type: object, additionalProperties: false, required: [status], properties: { status: { type: string, enum: [requested, approved, posted, rejected, compensated] } } }
+    SavedApprovalFilters: { type: object, additionalProperties: false, minProperties: 1, maxProperties: 6, properties: { domain: { type: string, enum: [funding, correction] }, status: { type: string, enum: ['funding:requested', 'funding:approved', 'funding:posted', 'funding:rejected', 'funding:compensated', 'correction:requested', 'correction:approved', 'correction:rejected', 'correction:cancelled', 'correction:expired', 'correction:posted'] }, age: { type: string, enum: [under_24h, over_24h, over_7d, over_30d] }, requested_after: { type: string, format: date }, requested_before: { type: string, format: date }, actionable_by_me: { type: string, const: 'true' } } }
+    SavedCorrectionFilters: { type: object, additionalProperties: false, required: [status], properties: { status: { type: string, enum: [requested, approved, posted, rejected, cancelled, expired] } } }
+    SavedEventFilters: { type: object, additionalProperties: false, minProperties: 1, maxProperties: 7, properties: { eventType: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$' }, state: { type: string, enum: [pending, retrying, published, dead] }, endpointId: { type: string, format: uuid }, relatedId: { type: string, format: uuid }, correlationId: { type: string, format: uuid }, from: { type: string, format: date-time }, to: { type: string, format: date-time } } }
+    SavedWebhookFilters: { type: object, additionalProperties: false, minProperties: 1, maxProperties: 2, properties: { status: { type: string, enum: [pending_verification, active, disabled] }, eventType: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$' } } }
+    SavedInvestigationView:
+      type: object
+      additionalProperties: false
+      required: [saved_view_id, name, filter_schema_version, domain, filters, target_path, version, created_at, updated_at]
+      properties:
+        saved_view_id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 80, description: Trimmed valid Unicode without control characters; operators must not place customer data or credentials in names. }
+        filter_schema_version: { type: string, const: '1' }
+        domain: { $ref: '#/components/schemas/SavedInvestigationViewDomain' }
+        filters: { $ref: '#/components/schemas/SavedInvestigationViewFilters' }
+        target_path: { type: string, maxLength: 2048, pattern: '^/(?:accounts|transfers|funding|approvals|corrections|events|webhooks)\?' }
+        version: { type: string, pattern: '^[1-9][0-9]{0,18}$' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    SavedInvestigationViewPage:
+      type: object
+      additionalProperties: false
+      required: [views, generated_at]
+      properties:
+        views: { type: array, maxItems: 25, uniqueItems: true, items: { $ref: '#/components/schemas/SavedInvestigationView' } }
+        generated_at: { type: string, format: date-time }
+    CreateSavedInvestigationViewRequest:
+      type: object
+      additionalProperties: false
+      required: [name, filter_schema_version, domain, filters]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        filter_schema_version: { type: string, const: '1' }
+        domain: { $ref: '#/components/schemas/SavedInvestigationViewDomain' }
+        filters: { $ref: '#/components/schemas/SavedInvestigationViewFilters' }
+    RenameSavedInvestigationViewRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_version, name]
+      properties:
+        expected_version: { type: string, pattern: '^[1-9][0-9]{0,18}$' }
+        name: { type: string, minLength: 1, maxLength: 80 }
     DiagnosticSnapshot:
       type: object
       required: [overall_state, generated_at, application, financial_authority, delivery_cache]
@@ -1769,7 +1906,7 @@ components:
       required: [operation_id, method, path, scope]
       properties:
         operation_id: { type: string, pattern: '^[A-Za-z][A-Za-z0-9]*$', maxLength: 80 }
-        method: { type: string, enum: [GET, POST, PUT, PATCH] }
+        method: { type: string, enum: [GET, POST, PUT, PATCH, DELETE] }
         path: { type: string, pattern: '^/[A-Za-z0-9{}._/-]+$', maxLength: 160 }
         scope: { type: string, pattern: '^[a-z]+:[a-z]+$', maxLength: 64 }
     DeveloperRequestExample:
@@ -1857,6 +1994,7 @@ components:
     Conflict: { description: Idempotency conflict or in-progress request., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     StepUpRequired: { description: A recent verified authentication event is required before the sensitive production command can proceed., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { error: { code: step_up_required, message: Recent authentication is required for this correction command., request_id: 00000000-0000-4000-8000-000000000099 } } } } }
     PreferenceConflict: { description: The onboarding preference version changed in another session; read the current summary before retrying., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    SavedViewConflict: { description: The saved-view name conflicts, the 25-view limit is reached, or its version changed in another session; reload current saved views before retrying., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     AccountConflict:
       description: External-reference, optimistic-version, lifecycle, idempotency, or in-progress conflict.
       content:

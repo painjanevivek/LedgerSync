@@ -3,14 +3,14 @@
   "api_version": "3.1.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "816713d6",
-    "fdd52eae",
-    "3bdbcf8a",
-    "6f6602a7",
-    "77a84cfe",
-    "dafd0c34",
-    "f6dd381c",
-    "91326122"
+    "f6e98efd",
+    "43cc6705",
+    "938cafc6",
+    "d092b3b3",
+    "f84f7b6e",
+    "ceed2ada",
+    "dd02c1df",
+    "40816de7"
   ],
   "operations": [
     {
@@ -56,11 +56,25 @@
       "idempotent": true
     },
     {
+      "id": "createSavedInvestigationView",
+      "method": "POST",
+      "path": "/investigation/saved-views",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "createTransfer",
       "method": "POST",
       "path": "/transfers",
       "scope": "transfers:write",
       "idempotent": true
+    },
+    {
+      "id": "deleteSavedInvestigationView",
+      "method": "DELETE",
+      "path": "/investigation/saved-views/{savedViewId}",
+      "scope": "investigation:write",
+      "idempotent": false
     },
     {
       "id": "disableDeveloperWebhook",
@@ -273,6 +287,13 @@
       "idempotent": false
     },
     {
+      "id": "listSavedInvestigationViews",
+      "method": "GET",
+      "path": "/investigation/saved-views",
+      "scope": "investigation:read",
+      "idempotent": false
+    },
+    {
       "id": "listTransferCorrections",
       "method": "GET",
       "path": "/transfer-corrections",
@@ -333,6 +354,13 @@
       "method": "POST",
       "path": "/transfer-corrections/{correctionId}/reject",
       "scope": "corrections:approve",
+      "idempotent": false
+    },
+    {
+      "id": "renameSavedInvestigationView",
+      "method": "PUT",
+      "path": "/investigation/saved-views/{savedViewId}",
+      "scope": "investigation:write",
       "idempotent": false
     },
     {

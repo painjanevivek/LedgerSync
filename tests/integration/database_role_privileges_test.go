@@ -45,6 +45,10 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		{"ledgersync_api", "operator_onboarding_preferences", "INSERT", true},
 		{"ledgersync_api", "operator_onboarding_preferences", "UPDATE", true},
 		{"ledgersync_api", "operator_onboarding_preferences", "DELETE", false},
+		{"ledgersync_api", "investigation_saved_views", "SELECT", true},
+		{"ledgersync_api", "investigation_saved_views", "INSERT", true},
+		{"ledgersync_api", "investigation_saved_views", "UPDATE", true},
+		{"ledgersync_api", "investigation_saved_views", "DELETE", true},
 		{"ledgersync_api", "funding_events", "SELECT", true},
 		{"ledgersync_api", "funding_events", "INSERT", true},
 		{"ledgersync_api", "funding_events", "UPDATE", true},
@@ -76,6 +80,7 @@ func TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority(t *testing.T) 
 		{"ledgersync_worker", "webhook_endpoint_verification_jobs", "UPDATE", true},
 		{"ledgersync_worker", "webhook_endpoint_verification_jobs", "INSERT", false},
 		{"ledgersync_support_readonly", "audit_events", "SELECT", true},
+		{"ledgersync_support_readonly", "investigation_saved_views", "SELECT", true},
 		{"ledgersync_support_readonly", "audit_events", "UPDATE", false},
 		{"ledgersync_break_glass", "transfers", "SELECT", false},
 	}

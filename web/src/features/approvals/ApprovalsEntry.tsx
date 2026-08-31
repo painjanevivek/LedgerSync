@@ -8,6 +8,7 @@ import { approvalQuery, approvalURL, useApprovalWorkspace } from "@/features/app
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { deriveConsoleCapabilities } from "@/features/console/capabilities";
+import { SavedViewCapture } from "@/features/investigation/SavedViewCapture";
 import { StatePanel } from "@/ui/display/StatePanel";
 import type { ApprovalFilters } from "@/lib/api/approvals";
 import { emptyApprovalFilters } from "@/lib/api/approvals";
@@ -48,6 +49,7 @@ export function ApprovalsEntry({ filters, invalidQuery = false }: Readonly<{ fil
           onApply={(next) => router.push(approvalURL(next))}
           onClear={() => router.push(approvalURL(emptyApprovalFilters))}
         />
+        <SavedViewCapture domain="approvals" filters={{ domain: filters.domain || undefined, status: filters.status || undefined, age: filters.age || undefined, requested_after: filters.requestedAfter || undefined, requested_before: filters.requestedBefore || undefined, actionable_by_me: filters.actionableByMe ? "true" : undefined }} />
         {denied ? <StatePanel kind="denied" title="Approval query denied" message="The server rejected this approval scope or domain. No empty queue is inferred." /> : null}
         {error ? <StatePanel kind="error" title="Approval evidence unavailable" message={error} /> : null}
         {!denied && !error ? <ApprovalList items={items} pageCount={pageCount} nextHref={nextHref} returnTo={returnTo} loading={loading} /> : null}

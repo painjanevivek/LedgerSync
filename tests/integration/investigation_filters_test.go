@@ -4,10 +4,65 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
+
+func TestSavedInvestigationViewsAreOwnerScopedVersionedAndAtomicallyAudited(t *testing.T) {
+	_, database := requireTransferService(t, 100_000)
+	repository, err := db.NewInvestigationRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := repository.CreateSavedView(context.Background(), investigation.SavedViewCreate{
+		TenantID: testTenantID, ActorID: testActorID, Name: "Frozen accounts", Domain: "accounts",
+		FilterSchemaVersion: 1, Filters: map[string]string{"status": "frozen"}, Access: investigation.SavedViewAccess{Accounts: true},
+		CorrelationID: "00000000-0000-4000-8000-000000000931", OccurredAt: time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC),
+	})
+	if err != nil || created.Version != "1" || created.TargetPath != "/accounts?status=frozen" {
+		t.Fatalf("created=%#v err=%v", created, err)
+	}
+	page, err := repository.ListSavedViews(context.Background(), testTenantID, testActorID, investigation.SavedViewAccess{Accounts: true})
+	if err != nil || len(page.Views) != 1 || page.Views[0].ID != created.ID {
+		t.Fatalf("owner page=%#v err=%v", page, err)
+	}
+	other, err := repository.ListSavedViews(context.Background(), testTenantID, "other-operator", investigation.SavedViewAccess{Accounts: true})
+	if err != nil || len(other.Views) != 0 {
+		t.Fatalf("cross-operator page=%#v err=%v", other, err)
+	}
+	hidden, err := repository.ListSavedViews(context.Background(), testTenantID, testActorID, investigation.SavedViewAccess{Transfers: true})
+	if err != nil || len(hidden.Views) != 0 {
+		t.Fatalf("domain-revoked page=%#v err=%v", hidden, err)
+	}
+	if _, err := repository.RenameSavedView(context.Background(), investigation.SavedViewRename{TenantID: testTenantID, ActorID: testActorID, SavedViewID: created.ID, Name: "Hidden rename", ExpectedVersion: 1, Access: investigation.SavedViewAccess{Transfers: true}, CorrelationID: "00000000-0000-4000-8000-000000000930"}); !errors.Is(err, investigation.ErrSavedViewNotFound) {
+		t.Fatalf("domain-revoked rename err=%v", err)
+	}
+
+	renamed, err := repository.RenameSavedView(context.Background(), investigation.SavedViewRename{
+		TenantID: testTenantID, ActorID: testActorID, SavedViewID: created.ID, Name: "Accounts requiring review", ExpectedVersion: 1,
+		Access: investigation.SavedViewAccess{Accounts: true}, CorrelationID: "00000000-0000-4000-8000-000000000932", OccurredAt: time.Date(2026, 8, 31, 12, 1, 0, 0, time.UTC),
+	})
+	if err != nil || renamed.Version != "2" || renamed.Name != "Accounts requiring review" {
+		t.Fatalf("renamed=%#v err=%v", renamed, err)
+	}
+	if _, err := repository.RenameSavedView(context.Background(), investigation.SavedViewRename{TenantID: testTenantID, ActorID: testActorID, SavedViewID: created.ID, Name: "Stale rename", ExpectedVersion: 1, Access: investigation.SavedViewAccess{Accounts: true}, CorrelationID: "00000000-0000-4000-8000-000000000933"}); !errors.Is(err, investigation.ErrSavedViewVersion) {
+		t.Fatalf("stale rename err=%v", err)
+	}
+	if err := repository.DeleteSavedView(context.Background(), investigation.SavedViewDelete{TenantID: testTenantID, ActorID: testActorID, SavedViewID: created.ID, ExpectedVersion: 2, Access: investigation.SavedViewAccess{Transfers: true}, CorrelationID: "00000000-0000-4000-8000-000000000935"}); !errors.Is(err, investigation.ErrSavedViewNotFound) {
+		t.Fatalf("domain-revoked delete err=%v", err)
+	}
+	if err := repository.DeleteSavedView(context.Background(), investigation.SavedViewDelete{TenantID: testTenantID, ActorID: testActorID, SavedViewID: created.ID, ExpectedVersion: 2, Access: investigation.SavedViewAccess{Accounts: true}, CorrelationID: "00000000-0000-4000-8000-000000000934", OccurredAt: time.Date(2026, 8, 31, 12, 2, 0, 0, time.UTC)}); err != nil {
+		t.Fatal(err)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM audit_events WHERE tenant_id=$1 AND target_id=$2 AND event_type IN ('investigation.saved_view_created','investigation.saved_view_renamed','investigation.saved_view_deleted')`, testTenantID, created.ID); got != 3 {
+		t.Fatalf("saved-view audit events=%d, want 3", got)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM investigation_saved_views WHERE tenant_id=$1 AND owner_subject_id=$2`, testTenantID, testActorID); got != 0 {
+		t.Fatalf("saved views after delete=%d", got)
+	}
+}
 
 func TestTransferHistoryFiltersApplyBeforePaginationAndBindCursorIntent(t *testing.T) {
 	service, database := requireTransferService(t, 100_000)

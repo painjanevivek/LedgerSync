@@ -48,11 +48,25 @@ export const operations: readonly Operation[] = [
     "idempotent": true
   },
   {
+    "id": "createSavedInvestigationView",
+    "method": "POST",
+    "path": "/investigation/saved-views",
+    "scope": "investigation:write",
+    "idempotent": false
+  },
+  {
     "id": "createTransfer",
     "method": "POST",
     "path": "/transfers",
     "scope": "transfers:write",
     "idempotent": true
+  },
+  {
+    "id": "deleteSavedInvestigationView",
+    "method": "DELETE",
+    "path": "/investigation/saved-views/{savedViewId}",
+    "scope": "investigation:write",
+    "idempotent": false
   },
   {
     "id": "disableDeveloperWebhook",
@@ -265,6 +279,13 @@ export const operations: readonly Operation[] = [
     "idempotent": false
   },
   {
+    "id": "listSavedInvestigationViews",
+    "method": "GET",
+    "path": "/investigation/saved-views",
+    "scope": "investigation:read",
+    "idempotent": false
+  },
+  {
     "id": "listTransferCorrections",
     "method": "GET",
     "path": "/transfer-corrections",
@@ -325,6 +346,13 @@ export const operations: readonly Operation[] = [
     "method": "POST",
     "path": "/transfer-corrections/{correctionId}/reject",
     "scope": "corrections:approve",
+    "idempotent": false
+  },
+  {
+    "id": "renameSavedInvestigationView",
+    "method": "PUT",
+    "path": "/investigation/saved-views/{savedViewId}",
+    "scope": "investigation:write",
     "idempotent": false
   },
   {

@@ -46,6 +46,10 @@ BEGIN
   IF to_regclass('public.operator_onboarding_preferences') IS NOT NULL THEN
     EXECUTE 'GRANT SELECT,INSERT,UPDATE ON operator_onboarding_preferences TO ledgersync_api';
   END IF;
+  IF to_regclass('public.investigation_saved_views') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE,DELETE ON investigation_saved_views TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON investigation_saved_views TO ledgersync_support_readonly';
+  END IF;
 END $$;
 
 DO $$

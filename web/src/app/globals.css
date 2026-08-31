@@ -23,6 +23,7 @@
 @import "../styles/primitives/evidence-freshness.css";
 @import "../styles/patterns/detail-evidence.css";
 @import "../styles/patterns/related-evidence.css";
+@import "../styles/patterns/saved-views.css";
 @import "../styles/patterns/guarded-command.css";
 @import "../styles/primitives/dialogs.css";
 @import "../styles/features/reconciliation.css";

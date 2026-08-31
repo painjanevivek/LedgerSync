@@ -37,7 +37,7 @@ func TestOpenAPIIsStructurallyValidAndEveryReferenceResolves(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(content) > 128*1024 {
+	if len(content) > 160*1024 {
 		t.Fatalf("OpenAPI download is unbounded: %d bytes", len(content))
 	}
 	document := loadOpenAPIDocument(t)
@@ -179,6 +179,8 @@ func TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs(t *testing.T) {
 		{"internal/application/investigation/models.go", "SearchPage", "InvestigationSearchPage"},
 		{"internal/application/investigation/models.go", "Relationship", "Relationship"},
 		{"internal/application/investigation/models.go", "RelationshipPage", "RelationshipPage"},
+		{"internal/application/investigation/saved_views.go", "SavedView", "SavedInvestigationView"},
+		{"internal/application/investigation/saved_views.go", "SavedViewPage", "SavedInvestigationViewPage"},
 		{"internal/application/operations/diagnostics.go", "DiagnosticSnapshot", "DiagnosticSnapshot"},
 		{"internal/application/operations/events.go", "EventEvidence", "EventEvidence"},
 		{"internal/application/operations/events.go", "DeliveryEvidence", "DeliveryEvidence"},

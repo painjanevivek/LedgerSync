@@ -16,8 +16,8 @@ func TestAllowedSetDropsUnknownRolesAndScopes(t *testing.T) {
 	if len(roles) != 1 || !contains(roles, "tenant:admin") {
 		t.Fatalf("unexpected roles: %#v", roles)
 	}
-	scopes := allowedSet([]string{"accounts:read", "accounts:write", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "developer:read", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "accounts:all"}, allowedScopes)
-	if len(scopes) != 14 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") || !contains(scopes, "reconciliation:write") || !contains(scopes, "local:read") || !contains(scopes, "local:write") || !contains(scopes, "events:read") || !contains(scopes, "investigation:read") || !contains(scopes, "developer:read") || !contains(scopes, "recovery:read") || !contains(scopes, "exports:read") || !contains(scopes, "explainability:read") || !contains(scopes, "funding:read") || !contains(scopes, "funding:write") || !contains(scopes, "funding:approve") {
+	scopes := allowedSet([]string{"accounts:read", "accounts:write", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "developer:read", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "accounts:all"}, allowedScopes)
+	if len(scopes) != 15 || !contains(scopes, "accounts:read") || !contains(scopes, "accounts:write") || !contains(scopes, "reconciliation:write") || !contains(scopes, "local:read") || !contains(scopes, "local:write") || !contains(scopes, "events:read") || !contains(scopes, "investigation:read") || !contains(scopes, "investigation:write") || !contains(scopes, "developer:read") || !contains(scopes, "recovery:read") || !contains(scopes, "exports:read") || !contains(scopes, "explainability:read") || !contains(scopes, "funding:read") || !contains(scopes, "funding:write") || !contains(scopes, "funding:approve") {
 		t.Fatalf("unexpected scopes: %#v", scopes)
 	}
 }

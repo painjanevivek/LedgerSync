@@ -3,7 +3,7 @@
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "3.1.0",
-    "_postman_id": "ledgersync-816713d6-fdd52eae-3bdbcf8a"
+    "_postman_id": "ledgersync-f6e98efd-43cc6705-938cafc6"
   },
   "variable": [
     {
@@ -135,6 +135,23 @@
       }
     },
     {
+      "name": "createSavedInvestigationView",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/saved-views"
+      }
+    },
+    {
       "name": "createTransfer",
       "request": {
         "method": "POST",
@@ -153,6 +170,23 @@
           }
         ],
         "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "deleteSavedInvestigationView",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/saved-views/{savedViewId}"
       }
     },
     {
@@ -670,6 +704,23 @@
       }
     },
     {
+      "name": "listSavedInvestigationViews",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/saved-views"
+      }
+    },
+    {
       "name": "listTransferCorrections",
       "request": {
         "method": "GET",
@@ -832,6 +883,23 @@
           }
         ],
         "url": "{{baseUrl}}/transfer-corrections/{correctionId}/reject"
+      }
+    },
+    {
+      "name": "renameSavedInvestigationView",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/saved-views/{savedViewId}"
       }
     },
     {

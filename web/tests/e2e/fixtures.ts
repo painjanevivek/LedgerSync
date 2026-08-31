@@ -49,6 +49,17 @@ export const investigationSearchPage = {
   generated_at: "2026-08-19T12:05:00Z",
   truncated: false,
 } as const;
+export const savedInvestigationView = {
+  saved_view_id: "13131313-1313-4313-8313-131313131313",
+  name: "Dead delivery events",
+  filter_schema_version: "1",
+  domain: "events",
+  filters: { state: "dead" },
+  target_path: "/events?state=dead",
+  version: "1",
+  created_at: "2026-08-19T12:04:00Z",
+  updated_at: "2026-08-19T12:04:00Z",
+} as const;
 
 function relatedEvidencePage(url: string) {
   const parts = new URL(url).pathname.split("/");
@@ -82,9 +93,10 @@ function json(route: Route, body: unknown, status = 200) {
 }
 
 export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
+  let savedViews: Array<Record<string, unknown>> = [{ ...savedInvestigationView }];
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
-    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
+    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
   });
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
@@ -115,6 +127,33 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
   await page.route("**/api/recovery/manifests", (route) => json(route, recoveryEvidence));
   await page.route("**/api/investigation/search?*", (route) => json(route, investigationSearchPage));
   await page.route("**/api/investigation/related/**", (route) => json(route, relatedEvidencePage(route.request().url())));
+  await page.route("**/api/investigation/saved-views", async (route) => {
+    const method = route.request().method();
+    if (method === "GET") return json(route, { views: savedViews, generated_at: "2026-08-19T12:05:00Z" });
+    if (method === "POST") {
+      const input = route.request().postDataJSON() as Record<string, unknown>;
+      const created = { saved_view_id: "14141414-1414-4414-8414-141414141414", ...input, target_path: input.domain === "events" && (input.filters as Record<string, string>).state === "dead" ? "/events?state=dead" : "/events?state=published", version: "1", created_at: "2026-08-19T12:06:00Z", updated_at: "2026-08-19T12:06:00Z" };
+      savedViews = [created, ...savedViews];
+      return json(route, created, 201);
+    }
+    return json(route, { error: { code: "invalid_request" } }, 400);
+  });
+  await page.route("**/api/investigation/saved-views/*", async (route) => {
+    const id = new URL(route.request().url()).pathname.split("/").at(-1);
+    const current = savedViews.find((view) => view.saved_view_id === id);
+    if (!current) return json(route, { error: { code: "not_found" } }, 404);
+    if (route.request().method() === "PUT") {
+      const input = route.request().postDataJSON() as { name: string };
+      const updated = { ...current, name: input.name, version: String(Number(current.version) + 1), updated_at: "2026-08-19T12:07:00Z" };
+      savedViews = savedViews.map((view) => view.saved_view_id === id ? updated : view);
+      return json(route, updated);
+    }
+    if (route.request().method() === "DELETE") {
+      savedViews = savedViews.filter((view) => view.saved_view_id !== id);
+      return route.fulfill({ status: 204 });
+    }
+    return json(route, { error: { code: "invalid_request" } }, 400);
+  });
   await page.route(/\/api\/exports\/.*\.csv(?:\?.*)?$/, (route) => {
     const path=new URL(route.request().url()).pathname;
     const family=path.includes("/accounts/")?"account-ledger":path.includes("reconciliation")?"reconciliation":"transfers";

@@ -11,6 +11,7 @@ import { CopyControl } from "@/ui/controls/CopyControl.client";
 import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
 import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { SavedViewCapture } from "@/features/investigation/SavedViewCapture";
 import { PageHeader } from "@/ui/display/PageHeader";
 import { StatePanel } from "@/ui/display/StatePanel";
 import { StatusBadge } from "@/ui/display/StatusBadge";
@@ -390,6 +391,7 @@ function CorrectionList({
           </select></FormField>
         <div className="action-row"><button className="button primary" type="submit" disabled={loading}>Apply filters</button><button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>Clear all</button><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh evidence</button></div>
       </form>
+      <SavedViewCapture domain="corrections" filters={{ status: filters.status || undefined }} />
       {error && (
         <StatePanel
           kind="error"
