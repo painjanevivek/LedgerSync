@@ -4,13 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { jsonError } from "@/lib/security";
 import { privateAPIContext } from "@/lib/private-api";
+import { isAccountId } from "@/lib/page-query/accounts";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ accountId: string }> }) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   if (!session) return jsonError("unauthorized", 401);
   const { accountId } = await context.params;
   const normalizedAccountId = accountId.trim();
-  if (!normalizedAccountId) return jsonError("validation_failed", 400);
+  if (!isAccountId(normalizedAccountId)) return jsonError("not_found", 404);
+  if (request.nextUrl.searchParams.size > 0) return jsonError("validation_failed", 400);
   const requirement = session.consistencyRequirements?.[normalizedAccountId];
   let upstream: Response;
   try {

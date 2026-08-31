@@ -7,10 +7,12 @@ import { authorizeAccountMutation, isAccountMutationDenial } from "@/lib/account
 import { sessionCookieName, readSession } from "@/lib/session";
 import { jsonError, readBoundedJSON } from "@/lib/security";
 import { proxyPrivateGET } from "@/lib/private-api";
+import { parseAccountBFFSearchParams } from "@/lib/page-query/accounts";
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   if (!session) return jsonError("unauthorized", 401);
+  if (!parseAccountBFFSearchParams(request.nextUrl.searchParams).ok) return jsonError("validation_failed", 400);
   return proxyPrivateGET(request, session, "/api/me/accounts", ["cursor", "limit", "q", "status", "category"]);
 }
 

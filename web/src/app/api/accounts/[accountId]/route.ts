@@ -7,12 +7,13 @@ import { authorizeAccountMutation, isAccountMutationDenial } from "@/lib/account
 import { proxyPrivateGET } from "@/lib/private-api";
 import { jsonError, readBoundedJSON } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
+import { isAccountId } from "@/lib/page-query/accounts";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ accountId: string }> }) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   if (!session) return jsonError("unauthorized", 401);
   const { accountId } = await context.params;
-  if (!accountId || accountId.length > 128) return jsonError("not_found", 404);
+  if (!isAccountId(accountId)) return jsonError("not_found", 404);
   return proxyPrivateGET(request, session, `/api/accounts/${encodeURIComponent(accountId)}`, []);
 }
 
@@ -23,7 +24,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ a
   if (!session) return jsonError("unauthorized", 401);
 
   const { accountId } = await context.params;
-  if (!accountId || accountId.length > 128) return jsonError("not_found", 404);
+  if (!isAccountId(accountId)) return jsonError("not_found", 404);
   let body: ReturnType<typeof parseUpdateAccountRequest>;
   try {
     body = parseUpdateAccountRequest(await readBoundedJSON<unknown>(request, accountMutationMaximumBytes));

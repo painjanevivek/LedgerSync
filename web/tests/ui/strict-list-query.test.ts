@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { accountDetailURL, accountDirectoryURL, accountFiltersFromReturnPath, parseAccountBFFSearchParams, parseAccountHistoryBFFSearchParams, parseAccountPageQuery } from "../../src/lib/page-query/accounts";
 import { parseApprovalBFFSearchParams, parseApprovalPageQuery } from "../../src/lib/page-query/approvals";
 import { correctionBFFQueryRules, correctionsURL, parseCorrectionPageQuery } from "../../src/lib/page-query/corrections";
 import { fundingBFFQueryRules, fundingURL, parseFundingPageQuery } from "../../src/lib/page-query/funding";
@@ -140,4 +141,32 @@ test("event and webhook pages reject malformed investigations before BFF reads",
   assert.equal(webhooksURL({ status: "active", cursor: "webhook-next" }), "/webhooks?status=active&cursor=webhook-next");
   assert.equal(parseWebhookBFFSearchParams(new URLSearchParams("status=active&limit=25")).ok, true);
   assert.equal(parseStrictListSearchParams(new URLSearchParams("status=active&limit=101"), webhookBFFQueryRules).ok, false);
+});
+
+test("account page, BFF, detail return, and history queries retain one bounded contract", () => {
+  const accountId = "10000000-0000-4000-8000-000000000001";
+  const parsed = parseAccountPageQuery({ q: " ACME-01 ", status: "active", category: "operating", cursor: "account-next", focus: accountId });
+  assert.deepEqual(parsed, {
+    ok: true,
+    filters: { query: "ACME-01", status: "active", category: "operating", cursor: "account-next" },
+    focusAccountId: accountId,
+  });
+  assert.equal(parseAccountPageQuery({ status: ["active", "closed"] }).ok, false);
+  assert.equal(parseAccountPageQuery({ category: "unknown" }).ok, false);
+  assert.equal(parseAccountPageQuery({ q: "unsafe\nquery" }).ok, false);
+  assert.equal(parseAccountPageQuery({ cursor: "x".repeat(513) }).ok, false);
+  assert.equal(parseAccountPageQuery({ focus: "not-a-uuid" }).ok, false);
+  assert.equal(parseAccountPageQuery({ limit: "25" }).ok, false);
+
+  const filters = parsed.ok ? parsed.filters : { query: "", status: "" as const, category: "" as const };
+  const directory = accountDirectoryURL(filters, accountId);
+  assert.equal(directory, `/accounts?q=ACME-01&status=active&category=operating&cursor=account-next&focus=${accountId}`);
+  assert.equal(accountDetailURL(accountId, filters), `/accounts/${accountId}?return_to=${encodeURIComponent(directory)}`);
+  assert.deepEqual(accountFiltersFromReturnPath(directory), filters);
+  assert.deepEqual(accountFiltersFromReturnPath("/accounts?status=active&status=closed"), { query: "", status: "", category: "" });
+  assert.equal(parseAccountBFFSearchParams(new URLSearchParams("q=ACME-01&status=active&category=operating&cursor=account-next&limit=25")).ok, true);
+  assert.equal(parseAccountBFFSearchParams(new URLSearchParams("focus=10000000-0000-4000-8000-000000000001&limit=25")).ok, false);
+  assert.equal(parseAccountBFFSearchParams(new URLSearchParams("status=paused&limit=25")).ok, false);
+  assert.equal(parseAccountHistoryBFFSearchParams(new URLSearchParams("cursor=history-next&limit=25")).ok, true);
+  assert.equal(parseAccountHistoryBFFSearchParams(new URLSearchParams("status=posted&limit=25")).ok, false);
 });

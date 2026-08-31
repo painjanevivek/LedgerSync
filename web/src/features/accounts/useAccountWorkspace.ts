@@ -2,15 +2,15 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 
-import type { AccountFilters } from "@/features/accounts/AccountViews";
 import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
 import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { readJSON, unavailableMessage, uiDataState } from "@/lib/api/client";
+import type { AccountFilters } from "@/lib/page-query/accounts";
+
+export { emptyAccountFilters } from "@/lib/page-query/accounts";
 
 type AccountsPayload = { accounts?: Account[]; next_cursor?: string };
 type TransactionsPayload = { transactions?: Transaction[]; next_cursor?: string };
-
-export const emptyAccountFilters: AccountFilters = { query: "", status: "", category: "" };
 
 function accountQuery(filters: AccountFilters, limit: number): string {
   const params = new URLSearchParams({ limit: String(limit) });
@@ -21,20 +21,10 @@ function accountQuery(filters: AccountFilters, limit: number): string {
   return params.toString();
 }
 
-function accountDirectoryURL(filters: AccountFilters): string {
-  const params = new URLSearchParams();
-  if (filters.query) params.set("q", filters.query);
-  if (filters.status) params.set("status", filters.status);
-  if (filters.category) params.set("category", filters.category);
-  if (filters.cursor) params.set("cursor", filters.cursor);
-  const query = params.toString();
-  return query ? `/accounts?${query}` : "/accounts";
-}
-
 export function useAccountWorkspace(initialAccountId: string | undefined, initialFilters: AccountFilters) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountDetail, setAccountDetail] = useState<Account | null>(null);
-  const [filters, setFilters] = useState<AccountFilters>(initialFilters);
+  const filters = initialFilters;
   const [nextCursor, setNextCursor] = useState<string>();
   const [scopeComplete, setScopeComplete] = useState(true);
   const [balance, setBalance] = useState<AccountBalance | null>(null);
@@ -55,7 +45,6 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   const detailGeneration = useRef(0);
   const balanceGeneration = useRef(0);
   const historyRequests = useRef(createEvidenceRequestCoordinator());
-  const directoryPageInFlight = useRef(false);
 
   const selected = useMemo(() => accountDetail ?? accounts.find((account) => account.account_id === initialAccountId) ?? null, [accountDetail, accounts, initialAccountId]);
 
@@ -170,23 +159,7 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
     }
   }, [historyCursor, initialAccountId]);
 
-  function applyFilters(requested: Omit<AccountFilters, "cursor">) {
-    const next = { ...requested, cursor: undefined };
-    setFilters(next);
-    window.history.replaceState(null, "", accountDirectoryURL(next));
-    void load(next);
-  }
-
-  function loadNextPage() {
-    if (!nextCursor || directoryPageInFlight.current) return;
-    directoryPageInFlight.current = true;
-    const next = { ...filters, cursor: nextCursor };
-    setFilters(next);
-    window.history.replaceState(null, "", accountDirectoryURL(next));
-    void load(next).finally(() => { directoryPageInFlight.current = false; });
-  }
-
   const directoryState = uiDataState({ loading: directoryLoading, hasData: accounts.length > 0, hasError: Boolean(error) });
 
-  return { accounts, selected, filters, nextCursor, scopeComplete, balance, transactions, historyCursor, directoryLoading, directoryState, balanceLoading, historyLoading, error, balanceError, historyError, directoryVerifiedAt, balanceVerifiedAt, historyVerifiedAt, load, loadDetail, loadBalance, loadHistory, loadMoreHistory, applyFilters, loadNextPage };
+  return { accounts, selected, filters, nextCursor, scopeComplete, balance, transactions, historyCursor, directoryLoading, directoryState, balanceLoading, historyLoading, error, balanceError, historyError, directoryVerifiedAt, balanceVerifiedAt, historyVerifiedAt, load, loadDetail, loadBalance, loadHistory, loadMoreHistory };
 }

@@ -20,9 +20,10 @@ test("account filters and cursor context survive an object-specific investigatio
   await page.getByLabel("Category").selectOption("operating");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page).toHaveURL(/q=Scale.*status=active.*category=operating/);
-  await expect(page.getByText("Showing 1 authorized result")).toBeVisible();
+  await expect(page.getByText("1 authorized account on this page; no total is implied.")).toBeVisible();
+  await expect(page.getByText("Oldest created first")).toBeVisible();
 
-  await page.getByRole("button", { name: "Next page" }).click();
+  await page.getByRole("link", { name: "Next page" }).click();
   await expect(page).toHaveURL(/cursor=next-account-page/);
   await page.getByRole("link", { name: "Open account" }).first().click();
   await expect(page.getByRole("heading", { name: "Scale account 00020" })).toBeVisible();
@@ -31,6 +32,27 @@ test("account filters and cursor context survive an object-specific investigatio
   const restoredLink = page.getByRole("region", { name: "Authorized account comparison" }).getByRole("link", { name: "Open account" });
   await expect(restoredLink).toBeFocused();
   await expect(page.getByRole("region", { name: "Authorized account comparison" }).getByText("Scale account 00020")).toBeVisible();
+
+  await page.getByRole("link", { name: "Clear filters" }).click();
+  await expect(page).toHaveURL(/\/accounts$/);
+  await expect(page.getByLabel("Search accounts")).toHaveValue("");
+  await expect(page.getByLabel("Status")).toHaveValue("");
+  await expect(page.getByLabel("Category")).toHaveValue("");
+});
+
+test("invalid account URLs fail closed before protected directory reads", async ({ page }) => {
+  let accountDirectoryRequested = false;
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/me/accounts?*");
+  await page.route("**/api/me/accounts?*", (route) => {
+    accountDirectoryRequested = true;
+    return route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+  });
+
+  await page.goto("/accounts?status=active&status=closed");
+  await expect(page.getByText("Invalid account investigation URL")).toBeVisible();
+  expect(accountDirectoryRequested).toBe(false);
+  await expect(page.getByRole("link", { name: "Clear invalid filters" })).toHaveAttribute("href", "/accounts");
 });
 
 test("account directory distinguishes empty, unavailable, and offline states", async ({ page, context }) => {

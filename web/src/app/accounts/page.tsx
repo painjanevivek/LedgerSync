@@ -1,10 +1,12 @@
 import { AccountsController } from "@/features/accounts/AccountsController";
+import { accountDirectoryURL, emptyAccountFilters, parseAccountPageQuery } from "@/lib/page-query/accounts";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function first(value: string | string[] | undefined): string { return typeof value === "string" ? value : ""; }
-
 export default async function AccountsPage({ searchParams }: Readonly<{ searchParams: SearchParams }>) {
   const query = await searchParams;
-  return <AccountsController filters={{ query: first(query.q), status: first(query.status), category: first(query.category), cursor: first(query.cursor) || undefined }} focusAccountId={first(query.focus) || undefined} />;
+  const parsed = parseAccountPageQuery(query);
+  const filters = parsed.ok ? parsed.filters : emptyAccountFilters;
+  const focusAccountId = parsed.ok ? parsed.focusAccountId : undefined;
+  return <AccountsController key={parsed.ok ? accountDirectoryURL(filters, focusAccountId) : "invalid-account-query"} filters={filters} focusAccountId={focusAccountId} invalidQuery={!parsed.ok} />;
 }

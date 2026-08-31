@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { AccountCreateFlow } from "@/features/accounts/AccountCreateFlow";
@@ -16,6 +17,7 @@ type Props = Readonly<{
   focusAccountId?: string;
   create?: boolean;
   returnTo?: string;
+  invalidQuery?: boolean;
 }>;
 
 export function AccountsController({
@@ -24,6 +26,7 @@ export function AccountsController({
   focusAccountId,
   create = false,
   returnTo = "/accounts",
+  invalidQuery = false,
 }: Props) {
   const { session, online, hasScope } = useConsoleSession();
   const workspace = useAccountWorkspace(accountId, filters);
@@ -39,7 +42,7 @@ export function AccountsController({
   }, [accountId, activeFilters, directory, load, loadDetail]);
 
   useEffect(() => {
-    if (!session || !online) return;
+    if (!session || !online || invalidQuery) return;
     if (!hasScope("accounts:read")) return;
     let active = true;
     const timer = window.setTimeout(() => {
@@ -51,12 +54,14 @@ export function AccountsController({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [hasScope, online, refresh, session]);
+  }, [hasScope, invalidQuery, online, refresh, session]);
 
   return (
-    <ConsoleRouteFrame section="accounts" loadingLabel="Accounts" pending={hasScope("accounts:read") && !initialEvidenceSettled}>
+    <ConsoleRouteFrame section="accounts" loadingLabel="Accounts" pending={hasScope("accounts:read") && !invalidQuery && !initialEvidenceSettled}>
       {session && !create && !hasScope("accounts:read") ? (
         <><PageHeader eyebrow="Work / Accounts" title="Accounts" description="Find and manage the accounts you are allowed to use."/><StatePanel kind="denied" title="Account read authority required" message="Your server-issued session does not include accounts:read. No protected account request was made."/></>
+      ) : session && !create && invalidQuery ? (
+        <><PageHeader eyebrow="Ledger / Accounts" title="Accounts" description="Find and manage the accounts you are allowed to use."/><StatePanel kind="error" title="Invalid account investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, or malformed filter. No protected account request was made." action={<Link className="button secondary" href="/accounts">Clear invalid filters</Link>}/></>
       ) : session && (create ? (
         <AccountCreateFlow
           tenantId={session.tenant_id}
@@ -102,8 +107,6 @@ export function AccountsController({
           fundingScopeComplete={workspace.scopeComplete}
           detailReturnTo={accountId ? returnTo : undefined}
           onRefresh={() => void refresh()}
-          onApplyFilters={workspace.applyFilters}
-          onNext={workspace.loadNextPage}
           onHistoryNext={() => void workspace.loadMoreHistory()}
           onRefreshBalance={() => {
             if (accountId) void workspace.loadBalance(accountId);

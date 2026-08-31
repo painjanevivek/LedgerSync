@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 import { BalanceStatus } from "@/features/accounts/BalanceStatus";
@@ -8,12 +9,13 @@ import { AccountLifecycleActions } from "@/features/accounts/AccountLifecycleAct
 import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
 import { TransactionLedger } from "@/features/accounts/TransactionLedger";
 import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
-import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, FormField, PageHeader, Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, FormField, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { formatMinorUnits } from "@/lib/money";
+import { accountDetailURL, accountDirectoryURL, type AccountFilters } from "@/lib/page-query/accounts";
 
-export type AccountFilters = Readonly<{ query: string; status: string; category: string; cursor?: string }>;
+export type { AccountFilters } from "@/lib/page-query/accounts";
 
 type Props = Readonly<{
   accounts: Account[];
@@ -43,8 +45,6 @@ type Props = Readonly<{
   fundingScopeComplete: boolean;
   detailReturnTo?: string;
   onRefresh: () => void;
-  onApplyFilters: (filters: Omit<AccountFilters, "cursor">) => void;
-  onNext: () => void;
   onHistoryNext: () => void;
   onRefreshBalance: () => void;
   onRefreshHistory: () => void;
@@ -57,21 +57,15 @@ function tone(status: Account["status"]) {
 }
 
 export function accountDirectoryHref(filters: AccountFilters, focusAccountId?: string): string {
-  const params = new URLSearchParams();
-  if (filters.query) params.set("q", filters.query);
-  if (filters.status) params.set("status", filters.status);
-  if (filters.category) params.set("category", filters.category);
-  if (filters.cursor) params.set("cursor", filters.cursor);
-  if (focusAccountId) params.set("focus", focusAccountId);
-  const query = params.toString();
-  return query ? `/accounts?${query}` : "/accounts";
+  return accountDirectoryURL(filters, focusAccountId);
 }
 
 export function accountDetailHref(accountID: string, filters: AccountFilters): string {
-  return `/accounts/${encodeURIComponent(accountID)}?return_to=${encodeURIComponent(accountDirectoryHref(filters, accountID))}`;
+  return accountDetailURL(accountID, filters);
 }
 
-export function AccountsView({ accounts, selected, detailRequested, balance, transactions, balanceLoading, historyLoading, directoryLoading, balanceError, historyError, balanceVerifiedAt, historyVerifiedAt, directoryVerifiedAt, error, online, filters, nextCursor, historyNextCursor, focusAccountId, tenantId, csrfToken, canWrite, canTransfer, canExport, fundingScopeComplete, detailReturnTo, onRefresh, onApplyFilters, onNext, onHistoryNext, onRefreshBalance, onRefreshHistory, onAccountChanged, onRefreshLifecycleEvidence }: Props) {
+export function AccountsView({ accounts, selected, detailRequested, balance, transactions, balanceLoading, historyLoading, directoryLoading, balanceError, historyError, balanceVerifiedAt, historyVerifiedAt, directoryVerifiedAt, error, online, filters, nextCursor, historyNextCursor, focusAccountId, tenantId, csrfToken, canWrite, canTransfer, canExport, fundingScopeComplete, detailReturnTo, onRefresh, onHistoryNext, onRefreshBalance, onRefreshHistory, onAccountChanged, onRefreshLifecycleEvidence }: Props) {
+  const router = useRouter();
   const [query, setQuery] = useState(filters.query);
   const [status, setStatus] = useState(filters.status);
   const [category, setCategory] = useState(filters.category);
@@ -82,7 +76,7 @@ export function AccountsView({ accounts, selected, detailRequested, balance, tra
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onApplyFilters({ query: query.trim(), status, category });
+    router.push(accountDirectoryURL({ query: query.trim(), status, category }));
   }
 
   return <>
@@ -94,16 +88,17 @@ export function AccountsView({ accounts, selected, detailRequested, balance, tra
     {!detailRequested && !selected && <>
       <form className="filter-bar" role="search" onSubmit={submit}>
         <FormField label="Search accounts" requirement="optional" hint="Search by name, reference, or account ID."><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Example: ACME-OPERATING-01" maxLength={128} /></FormField>
-        <FormField label="Status" requirement="optional"><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option><option value="active">Active</option><option value="frozen">Frozen</option><option value="closed">Closed</option></select></FormField>
-        <FormField label="Category" requirement="optional"><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option><option value="operating">Operating</option><option value="customer_funds">Customer funds</option><option value="payroll">Payroll</option><option value="payables">Payables</option><option value="expenses">Expenses</option><option value="reserve">Reserve</option></select></FormField>
+        <FormField label="Status" requirement="optional"><select value={status} onChange={(event) => setStatus(event.target.value as AccountFilters["status"])}><option value="">All statuses</option><option value="active">Active</option><option value="frozen">Frozen</option><option value="closed">Closed</option></select></FormField>
+        <FormField label="Category" requirement="optional"><select value={category} onChange={(event) => setCategory(event.target.value as AccountFilters["category"])}><option value="">All categories</option><option value="operating">Operating</option><option value="customer_funds">Customer funds</option><option value="payroll">Payroll</option><option value="payables">Payables</option><option value="expenses">Expenses</option><option value="reserve">Reserve</option></select></FormField>
         <button className="button primary" type="submit" disabled={!online || directoryLoading}>Apply filters</button>
-        <span aria-live="polite">{error ? "Authorized result count unavailable" : `Showing ${accounts.length} authorized result${accounts.length === 1 ? "" : "s"}`}</span>
+        <Link className="button secondary" href="/accounts">Clear filters</Link>
+        <span aria-live="polite">{error ? "Authorized page count unavailable" : `${accounts.length} authorized account${accounts.length === 1 ? "" : "s"} on this page; no total is implied.`}</span>
       </form>
       {directoryVerifiedAt && accounts.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : directoryLoading ? "refreshing" : "current"} verifiedAt={directoryVerifiedAt} label="Account directory" reason={error ?? (!online ? "Reconnect before relying on directory balances." : undefined)} />}
       {directoryLoading && accounts.length === 0 ? <StatePanel title="Loading authorized accounts" message="LedgerSync is requesting one bounded page from the authoritative account directory." /> : accounts.length === 0 && !error ? <StatePanel title={filters.query || filters.status || filters.category ? "No matching accounts" : "No accounts yet"} message={filters.query || filters.status || filters.category ? "Clear or change the filters. LedgerSync does not broaden the authorized account scope." : "Create your first account to begin the ledger. It opens at an exact zero balance."} action={!filters.query && !filters.status && !filters.category && canWrite ? <Link className="button primary" href="/accounts/new">Create your first account</Link> : undefined} /> : accounts.length > 0 && <section className="ledger-section account-directory" aria-labelledby="accounts-heading" aria-busy={directoryLoading}>
-        <div className="section-heading"><div><p className="eyebrow">Authorized scope</p><h2 id="accounts-heading">Available balances</h2></div></div>
+        <div className="section-heading"><div><p className="eyebrow">Oldest created first</p><h2 id="accounts-heading">Available balances</h2><p>{accounts.length} account{accounts.length === 1 ? "" : "s"} on this page. A total is not calculated or implied.</p></div></div>
         <DataTableRegion label="Authorized account comparison"><table className="data-table"><thead><tr><th>Account</th><th>Category</th><th>Status</th><th>Available balance</th><th>Version / as of</th><th>Action</th></tr></thead><tbody>{accounts.map((account) => <tr key={account.account_id}><td><strong>{accountLabel(account)}</strong><code>{account.account_id}</code></td><td>{account.category?.replaceAll("_", " ") ?? "Unclassified"}</td><td><StatusBadge tone={tone(account.status)}>{account.status}</StatusBadge></td><td className="number-cell">{formatMinorUnits(account.currency, account.available_minor)}</td><td><code>v{account.version}</code><small>{utcDateTime(account.as_of)}</small></td><td><RecordLink id={`account-link-${account.account_id}`} href={accountDetailHref(account.account_id, filters)} label="Open account" /></td></tr>)}</tbody></table></DataTableRegion>
-        <Pagination nextCursor={nextCursor} busy={directoryLoading} onNext={onNext} label="Next page" />
+        <div className="pagination"><span>{nextCursor ? "More account records are available" : "End of available accounts"}</span>{nextCursor && !directoryLoading ? <Link className="button secondary" href={accountDirectoryURL({ ...filters, cursor: nextCursor })}>Next page</Link> : <button className="button secondary" type="button" disabled>Next page</button>}</div>
       </section>}
     </>}
     {selected && <>
