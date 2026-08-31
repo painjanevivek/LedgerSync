@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "2.1.0"
+const APIVersion = "3.0.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string
@@ -11,7 +11,7 @@ type Operation struct {
 }
 
 var Operations = []Operation{
-	{ID: "approveDeveloperWebhookReplay", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", Scope: "webhooks:replay", Idempotent: false},
+	{ID: "approveDeveloperWebhookReplay", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", Scope: "webhooks:replay", Idempotent: true},
 	{ID: "approveFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/approve", Scope: "funding:approve", Idempotent: false},
 	{ID: "approveTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/approve", Scope: "corrections:approve", Idempotent: false},
 	{ID: "cancelTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/cancel", Scope: "corrections:write", Idempotent: false},
@@ -54,7 +54,7 @@ var Operations = []Operation{
 	{ID: "registerDeveloperWebhook", Method: "POST", Path: "/developer/webhooks", Scope: "webhooks:write", Idempotent: true},
 	{ID: "rejectFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/reject", Scope: "funding:approve", Idempotent: false},
 	{ID: "rejectTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/reject", Scope: "corrections:approve", Idempotent: false},
-	{ID: "replayDeveloperWebhookDelivery", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", Scope: "webhooks:replay", Idempotent: false},
+	{ID: "replayDeveloperWebhookDelivery", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", Scope: "webhooks:replay", Idempotent: true},
 	{ID: "requestFunding", Method: "POST", Path: "/funding-requests", Scope: "funding:write", Idempotent: true},
 	{ID: "requestFundingCompensation", Method: "POST", Path: "/funding-events/{fundingEventId}/compensations", Scope: "funding:write", Idempotent: true},
 	{ID: "requestTransferCorrection", Method: "POST", Path: "/transfers/{transferId}/corrections", Scope: "corrections:write", Idempotent: true},

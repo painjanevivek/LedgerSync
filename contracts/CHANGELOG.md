@@ -1,5 +1,18 @@
 # LedgerSync API changelog
 
+## 3.0.0 — 2026-08-31
+
+- Replaced cross-request correlation matching for webhook replay with an
+  explicit durable approval identifier and caller-owned `Idempotency-Key` on
+  both approval and execution.
+- Exact retries now return the original approval or delivery job; a changed
+  intent conflicts and never schedules additional delivery work.
+- Preserved the immutable event and dead attempt, independent approval and
+  execution actors, and the rule that replay resends an existing event without
+  creating financial postings.
+- This is a major contract change because replay execution now requires an
+  `approval_id` body and both replay operations require `Idempotency-Key`.
+
 ## 2.1.0 — 2026-08-31
 
 - Added the tenant-scoped `GET /approvals` evidence page for authorized funding

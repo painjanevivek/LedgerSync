@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "2.1.0",
+  "api_version": "3.0.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "1e28f610",
-    "a2a8097c",
-    "0943f961",
-    "250cbbe4",
-    "a180d4b5",
-    "24a194a9",
-    "96a16877",
-    "ff0947fb"
+    "fe2d8711",
+    "b79bf95b",
+    "7eb83caf",
+    "2e38a352",
+    "37b3f237",
+    "9b3431ea",
+    "0bdc144d",
+    "cb0f752f"
   ],
   "operations": [
     {
@@ -18,7 +18,7 @@
       "method": "POST",
       "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals",
       "scope": "webhooks:replay",
-      "idempotent": false
+      "idempotent": true
     },
     {
       "id": "approveFundingEvent",
@@ -319,7 +319,7 @@
       "method": "POST",
       "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays",
       "scope": "webhooks:replay",
-      "idempotent": false
+      "idempotent": true
     },
     {
       "id": "requestFunding",

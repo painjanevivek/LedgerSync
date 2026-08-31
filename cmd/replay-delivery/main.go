@@ -20,6 +20,8 @@ func main() {
 	actor := flag.String("actor-subject-id", "", "trusted operator subject")
 	reason := flag.String("reason-code", "", "approved reason code")
 	correlation := flag.String("correlation-id", "", "approval UUID")
+	approval := flag.String("approval-id", "", "independent replay approval UUID")
+	idempotencyKey := flag.String("idempotency-key", "", "stable caller-owned request key")
 	flag.Parse()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -45,12 +47,16 @@ func main() {
 		}
 		_ = json.NewEncoder(os.Stdout).Encode(item)
 	case "approve":
-		err = repository.Approve(ctx, recovery.DeliveryApproval{TenantID: *tenant, AttemptID: *attempt, ActorSubjectID: *actor, ReasonCode: *reason, CorrelationID: *correlation})
-	case "replay":
-		var newAttemptID string
-		newAttemptID, err = repository.Replay(ctx, recovery.DeliveryReplay{TenantID: *tenant, AttemptID: *attempt, ActorSubjectID: *actor, CorrelationID: *correlation})
+		var result recovery.DeliveryApprovalResult
+		result, err = repository.Approve(ctx, recovery.DeliveryApproval{TenantID: *tenant, AttemptID: *attempt, ActorSubjectID: *actor, ReasonCode: *reason, CorrelationID: *correlation, IdempotencyKey: *idempotencyKey})
 		if err == nil {
-			fmt.Println(newAttemptID)
+			_ = json.NewEncoder(os.Stdout).Encode(result)
+		}
+	case "replay":
+		var result recovery.DeliveryReplayResult
+		result, err = repository.Replay(ctx, recovery.DeliveryReplay{TenantID: *tenant, AttemptID: *attempt, ApprovalID: *approval, ActorSubjectID: *actor, CorrelationID: *correlation, IdempotencyKey: *idempotencyKey})
+		if err == nil {
+			_ = json.NewEncoder(os.Stdout).Encode(result)
 		}
 	default:
 		err = fmt.Errorf("unsupported action %q", *action)

@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.1.0",
-    "_postman_id": "ledgersync-1e28f610-a2a8097c-0943f961"
+    "version": "3.0.0",
+    "_postman_id": "ledgersync-fe2d8711-b79bf95b-7eb83caf"
   },
   "variable": [
     {
@@ -32,6 +32,10 @@
           {
             "key": "X-LedgerSync-Actor-Assertion",
             "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-approveDeveloperWebhookReplay-key"
           }
         ],
         "url": "{{baseUrl}}/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals"
@@ -791,6 +795,10 @@
           {
             "key": "X-LedgerSync-Actor-Assertion",
             "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-replayDeveloperWebhookDelivery-key"
           }
         ],
         "url": "{{baseUrl}}/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays"

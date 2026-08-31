@@ -107,7 +107,7 @@ xychart-beta
 | Phase 5 PostgreSQL ownership suite | **PASS in 2.513 s** | cross-account reads denied without disclosure |
 | BFF security suite | **3 / 3 tests passed** | session tamper/expiry, CSRF, response headers |
 | Phase 4 fault cases | **3 scenarios passed** | delayed projection, Redis loss/rebuild, monotonic cache version |
-| Ordered migrations | **27** | financial schema through lifecycle, investigation, recovery, shared replay controls, webhook verification, permanent-post retry binding, and bounded approval read models |
+| Ordered migrations | **28** | financial schema through lifecycle, investigation, recovery, shared replay controls, webhook verification, permanent-post retry binding, bounded approval read models, and caller-owned delivery replay identity |
 | Journal postings / posted transfer | **2** | one debit + one credit |
 | Account events / transfer | **2** | one outbox event per affected account |
 | Consistency requirement lifetime | **10 min** | signed minimum balance version |

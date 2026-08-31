@@ -33,6 +33,7 @@ var (
 	credentialReference = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{2,199}$`)
 	safeAudience        = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{2,199}$`)
 	canonicalUUID       = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	visibleRequestKey   = regexp.MustCompile(`^[\x21-\x7E]{16,255}$`)
 )
 
 var AllowedCredentialScopes = []string{
@@ -192,7 +193,7 @@ func normalizedScopes(scopes []string) []string {
 }
 
 func validEnvelope(tenantID, actorID, correlationID, key string) bool {
-	return tenantID != "" && actorID != "" && correlationID != "" && len(key) >= 16 && len(key) <= 255
+	return tenantID != "" && actorID != "" && correlationID != "" && visibleRequestKey.MatchString(key)
 }
 
 func validCredentialFields(displayName, reference, audience string, scopes []string, expiresAt, now time.Time) bool {

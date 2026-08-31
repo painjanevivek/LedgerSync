@@ -13,6 +13,7 @@ import (
 
 var ErrDeadDeliveryNotFound = errors.New("dead delivery attempt not found")
 var ErrDeliveryReplayNotApproved = errors.New("delivery replay is not approved")
+var ErrDeliveryReplayIdempotencyConflict = errors.New("delivery replay idempotency key belongs to different input")
 
 type DeliveryReplayRepository struct {
 	database *sql.DB
@@ -38,124 +39,141 @@ func (r *DeliveryReplayRepository) Inspect(ctx context.Context, tenantID, attemp
 	return item, err
 }
 
-func (r *DeliveryReplayRepository) Approve(ctx context.Context, approval recovery.DeliveryApproval) error {
-	if approval.TenantID == "" || approval.AttemptID == "" || approval.ActorSubjectID == "" || approval.ReasonCode == "" || approval.CorrelationID == "" {
-		return errors.New("complete delivery replay approval is required")
+func (r *DeliveryReplayRepository) Approve(ctx context.Context, approval recovery.DeliveryApproval) (recovery.DeliveryApprovalResult, error) {
+	if approval.TenantID == "" || approval.AttemptID == "" || approval.ActorSubjectID == "" || approval.ReasonCode == "" || approval.CorrelationID == "" || approval.IdempotencyKey == "" {
+		return recovery.DeliveryApprovalResult{}, errors.New("complete delivery replay approval is required")
 	}
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return recovery.DeliveryApprovalResult{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
 	var exists bool
 	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM delivery_attempts WHERE tenant_id=$1 AND id=$2 AND status='dead')`, approval.TenantID, approval.AttemptID).Scan(&exists); err != nil {
-		return err
+		return recovery.DeliveryApprovalResult{}, err
 	}
 	if !exists {
-		return ErrDeadDeliveryNotFound
+		return recovery.DeliveryApprovalResult{}, ErrDeadDeliveryNotFound
 	}
 	id, err := newUUID()
 	if err != nil {
-		return err
+		return recovery.DeliveryApprovalResult{}, err
 	}
 	now := r.clock().UTC()
-	result, err := tx.ExecContext(ctx, `INSERT INTO delivery_replay_actions(id,tenant_id,attempt_id,action,actor_subject_id,reason_code,correlation_id,created_at)VALUES($1,$2,$3,'approved',$4,$5,$6,$7) ON CONFLICT (attempt_id,action,correlation_id) DO NOTHING`, id, approval.TenantID, approval.AttemptID, approval.ActorSubjectID, approval.ReasonCode, approval.CorrelationID, now)
+	result, err := tx.ExecContext(ctx, `INSERT INTO delivery_replay_actions(id,tenant_id,attempt_id,action,actor_subject_id,reason_code,correlation_id,request_key,created_at)VALUES($1,$2,$3,'approved',$4,$5,$6,$7,$8) ON CONFLICT (tenant_id,attempt_id,action,request_key) DO NOTHING`, id, approval.TenantID, approval.AttemptID, approval.ActorSubjectID, approval.ReasonCode, approval.CorrelationID, approval.IdempotencyKey, now)
 	if err != nil {
-		return fmt.Errorf("persist delivery replay approval: %w", err)
+		return recovery.DeliveryApprovalResult{}, fmt.Errorf("persist delivery replay approval: %w", err)
 	}
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return recovery.DeliveryApprovalResult{}, err
 	}
 	if rows == 0 {
 		var actor, reason string
-		if err = tx.QueryRowContext(ctx, `SELECT actor_subject_id,reason_code FROM delivery_replay_actions WHERE attempt_id=$1 AND action='approved' AND correlation_id=$2`, approval.AttemptID, approval.CorrelationID).Scan(&actor, &reason); err != nil {
-			return err
+		if err = tx.QueryRowContext(ctx, `SELECT id::text,actor_subject_id,reason_code FROM delivery_replay_actions WHERE tenant_id=$1 AND attempt_id=$2 AND action='approved' AND request_key=$3`, approval.TenantID, approval.AttemptID, approval.IdempotencyKey).Scan(&id, &actor, &reason); err != nil {
+			return recovery.DeliveryApprovalResult{}, err
 		}
 		if actor != approval.ActorSubjectID || reason != approval.ReasonCode {
-			return errors.New("delivery replay approval correlation is already bound to different input")
+			return recovery.DeliveryApprovalResult{}, ErrDeliveryReplayIdempotencyConflict
 		}
-		return tx.Commit()
+		if err = tx.Commit(); err != nil {
+			return recovery.DeliveryApprovalResult{}, err
+		}
+		return recovery.DeliveryApprovalResult{ApprovalID: id, Replayed: true}, nil
 	}
 	metadata, _ := json.Marshal(map[string]string{"reason_code": approval.ReasonCode})
 	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'delivery.replay_approved','delivery_attempt',$4,'succeeded',$5,$6,$7)`, id, approval.TenantID, approval.ActorSubjectID, approval.AttemptID, approval.CorrelationID, metadata, now); err != nil {
-		return err
+		return recovery.DeliveryApprovalResult{}, err
 	}
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return recovery.DeliveryApprovalResult{}, err
+	}
+	return recovery.DeliveryApprovalResult{ApprovalID: id}, nil
 }
 
-func (r *DeliveryReplayRepository) Replay(ctx context.Context, command recovery.DeliveryReplay) (string, error) {
-	if command.TenantID == "" || command.AttemptID == "" || command.ActorSubjectID == "" || command.CorrelationID == "" {
-		return "", errors.New("complete delivery replay command is required")
+func (r *DeliveryReplayRepository) Replay(ctx context.Context, command recovery.DeliveryReplay) (recovery.DeliveryReplayResult, error) {
+	if command.TenantID == "" || command.AttemptID == "" || command.ApprovalID == "" || command.ActorSubjectID == "" || command.CorrelationID == "" || command.IdempotencyKey == "" {
+		return recovery.DeliveryReplayResult{}, errors.New("complete delivery replay command is required")
 	}
-	tx, err := r.database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = tx.Rollback() }()
-	var approver, reason string
-	err = tx.QueryRowContext(ctx, `SELECT actor_subject_id,reason_code FROM delivery_replay_actions WHERE tenant_id=$1 AND attempt_id=$2 AND action='approved' AND correlation_id=$3 ORDER BY created_at DESC LIMIT 1 FOR UPDATE`, command.TenantID, command.AttemptID, command.CorrelationID).Scan(&approver, &reason)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrDeliveryReplayNotApproved
-	}
-	if err != nil {
-		return "", err
-	}
-	if approver == command.ActorSubjectID {
-		return "", ErrReplaySeparationRequired
-	}
+	var submission recovery.DeliveryReplayResult
+	err := WithSerializableSequence(ctx, r.database, "delivery-replay|"+command.TenantID+"|"+command.AttemptID, 5, func(tx *sql.Tx) error {
+		var existingKey sql.NullString
+		var existingJob sql.NullString
+		existingErr := tx.QueryRowContext(ctx, `SELECT request_key,sanitized_details->>'webhook_delivery_job_id' FROM delivery_replay_actions WHERE tenant_id=$1 AND attempt_id=$2 AND action='executed'`, command.TenantID, command.AttemptID).Scan(&existingKey, &existingJob)
+		if existingErr == nil {
+			if existingKey.String != command.IdempotencyKey || existingJob.String == "" {
+				return ErrDeliveryReplayIdempotencyConflict
+			}
+			submission = recovery.DeliveryReplayResult{DeliveryJobID: existingJob.String, Replayed: true}
+			return nil
+		}
+		if !errors.Is(existingErr, sql.ErrNoRows) {
+			return existingErr
+		}
 
-	var transferID, outboxEventID, kind, endpoint string
-	var attemptNumber, latestNumber int
-	err = tx.QueryRowContext(ctx, `SELECT transfer_id,COALESCE(outbox_event_id::text,''),delivery_kind,endpoint_reference,attempt_number FROM delivery_attempts WHERE tenant_id=$1 AND id=$2 AND status='dead' FOR UPDATE`, command.TenantID, command.AttemptID).Scan(&transferID, &outboxEventID, &kind, &endpoint, &attemptNumber)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", ErrDeadDeliveryNotFound
-	}
-	if err != nil {
-		return "", err
-	}
-	if err = tx.QueryRowContext(ctx, `SELECT max(attempt_number) FROM delivery_attempts WHERE tenant_id=$1 AND transfer_id=$2 AND delivery_kind=$3 AND endpoint_reference=$4`, command.TenantID, transferID, kind, endpoint).Scan(&latestNumber); err != nil {
-		return "", err
-	}
-	if latestNumber != attemptNumber {
-		return "", errors.New("a newer delivery attempt already exists")
-	}
-	if kind != "webhook" || outboxEventID == "" {
-		return "", errors.New("only event-backed webhook delivery can be replayed")
-	}
+		var approver, reason string
+		err := tx.QueryRowContext(ctx, `SELECT actor_subject_id,reason_code FROM delivery_replay_actions WHERE id=$1 AND tenant_id=$2 AND attempt_id=$3 AND action='approved' FOR UPDATE`, command.ApprovalID, command.TenantID, command.AttemptID).Scan(&approver, &reason)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrDeliveryReplayNotApproved
+		}
+		if err != nil {
+			return err
+		}
+		if approver == command.ActorSubjectID {
+			return ErrReplaySeparationRequired
+		}
 
-	newJobID, err := newUUID()
-	if err != nil {
-		return "", err
-	}
-	now := r.clock().UTC()
-	result, err := tx.ExecContext(ctx, `INSERT INTO webhook_delivery_jobs(id,tenant_id,transfer_id,outbox_event_id,webhook_id,event_id,event_type,payload,attempt_number,replay_of_attempt_id,available_at,created_at,updated_at)
+		var transferID, outboxEventID, kind, endpoint string
+		var attemptNumber, latestNumber int
+		err = tx.QueryRowContext(ctx, `SELECT transfer_id,COALESCE(outbox_event_id::text,''),delivery_kind,endpoint_reference,attempt_number FROM delivery_attempts WHERE tenant_id=$1 AND id=$2 AND status='dead' FOR UPDATE`, command.TenantID, command.AttemptID).Scan(&transferID, &outboxEventID, &kind, &endpoint, &attemptNumber)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrDeadDeliveryNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if err = tx.QueryRowContext(ctx, `SELECT max(attempt_number) FROM delivery_attempts WHERE tenant_id=$1 AND transfer_id=$2 AND delivery_kind=$3 AND endpoint_reference=$4`, command.TenantID, transferID, kind, endpoint).Scan(&latestNumber); err != nil {
+			return err
+		}
+		if latestNumber != attemptNumber {
+			return errors.New("a newer delivery attempt already exists")
+		}
+		if kind != "webhook" || outboxEventID == "" {
+			return errors.New("only event-backed webhook delivery can be replayed")
+		}
+
+		newJobID, err := newUUID()
+		if err != nil {
+			return err
+		}
+		now := r.clock().UTC()
+		result, err := tx.ExecContext(ctx, `INSERT INTO webhook_delivery_jobs(id,tenant_id,transfer_id,outbox_event_id,webhook_id,event_id,event_type,payload,attempt_number,replay_of_attempt_id,available_at,created_at,updated_at)
 SELECT $1,$2,$3,event.id,endpoint.id,event.id,'transfer.posted',event.payload,$4,$5,$6,$6,$6
 FROM outbox_events event
 JOIN developer_webhook_endpoints endpoint ON endpoint.tenant_id=event.tenant_id AND endpoint.id::text=$7
 WHERE event.id=$8 AND event.tenant_id=$2 AND event.transfer_id=$3 AND event.event_type='transfer.posted.v1'`, newJobID, command.TenantID, transferID, attemptNumber+1, command.AttemptID, now, endpoint, outboxEventID)
-	if err != nil {
-		return "", fmt.Errorf("schedule webhook delivery replay: %w", err)
-	}
-	if rows, rowsErr := result.RowsAffected(); rowsErr != nil || rows != 1 {
-		if rowsErr != nil {
-			return "", rowsErr
+		if err != nil {
+			return fmt.Errorf("schedule webhook delivery replay: %w", err)
 		}
-		return "", errors.New("webhook replay source no longer has a verified event and endpoint")
-	}
-	actionID, err := newUUID()
-	if err != nil {
-		return "", err
-	}
-	details, _ := json.Marshal(map[string]string{"approved_by": approver, "webhook_delivery_job_id": newJobID, "reason_code": reason})
-	if _, err = tx.ExecContext(ctx, `INSERT INTO delivery_replay_actions(id,tenant_id,attempt_id,action,actor_subject_id,reason_code,correlation_id,sanitized_details,created_at)VALUES($1,$2,$3,'executed',$4,$5,$6,$7,$8)`, actionID, command.TenantID, command.AttemptID, command.ActorSubjectID, reason, command.CorrelationID, details, now); err != nil {
-		return "", fmt.Errorf("persist delivery replay execution: %w", err)
-	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'delivery.replayed','delivery_attempt',$4,'succeeded',$5,$6,$7)`, actionID, command.TenantID, command.ActorSubjectID, command.AttemptID, command.CorrelationID, details, now); err != nil {
-		return "", err
-	}
-	if err = tx.Commit(); err != nil {
-		return "", err
-	}
-	return newJobID, nil
+		if rows, rowsErr := result.RowsAffected(); rowsErr != nil || rows != 1 {
+			if rowsErr != nil {
+				return rowsErr
+			}
+			return errors.New("webhook replay source no longer has a verified event and endpoint")
+		}
+		actionID, err := newUUID()
+		if err != nil {
+			return err
+		}
+		details, _ := json.Marshal(map[string]string{"approval_id": command.ApprovalID, "approved_by": approver, "webhook_delivery_job_id": newJobID, "reason_code": reason})
+		if _, err = tx.ExecContext(ctx, `INSERT INTO delivery_replay_actions(id,tenant_id,attempt_id,action,actor_subject_id,reason_code,correlation_id,request_key,sanitized_details,created_at)VALUES($1,$2,$3,'executed',$4,$5,$6,$7,$8,$9)`, actionID, command.TenantID, command.AttemptID, command.ActorSubjectID, reason, command.CorrelationID, command.IdempotencyKey, details, now); err != nil {
+			return fmt.Errorf("persist delivery replay execution: %w", err)
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'delivery.replayed','delivery_attempt',$4,'succeeded',$5,$6,$7)`, actionID, command.TenantID, command.ActorSubjectID, command.AttemptID, command.CorrelationID, details, now); err != nil {
+			return err
+		}
+		submission = recovery.DeliveryReplayResult{DeliveryJobID: newJobID}
+		return nil
+	})
+	return submission, err
 }

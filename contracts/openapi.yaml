@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 2.1.0
+  version: 3.0.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -13,7 +13,7 @@ info:
 servers: [{ url: /api }]
 security: [{ bearerAuth: [], actorAssertion: [] }]
 x-ledgersync-lifecycle:
-  semantic_version: 2.1.0
+  semantic_version: 3.0.0
   supported_window: current minor and immediately preceding minor, with at least 180 days notice before sunset
   changelog: ./CHANGELOG.md
   policy: ./api-lifecycle-policy.md
@@ -807,9 +807,9 @@ paths:
     post:
       operationId: approveDeveloperWebhookReplay
       x-required-scope: webhooks:replay
-      summary: Approve replay of one dead attempt under the request correlation ID.
-      description: The eventual replay must use the same X-Request-ID and a different authenticated actor.
-      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/DeliveryAttemptID' }, { $ref: '#/components/parameters/CorrelationID' }]
+      summary: Approve replay of one immutable dead delivery attempt.
+      description: Returns a durable approval identifier for an independent replay operator. X-Request-ID remains trace evidence and is not command identity.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/DeliveryAttemptID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WebhookReplayApprovalRequest' } } } }
       responses:
         '201': { description: Immutable replay approval evidence., content: { application/json: { schema: { $ref: '#/components/schemas/WebhookReplayApproval' } } } }
@@ -824,9 +824,9 @@ paths:
       operationId: replayDeveloperWebhookDelivery
       x-required-scope: webhooks:replay
       summary: Schedule a durable job for an approved dead delivery.
-      description: Requires the approval correlation ID and an actor other than the approver. The dead attempt remains immutable; the accepted job later appends its own delivery evidence.
-      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/DeliveryAttemptID' }, { $ref: '#/components/parameters/CorrelationID' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EmptyCommand' } } } }
+      description: Requires an explicit durable approval identifier and an actor other than the approver. Retrying the same intent uses the identical Idempotency-Key and returns the same job. The dead attempt and original event remain immutable; the accepted job later appends its own delivery evidence without reposting money.
+      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/DeliveryAttemptID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WebhookReplayRequest' } } } }
       responses:
         '202': { description: Newly scheduled durable delivery job., content: { application/json: { schema: { $ref: '#/components/schemas/WebhookReplayResult' } } } }
         '400': { $ref: '#/components/responses/InvalidRequest' }
@@ -845,7 +845,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-2.1.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-3.0.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -999,9 +999,9 @@ components:
       required: [items]
       properties: { items: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/WebhookDelivery' } }, next_cursor: { type: string, maxLength: 512 } }
     WebhookReplayApprovalRequest: { type: object, additionalProperties: false, required: [reason_code], properties: { reason_code: { type: string, pattern: '^[a-z0-9_]{3,64}$' } } }
-    WebhookReplayApproval: { type: object, additionalProperties: false, required: [status], properties: { status: { type: string, const: approved } } }
+    WebhookReplayApproval: { type: object, additionalProperties: false, required: [approval_id, status], properties: { approval_id: { type: string, format: uuid }, status: { type: string, const: approved } } }
+    WebhookReplayRequest: { type: object, additionalProperties: false, required: [approval_id], properties: { approval_id: { type: string, format: uuid } } }
     WebhookReplayResult: { type: object, additionalProperties: false, required: [delivery_job_id, status], properties: { delivery_job_id: { type: string, format: uuid }, status: { type: string, const: scheduled } } }
-    EmptyCommand: { type: object, additionalProperties: false, maxProperties: 0 }
     Balance:
       type: object
       required: [account_id, currency, available_minor, ledger_minor, version, as_of]
