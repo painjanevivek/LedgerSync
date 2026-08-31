@@ -3147,6 +3147,208 @@ h3 {
 .developer-section {
   display: grid;
   gap: 16px;
+  scroll-margin-top: 124px;
+}
+.developer-reference-nav {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.6fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: 20px;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--blue);
+  padding: 18px 20px;
+  background: var(--paper);
+}
+.developer-reference-nav strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+.developer-reference-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.developer-reference-nav a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  border: 1px solid var(--line);
+  padding: 8px 11px;
+  background: var(--paper-subtle);
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.developer-reference-nav a:hover,
+.developer-reference-nav a:focus-visible {
+  border-color: var(--blue);
+  background: var(--surface-control);
+}
+.developer-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--line-strong);
+}
+.developer-rule-grid article {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  border-right: 1px solid var(--line);
+  padding: 20px;
+  background: var(--paper);
+}
+.developer-rule-grid article:last-child {
+  border-right: 0;
+}
+.developer-rule-grid article > span,
+.webhook-verification-flow article > span {
+  color: var(--green-dark);
+  font: 850 9px var(--font-mono);
+  letter-spacing: 0.08em;
+}
+.developer-rule-grid h3,
+.webhook-verification-flow h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+}
+.developer-rule-grid p,
+.webhook-verification-flow p,
+.developer-section-intro,
+.developer-journey p,
+.developer-scope-boundary p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.developer-replay-table {
+  min-width: 860px;
+}
+.developer-replay-table td:first-child {
+  width: 150px;
+}
+.developer-operation-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.developer-operation-list code {
+  overflow-wrap: anywhere;
+}
+.developer-recipe-list {
+  display: grid;
+  border-top: 3px solid var(--rail);
+  background: var(--paper);
+}
+.developer-recipe-list details {
+  border-bottom: 1px solid var(--line);
+}
+.developer-recipe-list summary {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 54px;
+  cursor: pointer;
+  padding: 12px 17px;
+}
+.developer-recipe-list summary span {
+  font-size: 12px;
+  font-weight: 850;
+}
+.developer-recipe-list summary small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.developer-recipe-list .developer-code {
+  border-top: 1px solid var(--line);
+}
+.developer-journey {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  border-block: 1px solid var(--line-strong);
+  list-style: none;
+}
+.developer-journey li {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  padding: 17px 13px;
+  background: var(--paper);
+}
+.developer-journey li:last-child {
+  border-right: 0;
+}
+.developer-journey li > span {
+  color: var(--faint);
+  font: 850 9px var(--font-mono);
+}
+.developer-journey strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+.developer-scope-boundary {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 11px;
+  border: 1px solid var(--amber-line);
+  border-left: 3px solid var(--amber);
+  padding: 15px 17px;
+  background: var(--amber-soft);
+}
+.developer-scope-boundary svg {
+  width: 18px;
+  height: 18px;
+  color: var(--amber);
+}
+.webhook-verification-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+}
+.webhook-verification-flow > svg {
+  align-self: center;
+  width: 18px;
+  height: 18px;
+  color: var(--faint);
+}
+.webhook-verification-flow article {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--green);
+  padding: 18px;
+  background: var(--paper);
+}
+.webhook-verification-flow article > span {
+  grid-column: 1 / -1;
+}
+.webhook-verification-flow article > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--green);
+}
+.webhook-verification-flow code {
+  overflow-wrap: anywhere;
 }
 .authentication-ledger {
   display: grid;
@@ -3528,6 +3730,12 @@ h3 {
 
 @media (forced-colors: active) {
   .developer-boundary,
+  .developer-reference-nav,
+  .developer-rule-grid,
+  .developer-recipe-list,
+  .developer-journey,
+  .developer-scope-boundary,
+  .webhook-verification-flow article,
   .authentication-ledger,
   .endpoint-catalogue,
   .request-proof-sheet,

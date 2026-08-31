@@ -69,9 +69,11 @@ test("OpenAPI download validation accepts the canonical contract and rejects sec
 });
 
 test("developer documentation boundary has no arbitrary runner or raw credential endpoint",async()=>{
-  const sources=await Promise.all(["src/app/api/developer/metadata/route.ts","src/app/api/developer/openapi/route.ts","src/lib/developer-read.ts","src/features/developer/DeveloperViews.tsx"].map((path)=>readFile(path,"utf8")));
+  const sources=await Promise.all(["src/app/api/developer/metadata/route.ts","src/app/api/developer/openapi/route.ts","src/lib/developer-read.ts","src/features/developer/DeveloperViews.tsx","src/features/developer/DeveloperReferenceSections.tsx","src/features/developer/developer-recipes.ts"].map((path)=>readFile(path,"utf8")));
   assert.ok(sources.slice(0,2).every((source)=>source.includes("export async function GET")&&!source.includes("export async function POST")));
   assert.match(sources[2],/\/api\/openapi\.yaml/);
   assert.doesNotMatch(sources.join("\n"),/api\/developer\/(?:request|runner|credential|token|reveal)/i);
-  assert.doesNotMatch(sources[3],/name=["'](?:url|authorization|token|header)["']/i);
+  assert.doesNotMatch(sources.slice(3).join("\n"),/name=["'](?:url|authorization|token|header)["']/i);
+  assert.doesNotMatch(sources.slice(3).join("\n"),/Bearer\s+[A-Za-z0-9._~-]{20,}/);
+  assert.doesNotMatch(sources.slice(3).join("\n"),/>\s*Send request\s*</i);
 });

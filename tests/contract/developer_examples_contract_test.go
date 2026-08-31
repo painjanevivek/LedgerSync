@@ -227,6 +227,53 @@ func TestDeveloperContractSurfaceHasNoRunnerOrRawCredentialEndpoint(t *testing.T
 	}
 }
 
+func TestPartnerRecipesConvergeWithCanonicalExamplesAndLifecycle(t *testing.T) {
+	root := repositoryRoot(t)
+	documentation, err := os.ReadFile(filepath.Join(root, "docs", "developer", "integration-recipes.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(root, "contracts", "developer-examples.v1.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var metadata developerMetadata
+	if err := json.Unmarshal(content, &metadata); err != nil {
+		t.Fatal(err)
+	}
+	docs := string(documentation)
+	for _, required := range []string{
+		"### curl", "### TypeScript", "### Go", "### Postman",
+		"### Wallet-like balance visibility", "### Credit ledger", "### Escrow-like accounting",
+		"### Payout accounting", "### Internal treasury", "X-LedgerSync-Verification",
+		"same-key, same-intent", "same-key, changed-intent", "unknown response",
+		"do not move external funds", "There is no public bulk-provisioning API",
+	} {
+		if !strings.Contains(docs, required) {
+			t.Errorf("partner recipes are missing %q", required)
+		}
+	}
+	for _, example := range metadata.Examples {
+		if example.ID != "create_transfer" {
+			continue
+		}
+		for field, raw := range example.Body {
+			value, ok := raw.(string)
+			if !ok || !strings.Contains(docs, value) {
+				t.Errorf("partner recipes drifted from create_transfer.%s=%v", field, raw)
+			}
+		}
+		if key, ok := example.Headers["Idempotency-Key"].(string); !ok || !strings.Contains(docs, key) {
+			t.Errorf("partner recipes drifted from the canonical idempotency key")
+		}
+	}
+	for path := range objectAt(t, loadOpenAPIDocument(t), "paths") {
+		if strings.Contains(strings.ToLower(path), "bulk") {
+			t.Fatalf("bulk provisioning documentation is gated, but OpenAPI unexpectedly contains %q", path)
+		}
+	}
+}
+
 func validateOpenAPIValue(document, schema map[string]any, value any, path string) error {
 	if ref, ok := schema["$ref"].(string); ok {
 		resolved, err := resolveOpenAPIRef(document, ref)

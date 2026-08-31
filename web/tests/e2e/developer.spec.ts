@@ -11,10 +11,13 @@ test("developer sees the local boundary, distinct auth lanes, and versioned endp
   await page.goto("/developer");
   await expect(page.getByRole("heading",{name:"Developer",exact:true})).toBeVisible();
   await expect(page.getByText("http://127.0.0.1:3100/api",{exact:true})).toBeVisible();
-  await expect(page.getByRole("heading",{name:"Authentication"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Authentication",exact:true})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Browser BFF session"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Private API development token"})).toBeVisible();
   await expect(page.getByText(/never paste revealed output into this browser/i)).toBeVisible();
+  const reference=page.getByRole("navigation",{name:"Developer reference sections"});
+  await expect(reference.getByRole("link",{name:"Accounts"})).toHaveAttribute("href","#schema-accounts");
+  await expect(reference.getByRole("link",{name:"Webhooks"})).toHaveAttribute("href","#schema-webhooks");
   const createAccountRow=page.locator(".endpoint-row").filter({hasText:"createAccount"});
   await expect(createAccountRow.getByText("POST",{exact:true})).toBeVisible();
   await expect(createAccountRow.getByText("/api/accounts",{exact:true})).toBeVisible();
@@ -22,6 +25,44 @@ test("developer sees the local boundary, distinct auth lanes, and versioned endp
   await developerGroup.locator("summary").click();
   await expect(developerGroup.getByText("developer:read",{exact:true}).first()).toBeVisible();
   await expectAccessible(page);
+});
+
+test("developer explains every mutation replay rule and the complete partner journey",async({page})=>{
+  await mockOperatorConsole(page);
+  await page.goto("/developer");
+  await expect(page.getByRole("heading",{name:"Exact money and replay protection"})).toBeVisible();
+  const replay=page.getByRole("region",{name:"Mutation replay protection matrix"});
+  for(const operation of developerMetadata.endpoint_groups.flatMap((group)=>group.operations).filter((operation)=>operation.method!=="GET")){
+    await expect(replay.getByText(operation.operation_id,{exact:true})).toBeVisible();
+  }
+  await expect(page.getByText(/Same key \+ same intent replays/).first()).toBeVisible();
+  await expect(page.getByText(/No public bulk API is currently contracted/)).toBeVisible();
+  await expect(page.getByText(/do not move external funds/i)).toBeVisible();
+});
+
+test("generated server recipes preserve canonical money without accepting credentials",async({page,context})=>{
+  await context.grantPermissions(["clipboard-read","clipboard-write"]);
+  await mockOperatorConsole(page);
+  await page.goto("/developer");
+  await expect(page.getByRole("heading",{name:"Integration recipes"})).toBeVisible();
+  const recipes=page.locator(".developer-recipe-list");
+  await expect(recipes.locator("details")).toHaveCount(4);
+  await recipes.locator("details").filter({hasText:"TypeScript"}).locator("summary").click();
+  await recipes.getByRole("button",{name:"Copy TypeScript transfer recipe"}).click();
+  const copied=await page.evaluate(()=>navigator.clipboard.readText());
+  expect(copied).toContain('"amount": "125.50"');
+  expect(copied).toContain("example-transfer-key-0001");
+  expect(copied).not.toMatch(/Bearer\s+[A-Za-z0-9._~-]{20,}/);
+  await expect(page.getByRole("textbox")).toHaveCount(0);
+});
+
+test("server-initiated webhook verification never exposes a challenge",async({page})=>{
+  await mockOperatorConsole(page);
+  await page.goto("/developer");
+  await expect(page.getByRole("heading",{name:"Webhook endpoint verification"})).toBeVisible();
+  await expect(page.getByText(/LedgerSync never returns the secret or challenge/)).toBeVisible();
+  await expect(page.getByText("X-LedgerSync-Verification",{exact:false})).toBeVisible();
+  await expect(page.getByText(/failed or expired proof never activates delivery/)).toBeVisible();
 });
 
 test("exact transfer and zero-account examples preserve string money and announce non-secret copy",async({page,context})=>{
