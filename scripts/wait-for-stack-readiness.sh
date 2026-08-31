@@ -19,6 +19,31 @@ while [ "$attempt" -le "$max_attempts" ]; do
     --write-out '%{http_code}' \
     "$base_url/api/session" 2>/dev/null || true)"
   [ -n "$session_status" ] || session_status="000"
+  login_status="not-attempted"
+
+  # The session endpoint is intentionally read-only. A fresh local stack must
+  # establish its loopback-only development session through the same explicit
+  # sign-in route as a browser before protected readiness can be asserted.
+  if [ "$session_status" = "401" ]; then
+    login_status="$(curl --silent --show-error --connect-timeout 2 --max-time 5 \
+      --noproxy '127.0.0.1,localhost,::1' \
+      --location \
+      --cookie "$cookie_jar" \
+      --cookie-jar "$cookie_jar" \
+      --output /dev/null \
+      --write-out '%{http_code}' \
+      "$base_url/api/auth/sign-in?return_to=%2F" 2>/dev/null || true)"
+    [ -n "$login_status" ] || login_status="000"
+    session_status="$(curl --silent --show-error --connect-timeout 2 --max-time 5 \
+      --noproxy '127.0.0.1,localhost,::1' \
+      --cookie "$cookie_jar" \
+      --cookie-jar "$cookie_jar" \
+      --output /dev/null \
+      --write-out '%{http_code}' \
+      "$base_url/api/session" 2>/dev/null || true)"
+    [ -n "$session_status" ] || session_status="000"
+  fi
+
   accounts_status="not-attempted"
   case "$session_status" in
     2??)
@@ -39,8 +64,8 @@ while [ "$attempt" -le "$max_attempts" ]; do
   fi
 
   if [ "$attempt" -eq 1 ] || [ "$attempt" -eq "$max_attempts" ] || [ $((attempt % 10)) -eq 0 ]; then
-    printf 'LedgerSync readiness pending at attempt %s/%s (session=%s accounts=%s).\n' \
-      "$attempt" "$max_attempts" "$session_status" "$accounts_status" >&2
+    printf 'LedgerSync readiness pending at attempt %s/%s (login=%s session=%s accounts=%s).\n' \
+      "$attempt" "$max_attempts" "$login_status" "$session_status" "$accounts_status" >&2
   fi
 
   if [ "$attempt" -lt "$max_attempts" ]; then
