@@ -15,6 +15,7 @@ import { StatusBadge } from "@/ui/display/StatusBadge";
 import { Timestamp } from "@/ui/display/Timestamp";
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { ReconciliationCommand } from "@/features/reconciliation/ReconciliationCommand";
+import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
 import { reconciliationURL, type ReconciliationFilters } from "@/lib/page-query/reconciliation";
 
 function runTone(status: ReconciliationRun["status"]) {
@@ -52,6 +53,7 @@ export function ReconciliationView({ runs, detail, detailRequested, error, loadi
     <PageHeader eyebrow="Ledger / Reconciliation" title="Reconciliation details" description="See whether account balances match the ledger for this check."><EvidenceExportControl label="Export run result" subject="reconciliation run" endpoint={`/api/exports/reconciliation.csv?runId=${encodeURIComponent(detail.run_id)}&limit=10000`} scope={`One immutable run · ${detail.run_id}`} filters={[{ label: "Run ID", value: detail.run_id }]} columns="Includes run, mismatch, account, and correlation identifiers when present" online={online} canExport={canExport} /></PageHeader>
     <RunResult run={detail} />
     <section className="surface detail-document"><dl className="evidence-list"><div><dt>Correlation ID</dt><dd><CopyControl value={detail.correlation_id} /></dd></div><div><dt>Application version</dt><dd>{detail.application_version || "Unavailable"}</dd></div><div><dt>Started</dt><dd><Timestamp value={detail.started_at} /></dd></div><div><dt>Completed</dt><dd><Timestamp value={detail.completed_at} /></dd></div></dl></section>
+    <RelatedEvidenceRail sourceType="reconciliation_run" sourceId={detail.run_id} />
     <Link className="text-link back-link" href={returnTo ?? "/reconciliation"}>← Back to previous view</Link>
   </>;
 

@@ -24,7 +24,7 @@ func TestOpenAPIContainsEveryRegisteredMVPRouteAndLosslessBoundaries(t *testing.
 	if err := yaml.Unmarshal(content, &parsed); err != nil {
 		t.Fatalf("OpenAPI is not valid YAML: %v", err)
 	}
-	for _, route := range []string{"/accounts:", "/me/accounts:", "/accounts/{accountId}:", "/accounts/{accountId}/balance:", "/accounts/{accountId}/transactions:", "/transfers:", "/transfers/{transferId}:", "/funding-requests:", "/funding-events:", "/funding-events/{fundingEventId}:", "/funding-events/{fundingEventId}/approve:", "/funding-events/{fundingEventId}/reject:", "/funding-events/{fundingEventId}/post:", "/funding-events/{fundingEventId}/compensations:", "/funding-events/{fundingEventId}/reconciliation:", "/reconciliation/runs:", "/reconciliation/runs/{runId}:"} {
+	for _, route := range []string{"/accounts:", "/me/accounts:", "/accounts/{accountId}:", "/accounts/{accountId}/balance:", "/accounts/{accountId}/transactions:", "/transfers:", "/transfers/{transferId}:", "/investigation/search:", "/investigation/related/{recordType}/{recordId}:", "/funding-requests:", "/funding-events:", "/funding-events/{fundingEventId}:", "/funding-events/{fundingEventId}/approve:", "/funding-events/{fundingEventId}/reject:", "/funding-events/{fundingEventId}/post:", "/funding-events/{fundingEventId}/compensations:", "/funding-events/{fundingEventId}/reconciliation:", "/reconciliation/runs:", "/reconciliation/runs/{runId}:"} {
 		if !strings.Contains(contract, route) {
 			t.Errorf("OpenAPI missing runtime route %s", route)
 		}

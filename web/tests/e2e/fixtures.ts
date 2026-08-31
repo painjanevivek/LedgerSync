@@ -50,6 +50,33 @@ export const investigationSearchPage = {
   truncated: false,
 } as const;
 
+function relatedEvidencePage(url: string) {
+  const parts = new URL(url).pathname.split("/");
+  const sourceType = parts.at(-2) ?? "transfer";
+  const sourceId = parts.at(-1) ?? transfer.transfer_id;
+  const relationships = sourceType === "account" ? [
+    { relationship_type: "account_transaction", target_type: "transfer", target_id: transfer.transfer_id, safe_label: "Transfer", status: "posted", occurred_at: transfer.completed_at, source: "postgresql", freshness: "relationship_snapshot" },
+    { relationship_type: "account_event", target_type: "event", target_id: deliveryEvent.event_id, safe_label: deliveryEvent.event_type, status: "retrying", occurred_at: deliveryEvent.occurred_at, source: "postgresql", freshness: "relationship_snapshot" },
+  ] : sourceType === "transfer" ? [
+    { relationship_type: "transfer_journal", target_type: "journal", target_id: transfer.journal_transaction_id, safe_label: "Journal transaction", status: "recorded", occurred_at: transfer.completed_at, source: "postgresql", freshness: "relationship_snapshot" },
+    { relationship_type: "transfer_event", target_type: "event", target_id: deliveryEvent.event_id, safe_label: deliveryEvent.event_type, status: "retrying", occurred_at: deliveryEvent.occurred_at, source: "postgresql", freshness: "relationship_snapshot" },
+  ] : sourceType === "event" ? [
+    { relationship_type: "event_transfer", target_type: "transfer", target_id: transfer.transfer_id, safe_label: "Transfer", status: "posted", occurred_at: transfer.completed_at, source: "postgresql", freshness: "relationship_snapshot" },
+    { relationship_type: "event_account", target_type: "account", target_id: destinationAccount.account_id, safe_label: "Account", status: "active", occurred_at: sourceAccount.as_of, source: "postgresql", freshness: "relationship_snapshot" },
+  ] : sourceType === "funding" ? [
+    { relationship_type: "funding_approval", target_type: "approval", target_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", safe_label: "Approval record", status: "requested", occurred_at: fundingEvent.requested_at, source: "postgresql", freshness: "relationship_snapshot" },
+  ] : sourceType === "correction" ? [
+    { relationship_type: "correction_original_transfer", target_type: "transfer", target_id: transfer.transfer_id, safe_label: "Transfer", status: "posted", occurred_at: transfer.completed_at, source: "postgresql", freshness: "relationship_snapshot" },
+  ] : [];
+  return {
+    source_type: sourceType,
+    source_id: sourceId,
+    relationships,
+    generated_at: "2026-08-19T12:05:00Z",
+    truncated: false,
+  };
+}
+
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
@@ -87,6 +114,7 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
   await page.route("**/api/developer/openapi", (route) => route.fulfill({ status:200,contentType:"application/yaml",headers:{"Content-Disposition":`attachment; filename="ledgersync-openapi.yaml"`},body:"openapi: 3.1.0\ninfo:\n  title: LedgerSync\npaths:\ncomponents:\n" }));
   await page.route("**/api/recovery/manifests", (route) => json(route, recoveryEvidence));
   await page.route("**/api/investigation/search?*", (route) => json(route, investigationSearchPage));
+  await page.route("**/api/investigation/related/**", (route) => json(route, relatedEvidencePage(route.request().url())));
   await page.route(/\/api\/exports\/.*\.csv(?:\?.*)?$/, (route) => {
     const path=new URL(route.request().url()).pathname;
     const family=path.includes("/accounts/")?"account-ledger":path.includes("reconciliation")?"reconciliation":"transfers";

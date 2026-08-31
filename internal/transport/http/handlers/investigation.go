@@ -103,6 +103,80 @@ func (h *InvestigationHandler) Search(writer http.ResponseWriter, request *http.
 	writeInvestigationJSON(writer, page)
 }
 
+func (h *InvestigationHandler) Related(writer http.ResponseWriter, request *http.Request) {
+	principal, access, ok := h.authorizeRelationships(writer, request)
+	if !ok {
+		return
+	}
+	if !onlyQueryParameters(request) {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	sourceType := strings.TrimSpace(request.PathValue("recordType"))
+	sourceID := strings.ToLower(strings.TrimSpace(request.PathValue("recordId")))
+	if !canonicalInvestigationUUID.MatchString(sourceID) || !relationshipSourceType(sourceType) {
+		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+		return
+	}
+	repository, configured := h.repository.(investigation.RelationshipRepository)
+	if !configured {
+		httptransport.WriteError(writer, request, errors.New("investigation relationship repository is not configured"))
+		return
+	}
+	page, err := repository.Related(request.Context(), principal.TenantID, principal.SubjectID, investigation.RelationshipFilter{SourceType: sourceType, SourceID: sourceID, Limit: 20, Access: access})
+	if errors.Is(err, db.ErrInvestigationNotFound) {
+		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+		return
+	}
+	if err != nil {
+		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "evidence_unavailable", Message: "Related investigation evidence is unavailable."})
+		return
+	}
+	writeInvestigationJSON(writer, page)
+}
+
+func relationshipSourceType(value string) bool {
+	switch value {
+	case "account", "transfer", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction":
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *InvestigationHandler) authorizeRelationships(writer http.ResponseWriter, request *http.Request) (identity.Principal, investigation.RelationshipAccess, bool) {
+	if h == nil || h.repository == nil || h.identity == nil {
+		httptransport.WriteError(writer, request, errors.New("investigation handler is not configured"))
+		return identity.Principal{}, investigation.RelationshipAccess{}, false
+	}
+	principal, err := h.authenticate(request)
+	if err != nil {
+		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		return identity.Principal{}, investigation.RelationshipAccess{}, false
+	}
+	if !principal.HasRole("tenant:operator") && !principal.HasRole("tenant:admin") {
+		writeScopeDenial(writer, request, h.audit, principal, "tenant:investigate")
+		return identity.Principal{}, investigation.RelationshipAccess{}, false
+	}
+	if !principal.HasScope("investigation:read") {
+		writeScopeDenial(writer, request, h.audit, principal, "investigation:read")
+		return identity.Principal{}, investigation.RelationshipAccess{}, false
+	}
+	access := investigation.RelationshipAccess{
+		Accounts: principal.HasScope("accounts:read"), Transfers: principal.HasScope("transfers:read"),
+		Funding: principal.HasScope("funding:read"), Events: principal.HasScope("events:read"),
+		Reconciliation: principal.HasScope("reconciliation:read"), Corrections: principal.HasScope("corrections:read"),
+	}
+	if !access.Any() {
+		writeScopeDenial(writer, request, h.audit, principal, "investigation:read")
+		return identity.Principal{}, investigation.RelationshipAccess{}, false
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "investigation:relationships", h.rateLimit, false) {
+		return identity.Principal{}, investigation.RelationshipAccess{}, false
+	}
+	return principal, access, true
+}
+
 func (h *InvestigationHandler) authorizeSearch(writer http.ResponseWriter, request *http.Request) (identity.Principal, investigation.SearchAccess, bool) {
 	if h == nil || h.repository == nil || h.identity == nil {
 		httptransport.WriteError(writer, request, errors.New("investigation handler is not configured"))

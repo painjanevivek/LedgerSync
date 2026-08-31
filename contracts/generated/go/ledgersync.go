@@ -35,6 +35,7 @@ var Operations = []Operation{
 	{ID: "getOwnedAccount", Method: "GET", Path: "/accounts/{accountId}", Scope: "accounts:read", Idempotent: false},
 	{ID: "getReconciliationRun", Method: "GET", Path: "/reconciliation/runs/{runId}", Scope: "reconciliation:read", Idempotent: false},
 	{ID: "getRecoveryEvidenceIndex", Method: "GET", Path: "/recovery/manifests", Scope: "recovery:read", Idempotent: false},
+	{ID: "getRelatedInvestigationEvidence", Method: "GET", Path: "/investigation/related/{recordType}/{recordId}", Scope: "investigation:read", Idempotent: false},
 	{ID: "getTransfer", Method: "GET", Path: "/transfers/{transferId}", Scope: "transfers:read", Idempotent: false},
 	{ID: "getTransferCorrection", Method: "GET", Path: "/transfer-corrections/{correctionId}", Scope: "corrections:read", Idempotent: false},
 	{ID: "getWebhookEndpointEvidence", Method: "GET", Path: "/webhook-endpoints/{endpointId}", Scope: "webhooks:read", Idempotent: false},

@@ -174,6 +174,13 @@ export const operations: readonly Operation[] = [
     "idempotent": false
   },
   {
+    "id": "getRelatedInvestigationEvidence",
+    "method": "GET",
+    "path": "/investigation/related/{recordType}/{recordId}",
+    "scope": "investigation:read",
+    "idempotent": false
+  },
+  {
     "id": "getTransfer",
     "method": "GET",
     "path": "/transfers/{transferId}",

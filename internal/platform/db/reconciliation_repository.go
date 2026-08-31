@@ -24,10 +24,10 @@ type ReconciliationRepository struct {
 }
 
 type reconciliationMismatch struct {
-	ID, AccountID, Classification, Currency string
-	ExpectedMinor, ObservedMinor            *int64
-	ObservedAvailableMinor, BalanceVersion  *int64
-	Details                                 map[string]any
+	ID, AccountID, TransferID, Classification, Currency string
+	ExpectedMinor, ObservedMinor                        *int64
+	ObservedAvailableMinor, BalanceVersion              *int64
+	Details                                             map[string]any
 }
 
 func NewReconciliationRepository(database *sql.DB, telemetry ...*observability.Telemetry) (*ReconciliationRepository, error) {
@@ -246,7 +246,7 @@ HAVING count(p.id)<2 OR COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amoun
 		if count >= 2 && signedTotal != "0" {
 			classification = "journal_unbalanced"
 		}
-		result = append(result, reconciliationMismatch{Classification: classification, Details: map[string]any{"transfer_id": transferID, "journal_transaction_id": journalID, "posting_count": count, "signed_total": signedTotal}})
+		result = append(result, reconciliationMismatch{TransferID: transferID, Classification: classification, Details: map[string]any{"transfer_id": transferID, "journal_transaction_id": journalID, "posting_count": count, "signed_total": signedTotal}})
 	}
 	return result, rows.Err()
 }
@@ -258,7 +258,7 @@ func persistMismatch(ctx context.Context, tx *sql.Tx, runID, tenantID string, cr
 	}
 	mismatch.ID = id
 	details, _ := json.Marshal(mismatch.Details)
-	if _, err := tx.ExecContext(ctx, `INSERT INTO reconciliation_mismatches (id,run_id,tenant_id,account_id,classification,currency,expected_minor,observed_minor,observed_available_minor,balance_version,sanitized_details,created_at) VALUES ($1,$2,$3,$4::uuid,$5,$6,$7,$8,$9,$10,$11,$12)`, id, runID, tenantID, nullableUUID(mismatch.AccountID), mismatch.Classification, nullableString(mismatch.Currency), mismatch.ExpectedMinor, mismatch.ObservedMinor, mismatch.ObservedAvailableMinor, mismatch.BalanceVersion, details, createdAt); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO reconciliation_mismatches (id,run_id,tenant_id,account_id,transfer_id,classification,currency,expected_minor,observed_minor,observed_available_minor,balance_version,sanitized_details,created_at) VALUES ($1,$2,$3,$4::uuid,$5::uuid,$6,$7,$8,$9,$10,$11,$12,$13)`, id, runID, tenantID, nullableUUID(mismatch.AccountID), nullableUUID(mismatch.TransferID), mismatch.Classification, nullableString(mismatch.Currency), mismatch.ExpectedMinor, mismatch.ObservedMinor, mismatch.ObservedAvailableMinor, mismatch.BalanceVersion, details, createdAt); err != nil {
 		return fmt.Errorf("persist reconciliation mismatch: %w", err)
 	}
 	return nil

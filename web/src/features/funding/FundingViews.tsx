@@ -9,6 +9,7 @@ import { CopyControl } from "@/ui/controls/CopyControl.client";
 import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
 import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
 import { PageHeader } from "@/ui/display/PageHeader";
 import { StatePanel } from "@/ui/display/StatePanel";
 import { StatusBadge } from "@/ui/display/StatusBadge";
@@ -147,6 +148,7 @@ export function FundingDetailView({ event, account, session, reconciliation, ver
       {event.compensation_of_event_id && <div className="funding-linked-record"><LinkSimple aria-hidden="true" /><p><strong>Compensates original record</strong><Link href={`/funding/${encodeURIComponent(event.compensation_of_event_id)}`}>{event.compensation_of_event_id}</Link></p></div>}
       {event.compensation_event_id && <div className="funding-linked-record"><LinkSimple aria-hidden="true" /><p><strong>Preserved with additive compensation</strong><Link href={`/funding/${encodeURIComponent(event.compensation_event_id)}`}>{event.compensation_event_id}</Link></p></div>}
     </section>
+    <RelatedEvidenceRail sourceType="funding" sourceId={event.funding_event_id} />
     <FundingActionPanel event={event} session={session} online={online} busy={actionBusy} canWrite={canWrite} canApprove={canApprove} onAction={onAction} onReconcile={onReconcile} onRefresh={onRefresh} />
     {reconciliation && <section className={`funding-reconciliation ${reconciliation.status}`} aria-labelledby="funding-reconciliation-heading"><Equals aria-hidden="true" /><div><p className="eyebrow">External reference reconciliation</p><h2 id="funding-reconciliation-heading">{reconciliation.status === "matched" ? "Journal totals match" : "Journal mismatch requires investigation"}</h2><p>Expected <Money currency={reconciliation.currency} minorUnits={reconciliation.expected_minor} /> · debit <Money currency={reconciliation.currency} minorUnits={reconciliation.posted_debit_minor} /> · credit <Money currency={reconciliation.currency} minorUnits={reconciliation.posted_credit_minor} /></p><small>Checked <Timestamp value={reconciliation.checked_at} /></small></div></section>}
   </>;

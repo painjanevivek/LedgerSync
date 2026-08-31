@@ -212,6 +212,35 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /investigation/related/{recordType}/{recordId}:
+    get:
+      operationId: getRelatedInvestigationEvidence
+      x-required-scope: investigation:read
+      x-required-scopes-any: [accounts:read, transfers:read, funding:read, events:read, reconciliation:read, corrections:read]
+      summary: Follow bounded, deterministic relationships from one authorized record.
+      description: >-
+        Requires investigation:read, a tenant operator or administrator role,
+        and the source domain read scope. Target domain scopes filter returned
+        edges. Relationships come only from explicit tenant-scoped keys or the
+        persisted reconciliation snapshot rule. No amounts, balances, payloads,
+        notes, or secrets are copied into this navigation response.
+      parameters:
+        - in: path
+          name: recordType
+          required: true
+          schema: { type: string, enum: [account, transfer, funding, event, reconciliation_run, reconciliation_mismatch, correction] }
+        - in: path
+          name: recordId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Bounded authorized relationship snapshot., content: { application/json: { schema: { $ref: '#/components/schemas/RelationshipPage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /reconciliation/runs:
     get:
       operationId: listReconciliationRuns
@@ -1349,6 +1378,29 @@ components:
       properties:
         results: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/SearchResult' } }
         query_kind: { type: string, enum: [immutable_id, approved_reference] }
+        generated_at: { type: string, format: date-time }
+        truncated: { type: boolean }
+    Relationship:
+      type: object
+      additionalProperties: false
+      required: [relationship_type, target_type, target_id, safe_label, status, occurred_at, source, freshness]
+      properties:
+        relationship_type: { type: string, pattern: '^[a-z][a-z0-9_]{1,63}$' }
+        target_type: { type: string, enum: [account, transfer, funding, event, reconciliation_run, reconciliation_mismatch, correction, journal, posting, delivery_attempt, approval] }
+        target_id: { type: string, format: uuid }
+        safe_label: { type: string, minLength: 1, maxLength: 128 }
+        status: { type: string, enum: [active, frozen, closed, pending, posted, rejected, requested, approved, compensated, published, dead, retrying, delivered, matched, mismatch, failed, cancelled, expired, recorded] }
+        occurred_at: { type: string, format: date-time }
+        source: { type: string, const: postgresql }
+        freshness: { type: string, const: relationship_snapshot }
+    RelationshipPage:
+      type: object
+      additionalProperties: false
+      required: [source_type, source_id, relationships, generated_at, truncated]
+      properties:
+        source_type: { type: string, enum: [account, transfer, funding, event, reconciliation_run, reconciliation_mismatch, correction] }
+        source_id: { type: string, format: uuid }
+        relationships: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/Relationship' } }
         generated_at: { type: string, format: date-time }
         truncated: { type: boolean }
     DiagnosticSnapshot:

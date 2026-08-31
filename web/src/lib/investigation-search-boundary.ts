@@ -12,6 +12,14 @@ const approvedReference = /^[A-Za-z0-9][A-Za-z0-9._:/-]{7,127}$/u;
 export type InvestigationSearchAuthorization = Readonly<{ session: Session }>;
 
 export async function authorizeInvestigationSearch(request: NextRequest, session: Session | null, limiter: RateLimitStore): Promise<InvestigationSearchAuthorization | NextResponse> {
+	return authorizeInvestigationRead(request, session, limiter, "search");
+}
+
+export async function authorizeInvestigationRelationships(request: NextRequest, session: Session | null, limiter: RateLimitStore): Promise<InvestigationSearchAuthorization | NextResponse> {
+	return authorizeInvestigationRead(request, session, limiter, "relationships");
+}
+
+async function authorizeInvestigationRead(request: NextRequest, session: Session | null, limiter: RateLimitStore, boundary: "search" | "relationships"): Promise<InvestigationSearchAuthorization | NextResponse> {
   if (request.method !== "GET") {
     const response = jsonError("method_not_allowed", 405);
     response.headers.set("Allow", "GET");
@@ -20,7 +28,7 @@ export async function authorizeInvestigationSearch(request: NextRequest, session
   if (!session) return jsonError("unauthorized", 401);
   if (!session.roles?.some((role) => operatorRoles.has(role)) || !session.scopes?.includes("investigation:read") || !session.scopes.some((scope) => searchableScopes.has(scope))) return jsonError("forbidden", 403);
   if (!hasValidHost(request)) return jsonError("invalid_request", 400);
-  const decision = await limiter.consume(`investigation:search:${session.tenantId}:${session.subjectId}`, 30, 60);
+  const decision = await limiter.consume(`investigation:${boundary}:${session.tenantId}:${session.subjectId}`, 30, 60);
   if (!decision.allowed) {
     const response = jsonError("rate_limited", 429);
     response.headers.set("Retry-After", String(decision.retryAfterSeconds));

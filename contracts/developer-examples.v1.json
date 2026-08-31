@@ -90,6 +90,7 @@
       "label": "Local operations",
       "operations": [
         { "operation_id": "searchInvestigationEvidence", "method": "GET", "path": "/investigation/search", "scope": "investigation:read" },
+        { "operation_id": "getRelatedInvestigationEvidence", "method": "GET", "path": "/investigation/related/{recordType}/{recordId}", "scope": "investigation:read" },
         { "operation_id": "getLocalDiagnostics", "method": "GET", "path": "/local/diagnostics", "scope": "local:read" },
         { "operation_id": "getLocalOrientationEvidence", "method": "GET", "path": "/local/orientation", "scope": "local:read" },
         { "operation_id": "updateLocalOrientationPreferences", "method": "PUT", "path": "/local/orientation/preferences", "scope": "local:write" },

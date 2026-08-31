@@ -3,7 +3,7 @@
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "3.1.0",
-    "_postman_id": "ledgersync-607b7e66-f551f85f-81ac97b8"
+    "_postman_id": "ledgersync-816713d6-fdd52eae-3bdbcf8a"
   },
   "variable": [
     {
@@ -446,6 +446,23 @@
           }
         ],
         "url": "{{baseUrl}}/recovery/manifests"
+      }
+    },
+    {
+      "name": "getRelatedInvestigationEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/related/{recordType}/{recordId}"
       }
     },
     {

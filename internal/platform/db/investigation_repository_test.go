@@ -32,3 +32,24 @@ func TestTransferCursorIsBoundToCanonicalFilters(t *testing.T) {
 		t.Fatal("oversized transfer cursor was accepted")
 	}
 }
+
+func TestRelatedEvidenceRequiresSourceScopeAndUsesBoundedMetadataQueries(t *testing.T) {
+	full := investigation.RelationshipAccess{Accounts: true, Transfers: true, Funding: true, Events: true, Reconciliation: true, Corrections: true}
+	for _, sourceType := range []string{"account", "transfer", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction"} {
+		if !relationshipSourceAllowed(sourceType, full) {
+			t.Fatalf("released source type %q was not authorized", sourceType)
+		}
+		query, args := relationshipQuery(investigation.RelationshipFilter{SourceType: sourceType, SourceID: "11111111-1111-4111-8111-111111111111", Limit: 20, Access: full}, "tenant", "actor")
+		if !strings.Contains(query, "LIMIT $10") || len(args) != 10 || args[9] != 21 {
+			t.Fatalf("source=%s query is not hard bounded: args=%#v", sourceType, args)
+		}
+		for _, forbidden := range []string{"amount_minor", "available_minor", "ledger_minor", "payload", "operator_note", "evidence_reference"} {
+			if strings.Contains(query, forbidden) {
+				t.Fatalf("source=%s relationship query copied forbidden field %q", sourceType, forbidden)
+			}
+		}
+	}
+	if relationshipSourceAllowed("transfer", investigation.RelationshipAccess{Accounts: true}) || relationshipSourceAllowed("unknown", full) {
+		t.Fatal("relationship source was authorized without its own domain scope")
+	}
+}

@@ -20,6 +20,7 @@ import { FormField } from "@/ui/forms/FormField.client";
 import { TransferCorrectionPanel } from "@/features/corrections/TransferCorrectionPanel";
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { TransferEvidenceTimeline } from "@/features/transfers/TransferEvidenceTimeline";
+import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
 import { TransferForm } from "@/features/transfers/TransferForm";
 import type { TransferExplainability } from "@/lib/api/orientation";
 import { Money } from "@/ui/display/Money";
@@ -344,6 +345,7 @@ export function TransfersView({
             />
           )}
         </section>
+        <RelatedEvidenceRail sourceType="transfer" sourceId={detail.transfer_id} />
         <TransferCorrectionPanel
           transfer={detail}
           csrfToken={csrfToken}

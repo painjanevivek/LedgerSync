@@ -29,6 +29,7 @@ import { useCorrectionCommand } from "@/features/corrections/useCorrectionComman
 import { ConfirmationDialog } from "@/ui/overlays/ConfirmationDialog.client";
 import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { correctionsURL } from "@/lib/page-query/corrections";
+import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
 
 const statusOptions: ReadonlyArray<CorrectionStatus | "all"> = [
   "all",
@@ -615,6 +616,7 @@ function CorrectionDetail({
           <strong><Timestamp value={event.updated_at} /></strong>
         </div>
       </section>
+      <RelatedEvidenceRail sourceType="correction" sourceId={event.correction_id} />
       {verifiedAt && (
         <EvidenceFreshness
           state={

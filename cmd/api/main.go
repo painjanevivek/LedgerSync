@@ -322,6 +322,7 @@ func main() {
 			router.HandleFunc("GET /api/transfers", investigationHandler.Transfers)
 			router.HandleFunc("GET /api/transfers/{transferID}", investigationHandler.Transfer)
 			router.HandleFunc("GET /api/investigation/search", investigationHandler.Search)
+			router.HandleFunc("GET /api/investigation/related/{recordType}/{recordId}", investigationHandler.Related)
 			router.HandleFunc("GET /api/reconciliation/runs", investigationHandler.ReconciliationRuns)
 			router.HandleFunc("GET /api/reconciliation/runs/{runID}", investigationHandler.ReconciliationRun)
 			router.HandleFunc("POST /api/funding-requests", fundingHandler.Request)

@@ -3,14 +3,14 @@
   "api_version": "3.1.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "607b7e66",
-    "f551f85f",
-    "81ac97b8",
-    "1e46deae",
-    "c0bd86c6",
-    "4a30eda8",
-    "77617e1e",
-    "9f694b67"
+    "816713d6",
+    "fdd52eae",
+    "3bdbcf8a",
+    "6f6602a7",
+    "77a84cfe",
+    "dafd0c34",
+    "f6dd381c",
+    "91326122"
   ],
   "operations": [
     {
@@ -179,6 +179,13 @@
       "method": "GET",
       "path": "/recovery/manifests",
       "scope": "recovery:read",
+      "idempotent": false
+    },
+    {
+      "id": "getRelatedInvestigationEvidence",
+      "method": "GET",
+      "path": "/investigation/related/{recordType}/{recordId}",
+      "scope": "investigation:read",
       "idempotent": false
     },
     {

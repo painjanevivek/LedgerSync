@@ -44,6 +44,37 @@ type SearchPage struct {
 	Truncated   bool           `json:"truncated"`
 }
 
+// RelationshipAccess is the server-derived authorization envelope for a
+// related-evidence read. A source can be visible while one or more targets are
+// withheld; callers must never infer a missing target from an absent edge.
+type RelationshipAccess = SearchAccess
+
+type RelationshipFilter struct {
+	SourceType string
+	SourceID   string
+	Limit      int
+	Access     RelationshipAccess
+}
+
+type Relationship struct {
+	RelationshipType string    `json:"relationship_type"`
+	TargetType       string    `json:"target_type"`
+	TargetID         string    `json:"target_id"`
+	SafeLabel        string    `json:"safe_label"`
+	Status           string    `json:"status"`
+	OccurredAt       time.Time `json:"occurred_at"`
+	Source           string    `json:"source"`
+	Freshness        string    `json:"freshness"`
+}
+
+type RelationshipPage struct {
+	SourceType    string         `json:"source_type"`
+	SourceID      string         `json:"source_id"`
+	Relationships []Relationship `json:"relationships"`
+	GeneratedAt   time.Time      `json:"generated_at"`
+	Truncated     bool           `json:"truncated"`
+}
+
 type TransferSummary struct {
 	ID                     string    `json:"transfer_id"`
 	DebitAccountID         string    `json:"source_account_id"`
@@ -123,4 +154,8 @@ type Repository interface {
 	GetTransfer(ctx context.Context, tenantID, transferID string) (TransferDetail, error)
 	ListReconciliationRuns(ctx context.Context, tenantID, cursor string, limit int) ([]ReconciliationRun, string, error)
 	GetReconciliationRun(ctx context.Context, tenantID, runID string) (ReconciliationRun, error)
+}
+
+type RelationshipRepository interface {
+	Related(ctx context.Context, tenantID, actorID string, filter RelationshipFilter) (RelationshipPage, error)
 }
