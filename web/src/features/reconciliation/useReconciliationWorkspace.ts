@@ -4,17 +4,17 @@ import { useCallback, useRef, useState } from "react";
 
 import type { ReconciliationRun } from "@/features/accounts/types";
 import {
-  appendUniqueBy,
   beginEvidenceRequest,
   createEvidenceRequestCoordinator,
   finishEvidenceRequest,
   isEvidenceRequestCurrent,
 } from "@/features/console/evidenceRequestCoordinator";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
+import type { ReconciliationFilters } from "@/lib/page-query/reconciliation";
 
 type RunsPayload = Readonly<{ runs?: ReconciliationRun[]; next_cursor?: string }>;
 
-export function useReconciliationWorkspace(detailRunId?: string) {
+export function useReconciliationWorkspace(detailRunId?: string, filters: ReconciliationFilters = {}) {
   const [runs, setRuns] = useState<ReconciliationRun[]>([]);
   const [detail, setDetail] = useState<ReconciliationRun | null>(null);
   const [listLoading, setListLoading] = useState(false);
@@ -25,23 +25,25 @@ export function useReconciliationWorkspace(detailRunId?: string) {
   const listRequests = useRef(createEvidenceRequestCoordinator());
   const detailRequests = useRef(createEvidenceRequestCoordinator());
 
-  const loadList = useCallback(async (cursor?: string, append = false) => {
-    const request = beginEvidenceRequest(listRequests.current, "reconciliation-runs", append ? "append" : "replace");
+  const loadList = useCallback(async () => {
+    const query = new URLSearchParams({ limit: "25" });
+    if (filters.cursor) query.set("cursor", filters.cursor);
+    const request = beginEvidenceRequest(listRequests.current, `reconciliation-runs:${query}`, "replace");
     if (!request) return;
     setListLoading(true);
-    const response = await readJSON<RunsPayload>(`/api/reconciliation/runs?limit=25${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`);
+    const response = await readJSON<RunsPayload>(`/api/reconciliation/runs?${query}`);
     if (!isEvidenceRequestCurrent(listRequests.current, request.token)) return;
     if (!response.ok) {
       setError(unavailableMessage(response.status, "authoritative reconciliation results", response.requestReference));
     } else {
       const items = Array.isArray(response.data.runs) ? response.data.runs : [];
-      setRuns((current) => append ? appendUniqueBy(current, items, (run) => run.run_id) : items);
+      setRuns(items);
       setNextCursor(response.data.next_cursor || undefined);
       setVerifiedAt(new Date().toISOString());
       setError(null);
     }
     if (finishEvidenceRequest(listRequests.current, request.token)) setListLoading(false);
-  }, []);
+  }, [filters.cursor]);
 
   const loadDetail = useCallback(async (runId: string) => {
     const request = beginEvidenceRequest(detailRequests.current, `reconciliation:${runId}`);

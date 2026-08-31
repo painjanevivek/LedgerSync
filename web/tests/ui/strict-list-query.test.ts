@@ -4,6 +4,7 @@ import test from "node:test";
 import { parseApprovalBFFSearchParams, parseApprovalPageQuery } from "../../src/lib/page-query/approvals";
 import { correctionBFFQueryRules, correctionsURL, parseCorrectionPageQuery } from "../../src/lib/page-query/corrections";
 import { fundingBFFQueryRules, fundingURL, parseFundingPageQuery } from "../../src/lib/page-query/funding";
+import { parseReconciliationPageQuery, reconciliationBFFQueryRules, reconciliationURL } from "../../src/lib/page-query/reconciliation";
 import { isUTCDate, parseStrictListQuery, parseStrictListSearchParams } from "../../src/lib/strict-list-query";
 
 test("strict list queries reject unknown repeated empty oversized and malformed values", () => {
@@ -76,4 +77,13 @@ test("correction page and BFF queries share exact released semantics", () => {
   assert.equal(parseStrictListSearchParams(new URLSearchParams("status=pending&limit=25"), correctionBFFQueryRules).ok, false);
   assert.equal(parseStrictListSearchParams(new URLSearchParams("status=posted&status=approved"), correctionBFFQueryRules).ok, false);
   assert.equal(parseStrictListSearchParams(new URLSearchParams("limit=101"), correctionBFFQueryRules).ok, false);
+});
+
+test("reconciliation exposes only a bounded opaque continuation", () => {
+  assert.deepEqual(parseReconciliationPageQuery({ cursor: "opaque" }), { ok: true, filters: { cursor: "opaque" } });
+  assert.equal(parseReconciliationPageQuery({ cursor: ["one", "two"] }).ok, false);
+  assert.equal(parseReconciliationPageQuery({ status: "matched" }).ok, false);
+  assert.equal(reconciliationURL({ cursor: "next" }), "/reconciliation?cursor=next");
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("cursor=opaque&limit=25"), reconciliationBFFQueryRules).ok, true);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("limit=0"), reconciliationBFFQueryRules).ok, false);
 });
