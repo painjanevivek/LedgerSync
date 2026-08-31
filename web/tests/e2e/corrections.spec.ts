@@ -188,6 +188,9 @@ test("correction status, page count, cursor, and detail return context are URL r
   await page.getByRole("link", { name: "Next page" }).click();
   await expect(page).toHaveURL(/status=approved&cursor=correction-next/);
   await expect.poll(() => requestedURL).toContain("cursor=correction-next");
+  await page.getByRole("button", { name: "Clear all" }).click();
+  await expect(page).toHaveURL(/\/corrections$/);
+  await expect(page.getByLabel("Exact correction status")).toHaveValue("");
 });
 
 test("invalid correction URLs do not request protected correction evidence", async ({ page }) => {

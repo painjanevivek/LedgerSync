@@ -29,6 +29,9 @@ test("funding status, page count, cursor, and detail return context are URL repr
   await page.getByRole("link", { name: "Next page" }).click();
   await expect(page).toHaveURL(/status=requested&cursor=funding-next/);
   await expect.poll(() => requestedURL).toContain("cursor=funding-next");
+  await page.getByRole("button", { name: "Clear all" }).click();
+  await expect(page).toHaveURL(/\/funding$/);
+  await expect(page.getByLabel("Exact funding status")).toHaveValue("");
 });
 
 test("invalid funding URLs do not request funding or account evidence", async ({ page }) => {

@@ -312,6 +312,7 @@ export function CorrectionsConsole({
         />
       ) : (
         <CorrectionList
+          key={correctionsURL(filters)}
           events={events}
           loading={loading}
           error={error}
