@@ -1,0 +1,113 @@
+
+
+.evidence-export-control {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+}
+.export-trigger {
+  gap: 7px;
+  min-height: var(--target-comfortable);
+}
+.export-trigger svg {
+  width: 17px;
+  height: 17px;
+}
+.export-permission-note {
+  max-width: 220px;
+  color: var(--muted);
+  font-size: 9px;
+  text-align: right;
+}
+.export-response-frame {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  inset: -9999px auto auto -9999px;
+  border: 0;
+}
+.export-progress {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  width: min(1080px, 100%);
+  margin-top: 12px;
+  border-left: 3px solid var(--blue);
+  padding: 11px 13px;
+  background: var(--paper-subtle);
+}
+.export-progress h3 {
+  margin: 0;
+  font-size: 11px;
+}
+.export-progress p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.export-progress[role="alert"] {
+  border-left-color: var(--red);
+  background: var(--red-soft);
+}
+.export-review-dialog form {
+  display: grid;
+  gap: 18px;
+  padding: 27px;
+}
+.export-review-dialog form > p:not(.eyebrow) {
+  margin: -9px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.export-review-proof {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+}
+.export-review-proof > div {
+  display: grid;
+  gap: 7px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 13px;
+}
+.export-review-proof > div:nth-child(2n) {
+  border-right: 0;
+}
+.export-review-proof > div:last-child {
+  grid-column: 1/-1;
+  border-right: 0;
+  border-bottom: 0;
+}
+.export-review-proof span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.export-review-proof strong {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.export-not-backup {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  border-left: 3px solid var(--amber);
+  padding: 12px;
+  background: var(--amber-soft);
+}
+.export-not-backup svg {
+  width: 18px;
+  height: 18px;
+  color: var(--amber);
+}
+.export-not-backup p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.5;
+}

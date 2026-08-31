@@ -1,0 +1,33 @@
+
+.evidence-freshness {
+  display: flex;
+  width: min(1080px, 100%);
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  color: var(--green-dark);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.evidence-freshness svg {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+.evidence-freshness.refreshing {
+  color: var(--blue);
+}
+.evidence-freshness.refreshing svg {
+  animation: spin 1s linear infinite;
+}
+.evidence-freshness.historical {
+  border-left: 3px solid var(--amber);
+  padding: 8px 10px;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

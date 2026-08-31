@@ -1,0 +1,46 @@
+
+.state-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(1080px, 100%);
+  margin: 18px 0;
+  border: 1px solid var(--line);
+  padding: 18px;
+  background: var(--paper);
+}
+.state-panel > svg {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--green);
+}
+.state-panel div {
+  display: grid;
+  gap: 6px;
+}
+.state-panel strong {
+  font-size: 13px;
+}
+.state-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.state-panel.error {
+  border-color: #deb9b4;
+  background: var(--red-soft);
+}
+.state-panel.error > svg {
+  color: var(--red);
+}
+.state-panel.offline,
+.state-panel.unknown {
+  border-color: #e1cb9d;
+  background: var(--amber-soft);
+}
+.state-panel.offline > svg,
+.state-panel.unknown > svg {
+  color: var(--amber);
+}

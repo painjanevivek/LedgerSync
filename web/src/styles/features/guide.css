@@ -1,0 +1,105 @@
+
+
+/* The guide uses one continuous evidence rail because order is operationally
+   meaningful: later actions depend on records created by earlier actions. */
+.guide-principle,
+.guide-safety {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 18px;
+  width: min(1080px, 100%);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--green);
+  padding: 22px;
+  background: var(--green-soft);
+}
+.guide-principle > svg,
+.guide-safety > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--green);
+}
+.guide-principle h2,
+.guide-safety h2 {
+  margin: 4px 0 7px;
+}
+.guide-principle p:not(.eyebrow),
+.guide-safety p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+.guide-steps {
+  display: grid;
+  width: min(1080px, 100%);
+  margin: 26px 0;
+  padding: 0;
+  list-style: none;
+}
+.guide-steps > li {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 16px;
+}
+.guide-index {
+  display: grid;
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--green);
+  border-radius: 50%;
+  background: var(--canvas);
+  color: var(--green);
+  font: 800 var(--type-label) var(--font-mono);
+}
+.guide-index::after {
+  position: absolute;
+  z-index: -1;
+  top: 39px;
+  left: 19px;
+  width: 1px;
+  height: calc(100% + 56px);
+  background: var(--line-strong);
+  content: "";
+}
+.guide-steps > li:last-child .guide-index::after {
+  display: none;
+}
+.guide-steps article {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  padding: 20px;
+  background: var(--paper);
+}
+.guide-steps article > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--green);
+}
+.guide-steps h2 {
+  margin: 0 0 5px;
+}
+.guide-steps p {
+  max-width: 700px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.guide-steps .text-link {
+  align-self: center;
+  white-space: nowrap;
+}
+.guide-safety {
+  border-left-color: var(--blue);
+  background: var(--paper-subtle);
+}
+.guide-safety > svg {
+  color: var(--blue);
+}

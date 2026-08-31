@@ -1,0 +1,36 @@
+
+.confirmation-dialog {
+  width: min(650px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--rail);
+  border-radius: var(--radius-surface);
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-drawer);
+}
+.confirmation-dialog::backdrop {
+  background: rgb(4 13 29 / 68%);
+}
+.confirmation-dialog form {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+}
+.confirmation-dialog form > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.confirmation-dialog textarea {
+  resize: vertical;
+}
+.destination-preselection {
+  border-left: 3px solid var(--green);
+  padding: 10px 12px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+}

@@ -1,0 +1,44 @@
+
+
+/* Shared post-navigation canvas. Documents retain a deliberate readable
+   measure; at wide desktop widths the remaining columns become useful context
+   rather than accidental blank space. */
+.operator-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-7) var(--operator-grid-gap);
+  width: min(100%, var(--operator-workspace-max));
+  min-width: 0;
+  margin-inline: auto;
+}
+.operator-workspace-primary {
+  width: min(100%, var(--operator-workflow-max));
+  min-width: 0;
+  margin-inline: auto;
+}
+.operator-workspace-rail {
+  display: none;
+  min-width: 0;
+}
+.operator-workspace-footer {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 1600px) {
+  .operator-workspace {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .operator-workspace-primary {
+    grid-column: span 9;
+    width: 100%;
+    margin-inline: 0;
+  }
+  .operator-workspace-rail {
+    display: block;
+    grid-column: span 3;
+  }
+  .operator-workspace-footer {
+    grid-column: 1 / -1;
+  }
+}

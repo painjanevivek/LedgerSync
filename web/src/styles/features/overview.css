@@ -1,0 +1,296 @@
+
+
+.balance-document {
+  width: min(1080px, 100%);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-surface);
+  padding: 25px 28px 24px;
+  background: var(--paper);
+  box-shadow: var(--shadow-surface);
+}
+.document-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.document-topline p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.document-topline span {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+.hero-amount {
+  display: block;
+  margin: 21px 0 17px;
+  font-family: var(--font-display);
+  font-size: clamp(47px, 6vw, 67px);
+  font-weight: 500;
+  line-height: 0.92;
+  letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums;
+}
+.statement-document {
+  padding: 28px 24px 24px;
+}
+.statement-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.statement-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 650;
+}
+.scope-badge {
+  border-radius: 5px;
+  padding: 6px 10px;
+  background: var(--surface-control);
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+.preview-data-label {
+  margin-left: auto;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.statement-amount {
+  margin: 19px 0 17px;
+  font-family: var(--font-sans);
+  font-size: clamp(45px, 5vw, 57px);
+  font-weight: 680;
+  letter-spacing: -0.035em;
+}
+.statement-amount small {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+.balance-meta {
+  display: flex;
+  gap: 22px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.balance-meta span + span {
+  border-left: 1px solid var(--line);
+  padding-left: 22px;
+}
+
+.reconciliation-card {
+  display: grid;
+  grid-template-columns: 215px minmax(0, 1fr) 290px;
+  align-items: center;
+  width: min(1080px, 100%);
+  min-height: 106px;
+  margin-top: 20px;
+  border: 1px solid var(--line-success);
+  border-radius: var(--radius-surface);
+  background: var(--surface-success);
+  box-shadow: var(--shadow-surface);
+}
+.reconciliation-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 64px;
+  border-right: 1px solid var(--line-strong);
+  padding: 0 24px;
+}
+.reconciliation-state svg {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  color: var(--green);
+}
+.reconciliation-state strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+.reconciliation-copy {
+  display: grid;
+  gap: 9px;
+  padding: 0 28px;
+  font-size: 10px;
+}
+.reconciliation-copy span {
+  color: var(--ink-soft);
+}
+.reconciliation-action {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  padding: 0 22px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.reconciliation-action .button {
+  min-height: var(--target-compact);
+  background: var(--paper);
+}
+
+.overview-table {
+  width: min(1080px, 100%);
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-surface);
+  background: var(--paper);
+  box-shadow: var(--shadow-surface);
+}
+.overview-table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px 18px;
+}
+.overview-table-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+}
+.overview-table-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.table-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.table-link svg {
+  width: 13px;
+  height: 13px;
+}
+.table-summary {
+  margin: 0;
+  border-top: 1px solid var(--line);
+  padding: 12px 22px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.copy-id {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.copy-id code {
+  color: var(--blue) !important;
+}
+.copy-id svg {
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+}
+.transfer-table td:first-child {
+  display: table-cell;
+  min-width: 210px;
+}
+.transfer-table td:nth-child(2),
+.transfer-table td:nth-child(3) {
+  min-width: 136px;
+}
+.transfer-table td:nth-child(2) strong,
+.transfer-table td:nth-child(3) strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.transfer-table th,
+.transfer-table td {
+  padding-block: 11px;
+}
+.status-fill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.status-fill.success {
+  background: var(--green-soft);
+  color: var(--green-dark);
+}
+.status-fill.warning {
+  border: 1px solid #efc879;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.status-fill.danger {
+  border: 1px solid #efc2bc;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.evidence-strip {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: min(1080px, 100%);
+  margin-top: 14px;
+  border: 1px solid var(--line-success);
+  padding: 13px 16px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+}
+.evidence-strip > svg {
+  width: 19px;
+  height: 19px;
+}
+.evidence-strip div {
+  display: grid;
+  gap: 2px;
+}
+.evidence-strip strong {
+  font-size: 11px;
+}
+.evidence-strip span {
+  color: var(--success-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.evidence-strip a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.evidence-strip a svg {
+  width: 13px;
+  height: 13px;
+}
+.evidence-strip.caution {
+  border-color: var(--amber-line);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.evidence-strip.caution span {
+  color: var(--amber);
+}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ConsoleSessionBoundary } from "@/features/console/ConsoleSessionBoundary";
 import "../styles/tokens.css";
+import "../styles/foundations/reset.css";
 import "./globals.css";
 import "../styles/features/approvals.css";
 import "../styles/responsive.css";

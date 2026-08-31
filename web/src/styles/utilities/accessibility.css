@@ -1,0 +1,18 @@
+.skip-link {
+  position: fixed;
+  z-index: var(--z-skip-link);
+  top: 12px;
+  left: 12px;
+  transform: translateY(-160%);
+  padding: 10px 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 750;
+  text-decoration: none;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+body:has(dialog[open]) .skip-link {
+  visibility: hidden;
+}

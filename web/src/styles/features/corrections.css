@@ -1,0 +1,275 @@
+
+
+/* Transfer corrections are rendered as a paired evidence system: the permanent
+   original stays visually dominant while the additive reversal remains distinct. */
+.correction-boundary {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  width: min(1080px, 100%);
+  border: 1px solid var(--line-success);
+  border-top: 3px solid var(--green);
+  padding: 22px;
+  background: var(--surface-success);
+}
+.correction-boundary > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--green);
+}
+.correction-boundary h2 {
+  margin: 3px 0 6px;
+}
+.correction-boundary p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+}
+.correction-boundary > strong {
+  color: var(--green-dark);
+  font: 850 var(--type-label) var(--font-mono);
+  text-transform: uppercase;
+}
+.correction-transfer-link {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  width: min(1080px, 100%);
+  margin-top: 24px;
+  border: 1px solid var(--line-success);
+  border-left: 3px solid var(--green);
+  padding: 20px 22px;
+  background: var(--surface-success);
+}
+.correction-transfer-link > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--green);
+}
+.correction-transfer-link h2 {
+  margin: 3px 0 5px;
+}
+.correction-transfer-link p:not(.eyebrow) {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+.correction-request {
+  width: min(1080px, 100%);
+  margin-top: 24px;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--rail);
+  background: var(--paper);
+}
+.correction-request > header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  padding: 22px;
+}
+.correction-request > header > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--blue);
+}
+.correction-request h2 {
+  margin: 3px 0 6px;
+}
+.correction-request header p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+}
+.correction-request details {
+  border-top: 1px solid var(--line);
+}
+.correction-request summary {
+  min-height: 50px;
+  cursor: pointer;
+  padding: 16px 22px;
+  color: var(--blue);
+  font-weight: 850;
+}
+.correction-request form {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  padding: 22px;
+}
+.correction-request label,
+.correction-actions label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink-soft);
+  font-weight: 750;
+}
+.correction-request select,
+.correction-request textarea,
+.correction-actions textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--white);
+  color: var(--ink);
+}
+.correction-request textarea,
+.correction-actions textarea {
+  resize: vertical;
+}
+.correction-request-proof {
+  grid-column: 1/-1;
+  border-left: 3px solid var(--green);
+  padding: 14px 16px;
+  background: var(--green-soft);
+}
+.correction-request-proof ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+.correction-request form > .button {
+  grid-column: 1/-1;
+  justify-self: end;
+}
+.correction-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  width: min(1080px, 100%);
+  margin-top: 22px;
+}
+.correction-evidence-grid article {
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--rail);
+  padding: 22px;
+  background: var(--paper);
+}
+.correction-evidence-grid article.posted {
+  border-top-color: var(--green);
+  background: var(--surface-success);
+}
+.correction-evidence-grid article.pending {
+  border-top-color: var(--amber);
+  background: var(--amber-soft);
+}
+.correction-evidence-grid h2 {
+  margin: 4px 0 18px;
+}
+.correction-evidence-grid article > p:not(.eyebrow) {
+  color: var(--muted);
+}
+.correction-rationale {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  gap: 28px;
+  width: min(1080px, 100%);
+  margin-top: 22px;
+  border-top: 3px solid var(--rail);
+  padding: 22px;
+}
+.correction-rationale h2 {
+  margin: 4px 0 8px;
+  text-transform: capitalize;
+}
+.correction-rationale p:not(.eyebrow) {
+  color: var(--muted);
+}
+.correction-rationale dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--line);
+}
+.correction-rationale dl > div {
+  min-width: 0;
+  padding: 13px;
+  background: var(--paper-subtle);
+}
+.correction-rationale dt {
+  color: var(--muted);
+  font-size: var(--type-label);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.correction-rationale dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.correction-actions {
+  display: grid;
+  gap: 16px;
+  width: min(1080px, 100%);
+  margin-top: 22px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  padding: 22px;
+}
+.correction-actions > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.correction-actions h2 {
+  margin: 4px 0 0;
+}
+.correction-actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+@media (max-width: 760px) {
+  .correction-boundary,
+  .correction-transfer-link,
+  .correction-request > header {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .correction-boundary > strong,
+  .correction-transfer-link > .button,
+  .correction-request > header > .status-badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .correction-request form,
+  .correction-evidence-grid,
+  .correction-rationale {
+    grid-template-columns: 1fr;
+  }
+  .correction-request form > .button {
+    width: 100%;
+  }
+  .correction-rationale dl {
+    grid-template-columns: 1fr;
+  }
+  .correction-actions > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .correction-actions > div {
+    flex-direction: column;
+  }
+  .correction-actions .button {
+    width: 100%;
+  }
+}
+@media (forced-colors: active) {
+  .correction-boundary,
+  .correction-transfer-link,
+  .correction-request,
+  .correction-request-proof,
+  .correction-evidence-grid article,
+  .correction-rationale,
+  .correction-rationale dl,
+  .correction-rationale dl > div,
+  .correction-actions {
+    border-color: CanvasText;
+  }
+}

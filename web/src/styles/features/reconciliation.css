@@ -1,0 +1,127 @@
+
+
+.reconciliation-control {
+  display: grid;
+  width: min(1080px, 100%);
+  gap: 18px;
+  margin: 0 0 30px;
+  border-top: 3px solid var(--rail);
+  padding-top: 18px;
+}
+.reconciliation-control-heading {
+  margin: 0;
+}
+.reconciliation-command-document,
+.reconciliation-command-result {
+  display: grid;
+  width: min(880px, 100%);
+  gap: 20px;
+  border-top: 3px solid var(--blue);
+  padding: 26px;
+}
+.reconciliation-command-document h3,
+.reconciliation-command-result h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(23px, 3vw, 31px);
+}
+.reconciliation-command-document > p:not(.eyebrow),
+.reconciliation-command-result > p:not(.eyebrow) {
+  margin: 0;
+}
+.reconciliation-command-document.running {
+  border-top-color: var(--amber);
+}
+.reconciliation-boundary-proof {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--rail);
+  background: var(--paper);
+}
+.reconciliation-boundary-proof > div,
+.reconciliation-boundary-proof > p {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-content: center;
+  gap: 5px 10px;
+  min-height: 84px;
+  margin: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 15px 17px;
+}
+.reconciliation-boundary-proof > :nth-child(2n) {
+  border-right: 0;
+}
+.reconciliation-boundary-proof > :nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+.reconciliation-boundary-proof svg {
+  grid-row: 1 / span 2;
+  width: 18px;
+  height: 18px;
+  color: var(--blue);
+}
+.reconciliation-boundary-proof span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.reconciliation-boundary-proof strong {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.reconciliation-boundary-proof > p {
+  grid-template-columns: 1fr;
+}
+.reconciliation-command-actions {
+  flex-wrap: wrap;
+}
+.reconciliation-command-recovery {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+}
+.reconciliation-run-grid > div:last-child {
+  grid-column: auto;
+  background: var(--paper);
+}
+.reconciliation-command-result {
+  border-top-color: var(--green);
+}
+.reconciliation-command-result.mismatch {
+  border-top-color: var(--red);
+  background: var(--red-soft);
+}
+.reconciliation-command-result > .button {
+  justify-self: start;
+}
+.reconciliation-mismatches {
+  border-top: 3px solid var(--red);
+  padding-top: 18px;
+}
+
+@media (forced-colors: active) {
+  .financial-boundary-proof,
+  .account-create-document,
+  .account-command-result,
+  .account-lifecycle,
+  .confirmation-dialog,
+  .error-summary,
+  .reconciliation-control,
+  .reconciliation-command-document,
+  .reconciliation-command-result,
+  .reconciliation-boundary-proof,
+  .reconciliation-mismatches {
+    border-color: CanvasText;
+  }
+  .command-steps span.current b {
+    background: Highlight;
+    color: HighlightText;
+  }
+}

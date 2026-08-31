@@ -1,0 +1,195 @@
+
+
+.recovery-chain,
+.recovery-commands {
+  width: min(1080px, 100%);
+  margin-top: 32px;
+}
+.recovery-chain > ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+.recovery-chain > ol > li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-content: start;
+  gap: 13px;
+  min-width: 0;
+  border-top: 3px solid var(--amber);
+  border-right: 1px solid var(--line);
+  padding: 20px 18px 22px;
+}
+.recovery-chain > ol > li:last-child {
+  border-right: 0;
+}
+.recovery-chain > ol > li.verified {
+  border-top-color: var(--green);
+}
+.recovery-chain-marker {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+}
+.recovery-chain h3 {
+  margin: 5px 0 14px;
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+.recovery-chain dl {
+  display: grid;
+  gap: 0;
+  margin: 16px 0 0;
+}
+.recovery-chain dl > div {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+}
+.recovery-chain dt {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.recovery-chain dd {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+}
+.recovery-status-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.recovery-retention {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  gap: 30px;
+  width: min(1080px, 100%);
+  margin-top: 28px;
+  padding: 22px;
+}
+.recovery-retention > div > p:not(.eyebrow) {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.recovery-retention dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border: 1px solid var(--line);
+}
+.recovery-retention dl > div {
+  display: grid;
+  gap: 6px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 12px;
+}
+.recovery-retention dl > div:nth-child(2n) {
+  border-right: 0;
+}
+.recovery-retention dl > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+.recovery-retention dt {
+  color: var(--muted);
+  font-size: 9px;
+}
+.recovery-retention dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+.recovery-retention > .state-panel {
+  grid-column: 1/-1;
+  width: 100%;
+  margin: 0;
+}
+.recovery-command-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+.recovery-command-list article {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  border-right: 1px solid var(--line);
+  padding: 20px 16px;
+}
+.recovery-command-list article:last-child {
+  border-right: 0;
+}
+.recovery-command-list article > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--green);
+}
+.recovery-command-list h3 {
+  margin: 0;
+  font-size: 12px;
+}
+.recovery-command-list p {
+  min-height: 50px;
+  margin: 7px 0 14px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.recovery-command-list .copy-control {
+  max-width: 100%;
+}
+.recovery-command-list .copy-control code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recovery-destructive-boundary {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 16px;
+  width: min(1080px, 100%);
+  margin-top: 28px;
+  border: 1px solid var(--amber);
+  border-left: 4px solid var(--amber);
+  padding: 20px;
+  background: var(--amber-soft);
+}
+.recovery-destructive-boundary > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--amber);
+}
+.recovery-destructive-boundary h2 {
+  font-size: 21px;
+}
+.recovery-destructive-boundary p:not(.eyebrow) {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.55;
+}
