@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { parseApprovalPageQuery } from "../../src/lib/page-query/approvals";
+import { fundingURL, parseFundingPageQuery } from "../../src/lib/page-query/funding";
 import { isUTCDate, parseStrictListQuery } from "../../src/lib/strict-list-query";
 
 test("strict list queries reject unknown repeated empty oversized and malformed values", () => {
@@ -46,4 +47,12 @@ test("approval page query retains an exact compatible investigation", () => {
 test("approval page rejects contradictory domains and reversed dates", () => {
   assert.equal(parseApprovalPageQuery({ domain: "funding", status: "correction:requested" }).ok, false);
   assert.equal(parseApprovalPageQuery({ requested_after: "2026-08-31", requested_before: "2026-08-01" }).ok, false);
+});
+
+test("funding query accepts only a released status and opaque cursor", () => {
+  assert.deepEqual(parseFundingPageQuery({ status: "posted", cursor: "opaque" }), { ok: true, filters: { status: "posted", cursor: "opaque" } });
+  assert.equal(parseFundingPageQuery({ status: "settled" }).ok, false);
+  assert.equal(parseFundingPageQuery({ status: ["posted", "rejected"] }).ok, false);
+  assert.equal(parseFundingPageQuery({ accountId: "not-released" }).ok, false);
+  assert.equal(fundingURL({ status: "approved", cursor: "next" }), "/funding?status=approved&cursor=next");
 });

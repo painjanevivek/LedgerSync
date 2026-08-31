@@ -176,12 +176,14 @@
   .truth-lane > .record-link { max-width: 100%; white-space: normal; }
   .truth-lane dl { grid-template-columns: 1fr; width: 100%; }
   .operations-environment { padding: 18px 12px; }
-  .operations-environment dl, .event-filter-document { grid-template-columns: 1fr; }
+  .operations-environment dl, .event-filter-document, .list-filter-bar { grid-template-columns: 1fr; }
   .safe-next-action { grid-template-columns: 1fr; }
   .capability-guidance { grid-template-columns: 1fr; }
   .capability-guidance p { grid-template-columns: 1fr; gap: 4px; }
   .event-filter-actions { flex-direction: column; }
   .event-filter-actions .button { width: 100%; min-height: var(--target-comfortable); }
+  .list-filter-bar .action-row { display: grid; grid-template-columns: 1fr; }
+  .list-filter-bar .button { width: 100%; }
   .event-detail-document { padding: 20px 12px; }
   .event-detail-document > header { align-items: flex-start; flex-direction: column; }
   .developer-boundary { grid-template-columns:34px minmax(0,1fr); padding:18px 14px; }

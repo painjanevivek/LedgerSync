@@ -1,5 +1,12 @@
 export type FundingStatus = "requested" | "approved" | "posted" | "rejected" | "compensated";
 
+export type FundingFilters = Readonly<{
+  status: "" | FundingStatus;
+  cursor?: string;
+}>;
+
+export const emptyFundingFilters: FundingFilters = { status: "" };
+
 export type FundingEvent = Readonly<{
   funding_event_id: string;
   status: FundingStatus;

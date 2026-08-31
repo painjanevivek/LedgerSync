@@ -5,10 +5,11 @@ import Link from "next/link";
 import { FormEvent, useRef, useState, type ReactNode } from "react";
 
 import type { Account, ConsoleSession } from "@/features/accounts/types";
-import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, FormField, PageHeader, Pagination, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, FormField, PageHeader, StatePanel, StatusBadge } from "@/features/console/components";
 import { accountLabel, utcDateTime } from "@/features/console/format";
-import type { FundingEvent, FundingReconciliation, FundingStatus } from "@/lib/api/funding";
+import type { FundingEvent, FundingFilters, FundingReconciliation, FundingStatus } from "@/lib/api/funding";
 import { formatMinorUnits } from "@/lib/money";
+import { fundingURL } from "@/lib/page-query/funding";
 import { useFundingCommand } from "@/features/funding/useFundingCommand";
 import { FinancialCommandDialog } from "@/ui/overlays/FinancialCommandDialog";
 
@@ -87,21 +88,28 @@ export function FundingWorkspaceRail({
   );
 }
 
-export function FundingListView({ events, accounts, nextCursor, verifiedAt, loading, error, online, canWrite, onOpenRequest, onRefresh, onNext }: Readonly<{
+export function FundingListView({ events, accounts, filters, nextCursor, verifiedAt, loading, error, online, canWrite, onApplyFilters, onClearFilters, onOpenRequest, onRefresh }: Readonly<{
   events: FundingEvent[]; accounts: Account[]; nextCursor?: string; verifiedAt?: string; loading: boolean; error: string | null; online: boolean; canWrite: boolean;
-  onOpenRequest: () => void; onRefresh: () => void; onNext: () => void;
+  filters: FundingFilters; onApplyFilters: (filters: FundingFilters) => void; onClearFilters: () => void; onOpenRequest: () => void; onRefresh: () => void;
 }>) {
   const labels = new Map(accounts.map((account) => [account.account_id, accountLabel(account)]));
+  const [draftStatus, setDraftStatus] = useState<FundingFilters["status"]>(filters.status);
+  const returnTo = fundingURL(filters);
+  const nextHref = nextCursor ? fundingURL({ ...filters, cursor: nextCursor }) : undefined;
   return <>
     <PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Keep track of money confirmed outside LedgerSync. Each record is checked before it can change a balance.">
       <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh records</button>{canWrite && <button className="button primary guarded-control" type="button" onClick={onOpenRequest}>Record funding</button>}</div>
     </PageHeader>
+    <form className="surface list-filter-bar" onSubmit={(event) => { event.preventDefault(); onApplyFilters({ status: draftStatus }); }}>
+      <FormField label="Exact funding status" requirement="optional" hint="The server filters the complete funding history before pagination."><select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value as FundingFilters["status"])}><option value="">All statuses</option><option value="requested">Requested</option><option value="approved">Approved</option><option value="posted">Posted</option><option value="rejected">Rejected</option><option value="compensated">Compensated</option></select></FormField>
+      <div className="action-row"><button className="button primary" type="submit" disabled={loading}>Apply filters</button><button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>Clear all</button></div>
+    </form>
     {verifiedAt && events.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Funding records" reason={error ?? (!online ? "Reconnect before acting on these records." : undefined)} />}
     {error && <StatePanel kind="error" title="Funding records unavailable" message={error} action={<FocusedRetry label="Retry funding records" onRetry={onRefresh} disabled={!online} busy={loading} />} />}
     {loading && events.length === 0 ? <StatePanel title="Loading funding records" message="Checking your funding records now. An empty result will appear only after the check finishes." /> : events.length === 0 && !error ? <StatePanel title="No funding records yet" message="When money is confirmed outside LedgerSync, add its reference number and supporting document here. It will be checked before your balance changes." action={canWrite ? <button className="button primary" type="button" onClick={onOpenRequest}>Add first record</button> : undefined} /> : events.length > 0 && <section className="ledger-section funding-ledger" aria-labelledby="funding-ledger-heading" aria-busy={loading}>
-      <div className="section-heading"><div><p className="eyebrow">Your records</p><h2 id="funding-ledger-heading">Funding history</h2><p>Newest records appear first. You can open any record to see what happened next.</p></div></div>
-      <DataTableRegion label="Funding record comparison"><table className="data-table"><thead><tr><th>Reference number</th><th>Account</th><th>Amount</th><th>Status</th><th>Added</th><th>View</th></tr></thead><tbody>{events.map((event) => <tr key={event.funding_event_id}><td><strong>{event.compensation_of_event_id ? "Correction" : "Funding"}</strong><code>{event.external_reference}</code></td><td><strong>{labels.get(event.destination_account_id) ?? "Authorized account"}</strong><code>{event.destination_account_id}</code></td><td className="number-cell">{formatMinorUnits(event.currency, event.amount_minor)}</td><td><StatusBadge tone={fundingTone(event.status)}>{event.status}</StatusBadge>{event.demo_policy && <small>Local single-operator policy</small>}</td><td><time>{utcDateTime(event.requested_at)}</time><small>By {event.requester_subject_id}</small></td><td><Link className="record-link" href={`/funding/${encodeURIComponent(event.funding_event_id)}`}>Open record <span aria-hidden="true">→</span></Link></td></tr>)}</tbody></table></DataTableRegion>
-      <Pagination nextCursor={nextCursor} busy={loading} onNext={onNext} label="Next records page" />
+      <div className="section-heading"><div><p className="eyebrow">Newest requested evidence first</p><h2 id="funding-ledger-heading">Funding history</h2><p>{events.length} record{events.length === 1 ? "" : "s"} on this page. A total is not calculated or implied.</p></div></div>
+      <DataTableRegion label="Funding record comparison"><table className="data-table"><thead><tr><th>Reference number</th><th>Account</th><th>Amount</th><th>Status</th><th>Added</th><th>View</th></tr></thead><tbody>{events.map((event) => <tr key={event.funding_event_id}><td><strong>{event.compensation_of_event_id ? "Correction" : "Funding"}</strong><code>{event.external_reference}</code></td><td><strong>{labels.get(event.destination_account_id) ?? "Authorized account"}</strong><code>{event.destination_account_id}</code></td><td className="number-cell">{formatMinorUnits(event.currency, event.amount_minor)}</td><td><StatusBadge tone={fundingTone(event.status)}>{event.status}</StatusBadge>{event.demo_policy && <small>Local single-operator policy</small>}</td><td><time>{utcDateTime(event.requested_at)}</time><small>By {event.requester_subject_id}</small></td><td><Link className="record-link" href={`/funding/${encodeURIComponent(event.funding_event_id)}?return_to=${encodeURIComponent(returnTo)}`}>Open record <span aria-hidden="true">→</span></Link></td></tr>)}</tbody></table></DataTableRegion>
+      <div className="pagination"><span>{nextHref ? "More matching funding records are available" : "End of this filtered funding history"}</span>{nextHref ? <Link className="button secondary" href={nextHref}>Next page</Link> : <button className="button secondary" type="button" disabled>Next page</button>}</div>
     </section>}
   </>;
 }
