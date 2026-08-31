@@ -7,17 +7,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
-import {
-  CopyControl,
-  DataTableRegion,
-  EvidenceFreshness,
-  FocusedRetry,
-  FormField,
-  PageHeader,
-  StatePanel,
-  StatusBadge,
-} from "@/features/console/components";
-import { utcDateTime } from "@/features/console/format";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { DataTableRegion } from "@/ui/display/DataTableRegion";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { FormField } from "@/ui/forms/FormField.client";
 import type {
   CorrectionPage,
   CorrectionFilters,
@@ -26,9 +23,10 @@ import type {
   TransferCorrection,
 } from "@/lib/api/corrections";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
-import { formatMinorUnits } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 import { useCorrectionCommand } from "@/features/corrections/useCorrectionCommand";
-import { FinancialCommandDialog } from "@/ui/overlays/FinancialCommandDialog";
+import { ConfirmationDialog } from "@/ui/overlays/ConfirmationDialog.client";
 import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { correctionsURL } from "@/lib/page-query/corrections";
 
@@ -452,10 +450,10 @@ function CorrectionList({
                         </StatusBadge>
                       </td>
                       <td className="number-cell">
-                        {formatMinorUnits(event.currency, event.amount_minor)}
+                        <Money currency={event.currency} minorUnits={event.amount_minor} />
                       </td>
                       <td>{label(event.reason_code)}</td>
-                      <td>{utcDateTime(event.approval_expires_at)}</td>
+                      <td><Timestamp value={event.approval_expires_at} /></td>
                       <td>
                         <Link
                           className="record-link"
@@ -614,7 +612,7 @@ function CorrectionDetail({
         </div>
         <div>
           <span>Updated</span>
-          <strong>{utcDateTime(event.updated_at)}</strong>
+          <strong><Timestamp value={event.updated_at} /></strong>
         </div>
       </section>
       {verifiedAt && (
@@ -694,7 +692,7 @@ function CorrectionDetail({
             </div>
             <div>
               <dt>Amount</dt>
-              <dd>{formatMinorUnits(event.currency, event.amount_minor)}</dd>
+              <dd><Money currency={event.currency} minorUnits={event.amount_minor} /></dd>
             </div>
           </dl>
         </article>
@@ -735,7 +733,7 @@ function CorrectionDetail({
               </div>
               <div>
                 <dt>Amount</dt>
-                <dd>{formatMinorUnits(event.currency, event.amount_minor)}</dd>
+                <dd><Money currency={event.currency} minorUnits={event.amount_minor} /></dd>
               </div>
             </dl>
           ) : (
@@ -769,7 +767,7 @@ function CorrectionDetail({
           </div>
           <div>
             <dt>Approval expires</dt>
-            <dd>{utcDateTime(event.approval_expires_at)}</dd>
+            <dd><Timestamp value={event.approval_expires_at} /></dd>
           </div>
           {event.decision_reason && (
             <div>
@@ -868,12 +866,14 @@ function CorrectionDetail({
       <Link className="text-link back-link" href={backHref}>
         ← {backHref.startsWith("/approvals") ? "Back to approvals" : "Back to correction queue"}
       </Link>
-      <FinancialCommandDialog
+      <ConfirmationDialog
         open={postReviewOpen}
         eyebrow="Permanent additive correction"
         title="Post exact reverse transfer?"
         description="LedgerSync refreshed this correction before review. The original journal remains unchanged; confirmation creates one new balanced reversal."
         confirmLabel={postCommand.intent ? "Retry same reverse transfer" : "Post exact reverse transfer"}
+        busyLabel="Posting…"
+        className="financial-command-dialog"
         busy={postCommand.pending || verifyingPost}
         confirmDisabled={!postEvidence || postEvidence.status !== "approved"}
         returnFocusRef={postTrigger}
@@ -886,14 +886,14 @@ function CorrectionDetail({
         ) : postEvidence && (
           <dl className="review-grid">
             <div><dt>Permanent effect</dt><dd>Create one additive balanced reverse transfer</dd></div>
-            <div><dt>Exact amount</dt><dd>{formatMinorUnits(postEvidence.currency, postEvidence.amount_minor)}</dd></div>
+            <div><dt>Exact amount</dt><dd><Money currency={postEvidence.currency} minorUnits={postEvidence.amount_minor} /></dd></div>
             <div><dt>Reverse route</dt><dd><code>{postEvidence.credit_account_id}</code> → <code>{postEvidence.debit_account_id}</code></dd></div>
             <div><dt>Original transfer</dt><dd><code>{postEvidence.original_transfer_id}</code></dd></div>
             <div><dt>Independent approver</dt><dd>{postEvidence.approver_subject_id ?? "Approval evidence unavailable"}</dd></div>
-            <div><dt>Approval expires</dt><dd>{utcDateTime(postEvidence.approval_expires_at)}</dd></div>
+            <div><dt>Approval expires</dt><dd><Timestamp value={postEvidence.approval_expires_at} /></dd></div>
           </dl>
         )}
-      </FinancialCommandDialog>
+      </ConfirmationDialog>
     </>
   );
 }

@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { CopyControl, FormField, StatePanel } from "@/features/console/components";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { FormField } from "@/ui/forms/FormField.client";
 import { newWebhookReplayIntent, parseWebhookReplayIntent, webhookReplayStorageKey, type WebhookReplayIntent } from "@/features/operations/webhookReplayIntent";
 import { useWebhookReplay, type WebhookReplayOutcome } from "@/features/operations/useWebhookReplay";
 import { isWebhookReplayIdentifier, webhookReplayReasonCodes, type WebhookReplayReasonCode } from "@/lib/api/webhook-replay";

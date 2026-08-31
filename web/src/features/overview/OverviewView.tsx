@@ -4,12 +4,16 @@ import { ArrowRight, Bank, ShieldCheck } from "@phosphor-icons/react";
 import Link from "next/link";
 
 import type { Account, ReconciliationRun, TransferSummary } from "@/features/accounts/types";
-import { EvidenceFreshness, FocusedRetry, PageHeader, RecordLink, StatePanel } from "@/features/console/components";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { RecordLink } from "@/ui/display/RecordLink";
+import { StatePanel } from "@/ui/display/StatePanel";
 import type { ConsoleCapabilities } from "@/features/console/capabilities";
-import { utcDateTime } from "@/features/console/format";
 import { LocalOrientationPanel } from "@/features/orientation/LocalOrientationPanel";
 import { TransferList } from "@/features/transfers/TransferViews";
-import { formatMinorUnits } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 import { approvedCurrencyGroups, isAuthoritativelyReconciled } from "@/lib/financial-ui";
 import type { LocalOrientation, OperatorPreferenceStepID } from "@/lib/api/orientation";
 import { uiDataState } from "@/lib/api/client";
@@ -98,7 +102,7 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
       {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account details" message="Authoritative account balances are loading. No zero balance or empty tenant is inferred."/>}
       {!newWorkspace&&!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title="No authorized accounts" message="The verified authorized scope is empty. Create an account or ask an administrator to grant account access."/>}
       {accounts.length>0&&mixedCurrency&&<StatePanel kind="error" title="Mixed-currency pilot data blocked" message="Loaded accounts are preserved, but LedgerSync will not combine balances across currencies. Investigate tenant provisioning before relying on overview totals."/>}
-      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of {utcDateTime(asOf)}</span></div><strong className="hero-amount">{formatMinorUnits(currency,operating)}</strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount">{formatMinorUnits(currency,customerFunds)}</strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
+      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of <Timestamp value={asOf} /></span></div><strong className="hero-amount"><Money currency={currency} minorUnits={operating} /></strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount"><Money currency={currency} minorUnits={customerFunds} /></strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
     </section>
     {!newWorkspace&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation results state">
       {reconciliationError && <StatePanel
@@ -114,7 +118,7 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
           <ShieldCheck weight="fill" aria-hidden="true" />
           <div>
             <strong>{isAuthoritativelyReconciled(reconciliation) ? "Latest reconciliation passed" : "Reconciliation requires attention"}</strong>
-            <span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · {utcDateTime(reconciliation.completed_at)}</span>
+            <span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · <Timestamp value={reconciliation.completed_at} /></span>
           </div>
           <RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open result" />
         </section>

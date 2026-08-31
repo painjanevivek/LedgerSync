@@ -4,22 +4,20 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import type { ConsoleCapabilities } from "@/features/console/capabilities";
-import {
-  CopyControl,
-  DataTableRegion,
-  EvidenceFreshness,
-  FormField,
-  PageHeader,
-  StatePanel,
-  StatusBadge,
-} from "@/features/console/components";
-import { utcDateTime } from "@/features/console/format";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { DataTableRegion } from "@/ui/display/DataTableRegion";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { FormField } from "@/ui/forms/FormField.client";
 import type {
   ApprovalFilters,
   ApprovalItem,
 } from "@/lib/api/approvals";
 import { approvalDetailHref } from "@/lib/api/approvals";
-import { formatMinorUnits } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 
 const statusOptions = [
   ["funding:requested", "Funding — requested"],
@@ -145,9 +143,9 @@ export function ApprovalList({
             const actionHref = item.safe_next_action === "reauthenticate" ? `/api/auth/sign-in?prompt=login&return_to=${encodeURIComponent(detailHref)}` : detailHref;
             return <tr key={`${item.domain}:${item.record_id}`}>
               <td><strong>{item.domain === "funding" ? "Funding" : "Correction"}</strong><CopyControl value={item.record_id} label={`Copy ${item.domain} record ID`} />{item.related_account_id ? <span>Account <code>{item.related_account_id}</code></span> : null}{item.related_transfer_id ? <span>Transfer <code>{item.related_transfer_id}</code></span> : null}</td>
-              <td><code>{item.requester_subject_id}</code><time dateTime={item.requested_at}>{utcDateTime(item.requested_at)}</time><span>{ageLabel(item.age_seconds)}</span></td>
-              <td><strong>{formatMinorUnits(item.currency, item.amount_minor)}</strong><span>{item.currency} minor units: {item.amount_minor}</span></td>
-              <td><StatusBadge tone={statusTone(item.status)}>{item.status}</StatusBadge><span>{item.required_scope}</span>{item.approval_expires_at ? <span>Expires {utcDateTime(item.approval_expires_at)}</span> : null}</td>
+              <td><code>{item.requester_subject_id}</code><Timestamp value={item.requested_at} inheritTypography={false} /><span>{ageLabel(item.age_seconds)}</span></td>
+              <td><strong><Money currency={item.currency} minorUnits={item.amount_minor} /></strong><span>{item.currency} minor units: {item.amount_minor}</span></td>
+              <td><StatusBadge tone={statusTone(item.status)}>{item.status}</StatusBadge><span>{item.required_scope}</span>{item.approval_expires_at ? <span>Expires <Timestamp value={item.approval_expires_at} /></span> : null}</td>
               <td>{item.evidence_complete ? <StatusBadge tone="success">evidence complete</StatusBadge> : <StatusBadge tone="danger">evidence incomplete</StatusBadge>}{item.self_approval_blocked ? <span className="approval-stop">Self-approval blocked</span> : <span>Independent actor allowed</span>}<span>Step-up: {item.step_up_status.replaceAll("_", " ")}</span></td>
               <td><Link className={item.safe_next_action === "review_decision" ? "button primary" : "button secondary"} href={actionHref}>{actionLabel(item)}</Link></td>
             </tr>;

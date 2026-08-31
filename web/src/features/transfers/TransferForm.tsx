@@ -5,12 +5,18 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
 import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
-import { CopyControl, EvidenceFreshness, FocusedRetry, FormField, StatePanel } from "@/features/console/components";
-import { accountLabel, utcDateTime } from "@/features/console/format";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { FormField } from "@/ui/forms/FormField.client";
+import { accountLabel } from "@/features/console/format";
 import type { PreparedTransfer } from "@/features/transfers/transferIntent";
 import { useTransferSubmission } from "@/features/transfers/useTransferSubmission";
 import { decimalFromMinorUnits } from "@/lib/api/transfers";
-import { formatMinorUnits, minorUnitsFromDecimal } from "@/lib/money";
+import { minorUnitsFromDecimal } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 
 type Props = Readonly<{
   accounts: Account[];
@@ -135,8 +141,8 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
       <dl className="evidence-list">
         <div><dt>Transfer ID</dt><dd><Link href={`/transfers/${outcome.transferId}`}>{outcome.transferId}</Link></dd></div>
         <div><dt>Journal transaction</dt><dd>{outcome.journalTransactionId ? <CopyControl value={outcome.journalTransactionId} /> : <Link href={`/transfers/${outcome.transferId}`}>Open immutable record</Link>}</dd></div>
-        <div><dt>Exact amount</dt><dd>{formatMinorUnits(outcome.currency!, outcome.amountMinor!)}</dd></div>
-        <div><dt>Posted UTC</dt><dd>{outcome.occurredAt ? utcDateTime(outcome.occurredAt) : "Open the immutable record for its timestamp"}</dd></div>
+        <div><dt>Exact amount</dt><dd><Money currency={outcome.currency!} minorUnits={outcome.amountMinor!} /></dd></div>
+        <div><dt>Posted UTC</dt><dd>{outcome.occurredAt ? <Timestamp value={outcome.occurredAt} /> : "Open the immutable record for its timestamp"}</dd></div>
         <div><dt>Source</dt><dd><Link href={`/accounts/${outcome.source}`}>{outcome.source}</Link></dd></div>
         <div><dt>Destination</dt><dd><Link href={`/accounts/${outcome.destination}`}>{outcome.destination}</Link></dd></div>
       </dl>
@@ -144,7 +150,7 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
         <p className="eyebrow" id="committed-balances-heading">Committed balance details</p>
         {outcome.balances?.length ? <div className="review-grid">{outcome.balances.map((balance) => <div key={balance.account_id}>
           <dt><Link href={`/accounts/${balance.account_id}`}>{balance.account_id === outcome.source ? "Source" : "Destination"} account</Link></dt>
-          <dd>{formatMinorUnits(balance.currency, balance.posted_minor)}<code>version {balance.version}</code><small>{utcDateTime(balance.as_of)}</small></dd>
+          <dd><Money currency={balance.currency} minorUnits={balance.posted_minor} /><code>version {balance.version}</code><small><Timestamp value={balance.as_of} /></small></dd>
         </div>)}</div> : <p className="muted">Open the source and destination account records for current balance details.</p>}
       </section>
       <button className="button secondary" type="button" onClick={() => setOutcome(null)}>Prepare another transfer</button>
@@ -170,10 +176,11 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
       <dl className="review-grid">
         <div><dt>From</dt><dd>{accountLabel(effectivePrepared.source)}<code>{effectivePrepared.source.account_id}</code></dd></div>
         <div><dt>To</dt><dd>{accountLabel(effectivePrepared.destination)}<code>{effectivePrepared.destination.account_id}</code></dd></div>
-        <div><dt>Exact amount</dt><dd>{formatMinorUnits(effectivePrepared.source.currency, effectivePrepared.amountMinor)}</dd></div>
+        <div><dt>Exact amount</dt><dd><Money currency={effectivePrepared.source.currency} minorUnits={effectivePrepared.amountMinor} /></dd></div>
       </dl>
       {outcome && <StatePanel
         kind={outcomeUnknown ? "unknown" : "error"}
+        announce={outcomeUnknown ? "polite" : undefined}
         title={outcomeUnknown ? "Result not yet confirmed" : "Transfer not posted"}
         message={outcome.message}
       />}

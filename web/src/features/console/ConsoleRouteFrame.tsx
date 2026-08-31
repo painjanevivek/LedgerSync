@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
 import { LoginScreen } from "@/features/auth/LoginScreen";
 import { ConsoleFooter, ConsoleShell, type ConsoleSection } from "@/features/console/ConsoleShell";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
-import { PageHeader, StatePanel } from "@/features/console/components";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
 
 export function ConsoleRouteFrame({
   section,

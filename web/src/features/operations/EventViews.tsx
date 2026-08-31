@@ -4,7 +4,14 @@ import { ArrowClockwise, ArrowLeft, CheckCircle, Clock, WarningCircle } from "@p
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { CopyControl, DataTableRegion, EvidenceFreshness, FormField, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { DataTableRegion } from "@/ui/display/DataTableRegion";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { RecordLink } from "@/ui/display/RecordLink";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { FormField } from "@/ui/forms/FormField.client";
 import type { DeliveryEvent, DeliveryEventDetail } from "@/lib/api/operations";
 import { eventsURL, type EventFilters } from "@/lib/page-query/operations";
 

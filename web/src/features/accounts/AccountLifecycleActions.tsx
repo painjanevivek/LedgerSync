@@ -14,8 +14,9 @@ import {
 } from "@/features/accounts/accountCommandIntent";
 import type { Account, AccountBalance } from "@/features/accounts/types";
 import { useAccountCommand } from "@/features/accounts/useAccountCommand";
-import { FormField, StatePanel } from "@/features/console/components";
-import { formatMinorUnits } from "@/lib/money";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { FormField } from "@/ui/forms/FormField.client";
+import { Money } from "@/ui/display/Money";
 
 type Props = Readonly<{
   account: Account;
@@ -189,7 +190,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
         <p id="lifecycle-dialog-description">{actionExplanation(target)} Current account configuration{target === "closed" ? " and both balance values are" : " is"} refreshed when this dialog opens.</p>
         {evidenceLoading && <StatePanel title="Refreshing account details" message="The command stays disabled until current account configuration and required balances are verified." />}
         {evidenceError && <StatePanel kind="unknown" title="Account details unavailable" message={evidenceError} />}
-        <dl className="review-grid"><div><dt>Account</dt><dd>{verifiedAccount?.display_name || account.display_name || account.external_reference}<code>{account.account_id}</code></dd></div><div><dt>Current status</dt><dd>{verifiedAccount?.status ?? "Verifying"}</dd></div><div><dt>Expected account version</dt><dd><code>{verifiedAccount?.account_version ?? "Verifying"}</code></dd></div>{target === "closed" && <><div><dt>Available balance</dt><dd>{verifiedBalance ? formatMinorUnits(verifiedBalance.currency, verifiedBalance.available_minor) : "Unavailable"}</dd></div><div><dt>Ledger balance</dt><dd>{verifiedBalance ? formatMinorUnits(verifiedBalance.currency, verifiedBalance.ledger_minor) : "Unavailable"}</dd></div></>}</dl>
+        <dl className="review-grid"><div><dt>Account</dt><dd>{verifiedAccount?.display_name || account.display_name || account.external_reference}<code>{account.account_id}</code></dd></div><div><dt>Current status</dt><dd>{verifiedAccount?.status ?? "Verifying"}</dd></div><div><dt>Expected account version</dt><dd><code>{verifiedAccount?.account_version ?? "Verifying"}</code></dd></div>{target === "closed" && <><div><dt>Available balance</dt><dd>{verifiedBalance ? <Money currency={verifiedBalance.currency} minorUnits={verifiedBalance.available_minor} /> : "Unavailable"}</dd></div><div><dt>Ledger balance</dt><dd>{verifiedBalance ? <Money currency={verifiedBalance.currency} minorUnits={verifiedBalance.ledger_minor} /> : "Unavailable"}</dd></div></>}</dl>
         <FormField label="Reason" requirement="required" hint="Explain why you are making this account change."><textarea value={reason} onChange={(event) => { setReason(event.target.value); setValidation(null); }} maxLength={256} rows={4} required disabled={commandLocked} aria-invalid={Boolean(validation)} aria-describedby={validation ? "lifecycle-validation" : undefined} /></FormField>
         {target === "closed" && <FormField label="Confirm external reference" requirement="required" hint={<>Enter <code>{account.external_reference}</code> exactly. Closing an account is final.</>}><input value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setValidation(null); }} autoComplete="off" disabled={commandLocked} aria-invalid={Boolean(validation)} aria-describedby={validation ? "lifecycle-validation" : undefined} required /></FormField>}
         {validation && <div ref={validationSummary} tabIndex={-1} id="lifecycle-validation" className="error-summary" role="alert"><strong>Cannot submit lifecycle command</strong><p>{validation}</p></div>}

@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
-import { PageHeader, StatePanel } from "@/features/console/components";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
 import type { DeveloperMetadata } from "@/lib/api/developer";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
 

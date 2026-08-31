@@ -8,24 +8,22 @@ import type {
   TransferDetail,
   TransferSummary,
 } from "@/features/accounts/types";
-import {
-  CopyControl,
-  DataTableRegion,
-  EvidenceFreshness,
-  FocusedRetry,
-  FormField,
-  PageHeader,
-  RecordLink,
-  StatePanel,
-  StatusBadge,
-} from "@/features/console/components";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { DataTableRegion } from "@/ui/display/DataTableRegion";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { RecordLink } from "@/ui/display/RecordLink";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { FormField } from "@/ui/forms/FormField.client";
 import { TransferCorrectionPanel } from "@/features/corrections/TransferCorrectionPanel";
-import { utcDateTime } from "@/features/console/format";
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { TransferEvidenceTimeline } from "@/features/transfers/TransferEvidenceTimeline";
 import { TransferForm } from "@/features/transfers/TransferForm";
 import type { TransferExplainability } from "@/lib/api/orientation";
-import { formatMinorUnits } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 import { emptyTransferFilters, transferExportQuery, transferURL, type TransferFilters } from "@/lib/page-query/transfers";
 
 function financialTone(status: string) {
@@ -117,7 +115,7 @@ export function TransferList({
                   </Link>
                 </td>
                 <td className="number-cell">
-                  {formatMinorUnits(item.currency, item.amount_minor)}
+                  <Money currency={item.currency} minorUnits={item.amount_minor} />
                 </td>
                 <td>
                   <StatusBadge tone={financialTone(item.financial_status)}>
@@ -136,7 +134,7 @@ export function TransferList({
                     {item.delivery_status}
                   </StatusBadge>
                 </td>
-                <td>{utcDateTime(item.completed_at)}</td>
+                <td><Timestamp value={item.completed_at} /></td>
                 <td>
                   <RecordLink
                     href={`/transfers/${item.transfer_id}?return_to=${encodeURIComponent(returnTo)}`}
@@ -260,7 +258,7 @@ export function TransfersView({
           </div>
           <div>
             <span>Completed</span>
-            <strong>{utcDateTime(detail.completed_at)}</strong>
+            <strong><Timestamp value={detail.completed_at} /></strong>
           </div>
         </section>
         {(detail.delivery_status === "retrying" ||
@@ -274,7 +272,7 @@ export function TransfersView({
         <section className="surface detail-document">
           <p className="eyebrow">Exact transfer facts</p>
           <strong className="detail-amount">
-            {formatMinorUnits(detail.currency, detail.amount_minor)}
+            <Money currency={detail.currency} minorUnits={detail.amount_minor} />
           </strong>
           <dl className="evidence-list">
             <div>
@@ -309,7 +307,7 @@ export function TransfersView({
             </div>
             <div>
               <dt>Created</dt>
-              <dd>{utcDateTime(detail.created_at)}</dd>
+              <dd><Timestamp value={detail.created_at} /></dd>
             </div>
           </dl>
         </section>
@@ -334,9 +332,9 @@ export function TransfersView({
                   {posting.account_id}
                 </Link>
                 <strong>
-                  {formatMinorUnits(posting.currency, posting.amount_minor)}
+                  <Money currency={posting.currency} minorUnits={posting.amount_minor} />
                 </strong>
-                <time>{utcDateTime(posting.occurred_at)}</time>
+                <Timestamp value={posting.occurred_at} inheritTypography={false} />
               </article>
             ))
           ) : (

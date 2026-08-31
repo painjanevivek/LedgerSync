@@ -16,8 +16,12 @@ import {
   type CreateAccountIntent,
 } from "@/features/accounts/accountCommandIntent";
 import { useAccountCommand } from "@/features/accounts/useAccountCommand";
-import { CopyControl, FormField, PageHeader, StatePanel, StatusBadge } from "@/features/console/components";
-import { formatMinorUnits } from "@/lib/money";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { FormField } from "@/ui/forms/FormField.client";
+import { Money } from "@/ui/display/Money";
 
 type Props = Readonly<{
   tenantId: string;
@@ -146,7 +150,7 @@ export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csr
         <div><dt>External reference</dt><dd>{success.account.external_reference}</dd></div>
         <div><dt>Status</dt><dd><StatusBadge tone="success">{success.account.status}</StatusBadge></dd></div>
         <div><dt>Account version</dt><dd><code>{success.account.account_version}</code></dd></div>
-        <div><dt>Exact balance</dt><dd>{formatMinorUnits("INR", success.account.available_minor)}</dd></div>
+        <div><dt>Exact balance</dt><dd><Money currency="INR" minorUnits={success.account.available_minor} /></dd></div>
         {success.requestReference && <div><dt>Request reference</dt><dd><CopyControl value={success.requestReference} label="Copy request reference" /></dd></div>}
       </dl>
       <div className="action-row account-command-actions">

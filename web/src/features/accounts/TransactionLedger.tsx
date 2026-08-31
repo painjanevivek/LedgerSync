@@ -4,9 +4,15 @@ import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
 import type { Account, Transaction } from "@/features/accounts/types";
-import { EvidenceFreshness, FocusedRetry, Pagination, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
-import { accountLabel, utcDateTime } from "@/features/console/format";
-import { formatMinorUnits } from "@/lib/money";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { Pagination } from "@/ui/controls/Pagination.client";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { RecordLink } from "@/ui/display/RecordLink";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { accountLabel } from "@/features/console/format";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 
 type Props = Readonly<{
   transactions: Transaction[];
@@ -30,8 +36,8 @@ export function TransactionLedger({ transactions, account, loading, error, nextC
     {!loading && !error && transactions.length === 0 && <StatePanel title="No ledger entries" message="This account has no posted transfer history in the available window." />}
     {transactions.length > 0 && <><div className="ledger-list">{transactions.map((transaction) => <article className="ledger-row" key={`${transaction.transfer_id}-${transaction.direction}`}>
       <span className={`status-icon ${transaction.status === "posted" ? "success" : "danger"}`} aria-hidden="true">{transaction.status === "posted" ? <CheckCircle weight="fill" /> : <WarningCircle weight="fill" />}</span>
-      <div className="ledger-identity"><strong>{transaction.direction === "debit" ? "Transfer sent" : "Transfer received"}</strong><span><code>{transaction.transfer_id}</code> · {utcDateTime(transaction.occurred_at)}</span></div>
-      <strong className="ledger-amount">{transaction.direction === "debit" ? "−" : "+"}{formatMinorUnits(transaction.currency, transaction.amount)}</strong><StatusBadge tone={transaction.status === "posted" ? "success" : "danger"}>{transaction.status}</StatusBadge><RecordLink href={`/transfers/${transaction.transfer_id}`} label={`Open transfer ${transaction.transfer_id}`} />
+      <div className="ledger-identity"><strong>{transaction.direction === "debit" ? "Transfer sent" : "Transfer received"}</strong><span><code>{transaction.transfer_id}</code> · <Timestamp value={transaction.occurred_at} /></span></div>
+      <strong className="ledger-amount">{transaction.direction === "debit" ? "−" : "+"}<Money currency={transaction.currency} minorUnits={transaction.amount} /></strong><StatusBadge tone={transaction.status === "posted" ? "success" : "danger"}>{transaction.status}</StatusBadge><RecordLink href={`/transfers/${transaction.transfer_id}`} label={`Open transfer ${transaction.transfer_id}`} />
     </article>)}</div><Pagination nextCursor={nextCursor} busy={loading} onNext={onNext} /></>}
   </section>;
 }

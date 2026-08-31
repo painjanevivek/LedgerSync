@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
-import { PageHeader, StatePanel } from "@/features/console/components";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
 import { ReconciliationView } from "@/features/reconciliation/ReconciliationViews";
 import { useReconciliationWorkspace } from "@/features/reconciliation/useReconciliationWorkspace";
 import type { ReconciliationFilters } from "@/lib/page-query/reconciliation";

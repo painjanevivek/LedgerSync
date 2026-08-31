@@ -2,7 +2,12 @@
 
 import { ArrowClockwise, CheckCircle, Database, HardDrives, Lightning, WarningCircle } from "@phosphor-icons/react";
 
-import { CopyControl, EvidenceFreshness, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { RecordLink } from "@/ui/display/RecordLink";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
 import type { DependencyState, LocalDiagnostics, OperationalState } from "@/lib/api/operations";
 
 function stateTone(state: OperationalState | DependencyState) {

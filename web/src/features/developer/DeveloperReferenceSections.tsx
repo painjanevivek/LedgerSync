@@ -1,6 +1,6 @@
 import { ArrowRight, CheckCircle, ShieldCheck, WarningCircle } from "@phosphor-icons/react";
 
-import { DataTableRegion } from "@/features/console/components";
+import { DataTableRegion } from "@/ui/display/DataTableRegion";
 import { DeveloperCopyCode } from "@/features/developer/DeveloperCopyCode";
 import { buildTransferRecipes } from "@/features/developer/developer-recipes";
 import type { DeveloperExample, DeveloperMetadata } from "@/lib/api/developer";

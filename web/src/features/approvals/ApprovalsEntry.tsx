@@ -8,7 +8,7 @@ import { approvalQuery, approvalURL, useApprovalWorkspace } from "@/features/app
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { deriveConsoleCapabilities } from "@/features/console/capabilities";
-import { StatePanel } from "@/features/console/components";
+import { StatePanel } from "@/ui/display/StatePanel";
 import type { ApprovalFilters } from "@/lib/api/approvals";
 import { emptyApprovalFilters } from "@/lib/api/approvals";
 

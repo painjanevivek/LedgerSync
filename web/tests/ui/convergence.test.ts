@@ -6,7 +6,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { ConsoleFooter } from "../../src/features/console/ConsoleShell";
-import { EvidenceFreshness } from "../../src/features/console/components";
+import { EvidenceFreshness } from "../../src/ui/display/Evidence";
 import { FundingRequestFlow } from "../../src/features/funding/FundingRequestFlow";
 import { TransferList } from "../../src/features/transfers/TransferViews";
 

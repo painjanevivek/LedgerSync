@@ -4307,6 +4307,11 @@ h3 {
 .console-main :where(code, time, .mono, .number-cell) {
   font-variant-numeric: tabular-nums lining-nums;
 }
+.console-main time.timestamp-value.inherit-typography {
+  font-size: inherit;
+  font-variant-numeric: inherit;
+  line-height: inherit;
+}
 .console-main :where(h2) {
   font-size: var(--type-h2);
   line-height: 1.45;

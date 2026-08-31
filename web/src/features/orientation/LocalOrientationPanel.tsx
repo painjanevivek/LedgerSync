@@ -3,9 +3,11 @@
 import { CheckCircle, Compass, Info, LockKey, WarningCircle, X } from "@phosphor-icons/react";
 import Link from "next/link";
 
-import { CopyControl, EvidenceFreshness, StatusBadge } from "@/features/console/components";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { Timestamp } from "@/ui/display/Timestamp";
 import { canOpenOrientationStep, type ConsoleCapabilities } from "@/features/console/capabilities";
-import { utcDateTime } from "@/features/console/format";
 import type { LocalOrientation, OperatorPreferenceStepID, OrientationStep } from "@/lib/api/orientation";
 
 type StepCopy = Readonly<{ title: string; description: string; href?: string; confirmation?: string }>;
@@ -113,7 +115,7 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
         <article className={`recommended-action ${nextStep?.state === "unavailable" || (!nextStep && hasIncompleteStep) ? "blocked" : ""}`} aria-labelledby="recommended-action-title"><div><p className="eyebrow">Recommended next action</p><h3 id="recommended-action-title">{nextStep ? stepCopy[nextStep.id].title : hasIncompleteStep ? "No authorized next action" : "Journey complete"}</h3><p>{nextStep ? (reason(nextStep) ?? stepCopy[nextStep.id].description) : hasIncompleteStep ? "Your current server-issued capabilities do not permit any remaining setup step. Ask an administrator for the required access; no protected request was made." : "Every available setup step has authoritative evidence or an explicit saved confirmation."}</p></div>{nextStep?.state === "unavailable" || (!nextStep && hasIncompleteStep) ? <span className="recommended-blocked"><LockKey weight="fill" aria-hidden="true" />Blocked safely</span> : nextStep && evidenceHref(nextStep) ? <Link className="button primary" href={evidenceHref(nextStep)!}>Open next step</Link> : nextStep && canConfirm(nextStep) ? <button className="button primary" type="button" disabled={!writable} onClick={() => void toggleStep(nextStep)}>{stepCopy[nextStep.id].confirmation}</button> : null}</article>
         <ol className="orientation-checklist">{evidence.steps.map((step, index) => <li key={step.id} className={nextStep?.id === step.id ? "current" : undefined}>
           <span className="orientation-step-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span className={`orientation-check ${step.state}`} aria-hidden="true">{complete(step) ? <CheckCircle weight="fill" /> : step.state === "evidence_available" ? <Info weight="fill" /> : <WarningCircle weight="fill" />}</span>
-          <div><strong>{stepCopy[step.id].title}</strong><p>{stepCopy[step.id].description}</p>{step.occurred_at ? <small>Stored evidence · {utcDateTime(step.occurred_at)}</small> : reason(step) ? <small>{reason(step)}</small> : step.state === "operator_confirmed" ? <small>Saved operator acknowledgement</small> : null}</div>
+          <div><strong>{stepCopy[step.id].title}</strong><p>{stepCopy[step.id].description}</p>{step.occurred_at ? <small>Stored evidence · <Timestamp value={step.occurred_at} /></small> : reason(step) ? <small>{reason(step)}</small> : step.state === "operator_confirmed" ? <small>Saved operator acknowledgement</small> : null}</div>
           <StatusBadge tone={tone(step)}>{stateLabel(step)}</StatusBadge><div className="orientation-step-actions">{canOpenOrientationStep(capabilities,step.id)&&evidenceHref(step) && step.state !== "unavailable" && <Link className="record-link" href={evidenceHref(step)!}>{step.evidence_id ? "Open evidence" : "Open step"}</Link>}{canOpenOrientationStep(capabilities,step.id)&&canConfirm(step) && <button className="record-link orientation-confirm" type="button" disabled={!writable} onClick={() => void toggleStep(step)}>{step.state === "operator_confirmed" ? "Undo confirmation" : stepCopy[step.id].confirmation}</button>}</div>
         </li>)}</ol>
       </>}

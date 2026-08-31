@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ReconciliationRun } from "@/features/accounts/types";
-import { CopyControl, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { Timestamp } from "@/ui/display/Timestamp";
 import {
   newReconciliationIdempotencyKey,
   parseReconciliationCommandIntent,
@@ -13,7 +16,6 @@ import {
   type ReconciliationCommandIntent,
 } from "@/features/reconciliation/reconciliationCommandIntent";
 import { isReconciliationRun, useReconciliationCommand, type ReconciliationCommandOutcome } from "@/features/reconciliation/useReconciliationCommand";
-import { utcDateTime } from "@/features/console/format";
 
 const maximumAutomaticPolls = 8;
 const automaticPollIntervalMilliseconds = 1_000;
@@ -226,7 +228,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
       <p className="eyebrow">Authoritative run in progress</p>
       <h3 ref={outcomeHeading} tabIndex={-1} id="reconciliation-running-heading">Reconciliation running</h3>
       <p>LedgerSync has a stable run ID. No passing or mismatch result is inferred yet. Automatic checking is bounded to {maximumAutomaticPolls} attempts and a fixed deadline.</p>
-      <dl className="review-grid reconciliation-run-grid"><div><dt>Run ID</dt><dd><CopyControl value={intent.runId!} /></dd></div><div><dt>Status</dt><dd><StatusBadge tone="warning">Running</StatusBadge></dd></div><div><dt>Request submitted</dt><dd>{intent.submittedAt ? utcDateTime(intent.submittedAt) : "Submission time unavailable"}</dd></div></dl>
+      <dl className="review-grid reconciliation-run-grid"><div><dt>Run ID</dt><dd><CopyControl value={intent.runId!} /></dd></div><div><dt>Status</dt><dd><StatusBadge tone="warning">Running</StatusBadge></dd></div><div><dt>Request submitted</dt><dd>{intent.submittedAt ? <Timestamp value={intent.submittedAt} /> : "Submission time unavailable"}</dd></div></dl>
       {statusMessage && <StatePanel kind={pollingStopped ? "unknown" : "empty"} title={pollingStopped ? "Automatic checking stopped" : "Run status checked"} message={statusMessage} />}
       <div className="action-row"><button className="button secondary guarded-control" type="button" disabled={!online||checking} onClick={() => void refreshRun(intent.runId!, true)}><ArrowClockwise aria-hidden="true" />{checking?"Checking run status…":"Refresh run status"}</button><Link className="button secondary guarded-control" href={`/reconciliation/${encodeURIComponent(intent.runId!)}`}>Open run result</Link></div>
     </section>}
@@ -234,7 +236,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
     {unknown && outcome && outcome.kind !== "run" && <section className="account-command-recovery reconciliation-command-recovery" aria-labelledby="reconciliation-unknown-heading" aria-live="polite">
       <h3 ref={outcomeHeading} tabIndex={-1} id="reconciliation-unknown-heading">Reconciliation outcome not confirmed</h3>
       <StatePanel kind="unknown" title="Exact request key retained" message={outcome.message} />
-      <dl className="review-grid reconciliation-run-grid"><div><dt>Idempotency key</dt><dd><CopyControl value={intent.idempotencyKey} label="Copy retained reconciliation key" /></dd></div><div><dt>Submitted</dt><dd>{intent.submittedAt ? utcDateTime(intent.submittedAt) : "Submission time unavailable"}</dd></div></dl>
+      <dl className="review-grid reconciliation-run-grid"><div><dt>Idempotency key</dt><dd><CopyControl value={intent.idempotencyKey} label="Copy retained reconciliation key" /></dd></div><div><dt>Submitted</dt><dd>{intent.submittedAt ? <Timestamp value={intent.submittedAt} /> : "Submission time unavailable"}</dd></div></dl>
       <div className="action-row reconciliation-command-actions"><button className="button secondary guarded-control" type="button" disabled={!online} onClick={() => void onRefreshHistory()}>Refresh run history</button><button className="button secondary guarded-control" type="button" disabled={pending} onClick={abandonUnknown}>Stop retaining request</button><button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite} onClick={() => void submit(intent)}>{pending ? "Retrying retained request…" : "Retry same reconciliation request"}</button></div>
     </section>}
 

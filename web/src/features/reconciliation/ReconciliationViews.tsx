@@ -4,8 +4,15 @@ import { CheckCircle, HourglassMedium, ShieldWarning } from "@phosphor-icons/rea
 import Link from "next/link";
 
 import type { ReconciliationRun } from "@/features/accounts/types";
-import { CopyControl, DataTableRegion, EvidenceFreshness, FocusedRetry, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
-import { utcDateTime } from "@/features/console/format";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { DataTableRegion } from "@/ui/display/DataTableRegion";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { RecordLink } from "@/ui/display/RecordLink";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { Timestamp } from "@/ui/display/Timestamp";
 import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl";
 import { ReconciliationCommand } from "@/features/reconciliation/ReconciliationCommand";
 import { reconciliationURL, type ReconciliationFilters } from "@/lib/page-query/reconciliation";
@@ -27,7 +34,7 @@ function RunResult({ run }: Readonly<{ run: ReconciliationRun }>) {
       <div><p className="eyebrow">{running ? "Authoritative run in progress" : "Authoritative completed run"}</p><h2>{runLabel(run.status)}</h2><p>{running ? "No pass or mismatch result is inferred while this run is active." : `${run.checked_account_count} accounts · ${run.posting_count} postings · ${run.mismatch_count} mismatches`}</p></div>
       <StatusBadge tone={runTone(run.status)}>{runLabel(run.status)}</StatusBadge>
     </section>
-    <section className="identity-strip"><div><span>Run ID</span><CopyControl value={run.run_id} /></div><div><span>Scope</span><strong>{run.scope || "Recorded tenant scope"}</strong></div><div><span>Ledger watermark</span><strong>{run.ledger_watermark || "Pending authoritative capture"}</strong></div><div><span>{running ? "Started" : "Completed"}</span><strong>{utcDateTime(running ? run.started_at : run.completed_at)}</strong></div></section>
+    <section className="identity-strip"><div><span>Run ID</span><CopyControl value={run.run_id} /></div><div><span>Scope</span><strong>{run.scope || "Recorded tenant scope"}</strong></div><div><span>Ledger watermark</span><strong>{run.ledger_watermark || "Pending authoritative capture"}</strong></div><div><span>{running ? "Started" : "Completed"}</span><strong><Timestamp value={running ? run.started_at : run.completed_at} /></strong></div></section>
     {run.mismatch_count !== "0" && <StatePanel kind="error" title={`${run.mismatch_count} mismatch${run.mismatch_count === "1" ? "" : "es"} require investigation`} message="This financial control did not pass. A mismatch cannot be marked resolved in the console; only a new authoritative run can establish later proof." />}
     {run.mismatches && run.mismatches.length > 0 && <section className="ledger-section reconciliation-mismatches" aria-labelledby="reconciliation-mismatches-heading">
       <div className="section-heading"><div><p className="eyebrow">Stop-ship evidence</p><h3 id="reconciliation-mismatches-heading">Affected records</h3><p>Open only tenant-authorized account details. Exact mismatch values remain tied to this immutable run.</p></div></div>
@@ -44,7 +51,7 @@ export function ReconciliationView({ runs, detail, detailRequested, error, loadi
   if (detail) return <>
     <PageHeader eyebrow="Ledger / Reconciliation" title="Reconciliation details" description="See whether account balances match the ledger for this check."><EvidenceExportControl label="Export run result" subject="reconciliation run" endpoint={`/api/exports/reconciliation.csv?runId=${encodeURIComponent(detail.run_id)}&limit=10000`} scope={`One immutable run · ${detail.run_id}`} filters={[{ label: "Run ID", value: detail.run_id }]} columns="Includes run, mismatch, account, and correlation identifiers when present" online={online} canExport={canExport} /></PageHeader>
     <RunResult run={detail} />
-    <section className="surface detail-document"><dl className="evidence-list"><div><dt>Correlation ID</dt><dd><CopyControl value={detail.correlation_id} /></dd></div><div><dt>Application version</dt><dd>{detail.application_version || "Unavailable"}</dd></div><div><dt>Started</dt><dd>{utcDateTime(detail.started_at)}</dd></div><div><dt>Completed</dt><dd>{utcDateTime(detail.completed_at)}</dd></div></dl></section>
+    <section className="surface detail-document"><dl className="evidence-list"><div><dt>Correlation ID</dt><dd><CopyControl value={detail.correlation_id} /></dd></div><div><dt>Application version</dt><dd>{detail.application_version || "Unavailable"}</dd></div><div><dt>Started</dt><dd><Timestamp value={detail.started_at} /></dd></div><div><dt>Completed</dt><dd><Timestamp value={detail.completed_at} /></dd></div></dl></section>
     <Link className="text-link back-link" href={returnTo ?? "/reconciliation"}>← Back to previous view</Link>
   </>;
 
@@ -64,7 +71,7 @@ export function ReconciliationView({ runs, detail, detailRequested, error, loadi
     {loading && !latest ? <StatePanel title="Loading reconciliation results" message="No result is inferred until an authoritative run has been returned." /> : !error && !latest ? <StatePanel kind="unknown" title="No reconciliation results" message="The verified history is empty. LedgerSync cannot claim a passing result until an authoritative completed run exists." /> : latest && <RunResult run={latest} />}
     {runs.length > 0 && <section className="ledger-section">
       <div className="section-heading"><div><p className="eyebrow">Newest completed evidence first</p><h2>Reconciliation runs</h2><p>{runs.length} run{runs.length === 1 ? "" : "s"} on this page. A total is not calculated or implied. Starting a new run never replaces prior results.</p></div><EvidenceExportControl label="Export reconciliation results" subject="reconciliation history" endpoint="/api/exports/reconciliation.csv?limit=10000" scope="All authorized reconciliation runs and mismatch details; the cursor only selects the visible page" filters={[]} columns="Includes run, mismatch, account, and correlation identifiers when present" online={online} canExport={canExport} /></div>
-      <DataTableRegion label="Reconciliation run history"><table className="data-table"><thead><tr><th>Run ID</th><th>Result</th><th>Scope</th><th>Accounts / postings</th><th>Mismatches</th><th>Completed UTC</th><th>Action</th></tr></thead><tbody>{runs.map((run) => <tr key={run.run_id}><td><CopyControl value={run.run_id} /></td><td><StatusBadge tone={runTone(run.status)}>{runLabel(run.status)}</StatusBadge></td><td>{run.scope}</td><td>{run.checked_account_count} / {run.posting_count}</td><td className="number-cell">{run.mismatch_count}</td><td>{run.status === "running" ? "In progress" : utcDateTime(run.completed_at)}</td><td><RecordLink href={`/reconciliation/${run.run_id}?return_to=${encodeURIComponent(listReturnTo)}`} label="Open result" /></td></tr>)}</tbody></table></DataTableRegion>
+      <DataTableRegion label="Reconciliation run history"><table className="data-table"><thead><tr><th>Run ID</th><th>Result</th><th>Scope</th><th>Accounts / postings</th><th>Mismatches</th><th>Completed UTC</th><th>Action</th></tr></thead><tbody>{runs.map((run) => <tr key={run.run_id}><td><CopyControl value={run.run_id} /></td><td><StatusBadge tone={runTone(run.status)}>{runLabel(run.status)}</StatusBadge></td><td>{run.scope}</td><td>{run.checked_account_count} / {run.posting_count}</td><td className="number-cell">{run.mismatch_count}</td><td>{run.status === "running" ? "In progress" : <Timestamp value={run.completed_at} />}</td><td><RecordLink href={`/reconciliation/${run.run_id}?return_to=${encodeURIComponent(listReturnTo)}`} label="Open result" /></td></tr>)}</tbody></table></DataTableRegion>
       <div className="pagination"><span>{nextHref ? "More reconciliation runs are available" : "End of reconciliation history"}</span>{nextHref ? <Link className="button secondary" href={nextHref}>Next page</Link> : <button className="button secondary" type="button" disabled>Next page</button>}</div>
     </section>}
   </>;

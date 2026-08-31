@@ -3,7 +3,10 @@
 import { ArrowRight, CheckCircle, DownloadSimple, Key, LockKey, ShieldCheck, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 
-import { DataTableRegion, PageHeader, StatePanel, StatusBadge } from "@/features/console/components";
+import { DataTableRegion } from "@/ui/display/DataTableRegion";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
 import { DeveloperCopyCode } from "@/features/developer/DeveloperCopyCode";
 import {
   DeveloperReferenceNavigation,

@@ -9,7 +9,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
-import { PageHeader } from "@/features/console/components";
+import { PageHeader } from "@/ui/display/PageHeader";
 
 const steps = [
   {

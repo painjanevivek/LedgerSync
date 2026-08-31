@@ -9,7 +9,8 @@ import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent"
 import { emptyAccountFilters, useAccountWorkspace } from "@/features/accounts/useAccountWorkspace";
 import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
-import { PageHeader, StatePanel } from "@/features/console/components";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
 
 type Props = Readonly<{
   accountId?: string;
