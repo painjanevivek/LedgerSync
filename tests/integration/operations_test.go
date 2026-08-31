@@ -107,6 +107,50 @@ func TestEventEvidenceRedactsHostileCodesAndNeverReturnsPayloadOrEndpoint(t *tes
 	}
 }
 
+func TestWebhookEndpointEvidenceIsTenantScopedBoundedAndLinkedToEvents(t *testing.T) {
+	transferService, database := requireTransferService(t, 10_000)
+	result, err := transferService.Submit(context.Background(), transferCommand(t, "operations-webhook-evidence-01", "25.00"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	endpointID := "70000000-0000-4000-8000-000000000071"
+	if _, err := database.Exec(`INSERT INTO developer_webhook_endpoints(id,tenant_id,display_name,endpoint_url,subscribed_events,signing_key_reference,signing_key_id,status,version,verified_at,created_at,updated_at)VALUES($1,$2,'Settlement partner','https://partner.example.test/private/hooks?credential=hidden',ARRAY['transfer.posted'],'kms/webhook-071','key-071','active',1,now(),now(),now())`, endpointID, testTenantID); err != nil {
+		t.Fatal(err)
+	}
+	var eventID string
+	if err := database.QueryRow(`SELECT id::text FROM outbox_events WHERE tenant_id=$1 AND transfer_id=$2 AND event_type='transfer.posted.v1'`, testTenantID, result.Result.TransferID).Scan(&eventID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.Exec(`INSERT INTO delivery_attempts(id,tenant_id,transfer_id,outbox_event_id,delivery_kind,endpoint_reference,attempt_number,status,response_class,due_at,completed_at)VALUES('70000000-0000-4000-8000-000000000072',$1,$2,$3,'webhook',$4,1,'delivered','2xx',now(),now())`, testTenantID, result.Result.TransferID, eventID, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	repository, _ := db.NewOperationsRepository(database)
+	service, _ := operations.NewWebhookEndpointService(repository)
+	page, err := service.List(context.Background(), testTenantID, testActorID, operations.WebhookEndpointFilter{Status: "active", EventType: "transfer.posted", Limit: 25})
+	if err != nil || len(page.Items) != 1 || page.Items[0].Origin != "https://partner.example.test" || page.Items[0].RecentDeliveryState != "delivered" || page.Items[0].RecentAttemptCount != "1" {
+		t.Fatalf("webhook page=%+v error=%v", page, err)
+	}
+	detail, err := service.Get(context.Background(), testTenantID, testActorID, endpointID)
+	if err != nil || len(detail.DeliveryAttempts) != 1 || detail.DeliveryAttempts[0].EventID != eventID || detail.DeliveryAttempts[0].TransferID != result.Result.TransferID {
+		t.Fatalf("webhook detail=%+v error=%v", detail, err)
+	}
+	events, _ := operations.NewEventService(repository)
+	filtered, _, err := events.List(context.Background(), testTenantID, testActorID, operations.EventFilter{EndpointID: endpointID, Limit: 25})
+	if err != nil || len(filtered) != 1 || filtered[0].EventID != eventID {
+		t.Fatalf("endpoint event filter=%+v error=%v", filtered, err)
+	}
+	unauthorized, err := service.List(context.Background(), testTenantID, "unrelated-subject", operations.WebhookEndpointFilter{Limit: 25})
+	if err != nil || len(unauthorized.Items) != 0 {
+		t.Fatalf("unauthorized webhook evidence=%+v error=%v", unauthorized, err)
+	}
+	encoded, _ := json.Marshal(detail)
+	for _, forbidden := range []string{"private/hooks", "credential=hidden", "signing_key", "endpoint_url", "payload"} {
+		if strings.Contains(string(encoded), forbidden) {
+			t.Fatalf("webhook evidence exposed %q: %s", forbidden, encoded)
+		}
+	}
+}
+
 func TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived(t *testing.T) {
 	transferService, database := requireTransferService(t, 10_000)
 	if _, err := transferService.Submit(context.Background(), transferCommand(t, "operations-diagnostics-key-01", "25.00")); err != nil {
@@ -117,7 +161,7 @@ func TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.SchemaVersion != "000028_delivery_replay_request_identity.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
+	if facts.SchemaVersion != "000029_webhook_evidence_read_models.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
 		t.Fatalf("unexpected database-derived facts: %#v", facts)
 	}
 }

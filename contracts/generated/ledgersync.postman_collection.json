@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.0.0",
-    "_postman_id": "ledgersync-fe2d8711-b79bf95b-7eb83caf"
+    "version": "3.1.0",
+    "_postman_id": "ledgersync-69566171-8184dd1b-c3540d3e"
   },
   "variable": [
     {
@@ -483,6 +483,23 @@
       }
     },
     {
+      "name": "getWebhookEndpointEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/webhook-endpoints/{endpointId}"
+      }
+    },
+    {
       "name": "listAccountTransactions",
       "request": {
         "method": "GET",
@@ -667,6 +684,23 @@
           }
         ],
         "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "listWebhookEndpointEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/webhook-endpoints"
       }
     },
     {

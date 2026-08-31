@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 
-import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
+import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAccount, transfer, webhookEndpoint } from "./fixtures";
 
 const compact = { width: 390, height: 844 };
 const tablet = { width: 768, height: 1024 };
@@ -42,6 +42,8 @@ const populatedRoutes = [
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
   { name: "events-populated", path: "/events", heading: "Delivery events" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
+  { name: "webhooks-populated", path: "/webhooks", heading: "Webhook endpoints" },
+  { name: "webhook-detail-dead", path: `/webhooks/${webhookEndpoint.endpoint_id}`, heading: webhookEndpoint.label, headingLevel: 1 },
   { name: "developer-contract", path: "/developer", heading: "Developer" },
   { name: "recovery-evidence", path: "/recovery", heading: "Recovery" },
 ] as const;
@@ -50,7 +52,7 @@ for (const route of populatedRoutes) {
   test(`${route.name} has a reviewed desktop baseline`, async ({ page }) => {
     await mockOperatorConsole(page);
     await page.goto(route.path);
-    await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
     await capture(page, route.name);
   });
 }

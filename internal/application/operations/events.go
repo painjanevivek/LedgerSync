@@ -14,9 +14,9 @@ var canonicalUUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 var ErrInvalidEventEvidence = errors.New("invalid event evidence request")
 
 type EventFilter struct {
-	Cursor, EventType, State, RelatedID, CorrelationID string
-	From, To                                           time.Time
-	Limit                                              int
+	Cursor, EventType, State, EndpointID, RelatedID, CorrelationID string
+	From, To                                                       time.Time
+	Limit                                                          int
 }
 
 type EventEvidence struct {
@@ -39,15 +39,19 @@ type EventEvidence struct {
 }
 
 type DeliveryEvidence struct {
-	AttemptID     string     `json:"attempt_id"`
-	Kind          string     `json:"kind"`
-	State         string     `json:"state"`
-	AttemptNumber string     `json:"attempt_number"`
-	ResponseClass string     `json:"response_class,omitempty"`
-	ErrorCode     string     `json:"error_code,omitempty"`
-	DueAt         time.Time  `json:"due_at"`
-	StartedAt     *time.Time `json:"started_at,omitempty"`
-	CompletedAt   *time.Time `json:"completed_at,omitempty"`
+	AttemptID      string     `json:"attempt_id"`
+	Kind           string     `json:"kind"`
+	State          string     `json:"state"`
+	AttemptNumber  string     `json:"attempt_number"`
+	ResponseClass  string     `json:"response_class,omitempty"`
+	ErrorCode      string     `json:"error_code,omitempty"`
+	EndpointID     string     `json:"endpoint_id,omitempty"`
+	EndpointLabel  string     `json:"endpoint_label,omitempty"`
+	EndpointOrigin string     `json:"endpoint_origin,omitempty"`
+	EndpointURL    string     `json:"-"`
+	DueAt          time.Time  `json:"due_at"`
+	StartedAt      *time.Time `json:"started_at,omitempty"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 }
 
 type EventTimelineItem struct {
@@ -79,11 +83,11 @@ func NewEventService(repository EventRepository) (*EventService, error) {
 func (s *EventService) List(ctx context.Context, tenantID, actorID string, filter EventFilter) ([]EventEvidence, string, error) {
 	tenantID, actorID = strings.TrimSpace(tenantID), strings.TrimSpace(actorID)
 	filter.EventType, filter.State = strings.TrimSpace(filter.EventType), strings.TrimSpace(filter.State)
-	filter.RelatedID, filter.CorrelationID, filter.Cursor = strings.TrimSpace(filter.RelatedID), strings.TrimSpace(filter.CorrelationID), strings.TrimSpace(filter.Cursor)
-	if tenantID == "" || actorID == "" || filter.Limit < 1 || filter.Limit > 100 || filter.EventType != "" && !safeIdentifier.MatchString(filter.EventType) || filter.State != "" && filter.State != "pending" && filter.State != "retrying" && filter.State != "published" && filter.State != "dead" || filter.RelatedID != "" && !canonicalUUID.MatchString(strings.ToLower(filter.RelatedID)) || filter.CorrelationID != "" && !canonicalUUID.MatchString(strings.ToLower(filter.CorrelationID)) || !filter.From.IsZero() && !filter.To.IsZero() && filter.From.After(filter.To) {
+	filter.EndpointID, filter.RelatedID, filter.CorrelationID, filter.Cursor = strings.TrimSpace(filter.EndpointID), strings.TrimSpace(filter.RelatedID), strings.TrimSpace(filter.CorrelationID), strings.TrimSpace(filter.Cursor)
+	if tenantID == "" || actorID == "" || filter.Limit < 1 || filter.Limit > 100 || filter.EventType != "" && !safeIdentifier.MatchString(filter.EventType) || filter.State != "" && filter.State != "pending" && filter.State != "retrying" && filter.State != "published" && filter.State != "dead" || filter.EndpointID != "" && !canonicalUUID.MatchString(strings.ToLower(filter.EndpointID)) || filter.RelatedID != "" && !canonicalUUID.MatchString(strings.ToLower(filter.RelatedID)) || filter.CorrelationID != "" && !canonicalUUID.MatchString(strings.ToLower(filter.CorrelationID)) || !filter.From.IsZero() && !filter.To.IsZero() && filter.From.After(filter.To) {
 		return nil, "", ErrInvalidEventEvidence
 	}
-	filter.RelatedID, filter.CorrelationID = strings.ToLower(filter.RelatedID), strings.ToLower(filter.CorrelationID)
+	filter.EndpointID, filter.RelatedID, filter.CorrelationID = strings.ToLower(filter.EndpointID), strings.ToLower(filter.RelatedID), strings.ToLower(filter.CorrelationID)
 	return s.repository.ListEvents(ctx, tenantID, actorID, filter)
 }
 
@@ -92,5 +96,17 @@ func (s *EventService) Get(ctx context.Context, tenantID, actorID, eventID strin
 	if tenantID == "" || actorID == "" || !canonicalUUID.MatchString(strings.ToLower(eventID)) {
 		return EventDetail{}, ErrInvalidEventEvidence
 	}
-	return s.repository.GetEvent(ctx, tenantID, actorID, eventID)
+	detail, err := s.repository.GetEvent(ctx, tenantID, actorID, eventID)
+	if err != nil {
+		return EventDetail{}, err
+	}
+	for index := range detail.DeliveryAttempts {
+		attempt := &detail.DeliveryAttempts[index]
+		if attempt.EndpointID != "" {
+			attempt.EndpointLabel = safeWebhookLabel(attempt.EndpointLabel)
+			attempt.EndpointOrigin = safeWebhookOrigin(attempt.EndpointURL)
+		}
+		attempt.EndpointURL = ""
+	}
+	return detail, nil
 }

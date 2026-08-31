@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "3.0.0",
+  "contract_version": "3.1.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -94,6 +94,8 @@
         { "operation_id": "updateLocalOrientationPreferences", "method": "PUT", "path": "/local/orientation/preferences", "scope": "local:write" },
         { "operation_id": "listEventEvidence", "method": "GET", "path": "/events", "scope": "events:read" },
         { "operation_id": "getEventEvidence", "method": "GET", "path": "/events/{eventId}", "scope": "events:read" },
+        { "operation_id": "listWebhookEndpointEvidence", "method": "GET", "path": "/webhook-endpoints", "scope": "webhooks:read" },
+        { "operation_id": "getWebhookEndpointEvidence", "method": "GET", "path": "/webhook-endpoints/{endpointId}", "scope": "webhooks:read" },
         { "operation_id": "explainTransferEvidence", "method": "GET", "path": "/transfers/{transferId}/explainability", "scope": "explainability:read" }
       ]
     },

@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "3.0.0",
+  "api_version": "3.1.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "fe2d8711",
-    "b79bf95b",
-    "7eb83caf",
-    "2e38a352",
-    "37b3f237",
-    "9b3431ea",
-    "0bdc144d",
-    "cb0f752f"
+    "69566171",
+    "8184dd1b",
+    "c3540d3e",
+    "37d190ed",
+    "d2d50089",
+    "ea012659",
+    "1cf384cd",
+    "2b13ad60"
   ],
   "operations": [
     {
@@ -196,6 +196,13 @@
       "idempotent": false
     },
     {
+      "id": "getWebhookEndpointEvidence",
+      "method": "GET",
+      "path": "/webhook-endpoints/{endpointId}",
+      "scope": "webhooks:read",
+      "idempotent": false
+    },
+    {
       "id": "listAccountTransactions",
       "method": "GET",
       "path": "/accounts/{accountId}/transactions",
@@ -270,6 +277,13 @@
       "method": "GET",
       "path": "/transfers",
       "scope": "transfers:read",
+      "idempotent": false
+    },
+    {
+      "id": "listWebhookEndpointEvidence",
+      "method": "GET",
+      "path": "/webhook-endpoints",
+      "scope": "webhooks:read",
       "idempotent": false
     },
     {

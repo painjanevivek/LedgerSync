@@ -1,5 +1,14 @@
 # LedgerSync API changelog
 
+## 3.1.0 — 2026-08-31
+
+- Added tenant-scoped webhook endpoint evidence list and detail operations with
+  stable filters and bounded delivery history.
+- Exposed only endpoint labels and origins; full URLs, paths, query strings,
+  credentials, signing references, payloads, and raw errors remain private.
+- Linked event delivery attempts to safe endpoint evidence and added an
+  endpoint filter without changing immutable financial or event records.
+
 ## 3.0.0 — 2026-08-31
 
 - Replaced cross-request correlation matching for webhook replay with an

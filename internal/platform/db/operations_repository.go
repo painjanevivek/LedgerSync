@@ -62,6 +62,134 @@ type eventCursor struct {
 	Fingerprint string    `json:"fp"`
 }
 
+type webhookEndpointCursor struct {
+	At          time.Time `json:"at"`
+	ID          string    `json:"id"`
+	Fingerprint string    `json:"fp"`
+}
+
+func (r *OperationsRepository) ListWebhookEndpoints(ctx context.Context, tenantID, actorID string, filter operations.WebhookEndpointFilter) (operations.WebhookEndpointPage, error) {
+	fingerprint := webhookEndpointFilterFingerprint(filter)
+	cursor, err := decodeWebhookEndpointCursor(filter.Cursor, fingerprint)
+	if err != nil {
+		return operations.WebhookEndpointPage{}, err
+	}
+	rows, err := r.database.QueryContext(ctx, `
+SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,endpoint.subscribed_events,
+ COALESCE(health.latest_state,'none'),COALESCE(health.attempt_count,'0'),COALESCE(health.dead_count,'0'),
+ endpoint.verified_at,endpoint.disabled_at,health.latest_at,endpoint.updated_at
+FROM developer_webhook_endpoints endpoint
+LEFT JOIN LATERAL (
+ SELECT COALESCE((array_agg(recent.status ORDER BY recent.created_at DESC,recent.id DESC))[1],'none') latest_state,
+        count(*)::text attempt_count,
+        (count(*) FILTER (WHERE recent.status='dead'))::text dead_count,
+        max(recent.created_at) latest_at
+ FROM (
+   SELECT attempt.id,attempt.status,attempt.created_at
+   FROM delivery_attempts attempt
+   WHERE attempt.tenant_id=endpoint.tenant_id AND attempt.delivery_kind='webhook' AND attempt.endpoint_reference=endpoint.id::text
+   ORDER BY attempt.created_at DESC,attempt.id DESC LIMIT 100
+ ) recent
+) health ON true
+WHERE endpoint.tenant_id=$1
+ AND EXISTS(SELECT 1 FROM tenant_subject_roles role WHERE role.tenant_id=endpoint.tenant_id AND role.subject_id=$2 AND role.role IN ('operator','finance'))
+ AND ($3='' OR endpoint.status=$3)
+ AND ($4='' OR $4=ANY(endpoint.subscribed_events))
+ AND ($5::timestamptz IS NULL OR (endpoint.updated_at,endpoint.id)<($5::timestamptz,$6::uuid))
+ORDER BY endpoint.updated_at DESC,endpoint.id DESC LIMIT $7`, tenantID, actorID, filter.Status, filter.EventType, nullableTime(cursor.At), nullableString(cursor.ID), filter.Limit+1)
+	if err != nil {
+		return operations.WebhookEndpointPage{}, fmt.Errorf("list webhook endpoint evidence: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	page := operations.WebhookEndpointPage{Items: make([]operations.WebhookEndpointEvidence, 0, filter.Limit)}
+	for rows.Next() {
+		item, scanErr := scanWebhookEndpointEvidence(rows)
+		if scanErr != nil {
+			return operations.WebhookEndpointPage{}, scanErr
+		}
+		page.Items = append(page.Items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return operations.WebhookEndpointPage{}, err
+	}
+	if len(page.Items) > filter.Limit {
+		last := page.Items[filter.Limit-1]
+		page.NextCursor = encodeWebhookEndpointCursor(webhookEndpointCursor{At: last.UpdatedAt, ID: last.EndpointID, Fingerprint: fingerprint})
+		page.Items = page.Items[:filter.Limit]
+	}
+	return page, nil
+}
+
+func (r *OperationsRepository) GetWebhookEndpoint(ctx context.Context, tenantID, actorID, endpointID string) (operations.WebhookEndpointDetail, error) {
+	row := r.database.QueryRowContext(ctx, `
+SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,endpoint.subscribed_events,
+ COALESCE(health.latest_state,'none'),COALESCE(health.attempt_count,'0'),COALESCE(health.dead_count,'0'),
+ endpoint.verified_at,endpoint.disabled_at,health.latest_at,endpoint.updated_at
+FROM developer_webhook_endpoints endpoint
+LEFT JOIN LATERAL (
+ SELECT COALESCE((array_agg(recent.status ORDER BY recent.created_at DESC,recent.id DESC))[1],'none') latest_state,
+        count(*)::text attempt_count,
+        (count(*) FILTER (WHERE recent.status='dead'))::text dead_count,
+        max(recent.created_at) latest_at
+ FROM (
+   SELECT attempt.id,attempt.status,attempt.created_at
+   FROM delivery_attempts attempt
+   WHERE attempt.tenant_id=endpoint.tenant_id AND attempt.delivery_kind='webhook' AND attempt.endpoint_reference=endpoint.id::text
+   ORDER BY attempt.created_at DESC,attempt.id DESC LIMIT 100
+ ) recent
+) health ON true
+WHERE endpoint.tenant_id=$1 AND endpoint.id=$2
+ AND EXISTS(SELECT 1 FROM tenant_subject_roles role WHERE role.tenant_id=endpoint.tenant_id AND role.subject_id=$3 AND role.role IN ('operator','finance'))`, tenantID, endpointID, actorID)
+	item, err := scanWebhookEndpointEvidence(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return operations.WebhookEndpointDetail{}, ErrInvestigationNotFound
+	}
+	if err != nil {
+		return operations.WebhookEndpointDetail{}, err
+	}
+	detail := operations.WebhookEndpointDetail{WebhookEndpointEvidence: item, DeliveryAttempts: []operations.WebhookDeliveryEvidence{}}
+	rows, err := r.database.QueryContext(ctx, `
+SELECT attempt.id::text,COALESCE(attempt.outbox_event_id::text,''),attempt.transfer_id::text,attempt.status,attempt.attempt_number::text,
+ COALESCE(attempt.response_class,''),COALESCE(attempt.sanitized_error_code,''),attempt.due_at,attempt.started_at,attempt.completed_at
+FROM delivery_attempts attempt
+WHERE attempt.tenant_id=$1 AND attempt.delivery_kind='webhook' AND attempt.endpoint_reference=$2
+ORDER BY attempt.created_at DESC,attempt.id DESC LIMIT 26`, tenantID, endpointID)
+	if err != nil {
+		return operations.WebhookEndpointDetail{}, fmt.Errorf("read webhook delivery evidence: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var attempt operations.WebhookDeliveryEvidence
+		var started, completed sql.NullTime
+		if err := rows.Scan(&attempt.AttemptID, &attempt.EventID, &attempt.TransferID, &attempt.State, &attempt.AttemptNumber, &attempt.ResponseClass, &attempt.ErrorCode, &attempt.DueAt, &started, &completed); err != nil {
+			return operations.WebhookEndpointDetail{}, err
+		}
+		attempt.State = allowedEvidenceValue(attempt.State, "unknown", "pending", "retrying", "delivered", "dead")
+		attempt.ResponseClass = allowedEvidenceValue(attempt.ResponseClass, "redacted", "", "2xx", "3xx", "4xx", "5xx", "network_error", "timeout")
+		attempt.ErrorCode = allowedEvidenceValue(attempt.ErrorCode, "redacted", "", "timeout", "publish_failed", "invalid_event", "redis_unavailable", "recipient_unavailable", "connection_failed")
+		attempt.DueAt, attempt.StartedAt, attempt.CompletedAt = attempt.DueAt.UTC(), optionalDatabaseTime(started), optionalDatabaseTime(completed)
+		detail.DeliveryAttempts = append(detail.DeliveryAttempts, attempt)
+	}
+	if err := rows.Err(); err != nil {
+		return operations.WebhookEndpointDetail{}, err
+	}
+	if len(detail.DeliveryAttempts) > 25 {
+		detail.DeliveryAttemptsTruncated = true
+		detail.DeliveryAttempts = detail.DeliveryAttempts[:25]
+	}
+	return detail, nil
+}
+
+func scanWebhookEndpointEvidence(row rowScanner) (operations.WebhookEndpointEvidence, error) {
+	var item operations.WebhookEndpointEvidence
+	var verified, disabled, latest sql.NullTime
+	if err := row.Scan(&item.EndpointID, &item.Label, &item.EndpointURL, &item.Status, &item.SubscribedEvents, &item.RecentDeliveryState, &item.RecentAttemptCount, &item.RecentDeadCount, &verified, &disabled, &latest, &item.UpdatedAt); err != nil {
+		return item, err
+	}
+	item.VerifiedAt, item.DisabledAt, item.LatestDeliveryAt = optionalDatabaseTime(verified), optionalDatabaseTime(disabled), optionalDatabaseTime(latest)
+	return item, nil
+}
+
 func (r *OperationsRepository) ListEvents(ctx context.Context, tenantID, actorID string, filter operations.EventFilter) ([]operations.EventEvidence, string, error) {
 	fingerprint := eventFilterFingerprint(filter)
 	cursor, err := decodeEventCursor(filter.Cursor, fingerprint)
@@ -90,9 +218,10 @@ WHERE e.tenant_id=$1
  AND ($3='' OR CASE WHEN e.published_at IS NOT NULL THEN 'published' WHEN e.dead_at IS NOT NULL THEN 'dead' WHEN e.last_error_code IS NOT NULL AND e.attempt_count>0 THEN 'retrying' ELSE 'pending' END=$3)
  AND ($4='' OR e.transfer_id::text=$4 OR e.account_id::text=$4)
  AND ($5='' OR transfer_audit.correlation_id::text=$5)
+	AND ($12='' OR EXISTS(SELECT 1 FROM delivery_attempts endpoint_attempt WHERE endpoint_attempt.tenant_id=e.tenant_id AND endpoint_attempt.outbox_event_id=e.id AND endpoint_attempt.delivery_kind='webhook' AND endpoint_attempt.endpoint_reference=$12))
  AND ($6::timestamptz IS NULL OR e.occurred_at >= $6) AND ($7::timestamptz IS NULL OR e.occurred_at <= $7)
  AND ($8::timestamptz IS NULL OR (e.occurred_at,e.id)<($8::timestamptz,$9::uuid))
-ORDER BY e.occurred_at DESC,e.id DESC LIMIT $10`, tenantID, filter.EventType, filter.State, filter.RelatedID, filter.CorrelationID, nullableTime(filter.From), nullableTime(filter.To), nullableTime(cursor.At), nullableString(cursor.ID), filter.Limit+1, actorID)
+ORDER BY e.occurred_at DESC,e.id DESC LIMIT $10`, tenantID, filter.EventType, filter.State, filter.RelatedID, filter.CorrelationID, nullableTime(filter.From), nullableTime(filter.To), nullableTime(cursor.At), nullableString(cursor.ID), filter.Limit+1, actorID, filter.EndpointID)
 	if err != nil {
 		return nil, "", fmt.Errorf("list event evidence: %w", err)
 	}
@@ -143,7 +272,12 @@ WHERE e.tenant_id=$1 AND e.id=$2 AND (e.transfer_id IS NULL OR t.id IS NOT NULL)
 		return operations.EventDetail{}, err
 	}
 	detail := operations.EventDetail{EventEvidence: item, DeliveryAttempts: []operations.DeliveryEvidence{}, Timeline: eventTimeline(item)}
-	rows, err := r.database.QueryContext(ctx, `SELECT id::text,delivery_kind,status,attempt_number::text,COALESCE(response_class,''),COALESCE(sanitized_error_code,''),due_at,started_at,completed_at FROM delivery_attempts WHERE tenant_id=$1 AND outbox_event_id=$2 ORDER BY attempt_number DESC,id DESC LIMIT 26`, tenantID, eventID)
+	rows, err := r.database.QueryContext(ctx, `
+SELECT attempt.id::text,attempt.delivery_kind,attempt.status,attempt.attempt_number::text,COALESCE(attempt.response_class,''),COALESCE(attempt.sanitized_error_code,''),
+ COALESCE(endpoint.id::text,''),COALESCE(endpoint.display_name,''),COALESCE(endpoint.endpoint_url,''),attempt.due_at,attempt.started_at,attempt.completed_at
+FROM delivery_attempts attempt
+LEFT JOIN developer_webhook_endpoints endpoint ON attempt.delivery_kind='webhook' AND endpoint.tenant_id=attempt.tenant_id AND endpoint.id::text=attempt.endpoint_reference
+WHERE attempt.tenant_id=$1 AND attempt.outbox_event_id=$2 ORDER BY attempt.attempt_number DESC,attempt.id DESC LIMIT 26`, tenantID, eventID)
 	if err != nil {
 		return operations.EventDetail{}, fmt.Errorf("read event delivery evidence: %w", err)
 	}
@@ -151,7 +285,7 @@ WHERE e.tenant_id=$1 AND e.id=$2 AND (e.transfer_id IS NULL OR t.id IS NOT NULL)
 	for rows.Next() {
 		var attempt operations.DeliveryEvidence
 		var started, completed sql.NullTime
-		if err := rows.Scan(&attempt.AttemptID, &attempt.Kind, &attempt.State, &attempt.AttemptNumber, &attempt.ResponseClass, &attempt.ErrorCode, &attempt.DueAt, &started, &completed); err != nil {
+		if err := rows.Scan(&attempt.AttemptID, &attempt.Kind, &attempt.State, &attempt.AttemptNumber, &attempt.ResponseClass, &attempt.ErrorCode, &attempt.EndpointID, &attempt.EndpointLabel, &attempt.EndpointURL, &attempt.DueAt, &started, &completed); err != nil {
 			return operations.EventDetail{}, err
 		}
 		attempt.Kind = allowedEvidenceValue(attempt.Kind, "unknown", "webhook", "notification")
@@ -221,9 +355,38 @@ func eventTimeline(item operations.EventEvidence) []operations.EventTimelineItem
 }
 
 func eventFilterFingerprint(filter operations.EventFilter) string {
-	canonical := strings.Join([]string{filter.EventType, filter.State, filter.RelatedID, filter.CorrelationID, filter.From.UTC().Format(time.RFC3339Nano), filter.To.UTC().Format(time.RFC3339Nano), strconv.Itoa(filter.Limit)}, "\x00")
+	canonical := strings.Join([]string{filter.EventType, filter.State, filter.EndpointID, filter.RelatedID, filter.CorrelationID, filter.From.UTC().Format(time.RFC3339Nano), filter.To.UTC().Format(time.RFC3339Nano), strconv.Itoa(filter.Limit)}, "\x00")
 	sum := sha256.Sum256([]byte(canonical))
 	return hex.EncodeToString(sum[:])
+}
+
+func webhookEndpointFilterFingerprint(filter operations.WebhookEndpointFilter) string {
+	canonical := strings.Join([]string{filter.Status, filter.EventType, strconv.Itoa(filter.Limit)}, "\x00")
+	sum := sha256.Sum256([]byte(canonical))
+	return hex.EncodeToString(sum[:])
+}
+
+func encodeWebhookEndpointCursor(cursor webhookEndpointCursor) string {
+	encoded, _ := json.Marshal(cursor)
+	return base64.RawURLEncoding.EncodeToString(encoded)
+}
+
+func decodeWebhookEndpointCursor(raw, fingerprint string) (webhookEndpointCursor, error) {
+	if raw == "" {
+		return webhookEndpointCursor{}, nil
+	}
+	if len(raw) > 768 {
+		return webhookEndpointCursor{}, errors.New("invalid webhook endpoint cursor")
+	}
+	decoded, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil || len(decoded) > 512 {
+		return webhookEndpointCursor{}, errors.New("invalid webhook endpoint cursor")
+	}
+	var cursor webhookEndpointCursor
+	if json.Unmarshal(decoded, &cursor) != nil || cursor.At.IsZero() || !safeEvidenceUUID.MatchString(strings.ToLower(cursor.ID)) || cursor.Fingerprint != fingerprint {
+		return webhookEndpointCursor{}, errors.New("invalid webhook endpoint cursor")
+	}
+	return cursor, nil
 }
 
 func encodeEventCursor(cursor eventCursor) string {

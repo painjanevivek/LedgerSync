@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "3.0.0"
+const APIVersion = "3.1.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string
@@ -37,6 +37,7 @@ var Operations = []Operation{
 	{ID: "getRecoveryEvidenceIndex", Method: "GET", Path: "/recovery/manifests", Scope: "recovery:read", Idempotent: false},
 	{ID: "getTransfer", Method: "GET", Path: "/transfers/{transferId}", Scope: "transfers:read", Idempotent: false},
 	{ID: "getTransferCorrection", Method: "GET", Path: "/transfer-corrections/{correctionId}", Scope: "corrections:read", Idempotent: false},
+	{ID: "getWebhookEndpointEvidence", Method: "GET", Path: "/webhook-endpoints/{endpointId}", Scope: "webhooks:read", Idempotent: false},
 	{ID: "listAccountTransactions", Method: "GET", Path: "/accounts/{accountId}/transactions", Scope: "transactions:read", Idempotent: false},
 	{ID: "listApprovalEvidence", Method: "GET", Path: "/approvals", Scope: "funding:approve", Idempotent: false},
 	{ID: "listDeveloperCredentials", Method: "GET", Path: "/developer/credentials", Scope: "credentials:read", Idempotent: false},
@@ -48,6 +49,7 @@ var Operations = []Operation{
 	{ID: "listReconciliationRuns", Method: "GET", Path: "/reconciliation/runs", Scope: "reconciliation:read", Idempotent: false},
 	{ID: "listTransferCorrections", Method: "GET", Path: "/transfer-corrections", Scope: "corrections:read", Idempotent: false},
 	{ID: "listTransfers", Method: "GET", Path: "/transfers", Scope: "transfers:read", Idempotent: false},
+	{ID: "listWebhookEndpointEvidence", Method: "GET", Path: "/webhook-endpoints", Scope: "webhooks:read", Idempotent: false},
 	{ID: "postFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/post", Scope: "funding:write", Idempotent: true},
 	{ID: "postTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/post", Scope: "corrections:approve", Idempotent: true},
 	{ID: "reconcileFundingEvent", Method: "GET", Path: "/funding-events/{fundingEventId}/reconciliation", Scope: "funding:read", Idempotent: false},

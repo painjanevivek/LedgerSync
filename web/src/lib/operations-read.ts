@@ -11,7 +11,7 @@ const maximumOperationsResponseBytes = 262_144;
 
 export type OperationsReadAuthorization = Readonly<{ session: Session }>;
 
-export async function authorizeOperationsRead(request: NextRequest, session: Session | null, scope: "local:read" | "events:read" | "developer:read" | "recovery:read" | "explainability:read", rateLimit: RateLimitStore): Promise<OperationsReadAuthorization | NextResponse> {
+export async function authorizeOperationsRead(request: NextRequest, session: Session | null, scope: "local:read" | "events:read" | "webhooks:read" | "developer:read" | "recovery:read" | "explainability:read", rateLimit: RateLimitStore): Promise<OperationsReadAuthorization | NextResponse> {
   if (request.method !== "GET") {
     const response = jsonError("method_not_allowed", 405);
     response.headers.set("Allow", "GET");
@@ -46,9 +46,10 @@ export function strictOperationsQuery(request: NextRequest, allowed: readonly st
     if (!value || value.length > (key === "cursor" ? 2_048 : 256)) return jsonError("validation_failed", 400);
     if (key === "limit" && (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 100)) return jsonError("validation_failed", 400);
     if (key === "state" && !["pending", "retrying", "published", "dead"].includes(value)) return jsonError("validation_failed", 400);
+    if (key === "status" && !["pending_verification", "active", "disabled"].includes(value)) return jsonError("validation_failed", 400);
     if ((key === "from" || key === "to") && Number.isNaN(Date.parse(value))) return jsonError("validation_failed", 400);
     if (key === "eventType" && !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value)) return jsonError("validation_failed", 400);
-    if ((key === "relatedId" || key === "correlationId") && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) return jsonError("validation_failed", 400);
+    if ((key === "endpointId" || key === "relatedId" || key === "correlationId") && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) return jsonError("validation_failed", 400);
     query.set(key, value);
   }
   const from = query.get("from");

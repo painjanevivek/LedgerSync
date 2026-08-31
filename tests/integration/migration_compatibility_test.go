@@ -28,8 +28,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 28 {
-		t.Fatalf("migration versions=%d, want 28", versions)
+	if versions != 29 {
+		t.Fatalf("migration versions=%d, want 29", versions)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
@@ -40,7 +40,7 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 			t.Fatalf("required table %s is missing after migration", table)
 		}
 	}
-	for _, index := range []string{"funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx"} {
+	for _, index := range []string{"funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, index).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -118,7 +118,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") || strings.HasPrefix(entry.Name(), "000019_") || strings.HasPrefix(entry.Name(), "000022_") || strings.HasPrefix(entry.Name(), "000023_") || strings.HasPrefix(entry.Name(), "000026_") || strings.HasPrefix(entry.Name(), "000027_") || strings.HasPrefix(entry.Name(), "000028_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") || strings.HasPrefix(entry.Name(), "000019_") || strings.HasPrefix(entry.Name(), "000022_") || strings.HasPrefix(entry.Name(), "000023_") || strings.HasPrefix(entry.Name(), "000026_") || strings.HasPrefix(entry.Name(), "000027_") || strings.HasPrefix(entry.Name(), "000028_") || strings.HasPrefix(entry.Name(), "000029_") {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))

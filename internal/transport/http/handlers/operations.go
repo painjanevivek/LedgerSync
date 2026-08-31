@@ -15,6 +15,7 @@ import (
 type OperationsHandler struct {
 	diagnostics   *operations.DiagnosticService
 	events        *operations.EventService
+	webhooks      *operations.WebhookEndpointService
 	identity      identity.Provider
 	authenticator *identity.RequestAuthenticator
 	rateLimiter   RateLimiter
@@ -22,8 +23,8 @@ type OperationsHandler struct {
 	audit         AuditRecorder
 }
 
-func NewOperationsHandler(diagnostics *operations.DiagnosticService, events *operations.EventService, provider identity.Provider) *OperationsHandler {
-	return &OperationsHandler{diagnostics: diagnostics, events: events, identity: provider}
+func NewOperationsHandler(diagnostics *operations.DiagnosticService, events *operations.EventService, webhooks *operations.WebhookEndpointService, provider identity.Provider) *OperationsHandler {
+	return &OperationsHandler{diagnostics: diagnostics, events: events, webhooks: webhooks, identity: provider}
 }
 func (h *OperationsHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *OperationsHandler {
 	h.authenticator = authenticator
@@ -59,7 +60,7 @@ func (h *OperationsHandler) Events(writer http.ResponseWriter, request *http.Req
 	if !ok {
 		return
 	}
-	if !onlyQueryParameters(request, "cursor", "eventType", "state", "relatedId", "correlationId", "from", "to", "limit") {
+	if !onlyQueryParameters(request, "cursor", "eventType", "state", "endpointId", "relatedId", "correlationId", "from", "to", "limit") {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
@@ -67,7 +68,7 @@ func (h *OperationsHandler) Events(writer http.ResponseWriter, request *http.Req
 	if !ok {
 		return
 	}
-	filter := operations.EventFilter{Cursor: request.URL.Query().Get("cursor"), EventType: request.URL.Query().Get("eventType"), State: request.URL.Query().Get("state"), RelatedID: request.URL.Query().Get("relatedId"), CorrelationID: request.URL.Query().Get("correlationId"), Limit: limit}
+	filter := operations.EventFilter{Cursor: request.URL.Query().Get("cursor"), EventType: request.URL.Query().Get("eventType"), State: request.URL.Query().Get("state"), EndpointID: request.URL.Query().Get("endpointId"), RelatedID: request.URL.Query().Get("relatedId"), CorrelationID: request.URL.Query().Get("correlationId"), Limit: limit}
 	var err error
 	if raw := request.URL.Query().Get("from"); raw != "" {
 		filter.From, err = time.Parse(time.RFC3339, raw)
@@ -87,6 +88,56 @@ func (h *OperationsHandler) Events(writer http.ResponseWriter, request *http.Req
 		return
 	}
 	writeInvestigationJSON(writer, map[string]any{"events": items, "next_cursor": next})
+}
+
+func (h *OperationsHandler) WebhookEndpoints(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		writeGETOnly(writer, request)
+		return
+	}
+	principal, ok := h.authorize(writer, request, "webhooks:read", "webhooks:evidence_list")
+	if !ok {
+		return
+	}
+	if !onlyQueryParameters(request, "cursor", "status", "eventType", "limit") {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	limit, ok := boundedLimit(writer, request, 25)
+	if !ok {
+		return
+	}
+	page, err := h.webhooks.List(request.Context(), principal.TenantID, principal.SubjectID, operations.WebhookEndpointFilter{Cursor: request.URL.Query().Get("cursor"), Status: request.URL.Query().Get("status"), EventType: request.URL.Query().Get("eventType"), Limit: limit})
+	if err != nil {
+		writeOperationsEvidenceError(writer, request, err)
+		return
+	}
+	writeInvestigationJSON(writer, page)
+}
+
+func (h *OperationsHandler) WebhookEndpoint(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		writeGETOnly(writer, request)
+		return
+	}
+	principal, ok := h.authorize(writer, request, "webhooks:read", "webhooks:evidence_detail")
+	if !ok {
+		return
+	}
+	if request.URL.RawQuery != "" {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	item, err := h.webhooks.Get(request.Context(), principal.TenantID, principal.SubjectID, strings.TrimSpace(request.PathValue("endpointId")))
+	if errors.Is(err, db.ErrInvestigationNotFound) {
+		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+		return
+	}
+	if err != nil {
+		writeOperationsEvidenceError(writer, request, err)
+		return
+	}
+	writeInvestigationJSON(writer, item)
 }
 
 func (h *OperationsHandler) Event(writer http.ResponseWriter, request *http.Request) {
@@ -111,7 +162,7 @@ func (h *OperationsHandler) Event(writer http.ResponseWriter, request *http.Requ
 }
 
 func (h *OperationsHandler) authorize(writer http.ResponseWriter, request *http.Request, scope, route string) (identity.Principal, bool) {
-	if h == nil || h.diagnostics == nil || h.events == nil || h.identity == nil {
+	if h == nil || h.diagnostics == nil || h.events == nil || h.webhooks == nil || h.identity == nil {
 		httptransport.WriteError(writer, request, errors.New("operations handler is not configured"))
 		return identity.Principal{}, false
 	}
@@ -164,7 +215,7 @@ func writeGETOnly(writer http.ResponseWriter, request *http.Request) {
 }
 
 func writeOperationsEvidenceError(writer http.ResponseWriter, request *http.Request, err error) {
-	if errors.Is(err, operations.ErrInvalidEventEvidence) || strings.Contains(err.Error(), "invalid event cursor") {
+	if errors.Is(err, operations.ErrInvalidEventEvidence) || errors.Is(err, operations.ErrInvalidWebhookEvidence) || strings.Contains(err.Error(), "invalid event cursor") || strings.Contains(err.Error(), "invalid webhook endpoint cursor") {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}

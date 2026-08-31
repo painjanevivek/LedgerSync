@@ -44,7 +44,11 @@ func registerOperationsRoutes(router *http.ServeMux, config operationsRouteConfi
 	if err != nil {
 		return fmt.Errorf("initialize event evidence service: %w", err)
 	}
-	handler := handlers.NewOperationsHandler(diagnostics, events, config.Identity).
+	webhooks, err := operations.NewWebhookEndpointService(repository)
+	if err != nil {
+		return fmt.Errorf("initialize webhook endpoint evidence service: %w", err)
+	}
+	handler := handlers.NewOperationsHandler(diagnostics, events, webhooks, config.Identity).
 		WithRateLimiter(config.RateLimiter, config.RateLimitPerMinute).
 		WithAuditRecorder(config.AuditRecorder)
 	if config.Authenticator != nil {
@@ -53,5 +57,7 @@ func registerOperationsRoutes(router *http.ServeMux, config operationsRouteConfi
 	router.HandleFunc("GET /api/local/diagnostics", handler.Diagnostics)
 	router.HandleFunc("GET /api/events", handler.Events)
 	router.HandleFunc("GET /api/events/{eventID}", handler.Event)
+	router.HandleFunc("GET /api/webhook-endpoints", handler.WebhookEndpoints)
+	router.HandleFunc("GET /api/webhook-endpoints/{endpointId}", handler.WebhookEndpoint)
 	return nil
 }

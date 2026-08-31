@@ -107,7 +107,7 @@ test("shared field labels show the server-backed required or optional state", as
   await expect(page.getByLabel("Amount")).toHaveAttribute("required", "");
 
   await page.goto("/events");
-  await expect(page.locator(".event-filter-document .field-requirement.optional")).toHaveCount(6);
+  await expect(page.locator(".event-filter-document .field-requirement.optional")).toHaveCount(7);
   await expect(page.getByLabel("Event type")).not.toHaveAttribute("required", "");
 });
 

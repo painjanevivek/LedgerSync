@@ -114,7 +114,13 @@
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0ms !important; }
 }
 
-@media (forced-colors: active) { .status-label,.button,.state-panel,.side-nav { forced-color-adjust: auto; }.nav-item.active { outline: 2px solid CanvasText; } }
+@media (forced-colors: active) {
+  .status-label,.button,.state-panel,.side-nav,.mobile-bar { forced-color-adjust: auto; }
+  .mobile-bar { border-block-end: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+  .mobile-bar .brand,.mobile-bar .brand span,.mobile-context,.mobile-context small,.menu-button { color: CanvasText; }
+  .menu-button { border-color: ButtonText; }
+  .nav-item.active { outline: 2px solid CanvasText; }
+}
 
 @media (max-width: 900px) {
   .developer-reference-nav { grid-template-columns:1fr; }

@@ -84,7 +84,6 @@ func TestPhaseFiveReadSurfaceExcludesRawPayloadAndWriteRoutes(t *testing.T) {
 	lowerRepository := strings.ToLower(string(repository))
 	for _, forbidden := range []string{
 		"e.payload",
-		"endpoint_reference",
 		"claim_owner",
 		"database_url",
 		"redis_address",
@@ -93,6 +92,16 @@ func TestPhaseFiveReadSurfaceExcludesRawPayloadAndWriteRoutes(t *testing.T) {
 	} {
 		if strings.Contains(lowerRepository, forbidden) {
 			t.Errorf("operations read repository contains forbidden sensitive field or infrastructure reference %q", forbidden)
+		}
+	}
+	modelPath := filepath.Join(root, "internal", "application", "operations", "webhook_endpoints.go")
+	model, err := os.ReadFile(modelPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"json:\"endpoint_url", "json:\"signing_key", "json:\"payload", "json:\"raw_error"} {
+		if strings.Contains(strings.ToLower(string(model)), forbidden) {
+			t.Errorf("webhook evidence model exposes forbidden response field %q", forbidden)
 		}
 	}
 
