@@ -2,12 +2,12 @@
 
 import { ArrowClockwise, ArrowLeft, CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { CopyControl, DataTableRegion, EvidenceFreshness, FormField, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
 import { WebhookReplayControl } from "@/features/operations/WebhookReplayControl";
 import type { WebhookDeliveryAttempt, WebhookEndpoint, WebhookEndpointDetail } from "@/lib/api/operations";
-
-export type WebhookFilters = Readonly<{ status?: string; eventType?: string; cursor?: string }>;
+import { webhooksURL, type WebhookFilters } from "@/lib/page-query/operations";
 
 function utc(value?: string) {
   if (!value) return "Not available";
@@ -20,23 +20,29 @@ function endpointTone(status: WebhookEndpoint["status"]) { return status === "ac
 function deliveryTone(state: WebhookEndpoint["recent_delivery_state"] | WebhookDeliveryAttempt["state"]) { return state === "delivered" || state === "none" ? "success" as const : state === "dead" ? "danger" as const : "warning" as const; }
 
 export function WebhookEndpointListView({ items, filters, nextCursor, verifiedAt, loading, error, online, canRead, onRefresh }: Readonly<{ items: WebhookEndpoint[]; filters: WebhookFilters; nextCursor?: string; verifiedAt?: string; loading: boolean; error: string | null; online: boolean; canRead: boolean; onRefresh: () => void }>) {
-  const current = new URLSearchParams(); for (const [key, value] of Object.entries(filters)) if (value) current.set(key, value);
-  const returnTo = current.size ? `/webhooks?${current}` : "/webhooks";
-  const next = new URLSearchParams(current); next.delete("cursor"); if (nextCursor) next.set("cursor", nextCursor);
+  const router = useRouter();
+  const returnTo = webhooksURL(filters);
+  const nextHref = nextCursor ? webhooksURL({ ...filters, cursor: nextCursor }) : undefined;
   return <>
     <PageHeader eyebrow="Operations / Webhooks" title="Webhook endpoints" description="Inspect verification, subscriptions, and bounded delivery health without exposing endpoint paths or signing material."><button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true"/>Refresh endpoints</button></PageHeader>
     <nav className="related-evidence" aria-label="Delivery evidence views"><Link className="record-link" href="/events">Events</Link><Link className="record-link" aria-current="page" href="/webhooks">Webhook endpoints</Link></nav>
     <div className="financial-separation-note"><CheckCircle weight="fill" aria-hidden="true"/><div><strong>Delivery controls do not post money</strong><p>A dead or disabled webhook does not roll back a committed transfer. Open the linked event and transfer records to verify each independent outcome.</p></div></div>
     {!canRead && <StatePanel kind="denied" title="Webhook evidence not authorized" message="This session does not include webhooks:read. No endpoint metadata has been requested."/>}
     {!online && <StatePanel kind="offline" title="Offline — endpoint evidence is historical" message="Reconnect before refreshing or treating delivery health as current."/>}
-    <form className="event-filter-document" method="get" action="/webhooks" aria-label="Webhook endpoint filters">
+    <form className="event-filter-document" aria-label="Webhook endpoint filters" onSubmit={(submitEvent) => {
+      submitEvent.preventDefault();
+      const data = new FormData(submitEvent.currentTarget);
+      const status = String(data.get("status") ?? "").trim();
+      const eventType = String(data.get("eventType") ?? "").trim();
+      router.push(webhooksURL({ status: (status || undefined) as WebhookFilters["status"], eventType: eventType || undefined }));
+    }}>
       <FormField label="Endpoint status" requirement="optional"><select name="status" defaultValue={filters.status ?? ""}><option value="">All statuses</option><option value="pending_verification">Pending verification</option><option value="active">Active</option><option value="disabled">Disabled</option></select></FormField>
       <FormField label="Subscribed event" requirement="optional" hint="Example: transfer.posted"><input name="eventType" defaultValue={filters.eventType} maxLength={128}/></FormField>
       <div className="event-filter-actions"><button className="button primary guarded-control" type="submit">Apply filters</button><Link className="button secondary guarded-control" href="/webhooks">Clear filters</Link></div>
     </form>
     {error && <StatePanel kind="error" title="Webhook evidence unavailable" message={error}/>}
     {verifiedAt && items.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Endpoint page" reason={error ?? (!online ? "Reconnect before relying on delivery health." : undefined)}/>}
-    {loading && items.length === 0 ? <StatePanel title="Loading endpoint evidence" message="Requesting the current bounded endpoint page. No delivery result is being inferred."/> : canRead && !error && items.length === 0 ? <StatePanel title="No endpoints match these filters" message="Change or clear the filters. A truly empty page means no endpoint metadata exists in this authorized tenant scope."/> : items.length > 0 && <section className="ledger-section" aria-labelledby="webhook-list-heading" aria-busy={loading}><div className="section-heading"><div><p className="eyebrow">Safe endpoint metadata</p><h2 id="webhook-list-heading">Registered destinations</h2></div><span>{items.length} on this page</span></div><DataTableRegion label="Webhook endpoint records"><table className="data-table"><thead><tr><th scope="col">Endpoint</th><th scope="col">Status</th><th scope="col">Recent delivery</th><th scope="col">Subscriptions</th><th scope="col">Updated</th><th scope="col">Evidence</th></tr></thead><tbody>{items.map((item) => <tr key={item.endpoint_id}><td><strong>{item.label}</strong><br/><code>{item.origin}</code><CopyControl value={item.endpoint_id} label={`Copy endpoint ${item.label} ID`}/></td><td><StatusBadge tone={endpointTone(item.status)}>{label(item.status)}</StatusBadge></td><td><StatusBadge tone={deliveryTone(item.recent_delivery_state)}>{label(item.recent_delivery_state)}</StatusBadge><br/><span>{item.recent_attempt_count} recent · {item.recent_dead_count} dead</span></td><td>{item.subscribed_events.map((eventType) => <code key={eventType}>{eventType}<br/></code>)}</td><td>{utc(item.updated_at)}</td><td><RecordLink href={`/webhooks/${encodeURIComponent(item.endpoint_id)}?return_to=${encodeURIComponent(returnTo)}`} label="Open endpoint"/></td></tr>)}</tbody></table></DataTableRegion><div className="pagination"><span>{nextCursor ? "More endpoint evidence is available" : "End of available endpoints"}</span>{nextCursor ? <Link className="button secondary guarded-control" href={`/webhooks?${next}`}>Next page</Link> : <button className="button secondary guarded-control" type="button" disabled>Next page</button>}</div></section>}
+    {loading && items.length === 0 ? <StatePanel title="Loading endpoint evidence" message="Requesting the current bounded endpoint page. No delivery result is being inferred."/> : canRead && !error && items.length === 0 ? <StatePanel title="No endpoints match these filters" message="Change or clear the filters. A truly empty page means no endpoint metadata exists in this authorized tenant scope."/> : items.length > 0 && <section className="ledger-section" aria-labelledby="webhook-list-heading" aria-busy={loading}><div className="section-heading"><div><p className="eyebrow">Most recently updated first</p><h2 id="webhook-list-heading">Registered destinations</h2><p>{items.length} endpoint{items.length === 1 ? "" : "s"} on this page. A total is not calculated or implied.</p></div></div><DataTableRegion label="Webhook endpoint records"><table className="data-table"><thead><tr><th scope="col">Endpoint</th><th scope="col">Status</th><th scope="col">Recent delivery</th><th scope="col">Subscriptions</th><th scope="col">Updated</th><th scope="col">Evidence</th></tr></thead><tbody>{items.map((item) => <tr key={item.endpoint_id}><td><strong>{item.label}</strong><br/><code>{item.origin}</code><CopyControl value={item.endpoint_id} label={`Copy endpoint ${item.label} ID`}/></td><td><StatusBadge tone={endpointTone(item.status)}>{label(item.status)}</StatusBadge></td><td><StatusBadge tone={deliveryTone(item.recent_delivery_state)}>{label(item.recent_delivery_state)}</StatusBadge><br/><span>{item.recent_attempt_count} recent · {item.recent_dead_count} dead</span></td><td>{item.subscribed_events.map((eventType) => <code key={eventType}>{eventType}<br/></code>)}</td><td>{utc(item.updated_at)}</td><td><RecordLink href={`/webhooks/${encodeURIComponent(item.endpoint_id)}?return_to=${encodeURIComponent(returnTo)}`} label="Open endpoint"/></td></tr>)}</tbody></table></DataTableRegion><div className="pagination"><span>{nextHref ? "More endpoint evidence is available" : "End of available endpoints"}</span>{nextHref ? <Link className="button secondary guarded-control" href={nextHref}>Next page</Link> : <button className="button secondary guarded-control" type="button" disabled>Next page</button>}</div></section>}
   </>;
 }
 

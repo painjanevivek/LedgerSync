@@ -1,5 +1,5 @@
 import { safeInternalReturnPath } from "@/lib/navigation";
-import { parseStrictListQuery, parseStrictListSearchParams, type StrictListQueryInput, type StrictListQueryRule } from "@/lib/strict-list-query";
+import { isRFC3339Timestamp, parseStrictListQuery, parseStrictListSearchParams, type StrictListQueryInput, type StrictListQueryRule } from "@/lib/strict-list-query";
 
 export type TransferFilters = Readonly<{
   query: string;
@@ -14,27 +14,12 @@ export const emptyTransferFilters: TransferFilters = { query: "", accountId: "",
 
 const canonicalUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const transferReference = /^[0-9A-Fa-f-]{1,128}$/;
-const rfc3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|([+-])(\d{2}):(\d{2}))$/;
-
-function isRFC3339(value: string) {
-  const match = rfc3339.exec(value);
-  if (!match) return false;
-  const [, year, month, day, hour, minute, second, , offsetHour, offsetMinute] = match;
-  const yearValue = Number(year);
-  const monthValue = Number(month);
-  const dayValue = Number(day);
-  if (monthValue < 1 || monthValue > 12 || dayValue < 1 || dayValue > new Date(Date.UTC(yearValue, monthValue, 0)).getUTCDate()) return false;
-  if (Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return false;
-  if (offsetHour && (Number(offsetHour) > 23 || Number(offsetMinute) > 59)) return false;
-  return !Number.isNaN(Date.parse(value));
-}
-
 export const transferListQueryRules = {
   q: { maximumLength: 128, pattern: transferReference },
   accountId: { maximumLength: 36, pattern: canonicalUUID },
   status: { maximumLength: 8, values: ["pending", "posted", "rejected"] },
-  from: { maximumLength: 64, validate: isRFC3339 },
-  to: { maximumLength: 64, validate: isRFC3339 },
+  from: { maximumLength: 64, validate: isRFC3339Timestamp },
+  to: { maximumLength: 64, validate: isRFC3339Timestamp },
   cursor: { maximumLength: 2_048 },
 } as const;
 

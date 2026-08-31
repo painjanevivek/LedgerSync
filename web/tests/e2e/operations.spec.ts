@@ -197,3 +197,57 @@ test("offline status retains its timestamp but disables refresh", async ({ page,
   await expect(page.getByRole("button", { name:"Refresh evidence" })).toBeDisabled();
   await context.setOffline(false);
 });
+
+test("event cursor and detail return context preserve the exact filtered investigation", async ({ page }) => {
+  let requestedURL = "";
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/events?*");
+  await page.route("**/api/events?*", (route) => {
+    requestedURL = route.request().url();
+    const cursor = new URL(requestedURL).searchParams.get("cursor");
+    return json(route, { events: [deliveryEvent], next_cursor: cursor ? "" : "event-next" });
+  });
+
+  await page.goto("/events?state=dead");
+  await expect(page.getByText("1 event on this page. A total is not calculated or implied.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open event" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/events?state=dead")}`));
+  await page.getByRole("link", { name: "Next page" }).click();
+  await expect(page).toHaveURL(/state=dead&cursor=event-next/);
+  await expect.poll(() => requestedURL).toContain("cursor=event-next");
+});
+
+test("webhook cursor and detail return context preserve the exact filtered investigation", async ({ page }) => {
+  let requestedURL = "";
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/webhook-endpoints?*");
+  await page.route("**/api/webhook-endpoints?*", (route) => {
+    requestedURL = route.request().url();
+    const cursor = new URL(requestedURL).searchParams.get("cursor");
+    return json(route, { items: [webhookEndpoint], next_cursor: cursor ? "" : "webhook-next" });
+  });
+
+  await page.goto("/webhooks?status=active");
+  await expect(page.getByText("1 endpoint on this page. A total is not calculated or implied.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open endpoint" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/webhooks?status=active")}`));
+  await page.getByRole("link", { name: "Next page" }).click();
+  await expect(page).toHaveURL(/status=active&cursor=webhook-next/);
+  await expect.poll(() => requestedURL).toContain("cursor=webhook-next");
+});
+
+test("invalid event and webhook URLs do not request protected evidence", async ({ page }) => {
+  let eventRequested = false;
+  let webhookRequested = false;
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/events?*");
+  await page.unroute("**/api/webhook-endpoints?*");
+  await page.route("**/api/events?*", (route) => { eventRequested = true; return json(route, {}, 500); });
+  await page.route("**/api/webhook-endpoints?*", (route) => { webhookRequested = true; return json(route, {}, 500); });
+
+  await page.goto("/events?state=dead&state=published");
+  await expect(page.getByText("Invalid event investigation URL")).toBeVisible();
+  expect(eventRequested).toBe(false);
+
+  await page.goto("/webhooks?status=paused");
+  await expect(page.getByText("Invalid webhook investigation URL")).toBeVisible();
+  expect(webhookRequested).toBe(false);
+});

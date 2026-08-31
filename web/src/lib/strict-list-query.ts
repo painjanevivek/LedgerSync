@@ -58,3 +58,18 @@ export function isUTCDate(value: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
+
+const rfc3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|([+-])(\d{2}):(\d{2}))$/;
+
+export function isRFC3339Timestamp(value: string) {
+  const match = rfc3339.exec(value);
+  if (!match) return false;
+  const [, year, month, day, hour, minute, second, , offsetHour, offsetMinute] = match;
+  const yearValue = Number(year);
+  const monthValue = Number(month);
+  const dayValue = Number(day);
+  if (monthValue < 1 || monthValue > 12 || dayValue < 1 || dayValue > new Date(Date.UTC(yearValue, monthValue, 0)).getUTCDate()) return false;
+  if (Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return false;
+  if (offsetHour && (Number(offsetHour) > 23 || Number(offsetMinute) > 59)) return false;
+  return !Number.isNaN(Date.parse(value));
+}

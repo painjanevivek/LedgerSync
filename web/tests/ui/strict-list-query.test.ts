@@ -5,6 +5,7 @@ import { parseApprovalBFFSearchParams, parseApprovalPageQuery } from "../../src/
 import { correctionBFFQueryRules, correctionsURL, parseCorrectionPageQuery } from "../../src/lib/page-query/corrections";
 import { fundingBFFQueryRules, fundingURL, parseFundingPageQuery } from "../../src/lib/page-query/funding";
 import { parseReconciliationPageQuery, reconciliationBFFQueryRules, reconciliationURL } from "../../src/lib/page-query/reconciliation";
+import { eventBFFQueryRules, eventsURL, parseEventBFFSearchParams, parseEventPageQuery, parseWebhookBFFSearchParams, parseWebhookPageQuery, webhookBFFQueryRules, webhooksURL } from "../../src/lib/page-query/operations";
 import { parseTransferPageQuery, parseTransferSearchParams, transferBFFQueryRules, transferExportQuery, transferURL } from "../../src/lib/page-query/transfers";
 import { isUTCDate, parseStrictListQuery, parseStrictListSearchParams } from "../../src/lib/strict-list-query";
 
@@ -118,4 +119,25 @@ test("transfer page, BFF, URL, and export retain one exact filter set", () => {
   assert.equal(transferExportQuery(filters).toString(), "limit=10000&q=abc-1&accountId=10000000-0000-4000-8000-000000000001&status=pending&from=2026-08-01T00%3A00%3A00.000Z&to=2026-08-31T23%3A59%3A59.000Z");
   assert.equal(parseTransferSearchParams(new URLSearchParams("q=abc-1&status=pending&limit=25"), transferBFFQueryRules).ok, true);
   assert.equal(parseTransferSearchParams(new URLSearchParams("q=ops-1&limit=25"), transferBFFQueryRules).ok, false);
+});
+
+test("event and webhook pages reject malformed investigations before BFF reads", () => {
+  assert.deepEqual(parseEventPageQuery({ eventType: "transfer.posted", state: "dead", from: "2026-08-01T00:00:00Z", to: "2026-08-31T23:59:59Z", cursor: "event-next" }), { ok: true, filters: {
+    eventType: "transfer.posted", state: "dead", endpointId: undefined, relatedId: undefined, correlationId: undefined,
+    from: "2026-08-01T00:00:00Z", to: "2026-08-31T23:59:59Z", cursor: "event-next",
+  } });
+  assert.equal(parseEventPageQuery({ state: ["dead", "published"] }).ok, false);
+  assert.equal(parseEventPageQuery({ endpointId: "not-a-uuid" }).ok, false);
+  assert.equal(parseEventPageQuery({ from: "2026-02-30T00:00:00Z" }).ok, false);
+  assert.equal(parseEventPageQuery({ from: "2026-09-01T00:00:00Z", to: "2026-08-01T00:00:00Z" }).ok, false);
+  assert.equal(eventsURL({ state: "dead", cursor: "event-next" }), "/events?state=dead&cursor=event-next");
+  assert.equal(parseEventBFFSearchParams(new URLSearchParams("state=dead&limit=25")).ok, true);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("state=dead&limit=25"), eventBFFQueryRules).ok, true);
+
+  assert.deepEqual(parseWebhookPageQuery({ status: "active", eventType: "transfer.posted", cursor: "webhook-next" }), { ok: true, filters: { status: "active", eventType: "transfer.posted", cursor: "webhook-next" } });
+  assert.equal(parseWebhookPageQuery({ status: "paused" }).ok, false);
+  assert.equal(parseWebhookPageQuery({ eventType: "*" }).ok, false);
+  assert.equal(webhooksURL({ status: "active", cursor: "webhook-next" }), "/webhooks?status=active&cursor=webhook-next");
+  assert.equal(parseWebhookBFFSearchParams(new URLSearchParams("status=active&limit=25")).ok, true);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("status=active&limit=101"), webhookBFFQueryRules).ok, false);
 });
