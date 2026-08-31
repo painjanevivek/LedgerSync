@@ -23,7 +23,7 @@ func TestDatabaseRoleContractKeepsSupportReadOnlyAndBreakGlassGrantless(t *testi
 	if strings.Contains(contract, "GRANT INSERT ON audit_events TO ledgersync_support_readonly") || strings.Contains(contract, "TO ledgersync_break_glass;") {
 		t.Fatal("support or break-glass role received forbidden standing write authority")
 	}
-	for _, table := range []string{"api_rate_limit_windows", "journal_transactions", "ledger_postings", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "reconciliation_runs", "reconciliation_mismatches", "partner_credential_events", "developer_webhook_endpoints", "developer_webhook_events"} {
+	for _, table := range []string{"api_rate_limit_windows", "journal_transactions", "ledger_postings", "delivery_attempts", "webhook_delivery_jobs", "webhook_endpoint_verification_jobs", "delivery_replay_actions", "reconciliation_runs", "reconciliation_mismatches", "partner_credential_events", "developer_webhook_endpoints", "developer_webhook_events", "bff_actor_assertion_replays"} {
 		if !strings.Contains(contract, table) {
 			t.Errorf("API investigation/rate-limit contract omits %s", table)
 		}

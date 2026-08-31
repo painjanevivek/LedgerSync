@@ -166,16 +166,21 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
 		t.Fatalf("apply post-upgrade database roles: %v", err)
 	}
-	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy bool
+	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
        has_table_privilege('ledgersync_api','audit_events','SELECT'),
        has_table_privilege('ledgersync_api','tenant_funding_policies','SELECT'),
-       has_table_privilege('ledgersync_api','tenant_funding_policies','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy); err != nil {
+       has_table_privilege('ledgersync_api','tenant_funding_policies','UPDATE'),
+       has_table_privilege('ledgersync_api','bff_actor_assertion_replays','INSERT'),
+       has_table_privilege('ledgersync_api','bff_actor_assertion_replays','DELETE'),
+       has_table_privilege('ledgersync_api','webhook_endpoint_verification_jobs','INSERT'),
+       has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','SELECT')
+         AND has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy, &canPersistAssertionReplay, &canDeleteAssertionReplay, &canInsertVerificationJob, &workerCanClaimVerificationJob); err != nil {
 		t.Fatal(err)
 	}
-	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy {
-		t.Fatalf("migrations did not preserve least-privilege API evidence grants: outbox=%t audit=%t funding_policy_read=%t funding_policy_update=%t", canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy)
+	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy || !canPersistAssertionReplay || !canDeleteAssertionReplay || !canInsertVerificationJob || !workerCanClaimVerificationJob {
+		t.Fatalf("migrations did not preserve least-privilege workload grants: outbox=%t audit=%t funding_policy_read=%t funding_policy_update=%t assertion_insert=%t assertion_delete=%t verification_insert=%t worker_verification_claim=%t", canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob)
 	}
 	wantBalances := map[string][3]int64{
 		legacyAccounts[0]: {725, 725, 9}, legacyAccounts[1]: {10, 10, 2}, legacyAccounts[2]: {20, 20, 3}, legacyAccounts[3]: {30, 30, 4},
