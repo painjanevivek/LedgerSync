@@ -18,6 +18,7 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -49,6 +50,68 @@ func (r StaticKeyResolver) Resolve(_ context.Context, reference string) ([]byte,
 		return nil, errors.New("webhook signing key reference is unavailable")
 	}
 	return bytes.Clone(key), nil
+}
+
+// CachedKeyResolver keeps worker-only managed secret reads bounded. It copies
+// values at each boundary and expires entries quickly so endpoint key rotation
+// can overlap safely without baking signing material into environment values.
+type CachedKeyResolver struct {
+	upstream KeyResolver
+	ttl      time.Duration
+	clock    func() time.Time
+	mu       sync.Mutex
+	entries  map[string]cachedKey
+}
+
+type cachedKey struct {
+	value     []byte
+	expiresAt time.Time
+}
+
+func NewCachedKeyResolver(upstream KeyResolver, ttl time.Duration, clock func() time.Time) (*CachedKeyResolver, error) {
+	if upstream == nil || ttl <= 0 || ttl > 15*time.Minute {
+		return nil, errors.New("managed webhook key resolver requires a 1ns..15m cache TTL")
+	}
+	if clock == nil {
+		clock = time.Now
+	}
+	return &CachedKeyResolver{upstream: upstream, ttl: ttl, clock: clock, entries: make(map[string]cachedKey)}, nil
+}
+
+func (r *CachedKeyResolver) Resolve(ctx context.Context, reference string) ([]byte, error) {
+	reference = strings.TrimSpace(reference)
+	if reference == "" {
+		return nil, errors.New("webhook signing key reference is required")
+	}
+	now := r.clock().UTC()
+	r.mu.Lock()
+	if cached, ok := r.entries[reference]; ok && cached.expiresAt.After(now) {
+		value := bytes.Clone(cached.value)
+		r.mu.Unlock()
+		return value, nil
+	}
+	r.mu.Unlock()
+	value, err := r.upstream.Resolve(ctx, reference)
+	if err != nil || len(value) < 32 {
+		return nil, errors.New("managed webhook signing key is unavailable")
+	}
+	value = bytes.Clone(value)
+	r.mu.Lock()
+	if len(r.entries) >= 128 {
+		for key, cached := range r.entries {
+			if !cached.expiresAt.After(now) {
+				clear(cached.value)
+				delete(r.entries, key)
+			}
+		}
+		if len(r.entries) >= 128 {
+			return nil, errors.New("managed webhook key cache is full")
+		}
+	}
+	r.entries[reference] = cachedKey{value: value, expiresAt: now.Add(r.ttl)}
+	result := bytes.Clone(value)
+	r.mu.Unlock()
+	return result, nil
 }
 
 type Delivery struct {

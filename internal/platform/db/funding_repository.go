@@ -221,15 +221,15 @@ func (r *FundingRepository) Post(ctx context.Context, command appfunding.ActionC
 		if err := authorizeFinanceActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
-		var requester, destinationID, systemID, currency, status, compensationOf string
+		var requester, destinationID, systemID, currency, status, compensationOf, storedPostKey string
 		var amount int64
 		var policy fundingPolicy
 		err := tx.QueryRowContext(ctx, `
 SELECT event.requester_subject_id,event.destination_account_id::text,event.system_account_id::text,event.currency,event.amount_minor,event.status,
  policy.mode,policy.finance_activated,policy.per_command_minor,policy.operator_rolling_24h_minor,policy.tenant_rolling_24h_minor,
- COALESCE(event.compensation_of_event_id::text,'')
+ COALESCE(event.compensation_of_event_id::text,''),COALESCE(event.post_idempotency_key,'')
 FROM funding_events event JOIN tenant_funding_policies policy ON policy.tenant_id=event.tenant_id AND policy.currency=event.currency
-WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID, command.FundingEventID).Scan(&requester, &destinationID, &systemID, &currency, &amount, &status, &policy.Mode, &policy.FinanceActive, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling, &compensationOf)
+WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID, command.FundingEventID).Scan(&requester, &destinationID, &systemID, &currency, &amount, &status, &policy.Mode, &policy.FinanceActive, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling, &compensationOf, &storedPostKey)
 		if errors.Is(err, sql.ErrNoRows) {
 			return appfunding.ErrNotFound
 		}
@@ -237,6 +237,9 @@ WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID,
 			return err
 		}
 		if status == "posted" || status == "compensated" {
+			if storedPostKey != "" && storedPostKey != command.IdempotencyKey {
+				return appfunding.ErrConflict
+			}
 			event, readErr := readFundingEventByID(ctx, tx, command.TenantID, command.FundingEventID)
 			if readErr != nil {
 				return readErr
@@ -306,7 +309,7 @@ WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID,
 		if err != nil {
 			return err
 		}
-		if _, err = tx.ExecContext(ctx, `UPDATE funding_events SET status='posted',journal_transaction_id=$3,posted_at=$4,updated_at=$4 WHERE tenant_id=$1 AND id=$2 AND status='approved'`, command.TenantID, command.FundingEventID, journalID, command.OccurredAt); err != nil {
+		if _, err = tx.ExecContext(ctx, `UPDATE funding_events SET status='posted',journal_transaction_id=$3,posted_at=$4,updated_at=$4,post_idempotency_key=$5 WHERE tenant_id=$1 AND id=$2 AND status='approved'`, command.TenantID, command.FundingEventID, journalID, command.OccurredAt, command.IdempotencyKey); err != nil {
 			return err
 		}
 		if compensationOf == "" {

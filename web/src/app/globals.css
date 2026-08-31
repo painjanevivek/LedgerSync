@@ -269,11 +269,64 @@ body:has(dialog[open]) .skip-link {
   height: 16px;
 }
 
+.session-action-error {
+  margin: -5px 0 0;
+  border-left: 2px solid #d99a91;
+  padding: 7px 9px;
+  background: rgb(141 57 47 / 18%);
+  color: #ffd8d3;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .console-main {
   width: 100%;
   min-width: 0;
   max-width: none;
   padding: 38px clamp(30px, 3vw, 44px) 22px;
+}
+
+/* Shared post-navigation canvas. Documents retain a deliberate readable
+   measure; at wide desktop widths the remaining columns become useful context
+   rather than accidental blank space. */
+.operator-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-7) var(--operator-grid-gap);
+  width: min(100%, var(--operator-workspace-max));
+  min-width: 0;
+  margin-inline: auto;
+}
+.operator-workspace-primary {
+  width: min(100%, var(--operator-workflow-max));
+  min-width: 0;
+  margin-inline: auto;
+}
+.operator-workspace-rail {
+  display: none;
+  min-width: 0;
+}
+.operator-workspace-footer {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 1600px) {
+  .operator-workspace {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .operator-workspace-primary {
+    grid-column: span 9;
+    width: 100%;
+    margin-inline: 0;
+  }
+  .operator-workspace-rail {
+    display: block;
+    grid-column: span 3;
+  }
+  .operator-workspace-footer {
+    grid-column: 1 / -1;
+  }
 }
 
 /* A first workspace is presented as a ledger path, not an empty analytics
@@ -336,6 +389,16 @@ body:has(dialog[open]) .skip-link {
   gap: 5px;
   border-right: 1px solid var(--line);
   padding: 17px;
+}
+.new-workspace-path a {
+  display: grid;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+.new-workspace-path a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
 }
 .new-workspace-path li:last-child {
   border-right: 0;
@@ -4070,8 +4133,56 @@ h3 {
   }
 }
 
-/* Funding evidence is a docket, not a growth dashboard. The rail expresses the
-   only meaningful progression: external reference, decision, balanced journal. */
+/* Funding is a docket, not a growth dashboard. The workflow stays document-like
+   while the contextual rail clarifies the financial boundary on wide screens. */
+.funding-workspace .operator-workspace-primary > * {
+  width: min(100%, var(--operator-workflow-max));
+  margin-inline: auto;
+}
+.funding-workspace .operator-workspace-primary > .ledger-section,
+.funding-workspace .operator-workspace-primary > .funding-request-panel,
+.funding-workspace .operator-workspace-primary > .funding-actions,
+.funding-workspace .operator-workspace-primary > .funding-reconciliation {
+  margin-left: auto;
+  margin-right: auto;
+}
+.funding-workspace .console-footer {
+  width: 100%;
+}
+.funding-context-rail-content {
+  display: grid;
+  position: sticky;
+  top: calc(var(--target-compact) + var(--space-6));
+  gap: var(--space-4);
+}
+.funding-context-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--green);
+  padding: var(--space-5);
+  background: var(--paper);
+  box-shadow: var(--shadow-surface);
+}
+.funding-context-card .eyebrow {
+  margin-bottom: var(--space-2);
+}
+.funding-context-card h2 {
+  margin: 0;
+  font-size: var(--type-h3);
+}
+.funding-context-card p:not(.eyebrow) {
+  margin: var(--space-2) 0 0;
+  color: var(--muted);
+}
+.funding-context-card.funding-context-current {
+  border-left-color: var(--blue);
+  background: var(--paper-subtle);
+}
+.funding-context-next {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3);
+  color: var(--ink-soft) !important;
+  font-weight: 700;
+}
 .funding-boundary-note,
 .funding-demo-banner {
   display: grid;
@@ -4175,13 +4286,73 @@ h3 {
   gap: 18px;
   padding: 22px;
 }
-.funding-evidence-form label,
+.funding-evidence-form .funding-field > label,
 .funding-decision-form label,
 .funding-compensation-disclosure label {
   display: grid;
   gap: 7px;
   color: var(--ink-soft);
   font-weight: 750;
+}
+.funding-field > label {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.funding-field > label .required-badge {
+  border: 1px solid var(--line-strong);
+  padding: 2px 6px;
+  color: var(--ink-soft);
+  font: 800 9px/1.2 var(--font-sans);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.funding-field > p {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: var(--type-meta);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.form-field-label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-soft);
+  font-weight: 750;
+}
+
+.form-field-label > :last-child:not(.field-requirement) {
+  grid-column: 1 / -1;
+}
+
+.field-requirement {
+  border: 1px solid var(--line-strong);
+  padding: 2px 6px;
+  color: var(--ink-soft);
+  font: 800 9px/1.2 var(--font-sans);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.field-requirement.optional {
+  border-color: var(--line);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.form-field-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-meta);
+  font-weight: 500;
+  line-height: 1.4;
 }
 .funding-evidence-form input,
 .funding-evidence-form select,
@@ -4226,6 +4397,13 @@ h3 {
 .funding-inline-notice p {
   margin: 0;
   color: var(--ink-soft);
+}
+@media (min-width: 1600px) {
+  /* The rail carries this guidance on wide screens; keep the form focused on
+     the four inputs rather than repeating the same explanation. */
+  .funding-workspace .funding-form-note {
+    display: none;
+  }
 }
 .funding-inline-notice {
   border-left-color: var(--amber);
@@ -4643,6 +4821,7 @@ h3 {
 @media (forced-colors: active) {
   .funding-boundary-note,
   .funding-demo-banner,
+  .funding-context-card,
   .funding-request-panel,
   .funding-form-note,
   .funding-inline-notice,

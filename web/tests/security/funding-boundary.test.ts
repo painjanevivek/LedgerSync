@@ -41,6 +41,7 @@ test("funding mutation boundary requires method, scope, same-origin CSRF, JSON, 
   ];
   assert.deepEqual(cases.map((value) => isFundingDenial(value) ? value.status : 0), [405, 401, 403, 403, 403, 415, 400]);
   assert.equal(isFundingDenial(authorizeFundingMutation(request("POST", { "content-type": "" }), session, "funding:write", false, false)), false);
+  assert.equal(isFundingDenial(authorizeFundingMutation(request("POST", { "content-type": "", "idempotency-key": "" }), session, "funding:write", true, false)), true);
 });
 
 test("funding identifiers and idempotency values are bounded without reinterpretation", () => {
@@ -58,7 +59,8 @@ test("funding browser surface is fixed-route and preserves non-custodial languag
   assert.ok(sources.every((source) => !/export async function (?:PUT|PATCH|DELETE)/.test(source)));
   const views = await readFile("src/features/funding/FundingViews.tsx", "utf8");
   const flow = await readFile("src/features/funding/FundingRequestFlow.tsx", "utf8");
-  assert.match(`${views}\n${flow}`, /external value evidence/i);
+  assert.match(`${views}\n${flow}`, /external value reference/i);
   assert.match(`${views}\n${flow}`, /does not (?:claim|describe)/i);
   assert.doesNotMatch(`${views}\n${flow}`, /confirm deposit|bank deposit completed/i);
+  assert.match(sources[5], /idempotencyKey/);
 });

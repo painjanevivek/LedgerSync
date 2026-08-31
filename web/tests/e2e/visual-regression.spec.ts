@@ -5,6 +5,7 @@ import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAcco
 const compact = { width: 390, height: 844 };
 const tablet = { width: 768, height: 1024 };
 const desktop = { width: 1440, height: 900 };
+const ultrawide = { width: 2560, height: 1440 };
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({
@@ -30,15 +31,16 @@ const populatedRoutes = [
   { name: "overview-populated", path: "/", heading: "Overview" },
   { name: "accounts-populated", path: "/accounts", heading: "Accounts" },
   { name: "account-detail-populated", path: `/accounts/${sourceAccount.account_id}`, heading: sourceAccount.display_name },
+  { name: "funding-records-populated", path: "/funding", heading: "Funding records" },
   { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
   { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
-  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation detail" },
+  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation details" },
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
-  { name: "events-populated", path: "/events", heading: "Event investigation" },
+  { name: "events-populated", path: "/events", heading: "Delivery events" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
   { name: "developer-contract", path: "/developer", heading: "Developer" },
-  { name: "recovery-evidence", path: "/recovery", heading: "Recovery Center" },
+  { name: "recovery-evidence", path: "/recovery", heading: "Recovery" },
 ] as const;
 
 for (const route of populatedRoutes) {
@@ -49,6 +51,22 @@ for (const route of populatedRoutes) {
     await capture(page, route.name);
   });
 }
+
+test("funding records use the reviewed contextual rail on ultrawide screens", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/funding");
+  await expect(page.getByRole("heading", { name: "Funding records", exact: true })).toBeVisible();
+  await capture(page, "funding-records-populated-ultrawide", ultrawide);
+});
+
+test("funding intake keeps its financial controls readable from desktop to ultrawide", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/funding");
+  await page.getByRole("button", { name: "Record funding" }).click();
+  await expect(page.getByRole("heading", { name: "Add a funding record", exact: true })).toBeVisible();
+  await capture(page, "funding-intake-desktop", desktop);
+  await capture(page, "funding-intake-ultrawide", ultrawide);
+});
 
 test("compact account directory preserves the selected information hierarchy", async ({ page }) => {
   await mockOperatorConsole(page);
@@ -67,7 +85,7 @@ test("compact developer contract preserves code and retry hierarchy",async({page
 test("transfer export review preserves the exact evidence hierarchy",async({page})=>{
   await mockOperatorConsole(page);
   await page.goto("/transfers");
-  await page.getByRole("button",{name:"Export transfer evidence"}).click();
+  await page.getByRole("button",{name:"Export transfer details"}).click();
   await expect(page.getByRole("heading",{name:"Review transfer history export"})).toBeVisible();
   await capture(page,"transfer-export-review",desktop);
   await capture(page,"transfer-export-review-compact",compact);
@@ -106,6 +124,7 @@ test("permission denial remains distinct from an empty directory", async ({ page
 });
 
 test("offline state preserves already verified evidence and disables writes", async ({ page, context }) => {
+  await page.clock.setFixedTime(new Date("2026-08-28T19:23:41Z"));
   await mockOperatorConsole(page);
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
@@ -131,7 +150,7 @@ test("unknown transfer outcome keeps the exact intent and safe retry action", as
   await page.route("**/api/transfers", (route) => route.request().method() === "POST" ? json(route, { error: { code: "transfer_outcome_unknown" } }, 504) : route.fallback());
   await page.goto("/transfers");
   await expect(page.getByRole("heading", { name: "Internal transfer" })).toBeVisible();
-  await page.getByLabel("Exact amount").fill("12.50");
+  await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).click();
   await expect(page.getByText("Result not yet confirmed")).toBeVisible();

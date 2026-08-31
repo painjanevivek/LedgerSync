@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 1.15.0
+  version: 2.0.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -13,7 +13,7 @@ info:
 servers: [{ url: /api }]
 security: [{ bearerAuth: [], actorAssertion: [] }]
 x-ledgersync-lifecycle:
-  semantic_version: 1.15.0
+  semantic_version: 2.0.0
   supported_window: current minor and immediately preceding minor, with at least 180 days notice before sunset
   changelog: ./CHANGELOG.md
   policy: ./api-lifecycle-policy.md
@@ -297,7 +297,7 @@ paths:
       x-required-scope: corrections:approve
       x-step-up-authentication: production
       summary: Atomically post the one exact balanced compensating transfer and journal.
-      parameters: [{ $ref: '#/components/parameters/CorrectionID' }, { $ref: '#/components/parameters/CorrelationID' }]
+      parameters: [{ $ref: '#/components/parameters/CorrectionID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       responses: { '200': { description: Original or safely replayed posted correction., content: { application/json: { schema: { $ref: '#/components/schemas/TransferCorrectionSubmission' } } } }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '409': { $ref: '#/components/responses/Conflict' }, '428': { $ref: '#/components/responses/StepUpRequired' }, '429': { $ref: '#/components/responses/RateLimited' } }
   /funding-requests:
     post:
@@ -379,7 +379,7 @@ paths:
       operationId: postFundingEvent
       x-required-scope: funding:write
       summary: Atomically post approved evidence as an immutable balanced journal.
-      parameters: [{ $ref: '#/components/parameters/FundingEventID' }, { $ref: '#/components/parameters/CorrelationID' }]
+      parameters: [{ $ref: '#/components/parameters/FundingEventID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       responses:
         '200': { description: Original or replayed posted outcome., content: { application/json: { schema: { $ref: '#/components/schemas/FundingSubmission' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -706,12 +706,12 @@ paths:
     post:
       operationId: registerDeveloperWebhook
       x-required-scope: webhooks:write
-      summary: Register an HTTPS endpoint and issue a one-time verification challenge.
-      description: Production accepts HTTPS on the standard port; sandbox additionally permits loopback HTTP. Query strings, URL credentials, signing secrets, and private keys are rejected. Unknown outcomes use the identical idempotency key; replayed responses intentionally do not reveal the challenge again.
+      summary: Register an HTTPS endpoint and schedule server-initiated ownership verification.
+      description: "Production accepts HTTPS on the standard port; sandbox additionally permits loopback HTTP. Query strings, URL credentials, signing secrets, and private keys are rejected. LedgerSync delivers an expiring challenge directly to the endpoint. The endpoint proves control by returning X-LedgerSync-Verification: v1=<HMAC-SHA256(challenge)> using its registered signing key. The API never returns the challenge or activates an endpoint."
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterDeveloperWebhookRequest' } } } }
       responses:
-        '201': { description: Registered endpoint and one-time challenge; the challenge is omitted on idempotent replay., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterDeveloperWebhookResponse' } } } }
+        '201': { description: Registered endpoint with pending server-initiated verification; an idempotent replay returns the same metadata., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperWebhook' } } } }
         '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -728,21 +728,6 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '429': { $ref: '#/components/responses/RateLimited' }
-  /developer/webhooks/{webhookId}/verifications:
-    post:
-      operationId: verifyDeveloperWebhook
-      x-required-scope: webhooks:write
-      summary: Activate a pending endpoint with its unexpired one-time challenge.
-      parameters: [{ $ref: '#/components/parameters/WebhookID' }, { $ref: '#/components/parameters/IdempotencyKey' }, { $ref: '#/components/parameters/CorrelationID' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/VerifyDeveloperWebhookRequest' } } } }
-      responses:
-        '200': { description: Verified endpoint or exact replay., headers: { Idempotent-Replay: { schema: { type: string, enum: ['true'] } } }, content: { application/json: { schema: { $ref: '#/components/schemas/DeveloperWebhook' } } } }
-        '400': { $ref: '#/components/responses/InvalidRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
   /developer/webhooks/{webhookId}/signature-rotations:
     post:
@@ -830,7 +815,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-1.15.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-2.0.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -952,16 +937,6 @@ components:
         subscribed_events: { type: array, minItems: 1, maxItems: 32, uniqueItems: true, items: { $ref: '#/components/schemas/DeveloperWebhookEvent' } }
         signing_key_reference: { type: string, minLength: 3, maxLength: 200 }
         signing_key_id: { type: string, minLength: 3, maxLength: 100, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{2,99}$' }
-    RegisterDeveloperWebhookResponse:
-      type: object
-      additionalProperties: false
-      required: [webhook]
-      properties: { webhook: { $ref: '#/components/schemas/DeveloperWebhook' }, verification_challenge: { type: string, minLength: 32, maxLength: 255, description: Returned once on original registration and omitted on replay. } }
-    VerifyDeveloperWebhookRequest:
-      type: object
-      additionalProperties: false
-      required: [expected_version, challenge]
-      properties: { expected_version: { type: string, pattern: '^[1-9][0-9]*$' }, challenge: { type: string, minLength: 32, maxLength: 255 } }
     RotateDeveloperWebhookSignatureRequest:
       type: object
       additionalProperties: false

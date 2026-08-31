@@ -55,6 +55,16 @@ func (r *DeveloperWebhookRepository) RegisterWebhook(ctx context.Context, comman
 		if err := insertWebhookEvent(ctx, tx, command.TenantID, id, "registered", 1, command.ActorSubjectID, command.CorrelationID, now, map[string]any{"endpoint_url": command.EndpointURL, "subscribed_events": command.SubscribedEvents, "signing_key_id": command.SigningKeyID}); err != nil {
 			return err
 		}
+		verificationID, err := newUUID()
+		if err != nil {
+			return err
+		}
+		if _, err = tx.ExecContext(ctx, `INSERT INTO webhook_endpoint_verification_jobs(id,tenant_id,webhook_id,challenge,expires_at,available_at,correlation_id,actor_subject_id,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$6,$6)`, verificationID, command.TenantID, id, []byte(command.VerificationChallenge), command.ChallengeExpiresAt, now, command.CorrelationID, command.ActorSubjectID); err != nil {
+			return classifyDeveloperWebhookError(err)
+		}
+		if err := insertWebhookEvent(ctx, tx, command.TenantID, id, "verification_scheduled", 1, command.ActorSubjectID, command.CorrelationID, now, map[string]any{"verification_expires_at": command.ChallengeExpiresAt}); err != nil {
+			return err
+		}
 		return completeWebhookCommand(ctx, tx, command.TenantID, command.ActorSubjectID, developerplatform.RegisterWebhookOperation, command.IdempotencyKey, submission.Webhook, now)
 	})
 	return submission, err

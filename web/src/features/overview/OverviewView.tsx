@@ -62,48 +62,48 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
     transfers.length === 0 &&
     !reconciliation;
   return <>
-    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from ledger evidence." : "Fresh financial evidence and exceptions for the current tenant."}><button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing evidence…" : "Refresh evidence"}</button></PageHeader>
+    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}><button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button></PageHeader>
     {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
     {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
       <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
       <div className="new-workspace-copy">
-        <p className="eyebrow">Zero records · ready for first use</p>
-        <h2 id="new-workspace-title">Build your first ledger path</h2>
-        <p>Create an account, record incoming funds, create a destination, then post and reconcile the first internal transfer.</p>
+        <p className="eyebrow">New workspace</p>
+        <h2 id="new-workspace-title">Start with four simple steps</h2>
+        <p>Create an account, add a funding record, review it, then make a transfer.</p>
         <div className="new-workspace-actions">
           <Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>
           <Link className="button secondary" href="/guide">Follow the guide</Link>
         </div>
       </div>
-      <ol className="new-workspace-path" aria-label="First ledger path">
-        <li><span>01</span><strong>Account</strong><small>Define where value belongs</small></li>
-        <li><span>02</span><strong>Funding</strong><small>Record external value evidence</small></li>
-        <li><span>03</span><strong>Transfer</strong><small>Move exact internal value</small></li>
-        <li><span>04</span><strong>Reconcile</strong><small>Prove the ledger result</small></li>
+      <ol className="new-workspace-path" aria-label="First ledger steps">
+        <li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>
+        <li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>
+        <li><Link href="/funding"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>
+        <li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>
       </ol>
     </section>}
-    <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account evidence state">
+    <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account details state">
       {accountsError && <StatePanel
         kind="error"
-        title="Account evidence unavailable"
+        title="Account details unavailable"
         message={accountsError}
         action={<FocusedRetry label="Retry accounts only" onRetry={onRefreshAccounts} disabled={!online} busy={accountsLoading} />}
       />}
       {accountsVerifiedAt&&accounts.length>0&&<EvidenceFreshness state={accountsError||!online?"historical":accountsLoading?"refreshing":"current"} verifiedAt={accountsVerifiedAt} label="Account totals" reason={accountsError??(!online?"Reconnect before relying on totals.":undefined)}/>}
-      {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account evidence" message="Authoritative account balances are loading. No zero balance or empty tenant is inferred."/>}
+      {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account details" message="Authoritative account balances are loading. No zero balance or empty tenant is inferred."/>}
       {!newWorkspace&&!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title="No authorized accounts" message="The verified authorized scope is empty. Create an account or ask an administrator to grant account access."/>}
       {accounts.length>0&&mixedCurrency&&<StatePanel kind="error" title="Mixed-currency pilot data blocked" message="Loaded accounts are preserved, but LedgerSync will not combine balances across currencies. Investigate tenant provisioning before relying on overview totals."/>}
-      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of {utcDateTime(asOf)}</span></div><strong className="hero-amount">{formatMinorUnits(currency,operating)}</strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account evidence →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount">{formatMinorUnits(currency,customerFunds)}</strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
+      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of {utcDateTime(asOf)}</span></div><strong className="hero-amount">{formatMinorUnits(currency,operating)}</strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount">{formatMinorUnits(currency,customerFunds)}</strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
     </section>
-    {!newWorkspace&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation evidence state">
+    {!newWorkspace&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation results state">
       {reconciliationError && <StatePanel
         kind="error"
-        title="Reconciliation evidence unavailable"
+        title="Reconciliation results unavailable"
         message={reconciliationError}
         action={<FocusedRetry label="Retry reconciliation only" onRetry={onRefreshReconciliation} disabled={!online} busy={reconciliationLoading} />}
       />}
       {reconciliationVerifiedAt&&reconciliation&&<EvidenceFreshness state={reconciliationError||!online?"historical":reconciliationLoading?"refreshing":"current"} verifiedAt={reconciliationVerifiedAt} label="Reconciliation" reason={reconciliationError??(!online?"Reconnect before treating the run as current.":undefined)}/>}
-      {reconciliationLoading&&!reconciliation&&<StatePanel title="Loading reconciliation evidence" message="No passing result or mismatch count is inferred while authoritative evidence loads."/>}
+      {reconciliationLoading&&!reconciliation&&<StatePanel title="Loading reconciliation results" message="No passing result or mismatch count is inferred while authoritative records load."/>}
       {reconciliation ? (
         <section className={`evidence-strip ${isAuthoritativelyReconciled(reconciliation) ? "" : "caution"}`}>
           <ShieldCheck weight="fill" aria-hidden="true" />
@@ -111,13 +111,13 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
             <strong>{isAuthoritativelyReconciled(reconciliation) ? "Latest reconciliation passed" : "Reconciliation requires attention"}</strong>
             <span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · {utcDateTime(reconciliation.completed_at)}</span>
           </div>
-          <RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open evidence" />
+          <RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open result" />
         </section>
       ) : !reconciliationError && !reconciliationLoading ? (
-        <StatePanel kind="unknown" title="No reconciliation evidence" message="The verified history contains no authoritative run. No passing result is inferred." action={<Link className="text-link" href="/reconciliation">Inspect evidence</Link>} />
+        <StatePanel kind="unknown" title="No reconciliation results" message="The verified history contains no authoritative run. No passing result is inferred." action={<Link className="text-link" href="/reconciliation">View reconciliation</Link>} />
       ) : null}
     </section>}
-    {!newWorkspace&&<section className="overview-data-state overview-transfer-state" data-data-state={transferState} aria-label="Transfer evidence state">
+    {!newWorkspace&&<section className="overview-data-state overview-transfer-state" data-data-state={transferState} aria-label="Transfer history state">
       {transfersError && <StatePanel
         kind="error"
         title="Transfer history unavailable"

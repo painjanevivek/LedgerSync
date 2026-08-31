@@ -1,4 +1,4 @@
-import { OperatorConsole } from "@/features/accounts/OperatorConsole";
+import { TransfersController } from "@/features/transfers/TransfersController";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -9,5 +9,5 @@ export default async function TransfersPage({ searchParams }: Readonly<{ searchP
   const returnTo = requestedReturn?.startsWith("/accounts") && !requestedReturn.startsWith("//") ? requestedReturn : undefined;
   const filterQuery = typeof query.q === "string" && query.q.length <= 128 ? query.q : "";
   const filterStatus = typeof query.status === "string" && ["posted", "rejected", "pending"].includes(query.status) ? query.status : "all";
-  return <OperatorConsole initialSection="transfers" initialTransferDestinationId={destination} initialTransferReturnTo={returnTo} initialTransferFilters={{ query: filterQuery, status: filterStatus }} />;
+  return <TransfersController preferredDestinationId={destination} returnTo={returnTo} filters={{ query: filterQuery, status: filterStatus }} />;
 }

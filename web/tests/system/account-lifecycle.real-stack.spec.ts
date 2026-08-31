@@ -87,7 +87,7 @@ async function expectAccessibleReflow(page: Page, width: number, height: number)
 async function postTransfer(page: Page, sourceAccountID: string, destinationAccountID: string): Promise<TransferProof> {
   await page.getByLabel("From account").selectOption(sourceAccountID);
   await page.getByLabel("To account").selectOption(destinationAccountID);
-  await page.getByLabel("Exact amount").fill(transferAmount);
+  await page.getByLabel("Amount").fill(transferAmount);
   await page.getByRole("button", { name: "Review transfer" }).click();
   await expect(page.getByRole("heading", { name: "Confirm exact transfer" })).toBeFocused();
 
@@ -421,11 +421,11 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     await page.goto(`/transfers?q=${encodeURIComponent(fundingTransfer.transferID)}&status=posted`);
     await expect(page.getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
     await expect(page.getByLabel("Search transfers")).toHaveValue(fundingTransfer.transferID);
-    await expect(page.getByLabel("Financial status")).toHaveValue("posted");
+    await expect(page.getByLabel("Status")).toHaveValue("posted");
     await expect(page.getByText(fundingTransfer.transferID, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(returnTransfer.transferID, { exact: true })).toHaveCount(0);
     const exportReview = page.getByRole("dialog", { name: "Review transfer history export" });
-    await page.getByRole("button", { name: "Export transfer evidence" }).click();
+    await page.getByRole("button", { name: "Export transfer details" }).click();
     await expect(exportReview).toBeVisible();
     await expect(exportReview).toContainText(`Search: ${fundingTransfer.transferID}`);
     await expect(exportReview).toContainText("Financial status: posted");
@@ -465,7 +465,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     expect(invalidEventRange.status()).toBe(400);
 
     await page.goto(`/events?relatedId=${fundingTransfer.transferID}`);
-    await expect(page.getByRole("heading", { name: "Event investigation", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Delivery events", exact: true })).toBeVisible();
     await expect(page.getByLabel("Related ID")).toHaveValue(fundingTransfer.transferID);
     await expect(page.getByText(eventID, { exact: true }).first()).toBeVisible();
     await expectAccessibleReflow(page, 1366, 768);
@@ -506,7 +506,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     expect(recoveryResponse.headers()["cache-control"]).toContain("no-store");
     expect(await recoveryResponse.json()).toMatchObject({ format_version: "ledgersync-recovery-evidence-index/v1" });
     await page.goto("/recovery");
-    await expect(page.getByRole("heading", { name: "Recovery Center", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Recovery", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Recovery custody chain" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Restore and reset are intentionally absent" })).toBeVisible();
     await expectAccessibleReflow(page, 390, 844);

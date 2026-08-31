@@ -13,6 +13,7 @@ import (
 
 type repositoryStub struct {
 	requested RequestCommand
+	posted    ActionCommand
 	demo      bool
 	listCalls int
 }
@@ -28,7 +29,9 @@ func (r *repositoryStub) Approve(_ context.Context, command DecisionCommand, dem
 func (r *repositoryStub) Reject(context.Context, DecisionCommand) (Event, error) {
 	return Event{}, nil
 }
-func (r *repositoryStub) Post(context.Context, ActionCommand) (Submission, error) {
+
+func (r *repositoryStub) Post(_ context.Context, command ActionCommand) (Submission, error) {
+	r.posted = command
 	return Submission{}, nil
 }
 func (r *repositoryStub) Compensate(context.Context, CompensationCommand, [sha256.Size]byte) (Submission, error) {
@@ -97,5 +100,23 @@ func TestServiceRejectsUnknownFundingStatusBeforeRepository(t *testing.T) {
 	}
 	if repository.listCalls != 0 {
 		t.Fatal("invalid query reached repository")
+	}
+}
+
+func TestServiceRequiresAndCanonicalizesPostIdempotency(t *testing.T) {
+	repository := &repositoryStub{}
+	service, _ := NewService(repository, PolicyProductionDualControl, nil)
+	_, err := service.Post(context.Background(), ActionCommand{
+		TenantID: " tenant ", ActorSubjectID: " actor ", FundingEventID: " funding-1 ",
+		IdempotencyKey: " funding-post-0000001 ", CorrelationID: " correlation ",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repository.posted.IdempotencyKey != "funding-post-0000001" || repository.posted.FundingEventID != "funding-1" {
+		t.Fatalf("post command was not canonicalized: %#v", repository.posted)
+	}
+	if _, err = service.Post(context.Background(), ActionCommand{TenantID: "tenant", ActorSubjectID: "actor", FundingEventID: "funding-1", IdempotencyKey: "short", CorrelationID: "correlation"}); !errors.Is(err, ErrInvalidCommand) {
+		t.Fatalf("invalid post idempotency error=%v", err)
 	}
 }

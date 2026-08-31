@@ -13,6 +13,7 @@ import {
   DataTableRegion,
   EvidenceFreshness,
   FocusedRetry,
+  FormField,
   PageHeader,
   Pagination,
   RecordLink,
@@ -377,17 +378,17 @@ export function TransfersView({
         <PageHeader
           eyebrow="Money movement / Immutable record"
           title="Transfer detail"
-          description="Loading the requested immutable transfer evidence."
+          description="Loading the requested immutable transfer details."
         />
         {error ? (
           <StatePanel
             kind="error"
-            title="Transfer evidence unavailable"
+            title="Transfer details unavailable"
             message={error}
           />
         ) : (
           <StatePanel
-            title="Loading transfer evidence"
+            title="Loading transfer details"
             message="Ledger posting and delivery states are verified separately before display."
           />
         )}
@@ -408,9 +409,9 @@ export function TransfersView({
   return (
     <>
       <PageHeader
-        eyebrow="Money movement / Internal only"
+          eyebrow="Ledger / Transfers"
         title="Transfers"
-        description="Prepare an exact transfer, then investigate its immutable result."
+          description="Move an exact amount between your accounts, then check the result."
       />
       <div className="two-column-layout">
         <TransferForm
@@ -457,9 +458,7 @@ export function TransfersView({
         action="/transfers"
         aria-label="Transfer filters"
       >
-        <label>
-          Search transfers
-          <input
+        <FormField label="Search transfers" requirement="optional" hint="Search by transfer or account ID."><input
             name="q"
             type="search"
             value={query}
@@ -468,11 +467,8 @@ export function TransfersView({
             maxLength={128}
             pattern="[0-9A-Fa-f-]*"
             title="Use a complete or partial transfer or account identifier"
-          />
-        </label>
-        <label>
-          Financial status
-          <select
+          /></FormField>
+        <FormField label="Status" requirement="optional"><select
             name="status"
             value={status}
             onChange={(event) => setStatus(event.target.value)}
@@ -480,8 +476,7 @@ export function TransfersView({
             <option value="all">All statuses</option>
             <option value="posted">Posted</option>
             <option value="rejected">Rejected</option>
-          </select>
-        </label>
+          </select></FormField>
         <button
           className="button primary"
           type="submit"
@@ -555,7 +550,7 @@ export function TransfersView({
             returnTo={historyReturn}
             exportAction={
               <EvidenceExportControl
-                label="Export transfer evidence"
+                label="Export transfer details"
                 subject="transfer history"
                 endpoint={`/api/exports/transfers.csv?${exportQuery}`}
                 scope="Server-filtered authorized transfer history"

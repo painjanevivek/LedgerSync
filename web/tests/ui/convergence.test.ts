@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { ConsoleFooter } from "../../src/features/console/ConsoleShell";
 import { EvidenceFreshness } from "../../src/features/console/components";
+import { FundingRequestFlow } from "../../src/features/funding/FundingRequestFlow";
 import { TransferList } from "../../src/features/transfers/TransferViews";
 
 test("console footer identifies PostgreSQL as balance authority and Redis as disposable", () => {
@@ -56,4 +57,42 @@ test("converged controls, boundaries, and reduced motion use the shared design c
   assert.match(globals, /\.data-table\s*\{[^}]*font-size:\s*var\(--type-body\)/);
   assert.match(responsive, /transition-duration:\s*\.01ms !important/);
   assert.match(responsive, /transition-delay:\s*0ms !important/);
+});
+
+test("funding entry fails closed when the authorized account directory is unavailable", () => {
+  const markup = renderToStaticMarkup(createElement(FundingRequestFlow, {
+    accounts: [],
+    accountsLoading: false,
+    accountsError: "Authorized accounts could not be refreshed.",
+    accountsScopeComplete: false,
+    onRetryAccounts: () => undefined,
+    csrfToken: "test-csrf",
+    online: true,
+    canWrite: true,
+    open: true,
+    onClose: () => undefined,
+    onCreated: async () => undefined,
+  }));
+  assert.match(markup, /Eligible accounts unavailable/);
+  assert.match(markup, /never presented as an empty one/);
+  assert.doesNotMatch(markup, /<select/);
+});
+
+test("funding entry discloses an incomplete account scope instead of using a partial picker", () => {
+  const markup = renderToStaticMarkup(createElement(FundingRequestFlow, {
+    accounts: [],
+    accountsLoading: false,
+    accountsError: null,
+    accountsScopeComplete: false,
+    onRetryAccounts: () => undefined,
+    csrfToken: "test-csrf",
+    online: true,
+    canWrite: true,
+    open: true,
+    onClose: () => undefined,
+    onCreated: async () => undefined,
+  }));
+  assert.match(markup, /Account selection is incomplete/);
+  assert.match(markup, /complete server-backed selector/);
+  assert.doesNotMatch(markup, /<select/);
 });

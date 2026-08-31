@@ -240,3 +240,8 @@ Only start tasks whose prerequisites are complete. Avoid concurrent edits to the
 The smallest credible MVP is **Phase 1 + Phase 2 + User Story 1**. Stop and prove exact-money, authorization, idempotency, concurrent-funds protection, ledger balancing, and reconciliation before adding caching or dashboard polish. User Story 2 is the next required differentiator; US3/US4 are shared-production release gates.
 
 All tasks use the required checkbox, sequential ID, optional parallel marker, user-story label, and exact-path format.
+
+## Phase 9: Convergence
+
+- [ ] T122 Replace the process-local BFF actor-assertion replay guard with a bounded shared implementation and prove replay rejection across API replicas before horizontal production scaling per FR-017 and FR-020 (partial)
+- [ ] T123 Require server-initiated proof of webhook endpoint control before activation, using the hardened outbound network boundary and an expiring one-time challenge, so an API client cannot activate an unrelated public destination per FR-011 and FR-020 (partial)

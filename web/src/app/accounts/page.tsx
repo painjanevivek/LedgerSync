@@ -1,4 +1,4 @@
-import { OperatorConsole } from "@/features/accounts/OperatorConsole";
+import { AccountsController } from "@/features/accounts/AccountsController";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -6,5 +6,5 @@ function first(value: string | string[] | undefined): string { return typeof val
 
 export default async function AccountsPage({ searchParams }: Readonly<{ searchParams: SearchParams }>) {
   const query = await searchParams;
-  return <OperatorConsole initialSection="accounts" initialAccountFilters={{ query: first(query.q), status: first(query.status), category: first(query.category), cursor: first(query.cursor) || undefined }} initialAccountFocusId={first(query.focus) || undefined} />;
+  return <AccountsController filters={{ query: first(query.q), status: first(query.status), category: first(query.category), cursor: first(query.cursor) || undefined }} focusAccountId={first(query.focus) || undefined} />;
 }

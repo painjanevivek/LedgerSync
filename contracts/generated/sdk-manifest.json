@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "1.15.0",
+  "api_version": "2.0.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "d277b96a",
-    "e46ef420",
-    "ccee42c8",
-    "317d06a5",
-    "f20b27af",
-    "38007024",
-    "67fcd218",
-    "1b3b9852"
+    "6b509567",
+    "2b0a92da",
+    "4efcc918",
+    "28dc19ae",
+    "c5d169bb",
+    "180a109a",
+    "babe7888",
+    "8d0e309d"
   ],
   "operations": [
     {
@@ -270,14 +270,14 @@
       "method": "POST",
       "path": "/funding-events/{fundingEventId}/post",
       "scope": "funding:write",
-      "idempotent": false
+      "idempotent": true
     },
     {
       "id": "postTransferCorrection",
       "method": "POST",
       "path": "/transfer-corrections/{correctionId}/post",
       "scope": "corrections:approve",
-      "idempotent": false
+      "idempotent": true
     },
     {
       "id": "reconcileFundingEvent",
@@ -376,13 +376,6 @@
       "path": "/local/orientation/preferences",
       "scope": "local:write",
       "idempotent": false
-    },
-    {
-      "id": "verifyDeveloperWebhook",
-      "method": "POST",
-      "path": "/developer/webhooks/{webhookId}/verifications",
-      "scope": "webhooks:write",
-      "idempotent": true
     }
   ]
 }

@@ -84,7 +84,7 @@ test("account balance and ledger history report independent truth states", async
 
 test("every populated MVP route has no automatically detectable WCAG A or AA violation", async ({ page }) => {
   await mockOperatorConsole(page);
-  const routes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
+  const routes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/funding", "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
   for (const route of routes) {
     await page.goto(route);
     await expect(page.locator("main h1")).toBeVisible();
@@ -102,7 +102,7 @@ test("keyboard-only transfer review announces an unknown result and preserves th
     return route.abort("failed");
   });
   await page.goto("/transfers");
-  const amount = page.getByLabel("Exact amount");
+  const amount = page.getByLabel("Amount");
   await amount.focus();
   await amount.fill("12.50");
   const review = page.getByRole("button", { name: "Review transfer" });
@@ -125,7 +125,7 @@ test("exact-money input survives phone rotation and retains maximum signed-64-bi
   await page.setViewportSize({ width: 390, height: 844 });
   await mockOperatorConsole(page);
   await page.goto("/transfers");
-  const amount = page.getByLabel("Exact amount");
+  const amount = page.getByLabel("Amount");
   await expect(amount).toHaveAttribute("inputmode", "decimal");
   await amount.fill("92233720368547758.07");
   await page.setViewportSize({ width: 844, height: 390 });

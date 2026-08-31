@@ -2,11 +2,10 @@
 
 import { WarningCircle } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { ConsoleSession } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { PageHeader, StatePanel } from "@/features/console/components";
 import type { DeveloperMetadata } from "@/lib/api/developer";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
@@ -16,15 +15,10 @@ const DeveloperView = dynamic(() => import("@/features/developer/DeveloperViews"
 });
 
 export function DeveloperConsole() {
-  const router = useRouter();
-  const [session,setSession] = useState<ConsoleSession|null>(null);
-  const [sessionError,setSessionError] = useState<string|null>(null);
-  const [sessionLoading,setSessionLoading] = useState(true);
+  const { session, sessionError, sessionLoading, online, publicOrigin, hasScope } = useConsoleSession();
   const [metadata,setMetadata] = useState<DeveloperMetadata|null>(null);
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState<string|null>(null);
-  const [online,setOnline] = useState(true);
-  const [publicOrigin,setPublicOrigin] = useState("http://127.0.0.1:3000");
   const generation = useRef(0);
 
   const loadMetadata = useCallback(async () => {
@@ -37,14 +31,10 @@ export function DeveloperConsole() {
     setLoading(false);
   },[]);
 
-  useEffect(()=>{ let active=true;(async()=>{const response=await readJSON<ConsoleSession>("/api/session");if(!active)return;if(response.ok&&response.data.tenant_id){setSession(response.data);setSessionError(null);}else setSessionError(response.status===401?null:unavailableMessage(response.status,"the authorized session",response.requestReference));setSessionLoading(false);})();return()=>{active=false;};},[]);
-  useEffect(()=>{const update=()=>{setOnline(navigator.onLine);setPublicOrigin(window.location.origin);};update();window.addEventListener("online",update);window.addEventListener("offline",update);return()=>{window.removeEventListener("online",update);window.removeEventListener("offline",update);};},[]);
-  useEffect(()=>{if(!session||!online||!session.scopes.includes("developer:read"))return;const timer=window.setTimeout(()=>void loadMetadata(),0);return()=>{window.clearTimeout(timer);generation.current+=1;};},[loadMetadata,online,session]);
-
-  async function signOut(){if(!session)return;await fetch("/api/auth/sign-out",{method:"POST",headers:{"X-CSRF-Token":session.csrf_token}});router.refresh();}
+  useEffect(()=>{if(!session||!online||!hasScope("developer:read"))return;const timer=window.setTimeout(()=>void loadMetadata(),0);return()=>{window.clearTimeout(timer);generation.current+=1;};},[hasScope,loadMetadata,online,session]);
 
   if(sessionLoading)return <ConsoleShell section="developer" tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><PageHeader eyebrow="API-first local workspace" title="Verifying access" description="Checking the authorized developer scope before contract examples are displayed."/><StatePanel title="Loading contract boundary" message="No endpoint or retry behavior is being inferred while the session is verified."/><ConsoleFooter/></ConsoleShell>;
   if(!session)return <main className="boot-screen"><p className="eyebrow">Access not verified</p><h1>Developer workspace unavailable</h1><StatePanel kind={sessionError?"error":"denied"} title={sessionError?"Session evidence unavailable":"No authorized session"} message={sessionError??"Log in to the local workspace or configure the approved OIDC provider. No contract metadata is displayed."}/></main>;
-  const canRead=session.scopes.includes("developer:read");
-  return <ConsoleShell section="developer" tenantLabel={session.tenant_label??"Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment==="local"?"Local workspace":"Verified production"} operatorLabel={session.operator_label??session.subject_id} operatorMeta={session.environment==="local"?"This workstation":"Authorized operator"} onSignOut={()=>void signOut()}>{!online&&<div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true"/><span><strong>You are offline.</strong> Download and refresh are disabled.</span></div>}<DeveloperView metadata={metadata} loading={loading} error={error} online={online} canRead={canRead} publicOrigin={publicOrigin} onRefresh={()=>void loadMetadata()}/><ConsoleFooter/></ConsoleShell>;
+  const canRead=hasScope("developer:read");
+  return <ConsoleShell section="developer" tenantLabel={session.tenant_label??"Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment==="local"?"Local workspace":"Verified production"} operatorLabel={session.operator_label??session.subject_id} operatorMeta={session.environment==="local"?"This workstation":"Authorized operator"}>{!online&&<div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true"/><span><strong>You are offline.</strong> Download and refresh are disabled.</span></div>}<DeveloperView metadata={metadata} loading={loading} error={error} online={online} canRead={canRead} publicOrigin={publicOrigin} onRefresh={()=>void loadMetadata()}/><ConsoleFooter/></ConsoleShell>;
 }

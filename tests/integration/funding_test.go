@@ -73,17 +73,23 @@ INSERT INTO tenant_funding_policies(
 	}
 	posted, err := service.Post(ctx, appfunding.ActionCommand{
 		TenantID: testTenantID, ActorSubjectID: approver, FundingEventID: created.Event.FundingEventID,
-		CorrelationID: "00000000-0000-4000-8000-000000000504",
+		IdempotencyKey: "funding-post-0000000504", CorrelationID: "00000000-0000-4000-8000-000000000504",
 	})
 	if err != nil || posted.Event.Status != "posted" || posted.Event.BalanceVersion != "1" {
 		t.Fatalf("posted=%#v err=%v", posted, err)
 	}
 	postReplay, err := service.Post(ctx, appfunding.ActionCommand{
 		TenantID: testTenantID, ActorSubjectID: approver, FundingEventID: created.Event.FundingEventID,
-		CorrelationID: "00000000-0000-4000-8000-000000000504",
+		IdempotencyKey: "funding-post-0000000504", CorrelationID: "00000000-0000-4000-8000-000000000504",
 	})
 	if err != nil || !postReplay.Replayed || postReplay.Event.JournalTransactionID != posted.Event.JournalTransactionID {
 		t.Fatalf("post replay=%#v err=%v", postReplay, err)
+	}
+	if _, err = service.Post(ctx, appfunding.ActionCommand{
+		TenantID: testTenantID, ActorSubjectID: approver, FundingEventID: created.Event.FundingEventID,
+		IdempotencyKey: "funding-post-different-0504", CorrelationID: "00000000-0000-4000-8000-000000000504",
+	}); !errors.Is(err, appfunding.ErrConflict) {
+		t.Fatalf("post with mismatched idempotency key error=%v", err)
 	}
 	guidanceRepository, err := db.NewGuidanceRepository(database)
 	if err != nil {
@@ -192,7 +198,7 @@ INSERT INTO tenant_funding_policies(
 	}
 	compensated, err := service.Post(ctx, appfunding.ActionCommand{
 		TenantID: testTenantID, ActorSubjectID: testActorID, FundingEventID: compensation.Event.FundingEventID,
-		CorrelationID: "00000000-0000-4000-8000-000000000507",
+		IdempotencyKey: "funding-post-0000000507", CorrelationID: "00000000-0000-4000-8000-000000000507",
 	})
 	if err != nil || compensated.Event.Status != "posted" || compensated.Event.BalanceVersion != "2" {
 		t.Fatalf("compensated=%#v err=%v", compensated, err)

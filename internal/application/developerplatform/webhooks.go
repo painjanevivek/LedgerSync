@@ -84,6 +84,7 @@ type RegisterWebhookCommand struct {
 	TenantID, ActorSubjectID, CorrelationID, IdempotencyKey     string
 	DisplayName, EndpointURL, SigningKeyReference, SigningKeyID string
 	SubscribedEvents                                            []string
+	VerificationChallenge                                       string `json:"-"`
 	ChallengeDigest                                             [sha256.Size]byte
 	ChallengeExpiresAt                                          time.Time
 }
@@ -100,9 +101,8 @@ type DisableWebhookCommand struct {
 	ExpectedVersion                                                            int64
 }
 type WebhookSubmission struct {
-	Webhook   Webhook
-	Challenge string `json:"-"`
-	Replayed  bool   `json:"-"`
+	Webhook  Webhook
+	Replayed bool `json:"-"`
 }
 
 type WebhookRepository interface {
@@ -152,12 +152,10 @@ func (s *WebhookService) Register(ctx context.Context, command RegisterWebhookCo
 		return WebhookSubmission{}, err
 	}
 	challenge := base64.RawURLEncoding.EncodeToString(challengeBytes)
+	command.VerificationChallenge = challenge
 	command.ChallengeDigest = sha256.Sum256([]byte(challenge))
 	command.ChallengeExpiresAt = s.clock().UTC().Add(10 * time.Minute)
 	submission, err := s.repository.RegisterWebhook(ctx, command, fingerprint(RegisterWebhookOperation, command.DisplayName, command.EndpointURL, command.SubscribedEvents, command.SigningKeyReference, command.SigningKeyID))
-	if err == nil && !submission.Replayed {
-		submission.Challenge = challenge
-	}
 	return submission, err
 }
 

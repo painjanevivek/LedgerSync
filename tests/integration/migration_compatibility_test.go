@@ -28,10 +28,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 23 {
-		t.Fatalf("migration versions=%d, want 23", versions)
+	if versions != 25 {
+		t.Fatalf("migration versions=%d, want 25", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -302,7 +302,7 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 	}
 	postedFunding, err := fundingService.Post(context.Background(), fundingapp.ActionCommand{
 		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
-		CorrelationID: "00000000-0000-0000-0000-000000000895",
+		IdempotencyKey: "migration-funding-post-0001", CorrelationID: "00000000-0000-0000-0000-000000000895",
 	})
 	if err != nil || postedFunding.Event.Status != "posted" ||
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND account_kind='funding_clearing' AND category='system'`, legacyTenant) != 1 {

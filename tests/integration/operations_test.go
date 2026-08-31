@@ -117,7 +117,7 @@ func TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.SchemaVersion != "000023_transfer_webhook_outbox_invariant.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
+	if facts.SchemaVersion != "000025_webhook_endpoint_verification_jobs.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
 		t.Fatalf("unexpected database-derived facts: %#v", facts)
 	}
 }

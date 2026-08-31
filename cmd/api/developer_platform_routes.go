@@ -67,7 +67,6 @@ func registerDeveloperPlatformRoutes(router *http.ServeMux, config developerPlat
 	router.HandleFunc("POST /api/developer/webhooks", webhookHandler.Register)
 	router.HandleFunc("GET /api/developer/webhooks", webhookHandler.List)
 	router.HandleFunc("GET /api/developer/webhooks/{webhookId}", webhookHandler.Get)
-	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/verifications", webhookHandler.Verify)
 	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/signature-rotations", webhookHandler.Rotate)
 	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/disablements", webhookHandler.Disable)
 	router.HandleFunc("GET /api/developer/webhooks/{webhookId}/deliveries", webhookHandler.Deliveries)

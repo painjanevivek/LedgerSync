@@ -45,7 +45,7 @@ test("rapid repeated activation dispatches only one transfer request", async ({ 
     return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ transfer_id: "transfer-single-flight", status: "posted", currency: "INR", amount_minor: "1250", occurred_at: "2026-08-19T12:00:01Z", minimum_balance_versions: {}, balances: {} }) });
   });
   await page.goto("/transfers");
-  await page.getByLabel("Exact amount").fill("12.50");
+  await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
   await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeVisible();
@@ -64,7 +64,7 @@ test("an unknown transfer survives reload with its exact intent and only the sam
   });
 
   await page.goto("/transfers");
-  await page.getByLabel("Exact amount").fill("12.50");
+  await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).click();
   await expect(page.getByText("Result not yet confirmed")).toBeVisible();
@@ -90,11 +90,11 @@ test("a final rejection clears its key before a genuinely new intent", async ({ 
   });
 
   await page.goto("/transfers");
-  await page.getByLabel("Exact amount").fill("999.00");
+  await page.getByLabel("Amount").fill("999.00");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).click();
   await page.getByRole("button", { name: "Back to edit" }).click();
-  await page.getByLabel("Exact amount").fill("998.00");
+  await page.getByLabel("Amount").fill("998.00");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).click();
   expect(keys).toHaveLength(2);
@@ -137,7 +137,7 @@ test("a posted confirmation exposes journal, UTC, and committed balance-version 
   }) }));
 
   await page.goto("/transfers");
-  await page.getByLabel("Exact amount").fill("12.50");
+  await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm and post" }).click();
   await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeVisible();

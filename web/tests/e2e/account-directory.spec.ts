@@ -48,7 +48,7 @@ test("account directory distinguishes empty, unavailable, and offline states", a
   await context.setOffline(true);
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));
   await expect(page.getByText("You are offline.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Refresh evidence" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh accounts" })).toBeDisabled();
   await context.setOffline(false);
 });
 

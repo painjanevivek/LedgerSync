@@ -9,6 +9,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/idempotency"
 )
 
 var (
@@ -49,7 +51,7 @@ type CancelCommand struct {
 
 type PostCommand struct {
 	TenantID, ActorSubjectID, CorrectionID string
-	CorrelationID                          string
+	IdempotencyKey, CorrelationID          string
 	StepUpAuthenticatedAt                  time.Time
 	OccurredAt                             time.Time
 }
@@ -162,11 +164,11 @@ func (s *Service) Cancel(ctx context.Context, command CancelCommand) (Event, err
 }
 
 func (s *Service) Post(ctx context.Context, command PostCommand) (Submission, error) {
-	command.TenantID, command.ActorSubjectID, command.CorrectionID, command.CorrelationID = trim(command.TenantID), trim(command.ActorSubjectID), trim(command.CorrectionID), trim(command.CorrelationID)
+	command.TenantID, command.ActorSubjectID, command.CorrectionID, command.IdempotencyKey, command.CorrelationID = trim(command.TenantID), trim(command.ActorSubjectID), trim(command.CorrectionID), trim(command.IdempotencyKey), trim(command.CorrelationID)
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = s.clock().UTC()
 	}
-	if command.TenantID == "" || command.ActorSubjectID == "" || command.CorrectionID == "" || command.CorrelationID == "" {
+	if command.TenantID == "" || command.ActorSubjectID == "" || command.CorrectionID == "" || command.CorrelationID == "" || idempotency.ValidateKey(command.IdempotencyKey) != nil {
 		return Submission{}, ErrInvalidCommand
 	}
 	return s.repository.Post(ctx, command)

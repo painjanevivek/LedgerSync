@@ -49,13 +49,16 @@ func TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe(t *testing.T) {
 	if err != nil || approved.Status != "approved" {
 		t.Fatalf("approved=%#v err=%v", approved, err)
 	}
-	posted, err := service.Post(ctx, appcorrections.PostCommand{TenantID: testTenantID, ActorSubjectID: "correction-finance", CorrectionID: created.Event.CorrectionID, CorrelationID: "00000000-0000-0000-0000-000000000903"})
+	posted, err := service.Post(ctx, appcorrections.PostCommand{TenantID: testTenantID, ActorSubjectID: "correction-finance", CorrectionID: created.Event.CorrectionID, IdempotencyKey: "correction-post-0000903", CorrelationID: "00000000-0000-0000-0000-000000000903"})
 	if err != nil || posted.Replayed || posted.Event.Status != "posted" || posted.Event.OriginalJournalID == "" || posted.Event.CompensationJournalID == "" || posted.Event.OriginalJournalID == posted.Event.CompensationJournalID {
 		t.Fatalf("posted=%#v err=%v", posted, err)
 	}
-	postReplay, err := service.Post(ctx, appcorrections.PostCommand{TenantID: testTenantID, ActorSubjectID: "correction-finance", CorrectionID: created.Event.CorrectionID, CorrelationID: "00000000-0000-0000-0000-000000000904"})
+	postReplay, err := service.Post(ctx, appcorrections.PostCommand{TenantID: testTenantID, ActorSubjectID: "correction-finance", CorrectionID: created.Event.CorrectionID, IdempotencyKey: "correction-post-0000903", CorrelationID: "00000000-0000-0000-0000-000000000904"})
 	if err != nil || !postReplay.Replayed || postReplay.Event.CompensationTransferID != posted.Event.CompensationTransferID {
 		t.Fatalf("post replay=%#v err=%v", postReplay, err)
+	}
+	if _, err = service.Post(ctx, appcorrections.PostCommand{TenantID: testTenantID, ActorSubjectID: "correction-finance", CorrectionID: created.Event.CorrectionID, IdempotencyKey: "correction-post-different-0903", CorrelationID: "00000000-0000-0000-0000-000000000904"}); !errors.Is(err, appcorrections.ErrConflict) {
+		t.Fatalf("post with mismatched idempotency key error=%v", err)
 	}
 	var source, destination int64
 	if err = database.QueryRowContext(ctx, `SELECT ledger_minor FROM account_balance_projections WHERE account_id=$1`, testSourceID).Scan(&source); err != nil {

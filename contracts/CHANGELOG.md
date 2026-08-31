@@ -1,5 +1,12 @@
 # LedgerSync API changelog
 
+## 2.0.0 — 2026-08-29
+
+- Removed API-client webhook activation. Endpoint control is now proven only by
+  a server-initiated, signed, expiring challenge handled by the worker.
+- `POST /developer/webhooks` returns endpoint metadata in
+  `pending_verification`; it never returns a verification challenge.
+
 All dates are UTC. Contract artifacts are reviewed and released together.
 
 ## 1.15.0 — 2026-08-28

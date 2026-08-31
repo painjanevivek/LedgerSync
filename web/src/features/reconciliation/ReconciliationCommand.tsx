@@ -62,9 +62,12 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
     return () => cancelAnimationFrame(frame);
   }, [storageKey, tenantId]);
 
-  useEffect(() => () => {
-    mounted.current = false;
-    pollController.current?.abort();
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      pollController.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -117,10 +120,10 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
         if (manual && value.status === "running") setStatusMessage("The authoritative run is still in progress. No pass or mismatch result has been inferred.");
         return value.status !== "running";
       }
-      setStatusMessage("Current run evidence is unavailable. The last verified history remains visible; no result is inferred.");
+      setStatusMessage("Current run result is unavailable. The last verified history remains visible; no result is inferred.");
       return false;
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) setStatusMessage("Current run evidence is unavailable. The last verified history remains visible; no result is inferred.");
+      if (!(error instanceof DOMException && error.name === "AbortError")) setStatusMessage("Current run result is unavailable. The last verified history remains visible; no result is inferred.");
       return false;
     } finally {
       if (pollController.current === controller) pollController.current = null;
@@ -137,7 +140,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
     if (remaining <= 0) {
       const expired = window.setTimeout(() => {
         setPollingStopped(true);
-        setStatusMessage("Automatic checking reached its fixed deadline. Use manual refresh when authoritative evidence is available.");
+        setStatusMessage("Automatic checking reached its fixed deadline. Use manual refresh when the authoritative result is available.");
       }, 0);
       return () => window.clearTimeout(expired);
     }
@@ -147,7 +150,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
         setPollAttempts(nextAttempt);
         if (nextAttempt >= maximumAutomaticPolls || Date.now() >= submittedAt + automaticPollDeadlineMilliseconds) {
           setPollingStopped(true);
-          setStatusMessage("Automatic checking reached its fixed deadline. Use manual refresh when authoritative evidence is available.");
+          setStatusMessage("Automatic checking reached its fixed deadline. Use manual refresh when the authoritative result is available.");
         }
       });
     }, Math.min(automaticPollIntervalMilliseconds, remaining));
@@ -199,7 +202,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
 
   return <section className="reconciliation-control" aria-labelledby="reconciliation-control-heading">
     <div className="section-heading reconciliation-control-heading">
-      <div><p className="eyebrow">Serialized operator control</p><h2 id="reconciliation-control-heading">Run reconciliation</h2><p>Start one tenant-wide comparison between projected balances and immutable postings. Existing run evidence remains available below.</p></div>
+      <div><p className="eyebrow">Serialized operator control</p><h2 id="reconciliation-control-heading">Run reconciliation</h2><p>Start one tenant-wide comparison between projected balances and immutable postings. Existing run results remain available below.</p></div>
       <button className="button primary guarded-control" type="button" aria-describedby={!evidenceReady ? "reconciliation-prerequisite-reason" : undefined} disabled={!online || !canWrite || !evidenceReady || pending || commandLocked} onClick={beginReview}><ShieldCheck aria-hidden="true" />Run reconciliation</button>
     </div>
     {!canWrite && <p className="permission-note">Read-only role: reconciliation can be inspected, but your role cannot start a run.</p>}
@@ -215,7 +218,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
         <p><span>Comparison</span><strong>Projected balances against immutable postings</strong></p>
         <p><span>Financial mutation</span><strong>None — no balance, transfer, posting, or journal entry is changed</strong></p>
       </div>
-      <p className="guardrail-copy">The private service serializes runs per tenant. Completion creates new immutable evidence; it does not replace earlier successful or mismatch history.</p>
+      <p className="guardrail-copy">The private service serializes runs per tenant. Completion creates a new immutable result; it does not replace earlier successful or mismatch history.</p>
       <div className="action-row reconciliation-command-actions"><button className="button secondary guarded-control" type="button" disabled={pending} onClick={() => persist(null)}>Cancel</button><button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite || !evidenceReady} onClick={() => void submit(intent)}>{pending ? "Starting reconciliation…" : "Start reconciliation"}</button></div>
     </section>}
 
@@ -225,7 +228,7 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
       <p>LedgerSync has a stable run ID. No passing or mismatch result is inferred yet. Automatic checking is bounded to {maximumAutomaticPolls} attempts and a fixed deadline.</p>
       <dl className="review-grid reconciliation-run-grid"><div><dt>Run ID</dt><dd><CopyControl value={intent.runId!} /></dd></div><div><dt>Status</dt><dd><StatusBadge tone="warning">Running</StatusBadge></dd></div><div><dt>Request submitted</dt><dd>{intent.submittedAt ? utcDateTime(intent.submittedAt) : "Submission time unavailable"}</dd></div></dl>
       {statusMessage && <StatePanel kind={pollingStopped ? "unknown" : "empty"} title={pollingStopped ? "Automatic checking stopped" : "Run status checked"} message={statusMessage} />}
-      <div className="action-row"><button className="button secondary guarded-control" type="button" disabled={!online||checking} onClick={() => void refreshRun(intent.runId!, true)}><ArrowClockwise aria-hidden="true" />{checking?"Checking run status…":"Refresh run status"}</button><Link className="button secondary guarded-control" href={`/reconciliation/${encodeURIComponent(intent.runId!)}`}>Open run evidence</Link></div>
+      <div className="action-row"><button className="button secondary guarded-control" type="button" disabled={!online||checking} onClick={() => void refreshRun(intent.runId!, true)}><ArrowClockwise aria-hidden="true" />{checking?"Checking run status…":"Refresh run status"}</button><Link className="button secondary guarded-control" href={`/reconciliation/${encodeURIComponent(intent.runId!)}`}>Open run result</Link></div>
     </section>}
 
     {unknown && outcome && outcome.kind !== "run" && <section className="account-command-recovery reconciliation-command-recovery" aria-labelledby="reconciliation-unknown-heading" aria-live="polite">
@@ -249,9 +252,9 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
     {result && <section className={`surface reconciliation-command-result ${result.run.status === "mismatch" || result.run.status === "failed" ? "mismatch" : ""}`} role="region" aria-labelledby="reconciliation-result-heading" aria-live="polite">
       <p className="eyebrow">Authoritative command result</p>
       <h3 ref={outcomeHeading} tabIndex={-1} id="reconciliation-result-heading">{result.run.status === "matched" ? "Reconciliation passed" : result.run.status === "mismatch" ? "Mismatch detected" : "Reconciliation failed"}</h3>
-      <p>{result.run.status === "matched" ? "Projected balances agree with immutable postings for the recorded scope and watermark." : "No all-clear conclusion is shown. Investigate the retained run evidence before normal processing continues."}</p>
+      <p>{result.run.status === "matched" ? "Projected balances agree with immutable postings for the recorded scope and watermark." : "No all-clear conclusion is shown. Investigate the retained run result before normal processing continues."}</p>
       <dl className="review-grid reconciliation-run-grid"><div><dt>Run ID</dt><dd><CopyControl value={result.run.run_id} /></dd></div><div><dt>Request handling</dt><dd>{result.replayed ? "Original run returned from the retained key" : "New run response"}</dd></div>{result.requestReference && <div><dt>Request reference</dt><dd><CopyControl value={result.requestReference} label="Copy request reference" /></dd></div>}</dl>
-      <Link className="button primary guarded-control" href={`/reconciliation/${encodeURIComponent(result.run.run_id)}`}>Open authoritative run evidence</Link>
+      <Link className="button primary guarded-control" href={`/reconciliation/${encodeURIComponent(result.run.run_id)}`}>Open authoritative run result</Link>
     </section>}
 
     {!intent && !outcome && !result && statusMessage && <StatePanel kind="unknown" title="Retained request released" message={statusMessage} />}

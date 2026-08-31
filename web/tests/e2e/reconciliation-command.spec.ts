@@ -93,7 +93,7 @@ test("running state never infers a result and manual refresh resolves one stable
   await expect(running.getByText(runningRun.run_id, { exact: true })).toBeVisible();
   await running.getByRole("button", { name: "Refresh run status" }).click();
   await expect(page.getByRole("heading", { name: "Mismatch detected", exact: true }).first()).toBeFocused();
-  await expect(page.getByRole("link", { name: "Open authoritative run evidence" })).toHaveAttribute("href", `/reconciliation/${mismatchRun.run_id}`);
+  await expect(page.getByRole("link", { name: "Open authoritative run result" })).toHaveAttribute("href", `/reconciliation/${mismatchRun.run_id}`);
 });
 
 test("response unknown survives reload and retries the exact same key and body", async ({ page }) => {

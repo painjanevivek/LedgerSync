@@ -183,7 +183,7 @@ func (h *CorrectionHandler) Post(writer http.ResponseWriter, request *http.Reque
 	}
 	submission, err := h.service.Post(request.Context(), appcorrections.PostCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: request.PathValue("correctionId"),
-		CorrelationID: middleware.CorrelationID(request.Context()), StepUpAuthenticatedAt: principal.AuthenticatedAt,
+		IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()), StepUpAuthenticatedAt: principal.AuthenticatedAt,
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicCorrectionError(err))

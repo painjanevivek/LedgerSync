@@ -42,17 +42,19 @@ test("a new local user sees an actionable zero-data dashboard and guide", async 
 
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Build your first ledger path" }),
+    page.getByRole("heading", { name: "Start with four simple steps" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Create your first account" }),
   ).toHaveAttribute("href", "/accounts/new");
+  await expect(page.getByRole("link", { name: /Add a funding record/ })).toHaveAttribute("href", "/funding");
+  await expect(page.getByRole("link", { name: /Make a transfer/ })).toHaveAttribute("href", "/transfers");
 
   await page.getByRole("link", { name: "Guide", exact: true }).click();
   await expect(page).toHaveURL(/\/guide$/);
   await expect(
-    page.getByRole("heading", { name: "Run LedgerSync with confidence" }),
+    page.getByRole("heading", { name: "Use LedgerSync step by step" }),
   ).toBeVisible();
   await expect(page.getByText("Create an account", { exact: true })).toBeVisible();
-  await expect(page.getByText("Run reconciliation", { exact: true })).toBeVisible();
+  await expect(page.getByText("Check your records", { exact: true })).toBeVisible();
 });

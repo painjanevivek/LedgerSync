@@ -6,9 +6,9 @@ import { destinationAccount,mockOperatorConsole,recoveryEvidence,run } from "./f
 function json(route:Route,body:unknown,status=200){return route.fulfill({status,contentType:"application/json",body:JSON.stringify(body)});}
 async function expectAccessible(page:Page){const result=await new AxeBuilder({page}).exclude(".app-shell > aside").analyze();expect(result.violations.filter((item)=>["serious","critical"].includes(item.impact??""))).toEqual([]);}
 
-test("Recovery Center separates current truth, backup, restore, retention, and copy-only host guidance",async({page,context})=>{
+test("Recovery separates current truth, backup, restore, retention, and copy-only host guidance",async({page,context})=>{
   await context.grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page); await page.goto("/recovery");
-  await expect(page.getByRole("heading",{name:"Recovery Center"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Recovery",exact:true})).toBeVisible();
   await expect(page.getByRole("heading",{name:"PostgreSQL now"})).toBeVisible();
   await expect(page.getByText("Digest verified",{exact:true})).toBeVisible();
   await expect(page.getByText("0 mismatches · normal environment unchanged",{exact:true})).toBeVisible();
@@ -19,7 +19,7 @@ test("Recovery Center separates current truth, backup, restore, retention, and c
   await expectAccessible(page);
 });
 
-test("Recovery Center shows truthful empty and partial evidence without inventing readiness",async({page})=>{
+test("Recovery shows truthful empty and partial evidence without inventing readiness",async({page})=>{
   await mockOperatorConsole(page);
   await page.route("**/api/recovery/manifests",route=>json(route,{...recoveryEvidence,latest_backup:null,latest_restore:null,retention:{valid_backup_count:0,ignored_entry_count:1,configured_keep_count:5}}));
   await page.route("**/api/local/diagnostics",route=>json(route,{error:{code:"temporary_unavailable"}},503));
@@ -33,9 +33,9 @@ test("Recovery Center shows truthful empty and partial evidence without inventin
 
 test("transfer export review discloses exact filters and uses one native bounded download",async({page})=>{
   await mockOperatorConsole(page); await page.goto("/transfers");
-  await page.getByLabel("Search transfers").fill("11111111"); await page.getByLabel("Financial status").selectOption("posted"); await page.getByRole("button",{name:"Apply filters"}).click();
+  await page.getByLabel("Search transfers").fill("11111111"); await page.getByLabel("Status").selectOption("posted"); await page.getByRole("button",{name:"Apply filters"}).click();
   await expect(page).toHaveURL(/q=11111111.*status=posted/);
-  const trigger=page.getByRole("button",{name:"Export transfer evidence"}); await trigger.click();
+  const trigger=page.getByRole("button",{name:"Export transfer details"}); await trigger.click();
   const dialog=page.getByRole("dialog",{name:"Review transfer history export"}); await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("heading",{name:"Review transfer history export"})).toBeFocused();
   await expect(dialog.getByText("Search: 11111111 · Financial status: posted",{exact:true})).toBeVisible();
@@ -48,10 +48,10 @@ test("transfer export review discloses exact filters and uses one native bounded
 
 test("account and reconciliation exports retain their exact contextual scope",async({page})=>{
   await mockOperatorConsole(page); await page.goto(`/accounts/${destinationAccount.account_id}`);
-  await page.getByRole("button",{name:"Export ledger evidence"}).click();
+  await page.getByRole("button",{name:"Export ledger history"}).click();
   await expect(page.getByRole("dialog",{name:"Review account ledger history export"}).getByText(`One authorized account · ${destinationAccount.account_id}`,{exact:true})).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.goto(`/reconciliation/${run.run_id}`); await page.getByRole("button",{name:"Export run evidence"}).click();
+  await page.goto(`/reconciliation/${run.run_id}`); await page.getByRole("button",{name:"Export run result"}).click();
   const dialog=page.getByRole("dialog",{name:"Review reconciliation run export"});
   await expect(dialog.getByText(`One immutable run · ${run.run_id}`,{exact:true})).toBeVisible();
   await expect(dialog.getByText(`Run ID: ${run.run_id}`,{exact:true})).toBeVisible();
@@ -63,5 +63,5 @@ test("recovery and export controls reflow, deny missing scopes, and fail closed 
   await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["local:read"],environment:"local"}));
   await page.goto("/recovery"); await expect(page.getByText("Recovery evidence not authorized",{exact:true})).toBeVisible();
   await mockOperatorConsole(page); await page.goto("/transfers"); await context.setOffline(true);
-  await expect(page.getByRole("button",{name:"Export transfer evidence"})).toBeDisabled(); await context.setOffline(false);
+  await expect(page.getByRole("button",{name:"Export transfer details"})).toBeDisabled(); await context.setOffline(false);
 });

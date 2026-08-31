@@ -4,12 +4,17 @@ import { ArrowLeft, CheckCircle, Receipt, WarningCircle, X } from "@phosphor-ico
 import { FormEvent, useMemo, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
+import { FocusedRetry, FormField, StatePanel } from "@/features/console/components";
 import { accountLabel } from "@/features/console/format";
 import type { FundingEvent, FundingSubmission } from "@/lib/api/funding";
 import { minorUnitsFromDecimal, formatMinorUnits } from "@/lib/money";
 
 type Props = Readonly<{
   accounts: Account[];
+  accountsLoading: boolean;
+  accountsError: string | null;
+  accountsScopeComplete: boolean;
+  onRetryAccounts: () => void;
   csrfToken: string;
   online: boolean;
   canWrite: boolean;
@@ -27,7 +32,7 @@ type PreparedEvidence = Readonly<{
   idempotencyKey: string;
 }>;
 
-export function FundingRequestFlow({ accounts, csrfToken, online, canWrite, open, onClose, onCreated }: Props) {
+export function FundingRequestFlow({ accounts, accountsLoading, accountsError, accountsScopeComplete, onRetryAccounts, csrfToken, online, canWrite, open, onClose, onCreated }: Props) {
   const eligible = useMemo(() => accounts.filter((account) => account.status === "active"), [accounts]);
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [amount, setAmount] = useState("");
@@ -42,13 +47,13 @@ export function FundingRequestFlow({ accounts, csrfToken, online, canWrite, open
     event.preventDefault();
     setError(null);
     try {
-      if (!destination) throw new Error("Choose an active destination account.");
+      if (!destination) throw new Error("Choose the account that should receive this amount.");
       const amountMinor = minorUnitsFromDecimal(destination.currency, amount);
       if (amountMinor === "0") throw new Error("Enter an amount greater than zero.");
-      if (!externalReference.trim() || !evidenceReference.trim()) throw new Error("Record both the external reference and its evidence location.");
+      if (!externalReference.trim() || !evidenceReference.trim()) throw new Error("Add both the reference number and the supporting document location.");
       setPrepared({ destinationAccountId, amountMinor, currency: destination.currency, externalReference: externalReference.trim(), evidenceReference: evidenceReference.trim(), idempotencyKey: crypto.randomUUID() });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The evidence request is invalid.");
+      setError(cause instanceof Error ? cause.message : "Check the required fields and try again.");
     }
   }
 
@@ -63,13 +68,13 @@ export function FundingRequestFlow({ accounts, csrfToken, online, canWrite, open
         body: JSON.stringify({ destinationAccountId: prepared.destinationAccountId, amountMinor: prepared.amountMinor, currency: prepared.currency, externalReference: prepared.externalReference, evidenceReference: prepared.evidenceReference }),
       });
       const payload = await response.json() as FundingSubmission & { error?: string };
-      if (!response.ok || !payload.event?.funding_event_id) throw new Error(response.status === 504 ? "Outcome unknown. Retry this exact review with the same evidence; LedgerSync will reuse its idempotency key." : `Evidence was not recorded (${payload.error ?? response.status}).`);
+      if (!response.ok || !payload.event?.funding_event_id) throw new Error(response.status === 504 ? "We could not confirm whether the record was saved. Retry this same review safely; LedgerSync will not create a duplicate." : `The record was not saved (${payload.error ?? response.status}).`);
       await onCreated(payload.event);
       setPrepared(null);
       setDestinationAccountId(""); setAmount(""); setExternalReference(""); setEvidenceReference("");
       onClose();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Evidence could not be recorded.");
+      setError(cause instanceof Error ? cause.message : "The record could not be saved.");
     } finally {
       setBusy(false);
     }
@@ -77,21 +82,21 @@ export function FundingRequestFlow({ accounts, csrfToken, online, canWrite, open
 
   if (!open) return null;
   return <section className="funding-request-panel" aria-labelledby="funding-request-heading">
-    <header><div className="funding-panel-mark"><Receipt weight="fill" aria-hidden="true" /></div><div><p className="eyebrow">Controlled intake</p><h2 id="funding-request-heading">Record external value evidence</h2><p>This creates a reviewable ledger intent. It does not claim a bank deposit or settled custody.</p></div><button className="icon-button funding-close" type="button" aria-label="Close evidence request" onClick={onClose}><X aria-hidden="true" /></button></header>
-    {!canWrite ? <div className="funding-inline-notice"><WarningCircle weight="fill" aria-hidden="true" /><p><strong>Write scope required.</strong> Ask a tenant administrator for funding:write before recording evidence.</p></div> : !prepared ? <form className="funding-evidence-form" onSubmit={prepare}>
-      <label>Destination account<select required value={destinationAccountId} onChange={(event) => setDestinationAccountId(event.target.value)}><option value="">Choose an active account</option>{eligible.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></label>
-      <label>Exact amount<input required inputMode="decimal" autoComplete="off" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="1250.00" /></label>
-      <label>External reference<input required maxLength={256} value={externalReference} onChange={(event) => setExternalReference(event.target.value)} placeholder="Provider or bank evidence reference" /></label>
-      <label>Evidence location<input required maxLength={512} value={evidenceReference} onChange={(event) => setEvidenceReference(event.target.value)} placeholder="Controlled document or case reference" /></label>
-      <div className="funding-form-note"><CheckCircle weight="fill" aria-hidden="true" /><p>LedgerSync stores exact minor units and requires a separate production finance operator to approve this evidence.</p></div>
+    <header><div className="funding-panel-mark"><Receipt weight="fill" aria-hidden="true" /></div><div><p className="eyebrow">Step 1 of 2</p><h2 id="funding-request-heading">Add a funding record</h2><p>Add the four details needed for review. This creates an external value reference; it does not claim that LedgerSync holds the money or that a bank transfer has settled.</p></div><button className="icon-button funding-close" type="button" aria-label="Close funding request" onClick={onClose}><X aria-hidden="true" /></button></header>
+    {!canWrite ? <div className="funding-inline-notice"><WarningCircle weight="fill" aria-hidden="true" /><p><strong>Write scope required.</strong> Ask a tenant administrator for funding:write before recording funding.</p></div> : accountsLoading && accounts.length === 0 ? <StatePanel title="Loading eligible accounts" message="LedgerSync is verifying the complete authorized account scope before enabling funding entry." /> : accountsError ? <StatePanel kind="error" title="Eligible accounts unavailable" message={`${accountsError} Funding entry remains disabled so an unavailable directory is never presented as an empty one.`} action={<FocusedRetry label="Retry account verification" onRetry={onRetryAccounts} busy={accountsLoading} disabled={!online} />} /> : !accountsScopeComplete ? <StatePanel kind="unknown" title="Account selection is incomplete" message="More than 100 active accounts are available in this tenant scope. Funding entry remains disabled until a complete server-backed selector is available." action={<FocusedRetry label="Verify account scope again" onRetry={onRetryAccounts} busy={accountsLoading} disabled={!online} />} /> : eligible.length === 0 ? <StatePanel title="No eligible active accounts" message="The authorized account directory was verified and contains no active account that can receive funding." action={<FocusedRetry label="Refresh eligible accounts" onRetry={onRetryAccounts} busy={accountsLoading} disabled={!online} />} /> : !prepared ? <form className="funding-evidence-form" onSubmit={prepare}>
+      <FormField label="Account" requirement="required" hint="Choose the account that should receive this amount."><select id="funding-destination-account" required value={destinationAccountId} onChange={(event) => setDestinationAccountId(event.target.value)}><option value="">Choose an account</option>{eligible.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></FormField>
+      <FormField label="Amount" requirement="required" hint="Enter the amount in INR. Example: 1250.00."><input id="funding-amount" required inputMode="decimal" autoComplete="off" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="1250.00" /></FormField>
+      <FormField label="Reference number" requirement="required" hint="Use the number from your bank, provider, or payment record."><input id="funding-reference" required maxLength={256} value={externalReference} onChange={(event) => setExternalReference(event.target.value)} placeholder="Example: BANK-REF-1234" /></FormField>
+      <FormField label="Supporting document" requirement="required" hint="Add the case, receipt, or document ID where this can be checked."><input id="funding-supporting-document" required maxLength={512} value={evidenceReference} onChange={(event) => setEvidenceReference(event.target.value)} placeholder="Example: CASE-104 or receipt ID" /></FormField>
+      <div className="funding-form-note"><CheckCircle weight="fill" aria-hidden="true" /><p><strong>Why all four?</strong> Another operator needs them to check the record before your balance can change.</p></div>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={!online}>Review evidence</button></footer>
+      <footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={!online}>Review details</button></footer>
     </form> : <div className="funding-review">
-      <div className="review-kicker"><span>Evidence review</span><strong>No journal posting yet</strong></div>
-      <dl><div><dt>Destination</dt><dd>{destination ? accountLabel(destination) : prepared.destinationAccountId}</dd></div><div><dt>Exact amount</dt><dd className="number-cell">{formatMinorUnits(prepared.currency, prepared.amountMinor)}</dd></div><div><dt>External reference</dt><dd>{prepared.externalReference}</dd></div><div><dt>Evidence location</dt><dd>{prepared.evidenceReference}</dd></div></dl>
-      <div className="funding-inline-notice"><WarningCircle weight="fill" aria-hidden="true" /><p><strong>Confirm the claim, not settlement.</strong> Recording creates immutable evidence for approval; balances change only after an approved journal is posted.</p></div>
+      <div className="review-kicker"><span>Check your details</span><strong>Your balance will not change yet</strong></div>
+      <dl><div><dt>Account</dt><dd>{destination ? accountLabel(destination) : prepared.destinationAccountId}</dd></div><div><dt>Amount</dt><dd className="number-cell">{formatMinorUnits(prepared.currency, prepared.amountMinor)}</dd></div><div><dt>Reference number</dt><dd>{prepared.externalReference}</dd></div><div><dt>Supporting document</dt><dd>{prepared.evidenceReference}</dd></div></dl>
+      <div className="funding-inline-notice"><WarningCircle weight="fill" aria-hidden="true" /><p><strong>What happens next?</strong> Saving sends this record for review. Your balance changes only after another operator approves it.</p></div>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <footer><button className="button secondary" type="button" disabled={busy} onClick={() => setPrepared(null)}><ArrowLeft aria-hidden="true" />Edit evidence</button><button className="button primary" type="button" disabled={busy || !online} onClick={() => void recordEvidence()}>{busy ? "Recording…" : "Record for review"}</button></footer>
+      <footer><button className="button secondary" type="button" disabled={busy} onClick={() => setPrepared(null)}><ArrowLeft aria-hidden="true" />Edit details</button><button className="button primary" type="button" disabled={busy || !online} onClick={() => void recordEvidence()}>{busy ? "Saving…" : "Save for review"}</button></footer>
     </div>}
   </section>;
 }

@@ -1,5 +1,5 @@
-import { OperatorConsole } from "@/features/accounts/OperatorConsole";
+import { ReconciliationController } from "@/features/reconciliation/ReconciliationController";
 
 export default function ReconciliationPage() {
-  return <OperatorConsole initialSection="reconciliation" />;
+  return <ReconciliationController />;
 }

@@ -253,17 +253,17 @@ func (r *TransferCorrectionRepository) Post(ctx context.Context, command appcorr
 		if err := authorizeCorrectionApprover(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
-		var requester, approver, status, mode, originalID, debitID, creditID, currency string
+		var requester, approver, status, mode, originalID, debitID, creditID, currency, storedPostKey string
 		var amount, version int64
 		var stepUp bool
 		var expires time.Time
 		err := tx.QueryRowContext(ctx, `
 SELECT correction.requester_subject_id,COALESCE(correction.approver_subject_id,''),correction.status,correction.control_mode,
  correction.step_up_required,correction.approval_expires_at,correction.policy_version,original.id::text,
- original.debit_account_id::text,original.credit_account_id::text,original.amount_minor,original.currency
+ original.debit_account_id::text,original.credit_account_id::text,original.amount_minor,original.currency,COALESCE(correction.post_idempotency_key,'')
 FROM transfer_corrections correction JOIN transfers original ON original.id=correction.original_transfer_id
 WHERE correction.tenant_id=$1 AND correction.id=$2 FOR UPDATE OF correction,original`, command.TenantID, command.CorrectionID).
-			Scan(&requester, &approver, &status, &mode, &stepUp, &expires, &version, &originalID, &debitID, &creditID, &amount, &currency)
+			Scan(&requester, &approver, &status, &mode, &stepUp, &expires, &version, &originalID, &debitID, &creditID, &amount, &currency, &storedPostKey)
 		if errors.Is(err, sql.ErrNoRows) {
 			return appcorrections.ErrNotFound
 		}
@@ -271,6 +271,9 @@ WHERE correction.tenant_id=$1 AND correction.id=$2 FOR UPDATE OF correction,orig
 			return err
 		}
 		if status == "posted" {
+			if storedPostKey != "" && storedPostKey != command.IdempotencyKey {
+				return appcorrections.ErrConflict
+			}
 			event, err := readCorrectionByID(ctx, tx, command.TenantID, command.CorrectionID)
 			if err == nil {
 				submission = appcorrections.Submission{Event: event, Replayed: true}
@@ -355,7 +358,7 @@ VALUES($1,$2,$3,$4,$5,$6,$7,'posted',$8,$9,$9,$10,$11)`, compensationID, command
 		if err != nil {
 			return err
 		}
-		result, err := tx.ExecContext(ctx, `UPDATE transfer_corrections SET status='posted',compensation_transfer_id=$3,posted_at=$4,updated_at=$4 WHERE tenant_id=$1 AND id=$2 AND status='approved'`, command.TenantID, command.CorrectionID, compensationID, command.OccurredAt)
+		result, err := tx.ExecContext(ctx, `UPDATE transfer_corrections SET status='posted',compensation_transfer_id=$3,posted_at=$4,updated_at=$4,post_idempotency_key=$5 WHERE tenant_id=$1 AND id=$2 AND status='approved'`, command.TenantID, command.CorrectionID, compensationID, command.OccurredAt, command.IdempotencyKey)
 		if err != nil {
 			return err
 		}

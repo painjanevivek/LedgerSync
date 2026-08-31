@@ -1,6 +1,6 @@
-import { OperatorConsole } from "@/features/accounts/OperatorConsole";
+import { OverviewController } from "@/features/overview/OverviewController";
 
 export default async function Home({ searchParams }: Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>) {
   const query = await searchParams;
-  return <OperatorConsole initialShowOrientation={query.guide === "1"} />;
+  return <OverviewController showOrientation={query.guide === "1"} />;
 }

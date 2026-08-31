@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "1.15.0"
+const APIVersion = "2.0.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string
@@ -47,8 +47,8 @@ var Operations = []Operation{
 	{ID: "listReconciliationRuns", Method: "GET", Path: "/reconciliation/runs", Scope: "reconciliation:read", Idempotent: false},
 	{ID: "listTransferCorrections", Method: "GET", Path: "/transfer-corrections", Scope: "corrections:read", Idempotent: false},
 	{ID: "listTransfers", Method: "GET", Path: "/transfers", Scope: "transfers:read", Idempotent: false},
-	{ID: "postFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/post", Scope: "funding:write", Idempotent: false},
-	{ID: "postTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/post", Scope: "corrections:approve", Idempotent: false},
+	{ID: "postFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/post", Scope: "funding:write", Idempotent: true},
+	{ID: "postTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/post", Scope: "corrections:approve", Idempotent: true},
 	{ID: "reconcileFundingEvent", Method: "GET", Path: "/funding-events/{fundingEventId}/reconciliation", Scope: "funding:read", Idempotent: false},
 	{ID: "registerDeveloperWebhook", Method: "POST", Path: "/developer/webhooks", Scope: "webhooks:write", Idempotent: true},
 	{ID: "rejectFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/reject", Scope: "funding:approve", Idempotent: false},
@@ -63,5 +63,4 @@ var Operations = []Operation{
 	{ID: "runReconciliation", Method: "POST", Path: "/reconciliation/runs", Scope: "reconciliation:write", Idempotent: true},
 	{ID: "updateAccount", Method: "PATCH", Path: "/accounts/{accountId}", Scope: "accounts:write", Idempotent: true},
 	{ID: "updateLocalOrientationPreferences", Method: "PUT", Path: "/local/orientation/preferences", Scope: "local:write", Idempotent: false},
-	{ID: "verifyDeveloperWebhook", Method: "POST", Path: "/developer/webhooks/{webhookId}/verifications", Scope: "webhooks:write", Idempotent: true},
 }

@@ -39,10 +39,10 @@ func TestWebhookRegistrationEnforcesEnvironmentAndStoresDigestOnly(t *testing.T)
 	service, _ := NewWebhookService(repository, nil, "production", func() time.Time { return now }, strings.NewReader(strings.Repeat("a", 32)))
 	base := RegisterWebhookCommand{TenantID: "tenant", ActorSubjectID: "actor", CorrelationID: "correlation", IdempotencyKey: "webhook-register-0001", DisplayName: "Accounting", EndpointURL: "https://partner.example.test/ledgersync", SubscribedEvents: []string{"transfer.posted"}, SigningKeyReference: "kms/webhook-001", SigningKeyID: "key-001"}
 	submission, err := service.Register(context.Background(), base)
-	if err != nil || submission.Challenge == "" {
+	if err != nil || submission.Webhook.Status != "pending_verification" {
 		t.Fatalf("submission=%#v err=%v", submission, err)
 	}
-	if repository.command.ChallengeDigest == ([sha256.Size]byte{}) || repository.command.ChallengeExpiresAt != now.Add(10*time.Minute) {
+	if repository.command.VerificationChallenge == "" || repository.command.ChallengeDigest == ([sha256.Size]byte{}) || repository.command.ChallengeExpiresAt != now.Add(10*time.Minute) {
 		t.Fatalf("command=%#v", repository.command)
 	}
 	unsafe := base

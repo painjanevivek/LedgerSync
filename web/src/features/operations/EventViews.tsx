@@ -3,7 +3,7 @@
 import { ArrowClockwise, ArrowLeft, CheckCircle, Clock, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 
-import { CopyControl, DataTableRegion, EvidenceFreshness, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
+import { CopyControl, DataTableRegion, EvidenceFreshness, FormField, PageHeader, RecordLink, StatePanel, StatusBadge } from "@/features/console/components";
 import type { DeliveryEvent, DeliveryEventDetail } from "@/lib/api/operations";
 
 export type EventFilters = Readonly<{ eventType?: string; state?: string; relatedId?: string; correlationId?: string; from?: string; to?: string; cursor?: string }>;
@@ -22,17 +22,17 @@ export function EventsListView({ events, filters, nextCursor, verifiedAt, loadin
   if (nextCursor) next.set("cursor", nextCursor);
   const current = new URLSearchParams(); for (const [key,value] of Object.entries(filters)) if(value) current.set(key,value); const returnTo=current.size?`/events?${current}`:"/events";
       return <>
-    <PageHeader eyebrow="Delivery evidence / Tenant-scoped" title="Event investigation" description="Inspect downstream delivery without changing or replaying an event."><button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true" />Refresh events</button></PageHeader>
+    <PageHeader eyebrow="Operations / Delivery" title="Delivery events" description="Check whether LedgerSync sent each update. This page does not change money or resend an event."><button className="button secondary guarded-control" type="button" disabled={!online || loading || !canRead} onClick={onRefresh}><ArrowClockwise aria-hidden="true" />Refresh events</button></PageHeader>
     <div className="financial-separation-note"><CheckCircle weight="fill" aria-hidden="true"/><div><strong>Financial truth remains separate</strong><p>An event can be pending, retrying, or dead after its PostgreSQL transaction has committed. Verify any money result through its linked transfer or account evidence.</p></div></div>
     {!canRead && <StatePanel kind="denied" title="Event evidence not authorized" message="This session does not include events:read. No event records have been requested." />}
     {!online && <StatePanel kind="offline" title="Offline — event evidence is not current" message="Reconnect before refreshing or treating this list as current." />}
     <form className="event-filter-document" method="get" action="/events" aria-label="Event filters">
-      <label>Event type<input name="eventType" defaultValue={filters.eventType} maxLength={256} /></label>
-      <label>State<select name="state" defaultValue={filters.state ?? ""}><option value="">All states</option><option value="pending">Pending</option><option value="retrying">Retrying</option><option value="published">Published</option><option value="dead">Dead</option></select></label>
-      <label>Related ID<input name="relatedId" defaultValue={filters.relatedId} maxLength={256} /></label>
-      <label>Correlation ID<input name="correlationId" defaultValue={filters.correlationId} maxLength={256} /></label>
-      <label>From UTC<input name="from" defaultValue={filters.from} placeholder="2026-08-25T00:00:00Z" maxLength={64} /></label>
-      <label>To UTC<input name="to" defaultValue={filters.to} placeholder="2026-08-25T23:59:59Z" maxLength={64} /></label>
+      <FormField label="Event type" requirement="optional"><input name="eventType" defaultValue={filters.eventType} maxLength={256} /></FormField>
+      <FormField label="State" requirement="optional"><select name="state" defaultValue={filters.state ?? ""}><option value="">All states</option><option value="pending">Pending</option><option value="retrying">Retrying</option><option value="published">Published</option><option value="dead">Dead</option></select></FormField>
+      <FormField label="Related ID" requirement="optional" hint="Use an account or transfer ID."><input name="relatedId" defaultValue={filters.relatedId} maxLength={256} /></FormField>
+      <FormField label="Correlation ID" requirement="optional" hint="Use the ID that links related activity."><input name="correlationId" defaultValue={filters.correlationId} maxLength={256} /></FormField>
+      <FormField label="From UTC" requirement="optional" hint="Example: 2026-08-25T00:00:00Z."><input name="from" defaultValue={filters.from} placeholder="2026-08-25T00:00:00Z" maxLength={64} /></FormField>
+      <FormField label="To UTC" requirement="optional" hint="Example: 2026-08-25T23:59:59Z."><input name="to" defaultValue={filters.to} placeholder="2026-08-25T23:59:59Z" maxLength={64} /></FormField>
       <div className="event-filter-actions"><button className="button primary guarded-control" type="submit">Apply filters</button><Link className="button secondary guarded-control" href="/events">Clear filters</Link></div>
     </form>
     {error && <StatePanel kind="error" title="Event evidence unavailable" message={error} />}

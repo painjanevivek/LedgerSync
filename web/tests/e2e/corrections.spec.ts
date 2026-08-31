@@ -1,5 +1,7 @@
 import { expect, test, type Route } from "@playwright/test";
 
+import type { TransferCorrection } from "../../src/lib/api/corrections";
+
 import {
   destinationAccount,
   mockOperatorConsole,
@@ -65,6 +67,9 @@ async function authorizeCorrections(
 test("independent approver reviews and posts one paired compensation", async ({
   page,
 }) => {
+  let current: TransferCorrection = correction;
+  let postRequests = 0;
+  let postKey = "";
   await mockOperatorConsole(page);
   await authorizeCorrections(page);
   await page.route("**/api/transfer-corrections?*", (route) =>
@@ -72,32 +77,38 @@ test("independent approver reviews and posts one paired compensation", async ({
   );
   await page.route(
     `**/api/transfer-corrections/${correction.correction_id}`,
-    (route) => json(route, correction),
+    (route) => json(route, current),
   );
   await page.route(
     `**/api/transfer-corrections/${correction.correction_id}/approve`,
-    (route) =>
-      json(route, {
+    (route) => {
+      current = {
         ...correction,
         status: "approved",
         approver_subject_id: "approver-2",
         decision_reason: "Independent evidence review completed.",
-      }),
+      };
+      return json(route, current);
+    },
   );
   await page.route(
     `**/api/transfer-corrections/${correction.correction_id}/post`,
-    (route) =>
-      json(route, {
-        event: {
+    (route) => {
+      postRequests += 1;
+      postKey = route.request().headers()["idempotency-key"] ?? "";
+      current = {
           ...correction,
           status: "posted",
           approver_subject_id: "approver-2",
           decision_reason: "Independent evidence review completed.",
           compensation_transfer_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
           compensation_journal_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        },
+      };
+      return json(route, {
+        event: current,
         replayed: false,
-      }),
+      });
+    },
   );
 
   await page.goto("/corrections");
@@ -111,18 +122,23 @@ test("independent approver reviews and posts one paired compensation", async ({
     .getByLabel("Decision or cancellation reason")
     .fill("Independent evidence review completed.");
   await page.getByRole("button", { name: "Approve request" }).click();
-  await expect(
-    page.getByRole("button", { name: "Post exact reverse transfer" }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Post exact reverse transfer" })
-    .click();
+  const postTrigger = page.getByRole("button", { name: "Review reverse-transfer posting" });
+  await expect(postTrigger).toBeVisible();
+  await postTrigger.click();
+  await expect(page.getByRole("heading", { name: "Post exact reverse transfer?" })).toBeFocused();
+  await expect(page.getByText("Create one additive balanced reverse transfer")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(postTrigger).toBeFocused();
+  await postTrigger.click();
+  await page.getByRole("button", { name: "Post exact reverse transfer", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Posted reverse transfer" }),
   ).toBeVisible();
   await expect(
     page.getByText("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
   ).toBeVisible();
+  expect(postRequests).toBe(1);
+  expect(postKey.length).toBeGreaterThanOrEqual(16);
 });
 
 test("a sensitive correction request turns step-up failure into a safe return path", async ({

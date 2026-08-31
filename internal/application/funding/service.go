@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/idempotency"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 )
 
@@ -54,6 +55,7 @@ type ActionCommand struct {
 	TenantID       string
 	ActorSubjectID string
 	FundingEventID string
+	IdempotencyKey string
 	CorrelationID  string
 	OccurredAt     time.Time
 }
@@ -178,7 +180,7 @@ func (s *Service) Reject(ctx context.Context, command DecisionCommand) (Event, e
 
 func (s *Service) Post(ctx context.Context, command ActionCommand) (Submission, error) {
 	command = s.normalizeAction(command)
-	if command.TenantID == "" || command.ActorSubjectID == "" || command.FundingEventID == "" || command.CorrelationID == "" {
+	if command.TenantID == "" || command.ActorSubjectID == "" || command.FundingEventID == "" || command.CorrelationID == "" || idempotency.ValidateKey(command.IdempotencyKey) != nil {
 		return Submission{}, ErrInvalidCommand
 	}
 	return s.repository.Post(ctx, command)
@@ -238,7 +240,7 @@ func (s *Service) normalizeDecision(command DecisionCommand) DecisionCommand {
 
 func (s *Service) normalizeAction(command ActionCommand) ActionCommand {
 	command.TenantID, command.ActorSubjectID, command.FundingEventID = strings.TrimSpace(command.TenantID), strings.TrimSpace(command.ActorSubjectID), strings.TrimSpace(command.FundingEventID)
-	command.CorrelationID = strings.TrimSpace(command.CorrelationID)
+	command.IdempotencyKey, command.CorrelationID = strings.TrimSpace(command.IdempotencyKey), strings.TrimSpace(command.CorrelationID)
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = s.clock().UTC()
 	}

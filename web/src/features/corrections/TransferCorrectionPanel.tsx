@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import type { TransferDetail } from "@/features/accounts/types";
 import {
   CopyControl,
+  FormField,
   StatePanel,
   StatusBadge,
 } from "@/features/console/components";
@@ -173,32 +174,27 @@ export function TransferCorrectionPanel({
         <details>
           <summary>Start correction request</summary>
           <form onSubmit={requestCorrection}>
-            <label>
-              Reason code
-              <select
+            <FormField label="Reason" requirement="required" hint="Choose the reason this transfer needs a correction."><select
                 value={reasonCode}
                 onChange={(event) =>
                   setReasonCode(event.target.value as CorrectionReasonCode)
                 }
+                required
               >
                 {reasons.map((reason) => (
                   <option key={reason.value} value={reason.value}>
                     {reason.label}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label>
-              Verified operator note
-              <textarea
+              </select></FormField>
+            <FormField label="Verified operator note" requirement="required" hint="State the evidence that supports this correction."><textarea
                 required
                 rows={4}
                 maxLength={500}
                 value={operatorNote}
                 onChange={(event) => setOperatorNote(event.target.value)}
                 placeholder="Describe the evidence that justifies an exact reversal"
-              />
-            </label>
+              /></FormField>
             <div className="correction-request-proof">
               <strong>Before you submit</strong>
               <ul>

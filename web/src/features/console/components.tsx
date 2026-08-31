@@ -2,7 +2,26 @@
 
 import { ArrowClockwise, ArrowRight, Check, CheckCircle, Clock, Copy, Info, WarningCircle, XCircle } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { cloneElement, isValidElement, useId, useState, type ReactElement, type ReactNode } from "react";
+
+type FormControl = ReactElement<{ "aria-describedby"?: string }>;
+
+/** A single accessible label pattern for required and optional console fields. */
+export function FormField({ label, requirement, hint, children }: Readonly<{
+  label: string;
+  requirement: "required" | "optional";
+  hint?: ReactNode;
+  children: FormControl;
+}>) {
+  const hintId = useId();
+  const control = isValidElement(children) && hint
+    ? cloneElement(children, { "aria-describedby": children.props["aria-describedby"] ? `${children.props["aria-describedby"]} ${hintId}` : hintId })
+    : children;
+  return <div className="form-field">
+    <label className="form-field-label"><span>{label}</span><span className={`field-requirement ${requirement}`}>{requirement === "required" ? "Required" : "Optional"}</span>{control}</label>
+    {hint && <p id={hintId} className="form-field-hint">{hint}</p>}
+  </div>;
+}
 
 export function CopyControl({ value, label = "Copy identifier" }: Readonly<{ value: string; label?: string }>) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
@@ -16,7 +35,7 @@ export function StatusBadge({ children, tone = "neutral" }: Readonly<{ children:
 }
 
 export function StatePanel({ title, message, kind = "empty", action }: Readonly<{ title: string; message: string; kind?: "empty" | "error" | "offline" | "denied" | "unknown"; action?: ReactNode }>) {
-  return <div className={`state-panel ${kind}`} role={kind === "error" ? "alert" : "status"}>{kind === "error" || kind === "offline" || kind === "unknown" ? <WarningCircle weight="fill" aria-hidden="true" /> : <Info weight="fill" aria-hidden="true" />}<div><strong>{title}</strong><p>{message}</p>{action}</div></div>;
+  return <div className={`state-panel ${kind}`} role={kind === "error" ? "alert" : "status"}>{kind === "error" || kind === "offline" || kind === "unknown" ? <WarningCircle weight="fill" aria-hidden="true" /> : <Info weight="fill" aria-hidden="true" />}<div><strong role="heading" aria-level={3}>{title}</strong><p>{message}</p>{action}</div></div>;
 }
 
 export function FocusedRetry({ label, onRetry, disabled = false, busy = false }: Readonly<{ label: string; onRetry: () => void; disabled?: boolean; busy?: boolean }>) {

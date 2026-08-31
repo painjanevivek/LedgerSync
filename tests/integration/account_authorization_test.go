@@ -37,6 +37,28 @@ func TestAccountReadsDenyUnownedAccountsWithoutDisclosure(t *testing.T) {
 	}
 }
 
+func TestEmptyAuthorizedAccountHistoryReturnsAnEmptyCollection(t *testing.T) {
+	_, database := requireTransferService(t, 10_000)
+	historyRepo, err := db.NewTransactionHistoryRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entries, nextCursor, err := historyRepo.ListAccountHistory(context.Background(), testTenantID, testActorID, testSourceID, "", 10)
+	if err != nil {
+		t.Fatalf("list untouched account history: %v", err)
+	}
+	if entries == nil {
+		t.Fatal("expected an empty collection, got nil (which serializes as JSON null)")
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected no history entries, got %d", len(entries))
+	}
+	if nextCursor != "" {
+		t.Fatalf("expected no next cursor, got %q", nextCursor)
+	}
+}
+
 func TestAccountDirectoryPaginatesTenThousandAuthorizedAccountsWithStableIndexes(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	ctx := context.Background()

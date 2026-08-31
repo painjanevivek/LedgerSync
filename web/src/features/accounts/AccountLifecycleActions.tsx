@@ -14,7 +14,7 @@ import {
 } from "@/features/accounts/accountCommandIntent";
 import type { Account, AccountBalance } from "@/features/accounts/types";
 import { useAccountCommand } from "@/features/accounts/useAccountCommand";
-import { StatePanel } from "@/features/console/components";
+import { FormField, StatePanel } from "@/features/console/components";
 import { formatMinorUnits } from "@/lib/money";
 
 type Props = Readonly<{
@@ -62,6 +62,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
   const dialogOutcome = useRef<HTMLDivElement>(null);
   const validationSummary = useRef<HTMLDivElement>(null);
   const refreshSequence = useRef(0);
+  const focusOutcomeAfterClose = useRef(false);
   const exactZero = balance !== null && balance.available_minor === "0" && balance.ledger_minor === "0";
   const balanceCurrent = Boolean(balance) && !balanceLoading && !balanceError;
   const verifiedAccount = commandEvidence?.account?.account_id === account.account_id ? commandEvidence.account : null;
@@ -93,6 +94,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     setCommandEvidence(null);
     setEvidenceError(null);
     setEvidenceLoading(true);
+    focusOutcomeAfterClose.current = false;
     setDialogOpen(true);
     dialog.current?.showModal();
     const evidence = await onRefreshEvidence().catch(() => ({ account: null, balance: null }));
@@ -116,15 +118,17 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     if (result.kind === "success") {
       sessionStorage.removeItem(storageKey);
       setRetained(null);
+      focusOutcomeAfterClose.current = false;
       dialog.current?.close();
       await onChanged();
     } else if (result.kind !== "unknown") {
       sessionStorage.removeItem(storageKey);
       setRetained(null);
       if (result.kind === "conflict") {
+        focusOutcomeAfterClose.current = true;
         dialog.current?.close();
         await onChanged();
-        requestAnimationFrame(() => outcomeHeading.current?.focus());
+        requestAnimationFrame(() => { outcomeHeading.current?.focus(); focusOutcomeAfterClose.current = false; });
       }
     }
   }
@@ -133,7 +137,7 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
     event.preventDefault();
     if (!target || pending) return;
     if (retained && outcome?.kind === "unknown") { await submitIntent(retained); return; }
-    if (!verifiedAccount || evidenceLoading || evidenceError) { showValidation("Refresh did not produce current, consistent account evidence. Cancel and try again when authoritative evidence is available."); return; }
+    if (!verifiedAccount || evidenceLoading || evidenceError) { showValidation("Refresh did not produce current, consistent account details. Cancel and try again when authoritative records are available."); return; }
     if (!validLifecycleReason(reason)) { showValidation("Reason is required and must be 1–256 characters without control characters."); return; }
     if (target === "closed" && confirmation !== verifiedAccount.external_reference) { showValidation("Enter the exact external reference to confirm terminal closure."); return; }
     if (target === "closed" && (!verifiedBalance || !verifiedExactZero)) { showValidation("Current authoritative available and ledger balances must both be exactly INR 0.00 before closure."); return; }
@@ -166,30 +170,28 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
       {account.status === "active" && !canTransfer && <p className="permission-note">Funding is unavailable because your role cannot post transfers.</p>}
       {account.status === "active" && canTransfer && !fundingScopeComplete && <p className="permission-note">The authorized account picker exceeds its bounded scope. LedgerSync cannot prove a funded source, so funding remains unavailable.</p>}
       {account.status === "active" && canTransfer && fundingScopeComplete && !fundedSourceAvailable && <p className="permission-note">No different active, authorized INR source has a positive available balance. Funding remains unavailable.</p>}
-      {!online && <StatePanel kind="offline" title="Account controls are offline" message="Lifecycle commands are disabled until current evidence can be verified and the command can be submitted." />}
+      {!online && <StatePanel kind="offline" title="Account controls are offline" message="Lifecycle commands are disabled until current account details can be verified and the command can be submitted." />}
       {balanceLoading && <StatePanel title="Verifying closure boundary" message="Current available and ledger balances are loading independently." />}
-      {balanceError && <StatePanel kind="unknown" title="Closure evidence unavailable" message="Final closure confirmation remains disabled until the dialog refreshes and verifies both exact balances." />}
-      {balanceCurrent && !exactZero && <StatePanel kind="denied" title="Close account requires exact zero" message={`Authoritative available evidence is ${account.currency} · ${balance!.available_minor} minor units; ledger evidence is ${account.currency} · ${balance!.ledger_minor} minor units. Fund movement must use an auditable transfer; this control cannot edit either value.`} />}
+      {balanceError && <StatePanel kind="unknown" title="Closure details unavailable" message="Final closure confirmation remains disabled until the dialog refreshes and verifies both exact balances." />}
+      {balanceCurrent && !exactZero && <StatePanel kind="denied" title="Close account requires exact zero" message={`Current spendable amount is ${account.currency} · ${balance!.available_minor} minor units; posted ledger amount is ${account.currency} · ${balance!.ledger_minor} minor units. Fund movement must use an auditable transfer; this control cannot edit either value.`} />}
     </>}
-    {outcome && outcome.kind !== "success" && !recovery && !dialogOpen && <div className="account-command-recovery" role="region" aria-labelledby="lifecycle-result-heading"><h3 ref={outcomeHeading} tabIndex={-1} id="lifecycle-result-heading">Lifecycle command not completed</h3><StatePanel kind={outcome.kind === "denied" ? "denied" : "error"} title="Review current account evidence" message={outcome.message} /></div>}
+    {outcome && outcome.kind !== "success" && !recovery && !dialogOpen && <div className="account-command-recovery" role="region" aria-labelledby="lifecycle-result-heading"><h3 ref={outcomeHeading} tabIndex={-1} id="lifecycle-result-heading">Lifecycle command not completed</h3><StatePanel kind={outcome.kind === "denied" ? "denied" : "error"} title="Review current account details" message={outcome.message} /></div>}
     {recovery && !dialogOpen && <div className="account-command-recovery" role="region" aria-live="polite" aria-labelledby="lifecycle-recovery-heading">
       <h3 ref={outcomeHeading} tabIndex={-1} id="lifecycle-recovery-heading">Lifecycle result not yet confirmed</h3>
       <StatePanel kind="unknown" title="Exact command retained" message={outcome?.message ?? "A previous lifecycle submission may have committed. Editing is locked until this exact body and retry key are resolved."} />
       <dl className="review-grid"><div><dt>Command</dt><dd>{actionLabel(retained.request.target_status)}</dd></div><div><dt>Expected account version</dt><dd><code>{retained.request.expected_version}</code></dd></div><div><dt>Audited reason</dt><dd>{retained.request.reason}</dd></div></dl>
       <div className="action-row account-command-actions"><p className="intent-lock-note"><WarningCircle weight="fill" aria-hidden="true" /> Do not issue a different lifecycle command while this result is unknown.</p><button className="button primary guarded-control" type="button" disabled={pending || !online || !canWrite} onClick={() => void submitIntent(retained)}>{pending ? "Retrying command…" : `Retry same ${actionLabel(retained.request.target_status).toLowerCase()}`}</button></div>
     </div>}
-    <dialog ref={dialog} className="confirmation-dialog" aria-labelledby="lifecycle-dialog-heading" aria-describedby="lifecycle-dialog-description" onClose={() => { refreshSequence.current += 1; setDialogOpen(false); setTarget(null); setValidation(null); setEvidenceLoading(false); requestAnimationFrame(() => dialogTrigger.current?.focus()); }}>
+    <dialog ref={dialog} className="confirmation-dialog" aria-labelledby="lifecycle-dialog-heading" aria-describedby="lifecycle-dialog-description" onClose={() => { refreshSequence.current += 1; setDialogOpen(false); setTarget(null); setValidation(null); setEvidenceLoading(false); if (!focusOutcomeAfterClose.current) requestAnimationFrame(() => dialogTrigger.current?.focus()); }}>
       {target && <form onSubmit={(event) => void confirm(event)} noValidate>
         <p className="eyebrow">Guarded lifecycle command</p>
         <h2 id="lifecycle-dialog-heading">{actionLabel(target)}</h2>
         <p id="lifecycle-dialog-description">{actionExplanation(target)} Current account configuration{target === "closed" ? " and both balance values are" : " is"} refreshed when this dialog opens.</p>
-        {evidenceLoading && <StatePanel title="Refreshing authoritative evidence" message="The command stays disabled until current account configuration and required balance evidence are verified." />}
-        {evidenceError && <StatePanel kind="unknown" title="Authoritative evidence unavailable" message={evidenceError} />}
+        {evidenceLoading && <StatePanel title="Refreshing account details" message="The command stays disabled until current account configuration and required balances are verified." />}
+        {evidenceError && <StatePanel kind="unknown" title="Account details unavailable" message={evidenceError} />}
         <dl className="review-grid"><div><dt>Account</dt><dd>{verifiedAccount?.display_name || account.display_name || account.external_reference}<code>{account.account_id}</code></dd></div><div><dt>Current status</dt><dd>{verifiedAccount?.status ?? "Verifying"}</dd></div><div><dt>Expected account version</dt><dd><code>{verifiedAccount?.account_version ?? "Verifying"}</code></dd></div>{target === "closed" && <><div><dt>Available balance</dt><dd>{verifiedBalance ? formatMinorUnits(verifiedBalance.currency, verifiedBalance.available_minor) : "Unavailable"}</dd></div><div><dt>Ledger balance</dt><dd>{verifiedBalance ? formatMinorUnits(verifiedBalance.currency, verifiedBalance.ledger_minor) : "Unavailable"}</dd></div></>}</dl>
-        <label>Reason<textarea value={reason} onChange={(event) => { setReason(event.target.value); setValidation(null); }} maxLength={256} rows={4} required disabled={commandLocked} aria-invalid={Boolean(validation)} aria-describedby={`lifecycle-reason-help${validation ? " lifecycle-validation" : ""}`} /></label>
-        <p id="lifecycle-reason-help" className="muted">Required audit context, 1–256 characters. It must explain this operator decision.</p>
-        {target === "closed" && <label>Confirm external reference<input value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setValidation(null); }} autoComplete="off" disabled={commandLocked} aria-invalid={Boolean(validation)} aria-describedby={`close-confirm-help${validation ? " lifecycle-validation" : ""}`} required /></label>}
-        {target === "closed" && <p id="close-confirm-help" className="muted">Enter <code>{account.external_reference}</code> exactly. Closure is terminal.</p>}
+        <FormField label="Reason" requirement="required" hint="Explain why you are making this account change."><textarea value={reason} onChange={(event) => { setReason(event.target.value); setValidation(null); }} maxLength={256} rows={4} required disabled={commandLocked} aria-invalid={Boolean(validation)} aria-describedby={validation ? "lifecycle-validation" : undefined} /></FormField>
+        {target === "closed" && <FormField label="Confirm external reference" requirement="required" hint={<>Enter <code>{account.external_reference}</code> exactly. Closing an account is final.</>}><input value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setValidation(null); }} autoComplete="off" disabled={commandLocked} aria-invalid={Boolean(validation)} aria-describedby={validation ? "lifecycle-validation" : undefined} required /></FormField>}
         {validation && <div ref={validationSummary} tabIndex={-1} id="lifecycle-validation" className="error-summary" role="alert"><strong>Cannot submit lifecycle command</strong><p>{validation}</p></div>}
         {outcome && outcome.kind !== "success" && <div ref={dialogOutcome} tabIndex={-1} role="region" aria-label="Lifecycle command outcome"><StatePanel kind={outcome.kind === "unknown" ? "unknown" : outcome.kind === "denied" ? "denied" : "error"} title={outcome.kind === "unknown" ? "Result not confirmed" : "Lifecycle command rejected"} message={outcome.message} /></div>}
         <div className="action-row account-command-actions"><button className="button secondary guarded-control" type="button" disabled={pending} onClick={() => dialog.current?.close()}>Cancel</button><button className={target === "closed" ? "button danger guarded-control" : "button primary guarded-control"} type="submit" disabled={pending || !online || !canWrite || evidenceLoading || Boolean(evidenceError) || target === "closed" && (!verifiedBalance || !verifiedExactZero)}>{pending ? "Submitting command…" : commandLocked ? `Retry same ${actionLabel(target).toLowerCase()}` : `Confirm ${actionLabel(target).toLowerCase()}`}</button></div>

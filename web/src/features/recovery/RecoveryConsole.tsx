@@ -2,11 +2,10 @@
 
 import { WarningCircle } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { ConsoleSession } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { PageHeader, StatePanel } from "@/features/console/components";
 import type { LocalDiagnostics } from "@/lib/api/operations";
 import type { RecoveryEvidenceIndex } from "@/lib/api/recovery";
@@ -17,11 +16,7 @@ const RecoveryView = dynamic(() => import("@/features/recovery/RecoveryView").th
 });
 
 export function RecoveryConsole() {
-  const router = useRouter();
-  const [session,setSession]=useState<ConsoleSession|null>(null);
-  const [sessionError,setSessionError]=useState<string|null>(null);
-  const [sessionLoading,setSessionLoading]=useState(true);
-  const [online,setOnline]=useState(true);
+  const { session, sessionError, sessionLoading, online, hasScope } = useConsoleSession();
   const [diagnostics,setDiagnostics]=useState<LocalDiagnostics|null>(null);
   const [recovery,setRecovery]=useState<RecoveryEvidenceIndex|null>(null);
   const [diagnosticsError,setDiagnosticsError]=useState<string|null>(null);
@@ -38,17 +33,14 @@ export function RecoveryConsole() {
     setLoading(false);
   },[]);
 
-  useEffect(()=>{let active=true;(async()=>{const response=await readJSON<ConsoleSession>("/api/session");if(!active)return;if(response.ok&&response.data.tenant_id){setSession(response.data);setSessionError(null);}else setSessionError(response.status===401?null:unavailableMessage(response.status,"the authorized session",response.requestReference));setSessionLoading(false);})();return()=>{active=false;};},[]);
-  useEffect(()=>{const update=()=>setOnline(navigator.onLine);update();window.addEventListener("online",update);window.addEventListener("offline",update);return()=>{window.removeEventListener("online",update);window.removeEventListener("offline",update);};},[]);
-  useEffect(()=>{if(!session||!online||!session.scopes.includes("recovery:read"))return;const timer=window.setTimeout(()=>void load(),0);return()=>{window.clearTimeout(timer);generation.current+=1;};},[load,online,session]);
-  async function signOut(){if(!session)return;await fetch("/api/auth/sign-out",{method:"POST",headers:{"X-CSRF-Token":session.csrf_token}});router.refresh();}
+  useEffect(()=>{if(!session||!online||!hasScope("recovery:read"))return;const timer=window.setTimeout(()=>void load(),0);return()=>{window.clearTimeout(timer);generation.current+=1;};},[hasScope,load,online,session]);
 
   if(sessionLoading)return <ConsoleShell section="recovery" tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><PageHeader eyebrow="Local tools / Recovery evidence" title="Verifying access" description="Checking recovery and database read scopes before protected evidence is displayed."/><StatePanel title="Loading custody boundary" message="No backup, restore, or current database state is inferred while authorization is verified."/><ConsoleFooter/></ConsoleShell>;
   if(!session)return <main className="boot-screen"><p className="eyebrow">Access not verified</p><h1>Recovery Center unavailable</h1><StatePanel kind={sessionError?"error":"denied"} title={sessionError?"Session evidence unavailable":"No authorized session"} message={sessionError??"Log in to the local workspace or configure the approved OIDC provider. No recovery evidence is displayed."}/></main>;
-  const canRead=session.scopes.includes("recovery:read");
-  return <ConsoleShell section="recovery" tenantLabel={session.tenant_label??"Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment==="local"?"Local workspace":"Verified production"} operatorLabel={session.operator_label??session.subject_id} operatorMeta={session.environment==="local"?"This workstation":"Authorized operator"} onSignOut={()=>void signOut()}>
+  const canRead=hasScope("recovery:read");
+  return <ConsoleShell section="recovery" tenantLabel={session.tenant_label??"Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment==="local"?"Local workspace":"Verified production"} operatorLabel={session.operator_label??session.subject_id} operatorMeta={session.environment==="local"?"This workstation":"Authorized operator"}>
     {!online&&<div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true"/><span><strong>You are offline.</strong> Existing evidence is historical until it can be refreshed.</span></div>}
-    <RecoveryView diagnostics={diagnostics} recovery={recovery} diagnosticsError={diagnosticsError} recoveryError={recoveryError} loading={loading} online={online} canRead={canRead} canReadDiagnostics={session.scopes.includes("local:read")} onRefresh={()=>void load()}/>
+    <RecoveryView diagnostics={diagnostics} recovery={recovery} diagnosticsError={diagnosticsError} recoveryError={recoveryError} loading={loading} online={online} canRead={canRead} canReadDiagnostics={hasScope("local:read")} onRefresh={()=>void load()}/>
     <ConsoleFooter/>
   </ConsoleShell>;
 }

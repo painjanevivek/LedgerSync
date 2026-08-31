@@ -4,7 +4,7 @@
 
 LedgerSync is an API-first, closed-loop ledger platform for fintech and vertical-SaaS teams building wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The pilot deliberately covers **internal, same-currency transfers between LedgerSync ledger accounts**; it is not a bank-rail, card, FX, or custody product.
 
-**Release status:** the complete expanded **local-only product is qualified** for one Windows workstation at `http://127.0.0.1:3000`, with a clean INR workspace and no external deployment. Current-main [quality reconvergence evidence](docs/release-evidence/master-phase-1-quality.md) covers exact-commit ledger, browser, CLS, recovery, security, container, and real-stack gates. Phase 2 of the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) is now hardening local startup diagnostics; see the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. This status does not approve LAN, cloud, shared-host, pilot, or production deployment.
+**Release status:** the complete expanded **local-only product is qualified** for one Windows workstation at `http://127.0.0.1:3000`, with a clean INR workspace and no external deployment. Current-main [quality reconvergence evidence](docs/release-evidence/master-phase-1-quality.md) covers exact-commit ledger, browser, CLS, recovery, security, container, and real-stack gates. Phase 7 of the [master completion plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) is active; operator-console IA (M08) and unified design/accessibility (M09) remain partial. See the [master delivery register](docs/plans/ledgersync-master-progress.md) for exact phase truth. This status does not approve LAN, cloud, shared-host, pilot, or production deployment.
 
 ## Contents
 
@@ -107,7 +107,7 @@ xychart-beta
 | Phase 5 PostgreSQL ownership suite | **PASS in 2.513 s** | cross-account reads denied without disclosure |
 | BFF security suite | **3 / 3 tests passed** | session tamper/expiry, CSRF, response headers |
 | Phase 4 fault cases | **3 scenarios passed** | delayed projection, Redis loss/rebuild, monotonic cache version |
-| Ordered migrations | **16** | financial schema through account lifecycle, investigation, exports, recovery, and guided read models |
+| Ordered migrations | **26** | financial schema through lifecycle, investigation, recovery, shared replay controls, webhook verification, and permanent-post retry binding |
 | Journal postings / posted transfer | **2** | one debit + one credit |
 | Account events / transfer | **2** | one outbox event per affected account |
 | Consistency requirement lifetime | **10 min** | signed minimum balance version |
