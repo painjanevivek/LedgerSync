@@ -17,6 +17,8 @@ import (
 
 var canonicalInvestigationUUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 var boundedTransferIDQuery = regexp.MustCompile(`^[0-9A-Fa-f-]{1,128}$`)
+var boundedExactInvestigationReference = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{7,127}$`)
+var boundedInvestigationSearchLimit = regexp.MustCompile(`^(?:[1-9]|1[0-9]|20)$`)
 
 type InvestigationHandler struct {
 	repository    investigation.Repository
@@ -51,6 +53,87 @@ func (h *InvestigationHandler) authenticate(request *http.Request) (identity.Pri
 		return identity.Principal{}, identity.ErrUnauthenticated
 	}
 	return h.identity.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")))
+}
+
+func (h *InvestigationHandler) Search(writer http.ResponseWriter, request *http.Request) {
+	principal, access, ok := h.authorizeSearch(writer, request)
+	if !ok {
+		return
+	}
+	if !onlyQueryParameters(request, "q", "limit") {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	queryValues, limitValues := request.URL.Query()["q"], request.URL.Query()["limit"]
+	if len(queryValues) != 1 || len(limitValues) > 1 {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	query := queryValues[0]
+	if query == "" || query != strings.TrimSpace(query) || len(query) > 128 {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	kind := "approved_reference"
+	if canonicalInvestigationUUID.MatchString(strings.ToLower(query)) {
+		query = strings.ToLower(query)
+		kind = "immutable_id"
+	} else if !boundedExactInvestigationReference.MatchString(query) {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	limit := 10
+	if raw := request.URL.Query().Get("limit"); raw != "" {
+		if !boundedInvestigationSearchLimit.MatchString(raw) {
+			httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+			return
+		}
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 20 {
+			httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+			return
+		}
+		limit = parsed
+	}
+	page, err := h.repository.Search(request.Context(), principal.TenantID, principal.SubjectID, investigation.SearchFilter{Query: query, QueryKind: kind, Limit: limit, Access: access})
+	if err != nil {
+		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "evidence_unavailable", Message: "Authorized search evidence is unavailable."})
+		return
+	}
+	writeInvestigationJSON(writer, page)
+}
+
+func (h *InvestigationHandler) authorizeSearch(writer http.ResponseWriter, request *http.Request) (identity.Principal, investigation.SearchAccess, bool) {
+	if h == nil || h.repository == nil || h.identity == nil {
+		httptransport.WriteError(writer, request, errors.New("investigation handler is not configured"))
+		return identity.Principal{}, investigation.SearchAccess{}, false
+	}
+	principal, err := h.authenticate(request)
+	if err != nil {
+		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		return identity.Principal{}, investigation.SearchAccess{}, false
+	}
+	if !principal.HasRole("tenant:operator") && !principal.HasRole("tenant:admin") {
+		writeScopeDenial(writer, request, h.audit, principal, "tenant:investigate")
+		return identity.Principal{}, investigation.SearchAccess{}, false
+	}
+	if !principal.HasScope("investigation:read") {
+		writeScopeDenial(writer, request, h.audit, principal, "investigation:read")
+		return identity.Principal{}, investigation.SearchAccess{}, false
+	}
+	access := investigation.SearchAccess{
+		Accounts: principal.HasScope("accounts:read"), Transfers: principal.HasScope("transfers:read"),
+		Funding: principal.HasScope("funding:read"), Events: principal.HasScope("events:read"),
+		Reconciliation: principal.HasScope("reconciliation:read"), Corrections: principal.HasScope("corrections:read"),
+	}
+	if !access.Any() {
+		writeScopeDenial(writer, request, h.audit, principal, "investigation:read")
+		return identity.Principal{}, investigation.SearchAccess{}, false
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "investigation:search", h.rateLimit, false) {
+		return identity.Principal{}, investigation.SearchAccess{}, false
+	}
+	return principal, access, true
 }
 
 func (h *InvestigationHandler) Transfers(writer http.ResponseWriter, request *http.Request) {

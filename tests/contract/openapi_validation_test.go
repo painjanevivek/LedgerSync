@@ -175,6 +175,8 @@ func TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs(t *testing.T) {
 		{"internal/application/investigation/models.go", "Posting", "Posting"},
 		{"internal/application/investigation/models.go", "ReconciliationMismatch", "ReconciliationMismatch"},
 		{"internal/application/investigation/models.go", "ReconciliationRun", "ReconciliationRun"},
+		{"internal/application/investigation/models.go", "SearchResult", "SearchResult"},
+		{"internal/application/investigation/models.go", "SearchPage", "InvestigationSearchPage"},
 		{"internal/application/operations/diagnostics.go", "DiagnosticSnapshot", "DiagnosticSnapshot"},
 		{"internal/application/operations/events.go", "EventEvidence", "EventEvidence"},
 		{"internal/application/operations/events.go", "DeliveryEvidence", "DeliveryEvidence"},

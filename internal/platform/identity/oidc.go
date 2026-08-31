@@ -124,6 +124,7 @@ var allowedScopes = map[string]struct{}{
 	"local:read":           {},
 	"local:write":          {},
 	"events:read":          {},
+	"investigation:read":   {},
 	"developer:read":       {},
 	"credentials:read":     {},
 	"credentials:write":    {},

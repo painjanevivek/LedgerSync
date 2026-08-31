@@ -64,6 +64,7 @@ var Operations = []Operation{
 	{ID: "rotateDeveloperCredential", Method: "POST", Path: "/developer/credentials/{credentialId}/rotations", Scope: "credentials:write", Idempotent: true},
 	{ID: "rotateDeveloperWebhookSignature", Method: "POST", Path: "/developer/webhooks/{webhookId}/signature-rotations", Scope: "webhooks:write", Idempotent: true},
 	{ID: "runReconciliation", Method: "POST", Path: "/reconciliation/runs", Scope: "reconciliation:write", Idempotent: true},
+	{ID: "searchInvestigationEvidence", Method: "GET", Path: "/investigation/search", Scope: "investigation:read", Idempotent: false},
 	{ID: "updateAccount", Method: "PATCH", Path: "/accounts/{accountId}", Scope: "accounts:write", Idempotent: true},
 	{ID: "updateLocalOrientationPreferences", Method: "PUT", Path: "/local/orientation/preferences", Scope: "local:write", Idempotent: false},
 }

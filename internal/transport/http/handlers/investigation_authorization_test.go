@@ -13,6 +13,13 @@ import (
 type investigationRepositoryStub struct {
 	called bool
 	filter investigation.TransferFilter
+	search investigation.SearchFilter
+}
+
+func (r *investigationRepositoryStub) Search(_ context.Context, _, _ string, filter investigation.SearchFilter) (investigation.SearchPage, error) {
+	r.called = true
+	r.search = filter
+	return investigation.SearchPage{Results: []investigation.SearchResult{}}, nil
 }
 
 func (r *investigationRepositoryStub) ListTransfers(_ context.Context, _ string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
@@ -111,5 +118,49 @@ func TestInvestigationAllowsServerOwnedOperatorRole(t *testing.T) {
 
 	if response.Code != http.StatusOK || !repository.called {
 		t.Fatalf("operator status=%d called=%v body=%s", response.Code, repository.called, response.Body.String())
+	}
+}
+
+func TestExactSearchIsBoundedScopedAndRoleProtected(t *testing.T) {
+	repository := &investigationRepositoryStub{}
+	provider := fixedInvestigationPrincipal{principal: identity.Principal{
+		SubjectID: "operator", TenantID: "tenant", Roles: map[string]struct{}{"tenant:operator": {}},
+		Scopes: map[string]struct{}{"investigation:read": {}, "accounts:read": {}, "events:read": {}},
+	}}
+	handler := NewInvestigationHandler(repository, provider)
+	response := httptest.NewRecorder()
+	handler.Search(response, httptest.NewRequest(http.MethodGet, "/api/investigation/search?q=11111111-1111-4111-8111-111111111111&limit=12", nil))
+	if response.Code != http.StatusOK || !repository.called || repository.search.QueryKind != "immutable_id" || repository.search.Limit != 12 || !repository.search.Access.Accounts || !repository.search.Access.Events || repository.search.Access.Transfers {
+		t.Fatalf("status=%d called=%v filter=%#v body=%s", response.Code, repository.called, repository.search, response.Body.String())
+	}
+
+	for _, target := range []string{
+		"/api/investigation/search?q=short",
+		"/api/investigation/search?q=approved-reference&q=second-reference",
+		"/api/investigation/search?q=approved-reference&limit=21",
+		"/api/investigation/search?q=approved%25reference",
+		"/api/investigation/search?q=approved-reference&cursor=forbidden",
+	} {
+		t.Run(target, func(t *testing.T) {
+			repository := &investigationRepositoryStub{}
+			response := httptest.NewRecorder()
+			NewInvestigationHandler(repository, provider).Search(response, httptest.NewRequest(http.MethodGet, target, nil))
+			if response.Code != http.StatusBadRequest || repository.called {
+				t.Fatalf("status=%d called=%v body=%s", response.Code, repository.called, response.Body.String())
+			}
+		})
+	}
+}
+
+func TestExactSearchRequiresDedicatedInvestigationScope(t *testing.T) {
+	repository := &investigationRepositoryStub{}
+	provider := fixedInvestigationPrincipal{principal: identity.Principal{
+		SubjectID: "operator", TenantID: "tenant", Roles: map[string]struct{}{"tenant:operator": {}},
+		Scopes: map[string]struct{}{"accounts:read": {}},
+	}}
+	response := httptest.NewRecorder()
+	NewInvestigationHandler(repository, provider).Search(response, httptest.NewRequest(http.MethodGet, "/api/investigation/search?q=11111111-1111-4111-8111-111111111111", nil))
+	if response.Code != http.StatusForbidden || repository.called {
+		t.Fatalf("status=%d called=%v body=%s", response.Code, repository.called, response.Body.String())
 	}
 }

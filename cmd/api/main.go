@@ -136,7 +136,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -321,6 +321,7 @@ func main() {
 			router.Handle("GET /api/accounts/{accountID}/transactions", transactionsHandler)
 			router.HandleFunc("GET /api/transfers", investigationHandler.Transfers)
 			router.HandleFunc("GET /api/transfers/{transferID}", investigationHandler.Transfer)
+			router.HandleFunc("GET /api/investigation/search", investigationHandler.Search)
 			router.HandleFunc("GET /api/reconciliation/runs", investigationHandler.ReconciliationRuns)
 			router.HandleFunc("GET /api/reconciliation/runs/{runID}", investigationHandler.ReconciliationRun)
 			router.HandleFunc("POST /api/funding-requests", fundingHandler.Request)

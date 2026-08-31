@@ -40,6 +40,15 @@ export const transferExplainability = { transfer_id:transfer.transfer_id,generat
   {sequence:7,kind:"reconciliation",state:"available",truncated:false,evidence:[{evidence_type:"reconciliation_run",evidence_id:run.run_id,status:"matched",related_id:run.ledger_watermark,occurred_at:run.completed_at}]},
 ]};
 export const developerMetadata = developerMetadataSource;
+export const investigationSearchPage = {
+  results: [
+    { record_type: "account", record_id: sourceAccount.account_id, safe_label: "Account", status: "active", occurred_at: sourceAccount.as_of, source: "postgresql", freshness: "search_snapshot" },
+    { record_type: "request_reference", record_id: "88888888-8888-4888-8888-888888888888", related_record_type: "transfer", related_record_id: transfer.transfer_id, safe_label: "Request reference", status: "succeeded", occurred_at: transfer.completed_at, source: "postgresql", freshness: "search_snapshot" },
+  ],
+  query_kind: "immutable_id",
+  generated_at: "2026-08-19T12:05:00Z",
+  truncated: false,
+} as const;
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -48,7 +57,7 @@ function json(route: Route, body: unknown, status = 200) {
 export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
-    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
+    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
   });
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {
@@ -77,6 +86,7 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
   await page.route("**/api/developer/metadata", (route) => json(route, developerMetadata));
   await page.route("**/api/developer/openapi", (route) => route.fulfill({ status:200,contentType:"application/yaml",headers:{"Content-Disposition":`attachment; filename="ledgersync-openapi.yaml"`},body:"openapi: 3.1.0\ninfo:\n  title: LedgerSync\npaths:\ncomponents:\n" }));
   await page.route("**/api/recovery/manifests", (route) => json(route, recoveryEvidence));
+  await page.route("**/api/investigation/search?*", (route) => json(route, investigationSearchPage));
   await page.route(/\/api\/exports\/.*\.csv(?:\?.*)?$/, (route) => {
     const path=new URL(route.request().url()).pathname;
     const family=path.includes("/accounts/")?"account-ledger":path.includes("reconciliation")?"reconciliation":"transfers";

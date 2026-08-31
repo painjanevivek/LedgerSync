@@ -183,6 +183,35 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /investigation/search:
+    get:
+      operationId: searchInvestigationEvidence
+      x-required-scope: investigation:read
+      x-required-scopes-any: [accounts:read, transfers:read, funding:read, events:read, reconciliation:read, corrections:read]
+      summary: Locate bounded, tenant-scoped evidence by one exact approved identifier.
+      description: >-
+        Requires investigation:read, a tenant operator or administrator role,
+        and at least one domain read scope. Domain scopes filter the returned
+        record types. The lookup accepts only one complete UUID or approved
+        external reference; partial and fuzzy discovery are deliberately
+        unavailable. Results are safe typed locators and never include money,
+        balances, event payloads, or secrets.
+      parameters:
+        - in: query
+          name: q
+          required: true
+          description: One complete immutable UUID or exact approved reference.
+          schema: { type: string, minLength: 8, maxLength: 128, pattern: '^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[A-Za-z0-9][A-Za-z0-9._:/-]{7,127})$' }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 20, default: 10 }
+      responses:
+        '200': { description: Bounded authorized locator snapshot., content: { application/json: { schema: { $ref: '#/components/schemas/InvestigationSearchPage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /reconciliation/runs:
     get:
       operationId: listReconciliationRuns
@@ -1299,6 +1328,29 @@ components:
         completed_at: { type: string, format: date-time }
         mismatches: { type: array, items: { $ref: '#/components/schemas/ReconciliationMismatch' } }
     ReconciliationPage: { type: object, required: [runs, next_cursor], properties: { runs: { type: array, items: { $ref: '#/components/schemas/ReconciliationRun' } }, next_cursor: { type: string } } }
+    SearchResult:
+      type: object
+      additionalProperties: false
+      required: [record_type, record_id, safe_label, status, occurred_at, source, freshness]
+      properties:
+        record_type: { type: string, enum: [account, transfer, funding, event, reconciliation_run, reconciliation_mismatch, correction, request_reference] }
+        record_id: { type: string, format: uuid }
+        related_record_type: { type: string, enum: [account, transfer, funding, event, reconciliation_run, correction] }
+        related_record_id: { type: string, format: uuid }
+        safe_label: { type: string, minLength: 1, maxLength: 128 }
+        status: { type: string, enum: [active, frozen, closed, pending, posted, rejected, requested, approved, compensated, published, dead, retrying, matched, mismatch, failed, cancelled, expired, allowed, denied, succeeded, recorded] }
+        occurred_at: { type: string, format: date-time }
+        source: { type: string, const: postgresql }
+        freshness: { type: string, const: search_snapshot }
+    InvestigationSearchPage:
+      type: object
+      additionalProperties: false
+      required: [results, query_kind, generated_at, truncated]
+      properties:
+        results: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/SearchResult' } }
+        query_kind: { type: string, enum: [immutable_id, approved_reference] }
+        generated_at: { type: string, format: date-time }
+        truncated: { type: boolean }
     DiagnosticSnapshot:
       type: object
       required: [overall_state, generated_at, application, financial_authority, delivery_cache]

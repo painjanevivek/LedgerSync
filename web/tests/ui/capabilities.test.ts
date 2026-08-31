@@ -5,6 +5,7 @@ import type { ConsoleSession } from "../../src/features/accounts/types";
 import {
   canOpenApprovalInbox,
   canOpenEventsAndWebhooks,
+  canSearchInvestigations,
   canOpenOrientationStep,
   deriveConsoleCapabilities,
 } from "../../src/features/console/capabilities";
@@ -55,6 +56,15 @@ test("administration stays unreleased even when a browser session invents a scop
     session("production", ["administration:manage"]),
   );
   assert.equal(capabilities.administrationManage, false);
+});
+
+test("cross-domain search requires its dedicated entry scope and a readable domain", () => {
+  const entryOnly = deriveConsoleCapabilities(session("production", ["investigation:read"]));
+  const domainOnly = deriveConsoleCapabilities(session("production", ["accounts:read"]));
+  const authorized = deriveConsoleCapabilities(session("production", ["investigation:read", "accounts:read"]));
+  assert.equal(canSearchInvestigations(entryOnly), false);
+  assert.equal(canSearchInvestigations(domainOnly), false);
+  assert.equal(canSearchInvestigations(authorized), true);
 });
 
 test("recommended setup steps are eligible only when their capability exists", () => {

@@ -15,6 +15,7 @@ export type ConsoleCapabilities = Readonly<{
   reconciliationRead: boolean;
   reconciliationWrite: boolean;
   eventsRead: boolean;
+  investigationRead: boolean;
   webhooksRead: boolean;
   webhooksManage: boolean;
   recoveryRead: boolean;
@@ -38,6 +39,7 @@ const noCapabilities: ConsoleCapabilities = {
   reconciliationRead: false,
   reconciliationWrite: false,
   eventsRead: false,
+  investigationRead: false,
   webhooksRead: false,
   webhooksManage: false,
   recoveryRead: false,
@@ -72,6 +74,7 @@ export function deriveConsoleCapabilities(
     reconciliationRead: scopes.has("reconciliation:read"),
     reconciliationWrite: scopes.has("reconciliation:write"),
     eventsRead: scopes.has("events:read"),
+    investigationRead: scopes.has("investigation:read"),
     webhooksRead: scopes.has("webhooks:read"),
     webhooksManage:
       scopes.has("webhooks:write") || scopes.has("webhooks:replay"),
@@ -96,6 +99,10 @@ export function canOpenEventsAndWebhooks(capabilities: ConsoleCapabilities) {
     capabilities.webhooksRead ||
     capabilities.webhooksManage
   );
+}
+
+export function canSearchInvestigations(capabilities: ConsoleCapabilities) {
+  return capabilities.investigationRead && (capabilities.accountsRead || capabilities.transfersRead || capabilities.fundingRead || capabilities.eventsRead || capabilities.reconciliationRead || capabilities.correctionsRead);
 }
 
 export function canOpenOrientationStep(

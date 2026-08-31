@@ -17,6 +17,7 @@ import {
   Receipt,
   X,
   BookOpenText,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import {
@@ -32,6 +33,7 @@ import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import {
   canOpenApprovalInbox,
   canOpenEventsAndWebhooks,
+  canSearchInvestigations,
   deriveConsoleCapabilities,
   type ConsoleCapabilities,
 } from "@/features/console/capabilities";
@@ -49,7 +51,8 @@ export type ConsoleSection =
   | "events"
   | "developer"
   | "recovery"
-  | "guide";
+  | "guide"
+  | "search";
 
 type Props = Readonly<{
   section: ConsoleSection;
@@ -120,6 +123,13 @@ const navigation: ReadonlyArray<
   {
     label: "Investigate",
     items: [
+      {
+        section: "search" as const,
+        label: "Search records",
+        href: "/search",
+        icon: MagnifyingGlass,
+        visible: canSearchInvestigations,
+      },
       {
         section: "corrections" as const,
         label: "Corrections",

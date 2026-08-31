@@ -37,6 +37,98 @@ type transferCursor struct {
 	Fingerprint string    `json:"fp"`
 }
 
+func (r *InvestigationRepository) Search(ctx context.Context, tenantID, actorID string, filter investigation.SearchFilter) (investigation.SearchPage, error) {
+	lookupID := ""
+	lookupReference := ""
+	if filter.QueryKind == "immutable_id" {
+		lookupID = strings.ToLower(filter.Query)
+	} else {
+		lookupReference = filter.Query
+	}
+	rows, err := r.database.QueryContext(ctx, `
+WITH matches AS (
+ SELECT 'account'::text record_type,a.id::text record_id,''::text related_record_type,''::text related_record_id,
+        'Account'::text safe_label,a.status::text status,a.created_at occurred_at
+ FROM accounts a
+ WHERE $5 AND a.tenant_id=$1 AND a.account_kind='customer'
+   AND EXISTS(SELECT 1 FROM account_owners owner WHERE owner.tenant_id=a.tenant_id AND owner.account_id=a.id AND owner.subject_id=$2 AND owner.permission IN ('read','debit'))
+   AND (($3<>'' AND a.id=NULLIF($3,'')::uuid) OR ($4<>'' AND lower(a.external_reference)=lower($4)))
+ UNION ALL
+ SELECT 'transfer',t.id::text,'','', 'Transfer',t.status,COALESCE(t.completed_at,t.created_at)
+ FROM transfers t WHERE $6 AND t.tenant_id=$1 AND $3<>'' AND t.id=NULLIF($3,'')::uuid
+ UNION ALL
+ SELECT 'funding',f.id::text,'account',f.destination_account_id::text,'Funding record',f.status,f.updated_at
+ FROM funding_events f WHERE $7 AND f.tenant_id=$1
+   AND (($3<>'' AND (f.id=NULLIF($3,'')::uuid OR f.correlation_id=NULLIF($3,'')::uuid)) OR ($4<>'' AND f.external_reference=$4))
+ UNION ALL
+ SELECT 'event',e.id::text,
+        CASE WHEN e.transfer_id IS NOT NULL THEN 'transfer' WHEN e.account_id IS NOT NULL THEN 'account' ELSE '' END,
+        COALESCE(e.transfer_id::text,e.account_id::text,''),e.event_type,
+        CASE WHEN e.published_at IS NOT NULL THEN 'published' WHEN e.dead_at IS NOT NULL THEN 'dead' WHEN e.last_error_code IS NOT NULL AND e.attempt_count>0 THEN 'retrying' ELSE 'pending' END,
+        e.occurred_at
+ FROM outbox_events e WHERE $8 AND e.tenant_id=$1 AND $3<>'' AND e.id=NULLIF($3,'')::uuid
+ UNION ALL
+ SELECT 'reconciliation_run',run.id::text,'','', 'Reconciliation run',run.status,run.completed_at
+ FROM reconciliation_runs run WHERE $9 AND run.tenant_id=$1
+   AND $3<>'' AND (run.id=NULLIF($3,'')::uuid OR run.correlation_id=NULLIF($3,'')::uuid)
+ UNION ALL
+ SELECT 'reconciliation_mismatch',mismatch.id::text,'reconciliation_run',mismatch.run_id::text,
+        replace(mismatch.classification,'_',' '), 'mismatch',mismatch.created_at
+ FROM reconciliation_mismatches mismatch WHERE $9 AND mismatch.tenant_id=$1 AND $3<>'' AND mismatch.id=NULLIF($3,'')::uuid
+ UNION ALL
+ SELECT 'correction',correction.id::text,'transfer',correction.original_transfer_id::text,
+        'Transfer correction',correction.status,correction.updated_at
+ FROM transfer_corrections correction WHERE $10 AND correction.tenant_id=$1
+   AND $3<>'' AND (correction.id=NULLIF($3,'')::uuid OR correction.correlation_id=NULLIF($3,'')::uuid)
+ UNION ALL
+ SELECT 'request_reference',audit.correlation_id::text,
+        CASE audit.target_type WHEN 'account' THEN 'account' WHEN 'transfer' THEN 'transfer' WHEN 'funding_event' THEN 'funding' WHEN 'reconciliation_run' THEN 'reconciliation_run' WHEN 'transfer_correction' THEN 'correction' ELSE '' END,
+        COALESCE(audit.target_id,''),'Request reference',
+        CASE WHEN audit.outcome IN ('allowed','denied','succeeded','failed','posted','rejected') THEN audit.outcome ELSE 'recorded' END,
+        audit.occurred_at
+ FROM audit_events audit
+ WHERE $3<>'' AND audit.tenant_id=$1 AND audit.correlation_id=NULLIF($3,'')::uuid
+   AND audit.target_id IS NOT NULL
+   AND (($5 AND audit.target_type='account' AND EXISTS(
+          SELECT 1 FROM account_owners owner WHERE owner.tenant_id=audit.tenant_id AND owner.account_id::text=audit.target_id AND owner.subject_id=$2 AND owner.permission IN ('read','debit')
+        )) OR ($6 AND audit.target_type='transfer') OR ($7 AND audit.target_type='funding_event')
+		OR ($9 AND audit.target_type='reconciliation_run') OR ($10 AND audit.target_type='transfer_correction'))
+)
+SELECT record_type,record_id,related_record_type,related_record_id,safe_label,status,occurred_at
+FROM matches
+ORDER BY occurred_at DESC,record_type,record_id
+LIMIT $11`, tenantID, actorID, lookupID, lookupReference, filter.Access.Accounts, filter.Access.Transfers, filter.Access.Funding, filter.Access.Events, filter.Access.Reconciliation, filter.Access.Corrections, filter.Limit*4+1)
+	if err != nil {
+		return investigation.SearchPage{}, fmt.Errorf("search authorized investigation evidence: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	page := investigation.SearchPage{Results: make([]investigation.SearchResult, 0, filter.Limit), QueryKind: filter.QueryKind, GeneratedAt: time.Now().UTC()}
+	seen := make(map[string]struct{}, filter.Limit)
+	for rows.Next() {
+		var item investigation.SearchResult
+		if err := rows.Scan(&item.RecordType, &item.RecordID, &item.RelatedRecordType, &item.RelatedRecordID, &item.SafeLabel, &item.Status, &item.OccurredAt); err != nil {
+			return investigation.SearchPage{}, fmt.Errorf("scan authorized search result: %w", err)
+		}
+		item.OccurredAt = item.OccurredAt.UTC()
+		item.Source = "postgresql"
+		item.Freshness = "search_snapshot"
+		key := strings.Join([]string{item.RecordType, item.RecordID, item.RelatedRecordType, item.RelatedRecordID}, "|")
+		if _, duplicate := seen[key]; duplicate {
+			continue
+		}
+		seen[key] = struct{}{}
+		page.Results = append(page.Results, item)
+	}
+	if err := rows.Err(); err != nil {
+		return investigation.SearchPage{}, fmt.Errorf("iterate authorized search results: %w", err)
+	}
+	if len(page.Results) > filter.Limit {
+		page.Truncated = true
+		page.Results = page.Results[:filter.Limit]
+	}
+	return page, nil
+}
+
 func decodeInvestigationCursor(raw string) (investigationCursor, error) {
 	if raw == "" {
 		return investigationCursor{}, nil

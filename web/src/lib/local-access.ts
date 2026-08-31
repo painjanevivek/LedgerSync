@@ -95,6 +95,7 @@ export function createLocalSession(
       "local:read",
       "local:write",
       "events:read",
+      "investigation:read",
       "explainability:read",
       "developer:read",
       "credentials:read",

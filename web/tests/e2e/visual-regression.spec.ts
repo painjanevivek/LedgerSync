@@ -51,6 +51,7 @@ const populatedRoutes = [
   { name: "webhook-detail-dead", path: `/webhooks/${webhookEndpoint.endpoint_id}`, heading: webhookEndpoint.label, headingLevel: 1 },
   { name: "developer-contract", path: "/developer", heading: "Developer" },
   { name: "recovery-evidence", path: "/recovery", heading: "Recovery" },
+  { name: "investigation-search-populated", path: `/search?q=${sourceAccount.account_id}`, heading: "Search records" },
 ] as const;
 
 for (const route of populatedRoutes) {
@@ -83,6 +84,14 @@ test("compact account directory preserves the selected information hierarchy", a
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
   await capture(page, "accounts-populated-compact", compact);
+});
+
+test("compact exact search preserves locator evidence without page overflow", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto(`/search?q=${sourceAccount.account_id}`);
+  await expect(page.getByRole("heading", { name: "Search records", exact: true })).toBeVisible();
+  await expect(page.getByText("2 authorized locators")).toBeVisible();
+  await capture(page, "investigation-search-populated-compact", compact);
 });
 
 test("compact developer contract preserves code and retry hierarchy",async({page})=>{

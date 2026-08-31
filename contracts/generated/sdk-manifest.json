@@ -3,14 +3,14 @@
   "api_version": "3.1.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "69566171",
-    "8184dd1b",
-    "c3540d3e",
-    "37d190ed",
-    "d2d50089",
-    "ea012659",
-    "1cf384cd",
-    "2b13ad60"
+    "607b7e66",
+    "f551f85f",
+    "81ac97b8",
+    "1e46deae",
+    "c0bd86c6",
+    "4a30eda8",
+    "77617e1e",
+    "9f694b67"
   ],
   "operations": [
     {
@@ -383,6 +383,13 @@
       "path": "/reconciliation/runs",
       "scope": "reconciliation:write",
       "idempotent": true
+    },
+    {
+      "id": "searchInvestigationEvidence",
+      "method": "GET",
+      "path": "/investigation/search",
+      "scope": "investigation:read",
+      "idempotent": false
     },
     {
       "id": "updateAccount",

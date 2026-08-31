@@ -44,3 +44,43 @@ func TestTransferHistoryFiltersApplyBeforePaginationAndBindCursorIntent(t *testi
 		t.Fatalf("server-side transfer ID query %q returned %#v err=%v", query, matches, err)
 	}
 }
+
+func TestExactInvestigationSearchRepeatsTenantObjectAndDomainAuthorization(t *testing.T) {
+	service, database := requireTransferService(t, 100_000)
+	submission, err := service.Submit(context.Background(), transferCommand(t, "exact-search-transfer-0001", "0.01"))
+	if err != nil || submission.Result.Status != "posted" {
+		t.Fatalf("posted transfer=%#v err=%v", submission, err)
+	}
+	if _, err := database.ExecContext(context.Background(), `UPDATE accounts SET external_reference='SEARCH-ACCOUNT' WHERE tenant_id=$1 AND id=$2`, testTenantID, testSourceID); err != nil {
+		t.Fatal(err)
+	}
+	repository, err := db.NewInvestigationRepository(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	accountPage, err := repository.Search(context.Background(), testTenantID, testActorID, investigation.SearchFilter{Query: testSourceID, QueryKind: "immutable_id", Limit: 10, Access: investigation.SearchAccess{Accounts: true}})
+	if err != nil || len(accountPage.Results) != 1 || accountPage.Results[0].RecordType != "account" || accountPage.Results[0].RecordID != testSourceID {
+		t.Fatalf("owned account search=%#v err=%v", accountPage, err)
+	}
+	unauthorizedAccount, err := repository.Search(context.Background(), testTenantID, testActorID, investigation.SearchFilter{Query: testDestinationID, QueryKind: "immutable_id", Limit: 10, Access: investigation.SearchAccess{Accounts: true}})
+	if err != nil || len(unauthorizedAccount.Results) != 0 {
+		t.Fatalf("non-owned account leaked=%#v err=%v", unauthorizedAccount, err)
+	}
+	referencePage, err := repository.Search(context.Background(), testTenantID, testActorID, investigation.SearchFilter{Query: "SEARCH-ACCOUNT", QueryKind: "approved_reference", Limit: 10, Access: investigation.SearchAccess{Accounts: true}})
+	if err != nil || len(referencePage.Results) != 1 || referencePage.Results[0].RecordID != testSourceID {
+		t.Fatalf("exact account reference search=%#v err=%v", referencePage, err)
+	}
+	partialPage, err := repository.Search(context.Background(), testTenantID, testActorID, investigation.SearchFilter{Query: "SEARCH-A", QueryKind: "approved_reference", Limit: 10, Access: investigation.SearchAccess{Accounts: true}})
+	if err != nil || len(partialPage.Results) != 0 {
+		t.Fatalf("partial reference unexpectedly matched=%#v err=%v", partialPage, err)
+	}
+	transferPage, err := repository.Search(context.Background(), testTenantID, testActorID, investigation.SearchFilter{Query: submission.Result.TransferID, QueryKind: "immutable_id", Limit: 10, Access: investigation.SearchAccess{Transfers: true}})
+	if err != nil || len(transferPage.Results) != 1 || transferPage.Results[0].RecordType != "transfer" {
+		t.Fatalf("transfer search=%#v err=%v", transferPage, err)
+	}
+	domainDenied, err := repository.Search(context.Background(), testTenantID, testActorID, investigation.SearchFilter{Query: submission.Result.TransferID, QueryKind: "immutable_id", Limit: 10, Access: investigation.SearchAccess{Accounts: true}})
+	if err != nil || len(domainDenied.Results) != 0 {
+		t.Fatalf("transfer leaked through account scope=%#v err=%v", domainDenied, err)
+	}
+}

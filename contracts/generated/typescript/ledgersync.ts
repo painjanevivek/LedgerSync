@@ -377,6 +377,13 @@ export const operations: readonly Operation[] = [
     "idempotent": true
   },
   {
+    "id": "searchInvestigationEvidence",
+    "method": "GET",
+    "path": "/investigation/search",
+    "scope": "investigation:read",
+    "idempotent": false
+  },
+  {
     "id": "updateAccount",
     "method": "PATCH",
     "path": "/accounts/{accountId}",
