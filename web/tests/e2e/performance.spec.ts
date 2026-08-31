@@ -123,6 +123,7 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
   expect(initialRequestCount).toBeLessThanOrEqual(32);
   expect(initialApiRequestCount).toBeLessThanOrEqual(8);
   expect(apiRequests.length).toBeLessThanOrEqual(12);
+  expect(requestFrequency["GET /api/session"]).toBe(1);
   expect(Math.max(0, ...Object.values(requestFrequency))).toBeLessThanOrEqual(2);
   expect(initialLoad.maxLongTaskMilliseconds).toBeLessThanOrEqual(250);
   expect(observed.longTaskTotalMilliseconds).toBeLessThanOrEqual(1_500);

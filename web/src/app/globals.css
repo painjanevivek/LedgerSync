@@ -269,6 +269,16 @@ body:has(dialog[open]) .skip-link {
   height: 16px;
 }
 
+.session-action-error {
+  margin: -5px 0 0;
+  border-left: 2px solid #d99a91;
+  padding: 7px 9px;
+  background: rgb(141 57 47 / 18%);
+  color: #ffd8d3;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .console-main {
   width: 100%;
   min-width: 0;

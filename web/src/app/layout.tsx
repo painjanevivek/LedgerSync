@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ConsoleSessionBoundary } from "@/features/console/ConsoleSessionBoundary";
 import "../styles/tokens.css";
 import "./globals.css";
 import "../styles/responsive.css";
@@ -19,5 +20,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><ConsoleSessionBoundary>{children}</ConsoleSessionBoundary></body></html>;
 }

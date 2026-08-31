@@ -1,7 +1,6 @@
 "use client";
 
 import { WarningCircle } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -11,7 +10,6 @@ import {
 import { AccountCreateFlow } from "@/features/accounts/AccountCreateFlow";
 import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
 import type {
-  ConsoleSession,
   ReconciliationRun,
   TransferDetail,
   TransferSummary,
@@ -25,6 +23,7 @@ import {
   ConsoleShell,
   type ConsoleSection,
 } from "@/features/console/ConsoleShell";
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { PageHeader, StatePanel } from "@/features/console/components";
 import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { LoginScreen } from "@/features/auth/LoginScreen";
@@ -72,9 +71,7 @@ export function OperatorConsole({
   initialTransferFilters,
   initialShowOrientation = false,
 }: Props) {
-  const router = useRouter();
-  const [session, setSession] = useState<ConsoleSession | null>(null);
-  const [sessionError, setSessionError] = useState<string | null>(null);
+  const { session, sessionError, sessionLoading, online, hasScope } = useConsoleSession();
   const accountWorkspace = useAccountWorkspace(
     initialAccountId,
     initialAccountFilters,
@@ -91,7 +88,6 @@ export function OperatorConsole({
   );
   const [runs, setRuns] = useState<ReconciliationRun[]>([]);
   const [runDetail, setRunDetail] = useState<ReconciliationRun | null>(null);
-  const [loading, setLoading] = useState(true);
   const [initialEvidenceSettled, setInitialEvidenceSettled] = useState(false);
   const [transfersLoading, setTransfersLoading] = useState(false);
   const [transferDetailLoading, setTransferDetailLoading] = useState(false);
@@ -106,7 +102,6 @@ export function OperatorConsole({
   const [transfersVerifiedAt, setTransfersVerifiedAt] = useState<string>();
   const [reconciliationVerifiedAt, setReconciliationVerifiedAt] =
     useState<string>();
-  const [online, setOnline] = useState(true);
   const [orientation, setOrientation] = useState<LocalOrientation | null>(null);
   const [orientationLoading, setOrientationLoading] = useState(false);
   const [orientationError, setOrientationError] = useState<string | null>(null);
@@ -385,13 +380,9 @@ export function OperatorConsole({
   ]);
 
   useEffect(() => {
+    if (!session || !online) return;
     let active = true;
-    (async () => {
-      const response = await readJSON<ConsoleSession>("/api/session");
-      if (active && response.ok && response.data.tenant_id) {
-        setSession(response.data);
-        setSessionError(null);
-        setLoading(false);
+    void (async () => {
         const directory =
           initialSection === "accounts" &&
           !initialAccountId &&
@@ -401,14 +392,13 @@ export function OperatorConsole({
           "transfers:read",
           "events:read",
           "reconciliation:read",
-        ].every((scope) => response.data.scopes.includes(scope));
+        ].every(hasScope);
         if (initialSection === "overview")
           await Promise.all([
             loadAccounts(emptyAccountFilters, 100),
             loadTransfers(),
             loadRuns(),
-            response.data.environment === "local" &&
-            response.data.scopes.includes("local:read")
+            session.environment === "local" && hasScope("local:read")
               ? loadOrientation()
               : Promise.resolve(),
           ]);
@@ -437,18 +427,6 @@ export function OperatorConsole({
             ? loadRunDetail(initialReconciliationRunId)
             : loadRuns());
         if (active) setInitialEvidenceSettled(true);
-      }
-      if (active && (!response.ok || !response.data.tenant_id))
-        setSessionError(
-          response.status === 401
-            ? null
-            : unavailableMessage(
-                response.status,
-                "the authorized session",
-                response.requestReference,
-              ),
-        );
-      if (active) setLoading(false);
     })();
     return () => {
       active = false;
@@ -460,6 +438,7 @@ export function OperatorConsole({
     initialReconciliationRunId,
     initialSection,
     initialTransferId,
+    hasScope,
     loadAccountDetail,
     loadAccounts,
     loadExplainability,
@@ -468,30 +447,11 @@ export function OperatorConsole({
     loadRuns,
     loadTransferDetail,
     loadTransfers,
+    online,
+    session,
   ]);
 
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    update();
-    window.addEventListener("online", update);
-    window.addEventListener("offline", update);
-    return () => {
-      window.removeEventListener("online", update);
-      window.removeEventListener("offline", update);
-    };
-  }, []);
-
-  async function signOut() {
-    if (!session) return;
-    await fetch("/api/auth/sign-out", {
-      method: "POST",
-      headers: { "X-CSRF-Token": session.csrf_token },
-    });
-    router.push("/sign-in");
-    router.refresh();
-  }
-
-  if (loading) {
+  if (sessionLoading) {
     const title =
       initialSection === "accounts"
         ? "Accounts"
@@ -542,7 +502,6 @@ export function OperatorConsole({
           ? "This workstation"
           : "Authorized operator"
       }
-      onSignOut={() => void signOut()}
     >
       {!online && (
         <div className="offline-banner" role="status">
@@ -580,11 +539,11 @@ export function OperatorConsole({
           orientationPreferenceSaving={orientationPreferenceSaving}
           canReadOrientation={
             session.environment === "local" &&
-            session.scopes.includes("local:read")
+            hasScope("local:read")
           }
           canWriteOrientation={
             session.environment === "local" &&
-            session.scopes.includes("local:write")
+            hasScope("local:write")
           }
           localWorkspace={session.environment === "local"}
           forceOrientation={initialShowOrientation}
@@ -608,8 +567,8 @@ export function OperatorConsole({
             }
             csrfToken={session.csrf_token}
             online={online}
-            canWrite={session.scopes.includes("accounts:write")}
-            canTransfer={session.scopes.includes("transfers:write")}
+            canWrite={hasScope("accounts:write")}
+            canTransfer={hasScope("transfers:write")}
             fundingScopeComplete={accountWorkspace.scopeComplete}
             fundedSourceAvailable={accountWorkspace.accounts.some(
               (candidate) =>
@@ -645,11 +604,11 @@ export function OperatorConsole({
             focusAccountId={initialAccountFocusId}
             tenantId={session.tenant_id}
             csrfToken={session.csrf_token}
-            canWrite={session.scopes.includes("accounts:write")}
-            canTransfer={session.scopes.includes("transfers:write")}
+            canWrite={hasScope("accounts:write")}
+            canTransfer={hasScope("transfers:write")}
             canExport={
-              session.scopes.includes("exports:read") &&
-              session.scopes.includes("transactions:read")
+              hasScope("exports:read") &&
+              hasScope("transactions:read")
             }
             fundingScopeComplete={accountWorkspace.scopeComplete}
             detailReturnTo={
@@ -694,21 +653,21 @@ export function OperatorConsole({
           nextCursor={transferCursor}
           online={online}
           canWrite={
-            session.scopes.includes("transfers:write") &&
+            hasScope("transfers:write") &&
             accountWorkspace.scopeComplete
           }
           canExport={
-            session.scopes.includes("exports:read") &&
-            session.scopes.includes("transfers:read")
+            hasScope("exports:read") &&
+            hasScope("transfers:read")
           }
           canReadExplainability={[
             "explainability:read",
             "transfers:read",
             "events:read",
             "reconciliation:read",
-          ].every((scope) => session.scopes.includes(scope))}
-          canReadCorrections={session.scopes.includes("corrections:read")}
-          canWriteCorrections={session.scopes.includes("corrections:write")}
+          ].every(hasScope)}
+          canReadCorrections={hasScope("corrections:read")}
+          canWriteCorrections={hasScope("corrections:write")}
           writeUnavailableReason={
             !accountWorkspace.scopeComplete
               ? "Transfer creation is disabled because the authorized account picker is larger than one bounded page. Use the API until server-backed account selection is configured."
@@ -746,10 +705,10 @@ export function OperatorConsole({
           tenantId={session.tenant_id}
           csrfToken={session.csrf_token}
           online={online}
-          canWrite={session.scopes.includes("reconciliation:write")}
+          canWrite={hasScope("reconciliation:write")}
           canExport={
-            session.scopes.includes("exports:read") &&
-            session.scopes.includes("reconciliation:read")
+            hasScope("exports:read") &&
+            hasScope("reconciliation:read")
           }
           returnTo={initialReconciliationReturnTo}
           onObserved={observeRun}

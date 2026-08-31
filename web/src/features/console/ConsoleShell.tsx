@@ -27,6 +27,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+
 export type ConsoleSection =
   | "overview"
   | "accounts"
@@ -48,7 +50,6 @@ type Props = Readonly<{
   environmentLabel: string;
   operatorLabel: string;
   operatorMeta: string;
-  onSignOut?: () => void;
 }>;
 
 const navigation = [
@@ -132,8 +133,9 @@ export function ConsoleShell({
   environmentLabel,
   operatorLabel,
   operatorMeta,
-  onSignOut,
 }: Props) {
+  const { session, online, signOut, signOutPending, signOutError } =
+    useConsoleSession();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [compactNavigation, setCompactNavigation] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -268,7 +270,7 @@ export function ConsoleShell({
                   <Link
                     key={item.section}
                     href={item.href}
-                    prefetch={group.label === "Local tools" ? false : undefined}
+                    prefetch={false}
                     onClick={() => setNavigationOpen(false)}
                     className={
                       section === item.section ? "nav-item active" : "nav-item"
@@ -298,17 +300,24 @@ export function ConsoleShell({
               <strong>{operatorLabel}</strong>
               <small>{operatorMeta}</small>
             </span>
-            {onSignOut && (
+            {session && (
               <button
                 className="icon-button"
                 type="button"
-                onClick={onSignOut}
-                aria-label="Sign out"
+                onClick={() => void signOut()}
+                disabled={signOutPending || !online}
+                aria-label={signOutPending ? "Signing out" : "Sign out"}
+                aria-describedby={signOutError ? "sign-out-error" : undefined}
               >
                 <SignOut aria-hidden="true" />
               </button>
             )}
           </div>
+          {signOutError && (
+            <p id="sign-out-error" className="session-action-error" role="alert">
+              {signOutError}
+            </p>
+          )}
         </div>
       </aside>
       <div className="workspace-column">

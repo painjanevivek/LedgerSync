@@ -2,11 +2,10 @@
 
 import { ArrowsCounterClockwise, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { ConsoleSession } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import {
   CopyControl,
   DataTableRegion,
@@ -53,11 +52,7 @@ function label(value: string) {
 export function CorrectionsConsole({
   correctionId,
 }: Readonly<{ correctionId?: string }>) {
-  const router = useRouter();
-  const [session, setSession] = useState<ConsoleSession | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [online, setOnline] = useState(true);
+  const { session, sessionLoading, sessionError, online, hasScope } = useConsoleSession();
   const [events, setEvents] = useState<TransferCorrection[]>([]);
   const [selected, setSelected] = useState<TransferCorrection | null>(null);
   const [status, setStatus] = useState<CorrectionStatus | "all">("all");
@@ -141,39 +136,7 @@ export function CorrectionsConsole({
   }, [correctionId]);
 
   useEffect(() => {
-    let active = true;
-    void (async () => {
-      const response = await readJSON<ConsoleSession>("/api/session");
-      if (!active) return;
-      if (response.ok && response.data.tenant_id) setSession(response.data);
-      else
-        setSessionError(
-          response.status === 401
-            ? null
-            : unavailableMessage(
-                response.status,
-                "the authorized session",
-                response.requestReference,
-              ),
-        );
-      setSessionLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    update();
-    window.addEventListener("online", update);
-    window.addEventListener("offline", update);
-    return () => {
-      window.removeEventListener("online", update);
-      window.removeEventListener("offline", update);
-    };
-  }, []);
-  useEffect(() => {
-    if (!session || !online || !session.scopes.includes("corrections:read"))
+    if (!session || !online || !hasScope("corrections:read"))
       return;
     const listCoordinator = listRequests.current;
     const detailCoordinator = detailRequests.current;
@@ -186,16 +149,7 @@ export function CorrectionsConsole({
       invalidateEvidenceRequests(listCoordinator);
       invalidateEvidenceRequests(detailCoordinator);
     };
-  }, [correctionId, loadEvent, loadList, online, session]);
-
-  async function signOut() {
-    if (!session) return;
-    await fetch("/api/auth/sign-out", {
-      method: "POST",
-      headers: { "X-CSRF-Token": session.csrf_token },
-    });
-    router.refresh();
-  }
+  }, [correctionId, hasScope, loadEvent, loadList, online, session]);
   async function act(action: "approve" | "reject" | "cancel") {
     if (!session || !selected) return;
     setActionBusy(true);
@@ -288,9 +242,9 @@ export function CorrectionsConsole({
         />
       </main>
     );
-  const canRead = session.scopes.includes("corrections:read");
-  const canWrite = session.scopes.includes("corrections:write");
-  const canApprove = session.scopes.includes("corrections:approve");
+  const canRead = hasScope("corrections:read");
+  const canWrite = hasScope("corrections:write");
+  const canApprove = hasScope("corrections:approve");
   const returnTo = correctionId
     ? `/corrections/${encodeURIComponent(correctionId)}`
     : "/corrections";
@@ -304,7 +258,6 @@ export function CorrectionsConsole({
       }
       operatorLabel={session.operator_label ?? session.subject_id}
       operatorMeta="Authorized control operator"
-      onSignOut={() => void signOut()}
     >
       {!online && (
         <div className="offline-banner" role="status">

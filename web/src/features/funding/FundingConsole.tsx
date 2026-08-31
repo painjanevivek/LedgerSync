@@ -4,8 +4,9 @@ import { WarningCircle } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Account, ConsoleSession } from "@/features/accounts/types";
+import type { Account } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell, OperatorWorkspace } from "@/features/console/ConsoleShell";
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { PageHeader, StatePanel } from "@/features/console/components";
 import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { FundingRequestFlow } from "@/features/funding/FundingRequestFlow";
@@ -17,10 +18,7 @@ type AccountPage = Readonly<{ accounts: Account[]; next_cursor?: string }>;
 
 export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: string }>) {
   const router = useRouter();
-  const [session, setSession] = useState<ConsoleSession | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [online, setOnline] = useState(true);
+  const { session, sessionLoading, sessionError, online, hasScope } = useConsoleSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
@@ -91,36 +89,12 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   }, [fundingEventId]);
 
   useEffect(() => {
-    let active = true;
-    void (async () => {
-      const response = await readJSON<ConsoleSession>("/api/session");
-      if (!active) return;
-      if (response.ok && response.data.tenant_id) setSession(response.data);
-      else setSessionError(response.status === 401 ? null : unavailableMessage(response.status, "the authorized session", response.requestReference));
-      setSessionLoading(false);
-    })();
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    update(); window.addEventListener("online", update); window.addEventListener("offline", update);
-    return () => { window.removeEventListener("online", update); window.removeEventListener("offline", update); };
-  }, []);
-
-  useEffect(() => {
-    if (!session || !online || !session.scopes.includes("funding:read")) return;
+    if (!session || !online || !hasScope("funding:read")) return;
     const listCoordinator = listRequests.current;
     const detailCoordinator = detailRequests.current;
     const timer = window.setTimeout(() => { void loadAccounts(); void (fundingEventId ? loadEvent() : loadList()); }, 0);
     return () => { window.clearTimeout(timer); invalidateEvidenceRequests(listCoordinator); invalidateEvidenceRequests(detailCoordinator); accountGeneration.current += 1; };
-  }, [fundingEventId, loadAccounts, loadEvent, loadList, online, session]);
-
-  async function signOut() {
-    if (!session) return;
-    await fetch("/api/auth/sign-out", { method: "POST", headers: { "X-CSRF-Token": session.csrf_token } });
-    router.refresh();
-  }
+  }, [fundingEventId, hasScope, loadAccounts, loadEvent, loadList, online, session]);
 
   async function act(path: string, body?: Record<string, string>, idempotencyKey?: string) {
     if (!session || !selected) return false;
@@ -160,11 +134,11 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   if (sessionLoading) return <ConsoleShell section="funding" tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><OperatorWorkspace className="funding-workspace" footer={<ConsoleFooter />} rail={<FundingWorkspaceRail events={[]} loading error={null} online />} railLabel="Funding workflow context"><PageHeader eyebrow="Funding records · LedgerSync" title="Verifying access" description="Checking finance access before any external reference or journal state is shown." /><StatePanel title="Loading authorized records" message="No funding state is inferred while the session boundary is verified." /></OperatorWorkspace></ConsoleShell>;
   if (!session) return <main className="boot-screen"><p className="eyebrow">Access not verified</p><h1>Funding workspace unavailable</h1><StatePanel kind={sessionError ? "error" : "denied"} title={sessionError ? "Session unavailable" : "No authorized session"} message={sessionError ?? "Sign in with an approved finance operator identity. No funding records are displayed."} /></main>;
 
-  const canRead = session.scopes.includes("funding:read");
-  const canWrite = session.scopes.includes("funding:write");
-  const canApprove = session.scopes.includes("funding:approve");
+  const canRead = hasScope("funding:read");
+  const canWrite = hasScope("funding:write");
+  const canApprove = hasScope("funding:approve");
   const selectedAccount = accounts.find((account) => account.account_id === selected?.destination_account_id);
-  return <ConsoleShell section="funding" tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "local" ? "Local workspace" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "local" ? "This workstation" : "Authorized finance operator"} onSignOut={() => void signOut()}>
+  return <ConsoleShell section="funding" tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "local" ? "Local workspace" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "local" ? "This workstation" : "Authorized finance operator"}>
     <OperatorWorkspace className="funding-workspace" footer={<ConsoleFooter />} rail={<FundingWorkspaceRail events={events} event={selected} loading={loading} error={error} online={online} />} railLabel="Funding workflow context">
       {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Funding actions are disabled; retained evidence is historical until refreshed.</span></div>}
       {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={loadEvent} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} accountsLoading={accountsLoading} accountsError={accountsError} accountsScopeComplete={accountsScopeComplete} onRetryAccounts={() => void loadAccounts()} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
