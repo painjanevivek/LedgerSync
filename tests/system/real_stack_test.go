@@ -80,12 +80,13 @@ func TestRealBFFControlledFundingLifecycle(t *testing.T) {
 		t.Fatalf("demo funding approval=%+v", approved)
 	}
 	var posted fundingSubmissionPayload
-	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, "", nil, &posted)
+	const postKey = "system-funding-post-000001"
+	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, postKey, nil, &posted)
 	if posted.Event.Status != "posted" || posted.Event.JournalTransactionID == "" || posted.Event.BalanceVersion == "" {
 		t.Fatalf("posted funding journal=%+v", posted)
 	}
 	var postReplay fundingSubmissionPayload
-	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, "", nil, &postReplay)
+	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, postKey, nil, &postReplay)
 	if !postReplay.Replayed || postReplay.Event.JournalTransactionID != posted.Event.JournalTransactionID {
 		t.Fatalf("funding post replay=%+v", postReplay)
 	}
