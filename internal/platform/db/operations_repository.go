@@ -75,7 +75,7 @@ func (r *OperationsRepository) ListWebhookEndpoints(ctx context.Context, tenantI
 		return operations.WebhookEndpointPage{}, err
 	}
 	rows, err := r.database.QueryContext(ctx, `
-SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,endpoint.subscribed_events,
+SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,array_to_json(endpoint.subscribed_events)::text,
  COALESCE(health.latest_state,'none'),COALESCE(health.attempt_count,'0'),COALESCE(health.dead_count,'0'),
  endpoint.verified_at,endpoint.disabled_at,health.latest_at,endpoint.updated_at
 FROM developer_webhook_endpoints endpoint
@@ -122,7 +122,7 @@ ORDER BY endpoint.updated_at DESC,endpoint.id DESC LIMIT $7`, tenantID, actorID,
 
 func (r *OperationsRepository) GetWebhookEndpoint(ctx context.Context, tenantID, actorID, endpointID string) (operations.WebhookEndpointDetail, error) {
 	row := r.database.QueryRowContext(ctx, `
-SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,endpoint.subscribed_events,
+SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,array_to_json(endpoint.subscribed_events)::text,
  COALESCE(health.latest_state,'none'),COALESCE(health.attempt_count,'0'),COALESCE(health.dead_count,'0'),
  endpoint.verified_at,endpoint.disabled_at,health.latest_at,endpoint.updated_at
 FROM developer_webhook_endpoints endpoint
@@ -183,8 +183,12 @@ ORDER BY attempt.created_at DESC,attempt.id DESC LIMIT 26`, tenantID, endpointID
 func scanWebhookEndpointEvidence(row rowScanner) (operations.WebhookEndpointEvidence, error) {
 	var item operations.WebhookEndpointEvidence
 	var verified, disabled, latest sql.NullTime
-	if err := row.Scan(&item.EndpointID, &item.Label, &item.EndpointURL, &item.Status, &item.SubscribedEvents, &item.RecentDeliveryState, &item.RecentAttemptCount, &item.RecentDeadCount, &verified, &disabled, &latest, &item.UpdatedAt); err != nil {
+	var subscribedEvents []byte
+	if err := row.Scan(&item.EndpointID, &item.Label, &item.EndpointURL, &item.Status, &subscribedEvents, &item.RecentDeliveryState, &item.RecentAttemptCount, &item.RecentDeadCount, &verified, &disabled, &latest, &item.UpdatedAt); err != nil {
 		return item, err
+	}
+	if err := json.Unmarshal(subscribedEvents, &item.SubscribedEvents); err != nil || len(item.SubscribedEvents) == 0 {
+		return item, errors.New("invalid persisted webhook subscriptions")
 	}
 	item.VerifiedAt, item.DisabledAt, item.LatestDeliveryAt = optionalDatabaseTime(verified), optionalDatabaseTime(disabled), optionalDatabaseTime(latest)
 	return item, nil

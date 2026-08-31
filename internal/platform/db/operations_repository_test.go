@@ -30,3 +30,34 @@ func TestEvidenceCodeUsesSemanticAllowlist(t *testing.T) {
 		}
 	}
 }
+
+func TestScanWebhookEndpointEvidenceDecodesPortableArrayProjection(t *testing.T) {
+	item, err := scanWebhookEndpointEvidence(webhookScanFunc(func(destination ...any) error {
+		*destination[0].(*string) = "70000000-0000-4000-8000-000000000071"
+		*destination[1].(*string) = "Settlement partner"
+		*destination[2].(*string) = "https://partner.example.test/hooks"
+		*destination[3].(*string) = "active"
+		*destination[4].(*[]byte) = []byte(`["transfer.posted","funding.posted"]`)
+		*destination[5].(*string) = "delivered"
+		*destination[6].(*string) = "2"
+		*destination[7].(*string) = "0"
+		*destination[11].(*time.Time) = time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)
+		return nil
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(item.SubscribedEvents) != 2 || item.SubscribedEvents[1] != "funding.posted" {
+		t.Fatalf("subscriptions=%#v", item.SubscribedEvents)
+	}
+}
+
+func TestScanWebhookEndpointEvidenceRejectsMalformedArrayProjection(t *testing.T) {
+	_, err := scanWebhookEndpointEvidence(webhookScanFunc(func(destination ...any) error {
+		*destination[4].(*[]byte) = []byte(`not-json`)
+		return nil
+	}))
+	if err == nil || err.Error() != "invalid persisted webhook subscriptions" {
+		t.Fatalf("error=%v", err)
+	}
+}
