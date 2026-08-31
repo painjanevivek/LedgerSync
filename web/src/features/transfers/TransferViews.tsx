@@ -15,7 +15,6 @@ import {
   FocusedRetry,
   FormField,
   PageHeader,
-  Pagination,
   RecordLink,
   StatePanel,
   StatusBadge,
@@ -27,6 +26,7 @@ import { TransferEvidenceTimeline } from "@/features/transfers/TransferEvidenceT
 import { TransferForm } from "@/features/transfers/TransferForm";
 import type { TransferExplainability } from "@/lib/api/orientation";
 import { formatMinorUnits } from "@/lib/money";
+import { emptyTransferFilters, transferExportQuery, transferURL, type TransferFilters } from "@/lib/page-query/transfers";
 
 function financialTone(status: string) {
   return status === "posted"
@@ -38,17 +38,13 @@ function financialTone(status: string) {
 
 export function TransferList({
   transfers,
-  nextCursor,
-  busy,
-  onMore,
+  nextHref,
   exportAction,
   returnTo = "/transfers",
   variant = "paged",
 }: Readonly<{
   transfers: TransferSummary[];
-  nextCursor?: string;
-  busy?: boolean;
-  onMore?: () => void;
+  nextHref?: string;
   exportAction?: React.ReactNode;
   returnTo?: string;
   variant?: "paged" | "recent";
@@ -77,7 +73,7 @@ export function TransferList({
           <p>
             {variant === "recent"
               ? "The latest five loaded records are shown; this is not the end of transfer history."
-              : "Financial and downstream delivery outcomes remain separate."}
+              : `${transfers.length} record${transfers.length === 1 ? "" : "s"} on this page. A total is not calculated or implied. Financial and downstream delivery outcomes remain separate.`}
           </p>
         </div>
         {variant === "recent" ? (
@@ -153,11 +149,7 @@ export function TransferList({
         </table>
       </DataTableRegion>
       {variant === "paged" && (
-        <Pagination
-          nextCursor={nextCursor}
-          busy={busy}
-          onNext={onMore ?? (() => undefined)}
-        />
+        <div className="pagination"><span>{nextHref ? "More matching transfer records are available" : "End of this filtered transfer history"}</span>{nextHref ? <Link className="button secondary" href={nextHref}>Next page</Link> : <button className="button secondary" type="button" disabled>Next page</button>}</div>
       )}
     </section>
   );
@@ -189,11 +181,12 @@ export function TransfersView({
   csrfToken,
   preferredDestinationId,
   returnTo,
-  initialFilters = { query: "", status: "all" },
+  initialFilters = emptyTransferFilters,
+  onApplyFilters,
+  onClearFilters,
   onRefreshAccounts,
   onRefresh,
   onRefreshExplainability,
-  onMore,
 }: Readonly<{
   accounts: Account[];
   accountsLoading: boolean;
@@ -220,14 +213,18 @@ export function TransfersView({
   csrfToken: string;
   preferredDestinationId?: string;
   returnTo?: string;
-  initialFilters?: { query: string; status: string };
+  initialFilters?: TransferFilters;
+  onApplyFilters: (filters: TransferFilters) => void;
+  onClearFilters: () => void;
   onRefreshAccounts: () => Promise<void>;
   onRefresh: () => Promise<void>;
   onRefreshExplainability: () => void;
-  onMore: () => void;
 }>) {
   const [query, setQuery] = useState(initialFilters.query);
-  const [status, setStatus] = useState(initialFilters.status);
+  const [accountId, setAccountId] = useState(initialFilters.accountId);
+  const [status, setStatus] = useState<TransferFilters["status"]>(initialFilters.status);
+  const [fromDate, setFromDate] = useState(initialFilters.from.slice(0, 10));
+  const [toDate, setToDate] = useState(initialFilters.to.slice(0, 10));
   if (detail) {
     const detailHref = `/transfers/${encodeURIComponent(detail.transfer_id)}?return_to=${encodeURIComponent(returnTo ?? "/transfers")}`;
     return (
@@ -394,18 +391,18 @@ export function TransfersView({
         )}
       </>
     );
-  const appliedQuery = initialFilters.query.trim();
-  const appliedStatus = initialFilters.status;
-  const exportQuery = new URLSearchParams({ limit: "10000" });
-  if (appliedQuery) exportQuery.set("q", appliedQuery);
-  if (appliedStatus !== "all") exportQuery.set("status", appliedStatus);
+  const exportQuery = transferExportQuery(initialFilters);
   const exportFilters = [
-    ...(appliedQuery ? [{ label: "Search", value: appliedQuery }] : []),
-    ...(appliedStatus !== "all"
-      ? [{ label: "Financial status", value: appliedStatus }]
+    ...(initialFilters.query ? [{ label: "Search", value: initialFilters.query }] : []),
+    ...(initialFilters.accountId ? [{ label: "Account ID", value: initialFilters.accountId }] : []),
+    ...(initialFilters.status
+      ? [{ label: "Financial status", value: initialFilters.status }]
       : []),
+    ...(initialFilters.from ? [{ label: "From UTC", value: initialFilters.from }] : []),
+    ...(initialFilters.to ? [{ label: "To UTC", value: initialFilters.to }] : []),
   ];
-  const historyReturn = `/transfers?${new URLSearchParams({ ...(appliedQuery ? { q: appliedQuery } : {}), ...(appliedStatus !== "all" ? { status: appliedStatus } : {}) })}`;
+  const historyReturn = transferURL(initialFilters);
+  const nextHref = nextCursor ? transferURL({ ...initialFilters, cursor: nextCursor }) : undefined;
   return (
     <>
       <PageHeader
@@ -453,13 +450,20 @@ export function TransfersView({
         </aside>
       </div>
       <form
-        className="filter-bar transfer-filters"
-        method="get"
-        action="/transfers"
+        className="surface list-filter-bar transfer-filters"
         aria-label="Transfer filters"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onApplyFilters({
+            query: query.trim().toLowerCase(),
+            accountId: accountId.trim().toLowerCase(),
+            status,
+            from: fromDate ? `${fromDate}T00:00:00.000Z` : "",
+            to: toDate ? `${toDate}T23:59:59.999Z` : "",
+          });
+        }}
       >
         <FormField label="Search transfers" requirement="optional" hint="Search by transfer or account ID."><input
-            name="q"
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -468,15 +472,19 @@ export function TransfersView({
             pattern="[0-9A-Fa-f-]*"
             title="Use a complete or partial transfer or account identifier"
           /></FormField>
-        <FormField label="Status" requirement="optional"><select
-            name="status"
+        <FormField label="Exact account ID" requirement="optional" hint="Matches either side of the transfer. Select a known account or paste its full ID."><input value={accountId} onChange={(event) => setAccountId(event.target.value)} list="transfer-account-options" maxLength={36} pattern="[0-9A-Fa-f-]{36}" placeholder="00000000-0000-0000-0000-000000000000" /></FormField>
+        <datalist id="transfer-account-options">{accounts.map((account) => <option key={account.account_id} value={account.account_id}>{account.display_name ?? "Authorized account"}</option>)}</datalist>
+        <FormField label="Financial status" requirement="optional"><select
             value={status}
-            onChange={(event) => setStatus(event.target.value)}
+            onChange={(event) => setStatus(event.target.value as TransferFilters["status"])}
           >
-            <option value="all">All statuses</option>
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
             <option value="posted">Posted</option>
             <option value="rejected">Rejected</option>
           </select></FormField>
+        <FormField label="From date (UTC)" requirement="optional" hint="Inclusive start of day in UTC."><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></FormField>
+        <FormField label="To date (UTC)" requirement="optional" hint="Inclusive end of day in UTC."><input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></FormField>
         <button
           className="button primary"
           type="submit"
@@ -484,9 +492,9 @@ export function TransfersView({
         >
           Apply filters
         </button>
-        <Link className="button secondary" href="/transfers">
+        <button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>
           Clear filters
-        </Link>
+        </button>
         <button
           className="button secondary"
           type="button"
@@ -544,9 +552,7 @@ export function TransfersView({
         transfers.length > 0 && (
           <TransferList
             transfers={transfers}
-            nextCursor={nextCursor}
-            busy={loading}
-            onMore={onMore}
+            nextHref={nextHref}
             returnTo={historyReturn}
             exportAction={
               <EvidenceExportControl

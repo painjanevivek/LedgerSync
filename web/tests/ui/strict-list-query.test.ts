@@ -5,6 +5,7 @@ import { parseApprovalBFFSearchParams, parseApprovalPageQuery } from "../../src/
 import { correctionBFFQueryRules, correctionsURL, parseCorrectionPageQuery } from "../../src/lib/page-query/corrections";
 import { fundingBFFQueryRules, fundingURL, parseFundingPageQuery } from "../../src/lib/page-query/funding";
 import { parseReconciliationPageQuery, reconciliationBFFQueryRules, reconciliationURL } from "../../src/lib/page-query/reconciliation";
+import { parseTransferPageQuery, parseTransferSearchParams, transferBFFQueryRules, transferExportQuery, transferURL } from "../../src/lib/page-query/transfers";
 import { isUTCDate, parseStrictListQuery, parseStrictListSearchParams } from "../../src/lib/strict-list-query";
 
 test("strict list queries reject unknown repeated empty oversized and malformed values", () => {
@@ -86,4 +87,35 @@ test("reconciliation exposes only a bounded opaque continuation", () => {
   assert.equal(reconciliationURL({ cursor: "next" }), "/reconciliation?cursor=next");
   assert.equal(parseStrictListSearchParams(new URLSearchParams("cursor=opaque&limit=25"), reconciliationBFFQueryRules).ok, true);
   assert.equal(parseStrictListSearchParams(new URLSearchParams("limit=0"), reconciliationBFFQueryRules).ok, false);
+});
+
+test("transfer page, BFF, URL, and export retain one exact filter set", () => {
+  const parsed = parseTransferPageQuery({
+    q: "ABC-1",
+    accountId: "10000000-0000-4000-8000-000000000001",
+    status: "pending",
+    from: "2026-08-01T00:00:00Z",
+    to: "2026-08-31T23:59:59Z",
+    cursor: "opaque",
+  });
+  assert.deepEqual(parsed, { ok: true, filters: {
+    query: "abc-1",
+    accountId: "10000000-0000-4000-8000-000000000001",
+    status: "pending",
+    from: "2026-08-01T00:00:00.000Z",
+    to: "2026-08-31T23:59:59.000Z",
+    cursor: "opaque",
+  }, preferredDestinationId: undefined, returnTo: undefined });
+  assert.equal(parseTransferPageQuery({ status: ["posted", "rejected"] }).ok, false);
+  assert.equal(parseTransferPageQuery({ accountId: "not-a-uuid" }).ok, false);
+  assert.equal(parseTransferPageQuery({ q: "customer@example.com" }).ok, false);
+  assert.equal(parseTransferPageQuery({ from: "2026-02-30T00:00:00Z" }).ok, false);
+  assert.equal(parseTransferPageQuery({ from: "2026-09-01T00:00:00Z", to: "2026-08-01T00:00:00Z" }).ok, false);
+  assert.equal(parseTransferPageQuery({ loadedPageOnly: "true" }).ok, false);
+
+  const filters = parsed.ok ? parsed.filters : { query: "", accountId: "", status: "" as const, from: "", to: "" };
+  assert.equal(transferURL(filters), "/transfers?q=abc-1&accountId=10000000-0000-4000-8000-000000000001&status=pending&from=2026-08-01T00%3A00%3A00.000Z&to=2026-08-31T23%3A59%3A59.000Z&cursor=opaque");
+  assert.equal(transferExportQuery(filters).toString(), "limit=10000&q=abc-1&accountId=10000000-0000-4000-8000-000000000001&status=pending&from=2026-08-01T00%3A00%3A00.000Z&to=2026-08-31T23%3A59%3A59.000Z");
+  assert.equal(parseTransferSearchParams(new URLSearchParams("q=abc-1&status=pending&limit=25"), transferBFFQueryRules).ok, true);
+  assert.equal(parseTransferSearchParams(new URLSearchParams("q=ops-1&limit=25"), transferBFFQueryRules).ok, false);
 });

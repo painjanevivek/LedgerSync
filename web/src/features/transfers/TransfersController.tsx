@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { emptyAccountFilters, useAccountWorkspace } from "@/features/accounts/useAccountWorkspace";
@@ -8,15 +9,18 @@ import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { PageHeader, StatePanel } from "@/features/console/components";
 import { TransfersView } from "@/features/transfers/TransferViews";
 import { useTransferWorkspace } from "@/features/transfers/useTransferWorkspace";
+import { emptyTransferFilters, transferURL, type TransferFilters } from "@/lib/page-query/transfers";
 
 type Props = Readonly<{
   transferId?: string;
   preferredDestinationId?: string;
   returnTo?: string;
-  filters?: { query: string; status: string };
+  filters?: TransferFilters;
+  invalidQuery?: boolean;
 }>;
 
-export function TransfersController({ transferId, preferredDestinationId, returnTo, filters }: Props) {
+export function TransfersController({ transferId, preferredDestinationId, returnTo, filters = emptyTransferFilters, invalidQuery = false }: Props) {
+  const router = useRouter();
   const { session, online, hasScope } = useConsoleSession();
   const accounts = useAccountWorkspace(undefined, emptyAccountFilters);
   const workspace = useTransferWorkspace(filters);
@@ -26,7 +30,7 @@ export function TransfersController({ transferId, preferredDestinationId, return
 
   useEffect(() => {
     if (!session || !online) return;
-    if (!hasScope("transfers:read")) return;
+    if (!hasScope("transfers:read") || invalidQuery) return;
     let active = true;
     const canExplain = ["explainability:read", "transfers:read", "events:read", "reconciliation:read"].every(hasScope);
     const timer = window.setTimeout(() => {
@@ -42,14 +46,17 @@ export function TransfersController({ transferId, preferredDestinationId, return
       active = false;
       window.clearTimeout(timer);
     };
-  }, [hasScope, loadAccounts, loadDetail, loadExplainability, loadList, online, session, transferId]);
+  }, [hasScope, invalidQuery, loadAccounts, loadDetail, loadExplainability, loadList, online, session, transferId]);
 
   return (
     <ConsoleRouteFrame section="transfers" loadingLabel="Transfers" pending={hasScope("transfers:read") && !initialEvidenceSettled}>
       {session && !hasScope("transfers:read") ? (
         <><PageHeader eyebrow="Work / Transfers" title="Transfers" description="Move an exact amount between authorized accounts, then check the immutable result."/><StatePanel kind="denied" title="Transfer read authority required" message="Your server-issued session does not include transfers:read. No protected transfer or account-picker request was made."/></>
+      ) : session && invalidQuery && !transferId ? (
+        <><PageHeader eyebrow="Ledger / Transfers" title="Transfers" description="Move an exact amount between your accounts, then check the result."/><StatePanel kind="error" title="Invalid transfer investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, malformed, or reversed filter. No protected transfer or account-picker request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/transfers")}>Clear invalid filters</button>}/></>
       ) : session && (
         <TransfersView
+          key={transferId ?? transferURL(filters)}
           accounts={accounts.accounts}
           accountsLoading={accounts.directoryLoading}
           accountsError={accounts.error}
@@ -76,6 +83,8 @@ export function TransfersController({ transferId, preferredDestinationId, return
           preferredDestinationId={preferredDestinationId}
           returnTo={returnTo}
           initialFilters={filters}
+          onApplyFilters={(next) => router.push(transferURL(next))}
+          onClearFilters={() => router.push("/transfers")}
           onRefreshAccounts={async () => {
             await accounts.load(emptyAccountFilters, 100);
           }}
@@ -85,9 +94,6 @@ export function TransfersController({ transferId, preferredDestinationId, return
           }}
           onRefreshExplainability={() => {
             if (transferId) void workspace.loadExplainability(transferId);
-          }}
-          onMore={() => {
-            if (workspace.nextCursor) void workspace.loadList(workspace.nextCursor, true);
           }}
         />
       )}
