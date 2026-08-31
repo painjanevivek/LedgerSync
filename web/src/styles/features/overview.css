@@ -235,12 +235,12 @@
   color: var(--green-dark);
 }
 .status-fill.warning {
-  border: 1px solid #efc879;
+  border: 1px solid var(--status-warning-emphasis-border);
   background: var(--amber-soft);
   color: var(--amber);
 }
 .status-fill.danger {
-  border: 1px solid #efc2bc;
+  border: 1px solid var(--status-danger-emphasis-border);
   background: var(--red-soft);
   color: var(--red);
 }

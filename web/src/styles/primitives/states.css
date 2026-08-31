@@ -29,7 +29,7 @@
   line-height: 1.55;
 }
 .state-panel.error {
-  border-color: #deb9b4;
+  border-color: var(--status-danger-border);
   background: var(--red-soft);
 }
 .state-panel.error > svg {
@@ -37,7 +37,7 @@
 }
 .state-panel.offline,
 .state-panel.unknown {
-  border-color: #e1cb9d;
+  border-color: var(--status-warning-border);
   background: var(--amber-soft);
 }
 .state-panel.offline > svg,

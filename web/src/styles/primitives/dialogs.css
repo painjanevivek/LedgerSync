@@ -12,7 +12,7 @@
   box-shadow: var(--shadow-drawer);
 }
 .confirmation-dialog::backdrop {
-  background: rgb(4 13 29 / 68%);
+  background: var(--dialog-backdrop);
 }
 .confirmation-dialog form {
   display: grid;

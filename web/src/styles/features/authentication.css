@@ -88,7 +88,7 @@
   border: 1px solid var(--line-strong);
   border-top: 3px solid var(--green);
   background: var(--paper);
-  box-shadow: 0 18px 48px rgb(11 30 60 / 10%);
+  box-shadow: var(--authentication-shadow);
 }
 .login-entry-rule {
   display: grid;

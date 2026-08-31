@@ -35,6 +35,7 @@ import {
   deriveConsoleCapabilities,
   type ConsoleCapabilities,
 } from "@/features/console/capabilities";
+import { COMPACT_NAVIGATION_MEDIA_QUERY } from "@/lib/responsive";
 
 export type ConsoleSection =
   | "overview"
@@ -199,7 +200,7 @@ export function ConsoleShell({
     window.requestAnimationFrame(() => menuButton.current?.focus());
   }, []);
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 760px)");
+    const query = window.matchMedia(COMPACT_NAVIGATION_MEDIA_QUERY);
     const update = () => {
       setCompactNavigation(query.matches);
       if (!query.matches) setNavigationOpen(false);

@@ -21,7 +21,7 @@
   gap: 20px;
   border-bottom: 1px solid var(--line);
   padding: 0 clamp(30px, 3vw, 44px);
-  background: rgb(247 248 250 / 96%);
+  background: var(--workspace-topbar-surface);
   color: var(--muted);
   backdrop-filter: blur(10px);
   font-family: var(--font-mono);
@@ -78,9 +78,9 @@
   align-items: center;
   gap: 10px;
   min-height: 62px;
-  border: 1px solid rgb(216 232 225 / 18%);
+  border: 1px solid var(--navigation-border);
   padding: 10px;
-  background: rgb(255 255 255 / 4%);
+  background: var(--navigation-surface);
 }
 .workspace-card > svg {
   width: 16px;
@@ -92,7 +92,7 @@
   width: 34px;
   height: 34px;
   place-items: center;
-  background: #d8f4ea;
+  background: var(--navigation-mark-surface);
   color: var(--rail);
 }
 .workspace-mark svg {
@@ -132,7 +132,7 @@
 }
 .nav-kicker {
   margin: 0 8px 22px;
-  color: #d6e0ee;
+  color: var(--navigation-copy-soft);
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -182,19 +182,19 @@
   height: 17px;
 }
 .nav-item:hover {
-  background: rgb(143 179 219 / 12%);
+  background: var(--navigation-hover-surface);
   color: var(--rail-text);
 }
 .nav-item.active {
-  border-left-color: #9adfc6;
-  background: rgb(149 182 221 / 20%);
+  border-left-color: var(--navigation-active-marker);
+  background: var(--navigation-active-surface);
   color: var(--rail-text);
 }
 .nav-footer {
   display: grid;
   gap: 17px;
   margin-top: auto;
-  border-top: 1px solid rgb(216 232 225 / 13%);
+  border-top: 1px solid var(--navigation-divider);
   padding: 20px 10px 0;
 }
 .environment-row {
@@ -212,13 +212,13 @@
 .environment-row > svg {
   width: 13px;
   height: 13px;
-  color: #8ec3af;
+  color: var(--navigation-accent-muted);
 }
 .preview-chip {
   margin-left: auto;
-  border: 1px solid rgb(216 232 225 / 20%);
+  border: 1px solid var(--navigation-control-border);
   padding: 2px 5px;
-  color: #dce8e3;
+  color: var(--navigation-copy-strong);
   font-family: var(--font-mono);
   font-size: 8px;
   letter-spacing: 0.08em;
@@ -233,7 +233,7 @@
 .operator-row > svg {
   width: 28px;
   height: 28px;
-  color: #adc1b9;
+  color: var(--navigation-copy-muted);
 }
 .icon-button {
   display: grid;
@@ -254,10 +254,10 @@
 
 .session-action-error {
   margin: -5px 0 0;
-  border-left: 2px solid #d99a91;
+  border-left: 2px solid var(--navigation-danger-line);
   padding: 7px 9px;
-  background: rgb(141 57 47 / 18%);
-  color: #ffd8d3;
+  background: var(--navigation-danger-surface);
+  color: var(--navigation-danger-copy);
   font-size: 11px;
   line-height: 1.45;
 }

@@ -116,7 +116,7 @@
 }
 .data-table tbody tr:hover,
 .data-table .selected-row {
-  background: #f0f5f1;
+  background: var(--surface-hover);
 }
 .data-table td:first-child {
   display: grid;

@@ -51,7 +51,7 @@
   align-items: center;
   gap: 18px;
   width: min(1080px, 100%);
-  border: 1px solid #aacbbb;
+  border: 1px solid var(--evidence-success-border);
   border-top: 3px solid var(--green);
   padding: 25px;
   background: var(--green-soft);
@@ -66,11 +66,11 @@
 }
 .evidence-hero p:not(.eyebrow) {
   margin: 0;
-  color: #557166;
+  color: var(--evidence-success-copy);
   font-size: 10px;
 }
 .evidence-hero.unavailable {
-  border-color: #d9c59b;
+  border-color: var(--evidence-warning-border);
   border-top-color: var(--amber);
   background: var(--amber-soft);
 }
@@ -78,7 +78,7 @@
   color: var(--amber);
 }
 .evidence-hero.unavailable p:not(.eyebrow) {
-  color: #715e3e;
+  color: var(--evidence-warning-copy);
 }
 .evidence-seal {
   border: 1px solid currentColor;
