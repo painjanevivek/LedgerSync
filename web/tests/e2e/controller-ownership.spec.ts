@@ -30,9 +30,9 @@ test("transfer detail controller owns only account-picker and transfer evidence"
   await page.goto(`/transfers/${transfer.transfer_id}`);
   await expect(page.getByRole("heading", { name: "Transfer detail", exact: true })).toBeVisible();
 
-  expect(paths).toContain("/api/me/accounts");
-  expect(paths).toContain(`/api/transfers/${transfer.transfer_id}`);
-  expect(paths).toContain(`/api/transfers/${transfer.transfer_id}/explainability`);
+  await expect.poll(() => paths).toContain("/api/me/accounts");
+  await expect.poll(() => paths).toContain(`/api/transfers/${transfer.transfer_id}`);
+  await expect.poll(() => paths).toContain(`/api/transfers/${transfer.transfer_id}/explainability`);
   expect(paths.some((path) => path.startsWith("/api/reconciliation"))).toBe(false);
   expect(paths.some((path) => path.startsWith("/api/local/orientation"))).toBe(false);
 });
