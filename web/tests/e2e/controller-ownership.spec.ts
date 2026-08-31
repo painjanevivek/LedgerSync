@@ -43,7 +43,7 @@ test("reconciliation controller does not load account or transfer graphs", async
   await page.goto("/reconciliation");
   await expect(page.getByRole("heading", { name: "Reconciliation", exact: true })).toBeVisible();
 
-  expect(paths).toContain("/api/reconciliation/runs");
+  await expect.poll(() => paths).toContain("/api/reconciliation/runs");
   expect(paths.some((path) => path.startsWith("/api/me/accounts"))).toBe(false);
   expect(paths.some((path) => path.startsWith("/api/transfers"))).toBe(false);
   expect(paths.some((path) => path.startsWith("/api/local/orientation"))).toBe(false);

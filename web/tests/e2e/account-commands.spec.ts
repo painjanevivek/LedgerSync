@@ -235,7 +235,7 @@ test("detail funding fails closed when the bounded authorized picker is incomple
   expect(requestedLimits).toContain("100");
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
-  expect(requestedLimits).toContain("25");
+  await expect.poll(() => requestedLimits).toContain("25");
 });
 
 test("close dialog refreshes account configuration and both balances before enabling confirmation", async ({ page }) => {
