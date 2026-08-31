@@ -43,6 +43,7 @@ Open questions that can still change risk ranking are the final AWS account/orga
 - API/worker → Redis: versioned balance projections and stream events over a private encrypted channel; Redis is non-authoritative, stale versions are rejected, and reads fall back to PostgreSQL.
 - Worker/reconciliation/provisioning → PostgreSQL: privileged operational commands through distinct database roles; immutable evidence, explicit authorization, dry-run/approval, and audit requirements apply.
 - Runtime → observability/security operations: bounded redacted metrics, traces, logs, and alerts; tokens, raw balances, unrestricted payloads, and consistency capabilities are prohibited.
+- Future privileged administrator → managed identity/tenancy control plane: exact tenant, operator, grant, suspension, revocation, and recovery intents; this boundary is designed in `docs/security/administration-boundary.md` but no browser/private administration API is released.
 - CI maintainer/dependency source → release artifact: source, dependencies, containers, SBOM, attestations, and deployment definitions; protected review and security gates are expected.
 
 #### Diagram
@@ -78,6 +79,7 @@ flowchart LR
 | Audit, delivery, and reconciliation evidence | Support investigation, compliance, and truthful status | I, A |
 | PostgreSQL backups and recovery evidence | Restore financial truth after failure or operator error | C, I, A |
 | Personal/support metadata | DPDP and contractual privacy exposure | C, I |
+| Tenant, operator, grant, revocation, and recovery administration evidence | A compromised control plane can expose tenants or create durable privilege | C, I, A |
 | Release artifacts and migrations | A compromised build/schema can subvert every runtime control | I, A |
 
 ## Attacker model
@@ -123,6 +125,9 @@ flowchart LR
 8. An operator restores an apparently healthy database to the wrong time and reopens writes. The recovery gate requires isolated PITR, Redis rebuild, reconciliation, and explicit approval before reopening.
 9. A token, raw balance, or personal identifier leaks through logs/support exports. Redacted structured telemetry and data-minimizing audit metadata reduce exposure; managed-environment sink policies and retention still require proof.
 10. A compromised dependency or CI identity publishes a malicious API/web image or migration. Review, scans, SBOM/provenance and protected artifact promotion must prevent unverified deployment.
+11. An ordinary or compromised operator probes `/admin`, search, errors, timing, counts, or exports to enumerate other tenants or hidden identity records. Until the managed boundary is accepted, `/admin` remains equivalent to a missing route; the future boundary requires exact lookup, tenant predicates, shared limits, and indistinguishable denial.
+12. A tenant administrator grants themselves or a collaborator privileged scopes, reactivates a tenant, or combines approval and execution. The proposed policy requires exact before/after grants, recent MFA step-up, independent approval, a different executor, immutable audit, and fail-closed concurrency.
+13. An attacker abuses a recovery account or break-glass workflow to obtain standing access or bypass revocation. Recovery identities must be disabled by default, case- and time-bound, two-person activated, monitored, automatically expired, and invalidated after use.
 
 ## Threat model table
 
@@ -139,6 +144,9 @@ flowchart LR
 | TM-009 | Insider/support/log sink | Access to telemetry or exports | Exfiltrate token, PII or raw balances | Privacy and credential compromise | Personal data, identity, balances | Redacted logger/audit policies and tests (`internal/platform/observability/logging.go`, `docs/runbooks/audit-events.md`) | Production sinks/retention/DPDP workflow pending | Field allowlists, India-region sinks, 180-day-or-approved retention policy, access review, DLP sampling | Secret scanners, sensitive-field canaries, unusual log export/access | Medium | Medium | Medium |
 | TM-010 | Browser attacker | XSS, CSRF or stolen session | Perform/read operator actions | Tenant disclosure or transfer abuse | Session, tenant data, ledger | HttpOnly/Secure/SameSite cookies, origin/CSRF checks, nonce CSP, PKCE (`web/src/lib/session.ts`, `web/src/lib/security.ts`, `web/src/lib/oidc.ts`) | Real Cognito MFA/browser penetration test pending | Enforce MFA, short sessions, reauthentication for privileged changes, CSP reporting, external test | CSP reports, CSRF failures, impossible session reuse, MFA events | Medium | High | High |
 | TM-011 | Supply-chain attacker | Dependency/CI/reviewer compromise | Publish malicious code, image or migration | System-wide compromise | Release artifacts, data, credentials | SCA/secret/container/IaC scans, SBOM/provenance workflows (`.github/workflows/security.yml`) | Branch protection and production promotion not evidenced | Protected environments, pinned actions/images, signed artifacts, two-person migration review, keyless attestations | Unverified artifact denial, dependency drift, workflow/config changes | Low | High | Medium |
+| TM-012 | Ordinary, compromised, or cross-tenant operator | Can probe routes, filters, errors, timing, or exports | Enumerate hidden tenants, operators, invitations, grants, or administrator ownership | Privacy breach and targeted privilege attack | Tenant/operator administration evidence | `/admin` is non-disclosing and navigation capability is hard-disabled (`web/src/app/admin/page.tsx`, `web/src/features/console/capabilities.ts`) | Managed administration APIs, shared limits, and timing/error review do not exist | Preserve missing-route behavior until M11/M12; require exact lookup, tenant predicates, indistinguishable denial, bounded exports, and external testing | Repeated denied exact lookups, cross-tenant predicates, export probes, source-risk anomalies | Medium | High | High |
+| TM-013 | Malicious or compromised administrator | Privileged managed identity or mapping authority | Self-grant, collusive grant, stale approval reuse, or unauthorized tenant reactivation | Durable privilege escalation and possible tenant/financial compromise | Authorization, tenant lifecycle, audit evidence | Proposed four-eyes and state-machine contract (`docs/security/administration-boundary.md`) | No managed schema, API, MFA proof, or external acceptance | Different requester/approver/executor, recent MFA, exact grant digest, approval expiry, serializable transitions, atomic append-only audit | Self-targeting requests, grant deltas, repeated conflicts, privileged reactivation, unusual scope combinations | Medium | High | High |
+| TM-014 | Insider or stolen recovery identity | Recovery/break-glass activation path | Convert temporary recovery into standing access, bypass revocation, or suppress evidence | Broad tenant/control-plane compromise | Identity, administration evidence, financial availability | NOLOGIN/time-bound break-glass policy and proposed recovery separation (`docs/security/tenant-role-and-limit-policy.md`, `docs/security/administration-boundary.md`) | Production owner, KMS/secrets, alerts, automatic expiry, and drills are unproven | Case-bound two-person activation, narrow expiry, live paging, automatic revocation, post-use invalidation and review | Recovery activation, expiry failure, after-hours use, access after revocation, missing retrospective | Low | High | High |
 
 ## Criticality calibration
 
@@ -162,4 +170,6 @@ flowchart LR
 | `deploy/postgres/roles.sql` | Blast-radius boundary for compromised workloads | TM-004 |
 | `deploy/compose/` and future `deploy/aws/` | Public/private network and service configuration boundary | TM-005, TM-007, TM-008 |
 | `cmd/provision-partner/` | Privileged tenant, policy, account, permission, and credential-reference creation | TM-001, TM-004 |
+| `web/src/app/admin/page.tsx` and future administration routes | Current non-disclosure gate and future privileged tenant/operator control plane | TM-012, TM-013, TM-014 |
+| `docs/security/administration-boundary.md` | Proposed personas, lifecycles, four-eyes, audit, export, and unblock evidence | TM-012, TM-013, TM-014 |
 | `.github/workflows/` | Security gates and artifact trust chain | TM-011 |

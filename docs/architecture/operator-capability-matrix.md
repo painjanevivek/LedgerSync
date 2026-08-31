@@ -26,12 +26,12 @@ LedgerSync receives roles from the identity provider and maps them to scopes in 
 | Read/write/approve/post corrections | `corrections:read`, `corrections:write`, `corrections:approve` | Corrections and Approval entry appear only for relevant duties | Correction routes independently enforce each command scope |
 | Read/run reconciliation | `reconciliation:read`, `reconciliation:write` | Reconciliation evidence and run controls are separated | Reconciliation BFF routes re-check scope and retry identity |
 | Read events | `events:read` | Events & Webhooks is discoverable | Event BFF requests are never started without the read scope |
-| Read/manage/replay webhooks | `webhooks:read`, `webhooks:write`, `webhooks:replay` | Events & Webhooks is discoverable for webhook operators | Phase 8 must add server-owned endpoint and replay authorization |
+| Read/manage/replay webhooks | `webhooks:read`, `webhooks:write`, `webhooks:replay` | Events & Webhooks is discoverable for webhook operators | Endpoint reads and two-operator replay commands independently enforce scope, tenant, recent authentication, CSRF, rate, and retry identity |
 | Read recovery evidence | `recovery:read` | Recovery appears under Platform | Recovery BFF re-checks scope and returns bounded evidence only |
 | Read developer metadata | `developer:read` | Developer appears under Platform | Contract metadata/download endpoints re-check scope |
 | Read local diagnostics | `local:read` plus local environment | Local Status appears under Environment | Diagnostics BFF verifies the session is the configured local identity |
 | Update local onboarding | `local:write` plus local environment | Eligible onboarding confirmations can be saved | Preference mutation independently checks local write authority |
-| Manage production administration | Not released | Administration is absent | `/admin` remains deny-by-default until a privileged contract and approval exist |
+| Manage production administration | Not released | Administration is absent | `/admin` remains non-disclosing; the proposed personas, state machines, four-eyes rules, and external gates are defined in [the blocked administration boundary](../security/administration-boundary.md) |
 
 ## Navigation model
 

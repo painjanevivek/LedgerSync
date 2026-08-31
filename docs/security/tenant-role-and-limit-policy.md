@@ -11,7 +11,7 @@ before production writes. Local demo values are not production defaults.
 | Operator | Viewer scopes plus `transfers:write` | Read + debit on source and credit permission on destination | Policy changes, recovery replay, credentials |
 | Finance reviewer | Viewer scopes | Read only; complete tenant reconciliation evidence | Transfer creation by default, provisioning, recovery execution |
 | Support investigator | Minimum case-specific read scopes | Read only on authorized tenant/account | Transfer creation, raw secrets, unrestricted cross-tenant search |
-| Tenant administrator | Identity/subject/account administration through the internal provisioning workflow | No implicit money movement permission | Standing break-glass or recovery replay |
+| Tenant administrator | Proposed tenant-scoped identity and grant requests under the blocked [production administration boundary](administration-boundary.md) | No implicit money movement permission | Self-approval, standing break-glass, recovery replay, cross-tenant discovery |
 | Recovery approver | No ordinary transfer scope required | Time-bound case scope | Single-person approve-and-execute; financial row mutation |
 
 Roles are descriptive policy labels; API authorization remains scope plus
@@ -45,6 +45,9 @@ the same serializable transaction as the transfer decision.
   evidence and no ability to mutate ledger postings.
 - Provisioning is an internal CLI/workflow, not public self-service, and records
   credential references rather than secret material.
+- Production administration remains non-disclosing and unimplemented until the
+  managed identity, infrastructure, four-eyes, revocation, and external-review
+  gates in `administration-boundary.md` are proven.
 - Break-glass database authority is NOLOGIN by default, time bound, separately
   approved, monitored, and revoked after use.
 
