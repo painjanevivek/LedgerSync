@@ -1,6 +1,6 @@
 import type { ApprovalFilters } from "@/lib/api/approvals";
 import { emptyApprovalFilters } from "@/lib/api/approvals";
-import { isUTCDate, parseStrictListQuery, type StrictListQueryInput } from "@/lib/strict-list-query";
+import { isUTCDate, parseStrictListQuery, parseStrictListSearchParams, type StrictListQueryInput } from "@/lib/strict-list-query";
 
 const approvalStatuses = [
   "funding:requested",
@@ -16,7 +16,7 @@ const approvalStatuses = [
   "correction:posted",
 ] as const;
 
-const rules = {
+export const approvalPageQueryRules = {
   domain: { maximumLength: 16, values: ["funding", "correction"] },
   status: { maximumLength: 32, values: approvalStatuses },
   requester: { maximumLength: 255, pattern: /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,254}$/ },
@@ -27,16 +27,25 @@ const rules = {
   cursor: { maximumLength: 2_048 },
 } as const;
 
+export const approvalBFFQueryRules = {
+  ...approvalPageQueryRules,
+  limit: { maximumLength: 3, pattern: /^(?:[1-9]|[1-9][0-9]|100)$/ },
+} as const;
+
+function hasCompatibleApprovalRange(values: Readonly<Partial<Record<string, string>>>) {
+  if (values.domain && values.status && !values.status.startsWith(`${values.domain}:`)) return false;
+  return !(values.requested_after && values.requested_before && values.requested_after > values.requested_before);
+}
+
 export type ApprovalPageQuery =
   | Readonly<{ ok: true; filters: ApprovalFilters }>
   | Readonly<{ ok: false }>;
 
 export function parseApprovalPageQuery(input: StrictListQueryInput): ApprovalPageQuery {
-  const result = parseStrictListQuery(input, rules);
+  const result = parseStrictListQuery(input, approvalPageQueryRules);
   if (!result.ok) return { ok: false };
   const values = result.values;
-  if (values.domain && values.status && !values.status.startsWith(`${values.domain}:`)) return { ok: false };
-  if (values.requested_after && values.requested_before && values.requested_after > values.requested_before) return { ok: false };
+  if (!hasCompatibleApprovalRange(values)) return { ok: false };
   return {
     ok: true,
     filters: {
@@ -51,4 +60,10 @@ export function parseApprovalPageQuery(input: StrictListQueryInput): ApprovalPag
       cursor: values.cursor,
     },
   };
+}
+
+export function parseApprovalBFFSearchParams(searchParams: URLSearchParams) {
+  const result = parseStrictListSearchParams(searchParams, approvalBFFQueryRules);
+  if (!result.ok || !hasCompatibleApprovalRange(result.values)) return { ok: false } as const;
+  return result;
 }

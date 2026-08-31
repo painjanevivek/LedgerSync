@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseApprovalPageQuery } from "../../src/lib/page-query/approvals";
-import { fundingURL, parseFundingPageQuery } from "../../src/lib/page-query/funding";
-import { isUTCDate, parseStrictListQuery } from "../../src/lib/strict-list-query";
+import { parseApprovalBFFSearchParams, parseApprovalPageQuery } from "../../src/lib/page-query/approvals";
+import { correctionBFFQueryRules, correctionsURL, parseCorrectionPageQuery } from "../../src/lib/page-query/corrections";
+import { fundingBFFQueryRules, fundingURL, parseFundingPageQuery } from "../../src/lib/page-query/funding";
+import { isUTCDate, parseStrictListQuery, parseStrictListSearchParams } from "../../src/lib/strict-list-query";
 
 test("strict list queries reject unknown repeated empty oversized and malformed values", () => {
   const rules = { status: { values: ["active"], maximumLength: 16 } } as const;
@@ -47,6 +48,10 @@ test("approval page query retains an exact compatible investigation", () => {
 test("approval page rejects contradictory domains and reversed dates", () => {
   assert.equal(parseApprovalPageQuery({ domain: "funding", status: "correction:requested" }).ok, false);
   assert.equal(parseApprovalPageQuery({ requested_after: "2026-08-31", requested_before: "2026-08-01" }).ok, false);
+  assert.equal(parseApprovalBFFSearchParams(new URLSearchParams("domain=funding&status=funding%3Arequested&limit=25")).ok, true);
+  assert.equal(parseApprovalBFFSearchParams(new URLSearchParams("domain=funding&status=correction%3Arequested&limit=25")).ok, false);
+  assert.equal(parseApprovalBFFSearchParams(new URLSearchParams("requested_after=2026-08-31&requested_before=2026-08-01")).ok, false);
+  assert.equal(parseApprovalBFFSearchParams(new URLSearchParams("limit=101")).ok, false);
 });
 
 test("funding query accepts only a released status and opaque cursor", () => {
@@ -55,4 +60,20 @@ test("funding query accepts only a released status and opaque cursor", () => {
   assert.equal(parseFundingPageQuery({ status: ["posted", "rejected"] }).ok, false);
   assert.equal(parseFundingPageQuery({ accountId: "not-released" }).ok, false);
   assert.equal(fundingURL({ status: "approved", cursor: "next" }), "/funding?status=approved&cursor=next");
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("status=posted&limit=25"), fundingBFFQueryRules).ok, true);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("status=settled&limit=25"), fundingBFFQueryRules).ok, false);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("limit=0"), fundingBFFQueryRules).ok, false);
+});
+
+test("correction page and BFF queries share exact released semantics", () => {
+  assert.deepEqual(parseCorrectionPageQuery({ status: "approved", cursor: "opaque" }), { ok: true, filters: { status: "approved", cursor: "opaque" } });
+  assert.equal(parseCorrectionPageQuery({ status: "pending" }).ok, false);
+  assert.equal(parseCorrectionPageQuery({ status: ["approved", "posted"] }).ok, false);
+  assert.equal(parseCorrectionPageQuery({ requester: "not-released" }).ok, false);
+  assert.equal(correctionsURL({ status: "posted", cursor: "next" }), "/corrections?status=posted&cursor=next");
+
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("status=posted&limit=25"), correctionBFFQueryRules).ok, true);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("status=pending&limit=25"), correctionBFFQueryRules).ok, false);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("status=posted&status=approved"), correctionBFFQueryRules).ok, false);
+  assert.equal(parseStrictListSearchParams(new URLSearchParams("limit=101"), correctionBFFQueryRules).ok, false);
 });

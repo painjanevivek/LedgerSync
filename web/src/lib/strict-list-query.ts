@@ -41,6 +41,18 @@ export function parseStrictListQuery<K extends string>(
   return { ok: true, values };
 }
 
+export function parseStrictListSearchParams<K extends string>(
+  searchParams: Pick<URLSearchParams, "keys" | "getAll">,
+  rules: Readonly<Record<K, StrictListQueryRule>>,
+): StrictListQueryResult<K> {
+  const input: Record<string, string | string[]> = {};
+  for (const key of new Set(searchParams.keys())) {
+    const values = searchParams.getAll(key);
+    input[key] = values.length === 1 ? values[0] : values;
+  }
+  return parseStrictListQuery(input, rules);
+}
+
 export function isUTCDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00.000Z`);

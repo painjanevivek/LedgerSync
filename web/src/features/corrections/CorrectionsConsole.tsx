@@ -2,6 +2,7 @@
 
 import { ArrowsCounterClockwise, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
@@ -10,15 +11,16 @@ import {
   CopyControl,
   DataTableRegion,
   EvidenceFreshness,
+  FocusedRetry,
   FormField,
   PageHeader,
-  Pagination,
   StatePanel,
   StatusBadge,
 } from "@/features/console/components";
 import { utcDateTime } from "@/features/console/format";
 import type {
   CorrectionPage,
+  CorrectionFilters,
   CorrectionStatus,
   CorrectionSubmission,
   TransferCorrection,
@@ -27,7 +29,8 @@ import { readJSON, unavailableMessage } from "@/lib/api/client";
 import { formatMinorUnits } from "@/lib/money";
 import { useCorrectionCommand } from "@/features/corrections/useCorrectionCommand";
 import { FinancialCommandDialog } from "@/ui/overlays/FinancialCommandDialog";
-import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
+import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
+import { correctionsURL } from "@/lib/page-query/corrections";
 
 const statusOptions: ReadonlyArray<CorrectionStatus | "all"> = [
   "all",
@@ -52,11 +55,13 @@ function label(value: string) {
 export function CorrectionsConsole({
   correctionId,
   detailReturnTo,
-}: Readonly<{ correctionId?: string; detailReturnTo?: string }>) {
+  filters = { status: "" },
+  invalidQuery = false,
+}: Readonly<{ correctionId?: string; detailReturnTo?: string; filters?: CorrectionFilters; invalidQuery?: boolean }>) {
+  const router = useRouter();
   const { session, sessionLoading, sessionError, online, hasScope } = useConsoleSession();
   const [events, setEvents] = useState<TransferCorrection[]>([]);
   const [selected, setSelected] = useState<TransferCorrection | null>(null);
-  const [status, setStatus] = useState<CorrectionStatus | "all">("all");
   const [nextCursor, setNextCursor] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
@@ -68,9 +73,11 @@ export function CorrectionsConsole({
   const detailRequests = useRef(createEvidenceRequestCoordinator());
 
   const loadList = useCallback(
-    async (cursor?: string) => {
-      const resourceKey = `corrections:status=${status}`;
-      const request = beginEvidenceRequest(listRequests.current, resourceKey, cursor ? "append" : "replace");
+    async () => {
+      const query = new URLSearchParams({ limit: "25" });
+      if (filters.status) query.set("status", filters.status);
+      if (filters.cursor) query.set("cursor", filters.cursor);
+      const request = beginEvidenceRequest(listRequests.current, `corrections:list:${query}`, "replace");
       if (!request) return;
       if (!request.sameResource) {
         setEvents([]);
@@ -79,17 +86,12 @@ export function CorrectionsConsole({
       }
       setLoading(true);
       setError(null);
-      const query = new URLSearchParams({ limit: "25" });
-      if (status !== "all") query.set("status", status);
-      if (cursor) query.set("cursor", cursor);
       const response = await readJSON<CorrectionPage>(
         `/api/transfer-corrections?${query}`,
       );
       if (!isEvidenceRequestCurrent(listRequests.current, request.token)) return;
       if (response.ok && Array.isArray(response.data.events)) {
-        setEvents((existing) => cursor
-          ? appendUniqueBy(existing, response.data.events, (event) => event.correction_id)
-          : response.data.events);
+        setEvents(response.data.events);
         setNextCursor(response.data.next_cursor || undefined);
         setVerifiedAt(new Date().toISOString());
       } else
@@ -102,7 +104,7 @@ export function CorrectionsConsole({
         );
       if (finishEvidenceRequest(listRequests.current, request.token)) setLoading(false);
     },
-    [status],
+    [filters.cursor, filters.status],
   );
 
   const loadEvent = useCallback(async () => {
@@ -137,7 +139,7 @@ export function CorrectionsConsole({
   }, [correctionId]);
 
   useEffect(() => {
-    if (!session || !online || !hasScope("corrections:read"))
+    if (!session || !online || !hasScope("corrections:read") || invalidQuery)
       return;
     const listCoordinator = listRequests.current;
     const detailCoordinator = detailRequests.current;
@@ -150,7 +152,7 @@ export function CorrectionsConsole({
       invalidateEvidenceRequests(listCoordinator);
       invalidateEvidenceRequests(detailCoordinator);
     };
-  }, [correctionId, hasScope, loadEvent, loadList, online, session]);
+  }, [correctionId, hasScope, invalidQuery, loadEvent, loadList, online, session]);
   async function act(action: "approve" | "reject" | "cancel") {
     if (!session || !selected) return;
     setActionBusy(true);
@@ -282,6 +284,11 @@ export function CorrectionsConsole({
             message="Ask a tenant administrator for corrections:read. LedgerSync does not broaden control evidence visibility."
           />
         </>
+      ) : invalidQuery && !correctionId ? (
+        <>
+          <PageHeader eyebrow="Ledger / Corrections" title="Transfer corrections" description="Review and correct a transfer without changing the original record." />
+          <StatePanel kind="error" title="Invalid correction investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, or malformed filter. No protected correction request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/corrections")}>Clear invalid filters</button>} />
+        </>
       ) : correctionId ? (
         <CorrectionDetail
           event={selected}
@@ -310,11 +317,11 @@ export function CorrectionsConsole({
           error={error}
           verifiedAt={verifiedAt}
           online={online}
-          status={status}
+          filters={filters}
           nextCursor={nextCursor}
-          onStatus={setStatus}
+          onApplyFilters={(next) => router.push(correctionsURL(next))}
+          onClearFilters={() => router.push("/corrections")}
           onRefresh={() => void loadList()}
-          onNext={() => nextCursor && void loadList(nextCursor)}
         />
       )}
       <ConsoleFooter />
@@ -328,23 +335,26 @@ function CorrectionList({
   error,
   verifiedAt,
   online,
-  status,
+  filters,
   nextCursor,
-  onStatus,
+  onApplyFilters,
+  onClearFilters,
   onRefresh,
-  onNext,
 }: Readonly<{
   events: TransferCorrection[];
   loading: boolean;
   error: string | null;
   verifiedAt?: string;
   online: boolean;
-  status: CorrectionStatus | "all";
+  filters: CorrectionFilters;
   nextCursor?: string;
-  onStatus: (value: CorrectionStatus | "all") => void;
+  onApplyFilters: (filters: CorrectionFilters) => void;
+  onClearFilters: () => void;
   onRefresh: () => void;
-  onNext: () => void;
 }>) {
+  const [draftStatus, setDraftStatus] = useState<CorrectionFilters["status"]>(filters.status);
+  const returnTo = correctionsURL(filters);
+  const nextHref = nextCursor ? correctionsURL({ ...filters, cursor: nextCursor }) : undefined;
   return (
     <>
       <PageHeader
@@ -365,33 +375,27 @@ function CorrectionList({
         </div>
         <strong>Policy-bound</strong>
       </section>
-      <div className="filter-bar">
-        <FormField label="Status" requirement="optional"><select
-            value={status}
+      <form className="surface list-filter-bar" onSubmit={(event) => { event.preventDefault(); onApplyFilters({ status: draftStatus }); }}>
+        <FormField label="Exact correction status" requirement="optional" hint="The server filters the complete correction history before pagination."><select
+            value={draftStatus}
             onChange={(event) =>
-              onStatus(event.target.value as CorrectionStatus | "all")
+              setDraftStatus(event.target.value as CorrectionFilters["status"])
             }
           >
             {statusOptions.map((value) => (
-              <option key={value} value={value}>
-                {label(value)}
+              <option key={value} value={value === "all" ? "" : value}>
+                {value === "all" ? "All statuses" : label(value)}
               </option>
             ))}
           </select></FormField>
-        <button
-          className="button secondary"
-          type="button"
-          disabled={!online || loading}
-          onClick={onRefresh}
-        >
-          Refresh evidence
-        </button>
-      </div>
+        <div className="action-row"><button className="button primary" type="submit" disabled={loading}>Apply filters</button><button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>Clear all</button><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh evidence</button></div>
+      </form>
       {error && (
         <StatePanel
           kind="error"
           title="Correction evidence unavailable"
           message={error}
+          action={<FocusedRetry label="Retry correction evidence" onRetry={onRefresh} disabled={!online} busy={loading} />}
         />
       )}
       {verifiedAt && events.length > 0 && (
@@ -421,7 +425,8 @@ function CorrectionList({
         />
       ) : (
         events.length > 0 && (
-          <section className="ledger-section">
+          <section className="ledger-section" aria-busy={loading}>
+            <div className="section-heading"><div><p className="eyebrow">Newest requested evidence first</p><h2>Correction history</h2><p>{events.length} record{events.length === 1 ? "" : "s"} on this page. A total is not calculated or implied.</p></div></div>
             <DataTableRegion label="Transfer correction queue">
               <table className="data-table">
                 <thead>
@@ -453,7 +458,7 @@ function CorrectionList({
                       <td>
                         <Link
                           className="record-link"
-                          href={`/corrections/${encodeURIComponent(event.correction_id)}`}
+                          href={`/corrections/${encodeURIComponent(event.correction_id)}?return_to=${encodeURIComponent(returnTo)}`}
                         >
                           Open control record
                         </Link>
@@ -463,11 +468,7 @@ function CorrectionList({
                 </tbody>
               </table>
             </DataTableRegion>
-            <Pagination
-              nextCursor={nextCursor}
-              busy={loading}
-              onNext={onNext}
-            />
+            <div className="pagination"><span>{nextHref ? "More matching correction records are available" : "End of this filtered correction history"}</span>{nextHref ? <Link className="button secondary" href={nextHref}>Next page</Link> : <button className="button secondary" type="button" disabled>Next page</button>}</div>
           </section>
         )
       )}
