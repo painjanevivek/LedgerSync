@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { AccountFilters } from "@/features/accounts/AccountViews";
 import type { Account, AccountBalance, Transaction } from "@/features/accounts/types";
+import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { readJSON, unavailableMessage, uiDataState } from "@/lib/api/client";
 
 type AccountsPayload = { accounts?: Account[]; next_cursor?: string };
@@ -53,7 +54,8 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   const directoryGeneration = useRef(0);
   const detailGeneration = useRef(0);
   const balanceGeneration = useRef(0);
-  const historyGeneration = useRef(0);
+  const historyRequests = useRef(createEvidenceRequestCoordinator());
+  const directoryPageInFlight = useRef(false);
 
   const selected = useMemo(() => accountDetail ?? accounts.find((account) => account.account_id === initialAccountId) ?? null, [accountDetail, accounts, initialAccountId]);
 
@@ -104,11 +106,12 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   }, []);
 
   const loadHistory = useCallback(async (accountId: string) => {
-    const generation = ++historyGeneration.current;
+    const request = beginEvidenceRequest(historyRequests.current, `history:${accountId}`);
+    if (!request) return [];
     setHistoryLoading(true);
     setHistoryError(null);
     const history = await readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(accountId)}/transactions?limit=25`);
-    if (generation !== historyGeneration.current) return [];
+    if (!isEvidenceRequestCurrent(historyRequests.current, request.token)) return [];
     if (history.ok && Array.isArray(history.data.transactions)) {
       setTransactions(history.data.transactions);
       setHistoryCursor(history.data.next_cursor || undefined);
@@ -150,15 +153,21 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
 
   const loadMoreHistory = useCallback(async () => {
     if (!initialAccountId || !historyCursor) return;
+    const request = beginEvidenceRequest(historyRequests.current, `history:${initialAccountId}`, "append");
+    if (!request) return;
     setHistoryLoading(true);
-    const history = await readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(initialAccountId)}/transactions?limit=25&cursor=${encodeURIComponent(historyCursor)}`);
-    if (history.ok && Array.isArray(history.data.transactions)) {
-      setTransactions((current) => [...current, ...history.data.transactions!]);
-      setHistoryCursor(history.data.next_cursor || undefined);
-      setHistoryVerifiedAt(new Date().toISOString());
-      setHistoryError(null);
-    } else setHistoryError(unavailableMessage(history.status, "additional ledger history", history.requestReference));
-    setHistoryLoading(false);
+    try {
+      const history = await readJSON<TransactionsPayload>(`/api/accounts/${encodeURIComponent(initialAccountId)}/transactions?limit=25&cursor=${encodeURIComponent(historyCursor)}`);
+      if (!isEvidenceRequestCurrent(historyRequests.current, request.token)) return;
+      if (history.ok && Array.isArray(history.data.transactions)) {
+        setTransactions((current) => appendUniqueBy(current, history.data.transactions!, (transaction) => `${transaction.transfer_id}:${transaction.direction}`));
+        setHistoryCursor(history.data.next_cursor || undefined);
+        setHistoryVerifiedAt(new Date().toISOString());
+        setHistoryError(null);
+      } else setHistoryError(unavailableMessage(history.status, "additional ledger history", history.requestReference));
+    } finally {
+      if (finishEvidenceRequest(historyRequests.current, request.token)) setHistoryLoading(false);
+    }
   }, [historyCursor, initialAccountId]);
 
   function applyFilters(requested: Omit<AccountFilters, "cursor">) {
@@ -169,11 +178,12 @@ export function useAccountWorkspace(initialAccountId: string | undefined, initia
   }
 
   function loadNextPage() {
-    if (!nextCursor) return;
+    if (!nextCursor || directoryPageInFlight.current) return;
+    directoryPageInFlight.current = true;
     const next = { ...filters, cursor: nextCursor };
     setFilters(next);
     window.history.replaceState(null, "", accountDirectoryURL(next));
-    void load(next);
+    void load(next).finally(() => { directoryPageInFlight.current = false; });
   }
 
   const directoryState = uiDataState({ loading: directoryLoading, hasData: accounts.length > 0, hasError: Boolean(error) });

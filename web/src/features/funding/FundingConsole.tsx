@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Account, ConsoleSession } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell, OperatorWorkspace } from "@/features/console/ConsoleShell";
 import { PageHeader, StatePanel } from "@/features/console/components";
+import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { FundingRequestFlow } from "@/features/funding/FundingRequestFlow";
 import { FundingDetailView, FundingListView, FundingWorkspaceRail } from "@/features/funding/FundingViews";
 import type { FundingEvent, FundingPage, FundingReconciliation, FundingSubmission } from "@/lib/api/funding";
@@ -33,7 +34,9 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   const [error, setError] = useState<string | null>(null);
   const [verifiedAt, setVerifiedAt] = useState<string>();
   const [requestOpen, setRequestOpen] = useState(false);
-  const generation = useRef(0);
+  const listRequests = useRef(createEvidenceRequestCoordinator());
+  const detailRequests = useRef(createEvidenceRequestCoordinator());
+  const reconciliationRequests = useRef(createEvidenceRequestCoordinator());
   const accountGeneration = useRef(0);
 
   const loadAccounts = useCallback(async () => {
@@ -53,35 +56,37 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   }, []);
 
   const loadList = useCallback(async (cursor?: string) => {
-    const current = ++generation.current;
+    const request = beginEvidenceRequest(listRequests.current, "funding:list", cursor ? "append" : "replace");
+    if (!request) return;
     setLoading(true); setError(null);
     const suffix = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
     const response = await readJSON<FundingPage>(`/api/funding-events?limit=25${suffix}`);
-    if (current !== generation.current) return;
+    if (!isEvidenceRequestCurrent(listRequests.current, request.token)) return;
     if (response.ok && Array.isArray(response.data.events)) {
-      setEvents((existing) => cursor ? [...existing, ...response.data.events] : response.data.events);
+      setEvents((existing) => cursor ? appendUniqueBy(existing, response.data.events, (event) => event.funding_event_id) : response.data.events);
       setNextCursor(response.data.next_cursor || undefined);
       setVerifiedAt(new Date().toISOString());
     } else setError(unavailableMessage(response.status, "funding records", response.requestReference));
-    setLoading(false);
+    if (finishEvidenceRequest(listRequests.current, request.token)) setLoading(false);
   }, []);
 
   const loadEvent = useCallback(async () => {
     if (!fundingEventId) return null;
-    const current = ++generation.current;
+    const request = beginEvidenceRequest(detailRequests.current, `funding:${fundingEventId}`);
+    if (!request) return null;
     setLoading(true); setError(null); setReconciliation(null);
+    if (!request.sameResource) { setSelected(null); setVerifiedAt(undefined); }
     const response = await readJSON<FundingEvent>(`/api/funding-events/${encodeURIComponent(fundingEventId)}`);
-    if (current !== generation.current) return null;
+    if (!isEvidenceRequestCurrent(detailRequests.current, request.token)) return null;
     if (response.ok && response.data.funding_event_id) {
       setSelected(response.data);
       setVerifiedAt(new Date().toISOString());
       setLoading(false);
       return response.data;
     } else {
-      setSelected(null);
       setError(response.status === 404 ? `The selected funding record was not found in this authorized tenant scope. Request reference: ${response.requestReference}.` : unavailableMessage(response.status, "funding records", response.requestReference));
     }
-    setLoading(false);
+    if (finishEvidenceRequest(detailRequests.current, request.token)) setLoading(false);
     return null;
   }, [fundingEventId]);
 
@@ -105,8 +110,10 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
 
   useEffect(() => {
     if (!session || !online || !session.scopes.includes("funding:read")) return;
+    const listCoordinator = listRequests.current;
+    const detailCoordinator = detailRequests.current;
     const timer = window.setTimeout(() => { void loadAccounts(); void (fundingEventId ? loadEvent() : loadList()); }, 0);
-    return () => { window.clearTimeout(timer); generation.current += 1; accountGeneration.current += 1; };
+    return () => { window.clearTimeout(timer); invalidateEvidenceRequests(listCoordinator); invalidateEvidenceRequests(detailCoordinator); accountGeneration.current += 1; };
   }, [fundingEventId, loadAccounts, loadEvent, loadList, online, session]);
 
   async function signOut() {
@@ -139,11 +146,15 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
 
   async function reconcile() {
     if (!selected) return;
+    const eventId = selected.funding_event_id;
+    const request = beginEvidenceRequest(reconciliationRequests.current, `funding-reconciliation:${eventId}`);
+    if (!request) return;
     setActionBusy(true); setError(null);
-    const response = await readJSON<FundingReconciliation>(`/api/funding-events/${encodeURIComponent(selected.funding_event_id)}/reconciliation`);
+    const response = await readJSON<FundingReconciliation>(`/api/funding-events/${encodeURIComponent(eventId)}/reconciliation`);
+    if (!isEvidenceRequestCurrent(reconciliationRequests.current, request.token)) return;
     if (response.ok && response.data.funding_event_id) setReconciliation(response.data);
     else setError(unavailableMessage(response.status, "funding reconciliation", response.requestReference));
-    setActionBusy(false);
+    if (finishEvidenceRequest(reconciliationRequests.current, request.token)) setActionBusy(false);
   }
 
   if (sessionLoading) return <ConsoleShell section="funding" tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><OperatorWorkspace className="funding-workspace" footer={<ConsoleFooter />} rail={<FundingWorkspaceRail events={[]} loading error={null} online />} railLabel="Funding workflow context"><PageHeader eyebrow="Funding records · LedgerSync" title="Verifying access" description="Checking finance access before any external reference or journal state is shown." /><StatePanel title="Loading authorized records" message="No funding state is inferred while the session boundary is verified." /></OperatorWorkspace></ConsoleShell>;

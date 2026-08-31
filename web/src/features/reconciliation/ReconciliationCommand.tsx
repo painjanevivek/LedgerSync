@@ -62,9 +62,12 @@ export function ReconciliationCommand({ tenantId, csrfToken, online, canWrite, e
     return () => cancelAnimationFrame(frame);
   }, [storageKey, tenantId]);
 
-  useEffect(() => () => {
-    mounted.current = false;
-    pollController.current?.abort();
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      pollController.current?.abort();
+    };
   }, []);
 
   useEffect(() => {

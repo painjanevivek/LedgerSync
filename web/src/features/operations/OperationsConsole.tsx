@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConsoleSession } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
 import { PageHeader, StatePanel } from "@/features/console/components";
+import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { EventDetailView, EventsListView, type EventFilters } from "@/features/operations/EventViews";
 import { LocalStatusView } from "@/features/operations/LocalStatusView";
 import type { DeliveryEvent, DeliveryEventDetail, EventPage, LocalDiagnostics } from "@/lib/api/operations";
@@ -34,46 +35,48 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
   const [nextCursor, setNextCursor] = useState<string>();
   const [event, setEvent] = useState<DeliveryEventDetail | null>(null);
   const [verifiedAt, setVerifiedAt] = useState<string>();
-  const requestGeneration = useRef(0);
-  const evidenceKey = useRef<string | undefined>(undefined);
+  const diagnosticsRequests = useRef(createEvidenceRequestCoordinator());
+  const eventListRequests = useRef(createEvidenceRequestCoordinator());
+  const eventDetailRequests = useRef(createEvidenceRequestCoordinator());
 
   const loadDiagnostics = useCallback(async () => {
+    const request = beginEvidenceRequest(diagnosticsRequests.current, "local-diagnostics");
+    if (!request) return;
     setLoading(true);
     const response = await readJSON<LocalDiagnostics>("/api/local/diagnostics");
+    if (!isEvidenceRequestCurrent(diagnosticsRequests.current, request.token)) return;
     if (response.ok && response.data.overall_state) { setDiagnostics(response.data); setVerifiedAt(response.data.generated_at); setError(null); }
     else setError(unavailableMessage(response.status, "local diagnostics", response.requestReference));
-    setLoading(false);
+    if (finishEvidenceRequest(diagnosticsRequests.current, request.token)) setLoading(false);
   }, []);
 
   const loadEvents = useCallback(async () => {
-    const generation = ++requestGeneration.current;
     const key = eventQuery(filters);
-    const sameQuery = evidenceKey.current === key;
-    evidenceKey.current = key;
+    const request = beginEvidenceRequest(eventListRequests.current, `events:${key}`);
+    if (!request) return;
     setLoading(true);
     setError(null);
-    if (!sameQuery) { setEvents([]); setNextCursor(undefined); setVerifiedAt(undefined); }
+    if (!request.sameResource) { setEvents([]); setNextCursor(undefined); setVerifiedAt(undefined); }
     const response = await readJSON<EventPage>(`/api/events?${key}`);
-    if (generation !== requestGeneration.current) return;
+    if (!isEvidenceRequestCurrent(eventListRequests.current, request.token)) return;
     if (response.ok && Array.isArray(response.data.events)) { setEvents(response.data.events); setNextCursor(response.data.next_cursor || undefined); setVerifiedAt(new Date().toISOString()); setError(null); }
     else setError(unavailableMessage(response.status, "event evidence", response.requestReference));
-    setLoading(false);
+    if (finishEvidenceRequest(eventListRequests.current, request.token)) setLoading(false);
   }, [filters]);
 
   const loadEvent = useCallback(async () => {
     if (!eventId) return;
-    const generation = ++requestGeneration.current;
     const key = `event:${eventId}`;
-    const sameEvent = evidenceKey.current === key;
-    evidenceKey.current = key;
+    const request = beginEvidenceRequest(eventDetailRequests.current, key);
+    if (!request) return;
     setLoading(true);
     setError(null);
-    if (!sameEvent) { setEvent(null); setVerifiedAt(undefined); }
+    if (!request.sameResource) { setEvent(null); setVerifiedAt(undefined); }
     const response = await readJSON<DeliveryEventDetail>(`/api/events/${encodeURIComponent(eventId)}`);
-    if (generation !== requestGeneration.current) return;
+    if (!isEvidenceRequestCurrent(eventDetailRequests.current, request.token)) return;
     if (response.ok && response.data.event_id) { setEvent(response.data); setVerifiedAt(new Date().toISOString()); setError(null); }
     else setError(response.status === 404 ? `The selected event was not found in this authorized tenant scope. Request reference: ${response.requestReference}.` : unavailableMessage(response.status, "event detail", response.requestReference));
-    setLoading(false);
+    if (finishEvidenceRequest(eventDetailRequests.current, request.token)) setLoading(false);
   }, [eventId]);
 
   useEffect(() => {
@@ -98,11 +101,14 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
 
   useEffect(() => {
     if (!session || !online) return;
+    const diagnosticsCoordinator = diagnosticsRequests.current;
+    const eventListCoordinator = eventListRequests.current;
+    const eventDetailCoordinator = eventDetailRequests.current;
     const timer = window.setTimeout(() => {
       if (section === "local-status" && session.scopes.includes("local:read")) void loadDiagnostics();
       if (section === "events" && session.scopes.includes("events:read")) void (eventId ? loadEvent() : loadEvents());
     }, 0);
-    return () => { window.clearTimeout(timer); requestGeneration.current += 1; };
+    return () => { window.clearTimeout(timer); invalidateEvidenceRequests(diagnosticsCoordinator); invalidateEvidenceRequests(eventListCoordinator); invalidateEvidenceRequests(eventDetailCoordinator); };
   }, [eventId, loadDiagnostics, loadEvent, loadEvents, online, section, session]);
 
   async function signOut() {

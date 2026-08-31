@@ -26,6 +26,7 @@ import {
   type ConsoleSection,
 } from "@/features/console/ConsoleShell";
 import { PageHeader, StatePanel } from "@/features/console/components";
+import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { LoginScreen } from "@/features/auth/LoginScreen";
 import { GuideView } from "@/features/guide/GuideView";
 import { OverviewView } from "@/features/overview/OverviewView";
@@ -115,6 +116,12 @@ export function OperatorConsole({
     string | null
   >(null);
   const orientationPreferenceInFlight = useRef(false);
+  const transferRequests = useRef(createEvidenceRequestCoordinator());
+  const transferDetailRequests = useRef(createEvidenceRequestCoordinator());
+  const orientationRequests = useRef(createEvidenceRequestCoordinator());
+  const explainabilityRequests = useRef(createEvidenceRequestCoordinator());
+  const reconciliationRequests = useRef(createEvidenceRequestCoordinator());
+  const reconciliationDetailRequests = useRef(createEvidenceRequestCoordinator());
   const [explainability, setExplainability] =
     useState<TransferExplainability | null>(null);
   const [explainabilityLoading, setExplainabilityLoading] = useState(false);
@@ -126,6 +133,14 @@ export function OperatorConsole({
 
   const loadTransfers = useCallback(
     async (cursor?: string, append = false) => {
+      const resourceKey = `transfers:q=${encodeURIComponent(transferFilterQuery)}&status=${encodeURIComponent(transferFilterStatus)}`;
+      const request = beginEvidenceRequest(transferRequests.current, resourceKey, append ? "append" : "replace");
+      if (!request) return;
+      if (!request.sameResource) {
+        setTransfers([]);
+        setTransferCursor(undefined);
+        setTransfersVerifiedAt(undefined);
+      }
       setTransfersLoading(true);
       const query = new URLSearchParams({ limit: "25" });
       if (cursor) query.set("cursor", cursor);
@@ -135,6 +150,7 @@ export function OperatorConsole({
       const response = await readJSON<TransfersPayload>(
         `/api/transfers?${query}`,
       );
+      if (!isEvidenceRequestCurrent(transferRequests.current, request.token)) return;
       if (!response.ok)
         setTransferError(
           unavailableMessage(
@@ -147,21 +163,25 @@ export function OperatorConsole({
         const items = Array.isArray(response.data.transfers)
           ? response.data.transfers
           : [];
-        setTransfers((current) => (append ? [...current, ...items] : items));
+        setTransfers((current) => append ? appendUniqueBy(current, items, (transfer) => transfer.transfer_id) : items);
         setTransferCursor(response.data.next_cursor || undefined);
         setTransfersVerifiedAt(new Date().toISOString());
         setTransferError(null);
       }
-      setTransfersLoading(false);
+      if (finishEvidenceRequest(transferRequests.current, request.token)) setTransfersLoading(false);
     },
     [transferFilterQuery, transferFilterStatus],
   );
 
   const loadTransferDetail = useCallback(async (id: string) => {
+    const request = beginEvidenceRequest(transferDetailRequests.current, `transfer:${id}`);
+    if (!request) return;
+    if (!request.sameResource) setTransferDetail(null);
     setTransferDetailLoading(true);
     const response = await readJSON<TransferDetail>(
       `/api/transfers/${encodeURIComponent(id)}`,
     );
+    if (!isEvidenceRequestCurrent(transferDetailRequests.current, request.token)) return;
     if (response.ok && response.data.transfer_id) {
       setTransferDetail(response.data);
       setTransferError(null);
@@ -173,12 +193,15 @@ export function OperatorConsole({
           response.requestReference,
         ),
       );
-    setTransferDetailLoading(false);
+    if (finishEvidenceRequest(transferDetailRequests.current, request.token)) setTransferDetailLoading(false);
   }, []);
 
   const loadOrientation = useCallback(async () => {
+    const request = beginEvidenceRequest(orientationRequests.current, "local-orientation");
+    if (!request) return;
     setOrientationLoading(true);
     const response = await readJSON<LocalOrientation>("/api/local/orientation");
+    if (!isEvidenceRequestCurrent(orientationRequests.current, request.token)) return;
     if (response.ok && Array.isArray(response.data.steps)) {
       setOrientation(response.data);
       setOrientationError(null);
@@ -190,7 +213,7 @@ export function OperatorConsole({
           response.requestReference,
         ),
       );
-    setOrientationLoading(false);
+    if (finishEvidenceRequest(orientationRequests.current, request.token)) setOrientationLoading(false);
   }, []);
 
   const updateOrientationPreferences = useCallback(
@@ -242,10 +265,14 @@ export function OperatorConsole({
   );
 
   const loadExplainability = useCallback(async (id: string) => {
+    const request = beginEvidenceRequest(explainabilityRequests.current, `explainability:${id}`);
+    if (!request) return;
+    if (!request.sameResource) setExplainability(null);
     setExplainabilityLoading(true);
     const response = await readJSON<TransferExplainability>(
       `/api/transfers/${encodeURIComponent(id)}/explainability`,
     );
+    if (!isEvidenceRequestCurrent(explainabilityRequests.current, request.token)) return;
     if (response.ok && Array.isArray(response.data.stages)) {
       setExplainability(response.data);
       setExplainabilityError(null);
@@ -259,14 +286,17 @@ export function OperatorConsole({
               response.requestReference,
             ),
       );
-    setExplainabilityLoading(false);
+    if (finishEvidenceRequest(explainabilityRequests.current, request.token)) setExplainabilityLoading(false);
   }, []);
 
   const loadRuns = useCallback(async (cursor?: string, append = false) => {
+    const request = beginEvidenceRequest(reconciliationRequests.current, "reconciliation-runs", append ? "append" : "replace");
+    if (!request) return;
     setRunsLoading(true);
     const response = await readJSON<RunsPayload>(
       `/api/reconciliation/runs?limit=25${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
     );
+    if (!isEvidenceRequestCurrent(reconciliationRequests.current, request.token)) return;
     if (!response.ok)
       setReconciliationError(
         unavailableMessage(
@@ -277,19 +307,23 @@ export function OperatorConsole({
       );
     else {
       const items = Array.isArray(response.data.runs) ? response.data.runs : [];
-      setRuns((current) => (append ? [...current, ...items] : items));
+      setRuns((current) => append ? appendUniqueBy(current, items, (run) => run.run_id) : items);
       setRunCursor(response.data.next_cursor || undefined);
       setReconciliationVerifiedAt(new Date().toISOString());
       setReconciliationError(null);
     }
-    setRunsLoading(false);
+    if (finishEvidenceRequest(reconciliationRequests.current, request.token)) setRunsLoading(false);
   }, []);
 
   const loadRunDetail = useCallback(async (id: string) => {
+    const request = beginEvidenceRequest(reconciliationDetailRequests.current, `reconciliation:${id}`);
+    if (!request) return;
+    if (!request.sameResource) setRunDetail(null);
     setRunDetailLoading(true);
     const response = await readJSON<ReconciliationRun>(
       `/api/reconciliation/runs/${encodeURIComponent(id)}`,
     );
+    if (!isEvidenceRequestCurrent(reconciliationDetailRequests.current, request.token)) return;
     if (response.ok && response.data.run_id) {
       setRunDetail(response.data);
       setReconciliationError(null);
@@ -301,7 +335,7 @@ export function OperatorConsole({
           response.requestReference,
         ),
       );
-    setRunDetailLoading(false);
+    if (finishEvidenceRequest(reconciliationDetailRequests.current, request.token)) setRunDetailLoading(false);
   }, []);
 
   const observeRun = useCallback(

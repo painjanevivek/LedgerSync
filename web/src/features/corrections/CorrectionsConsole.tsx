@@ -28,6 +28,7 @@ import { readJSON, unavailableMessage } from "@/lib/api/client";
 import { formatMinorUnits } from "@/lib/money";
 import { useCorrectionCommand } from "@/features/corrections/useCorrectionCommand";
 import { FinancialCommandDialog } from "@/ui/overlays/FinancialCommandDialog";
+import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 
 const statusOptions: ReadonlyArray<CorrectionStatus | "all"> = [
   "all",
@@ -67,11 +68,19 @@ export function CorrectionsConsole({
   const [verifiedAt, setVerifiedAt] = useState<string>();
   const [decisionReason, setDecisionReason] = useState("");
   const [stepUpRequired, setStepUpRequired] = useState(false);
-  const generation = useRef(0);
+  const listRequests = useRef(createEvidenceRequestCoordinator());
+  const detailRequests = useRef(createEvidenceRequestCoordinator());
 
   const loadList = useCallback(
     async (cursor?: string) => {
-      const current = ++generation.current;
+      const resourceKey = `corrections:status=${status}`;
+      const request = beginEvidenceRequest(listRequests.current, resourceKey, cursor ? "append" : "replace");
+      if (!request) return;
+      if (!request.sameResource) {
+        setEvents([]);
+        setNextCursor(undefined);
+        setVerifiedAt(undefined);
+      }
       setLoading(true);
       setError(null);
       const query = new URLSearchParams({ limit: "25" });
@@ -80,13 +89,11 @@ export function CorrectionsConsole({
       const response = await readJSON<CorrectionPage>(
         `/api/transfer-corrections?${query}`,
       );
-      if (current !== generation.current) return;
+      if (!isEvidenceRequestCurrent(listRequests.current, request.token)) return;
       if (response.ok && Array.isArray(response.data.events)) {
-        setEvents((existing) =>
-          cursor
-            ? [...existing, ...response.data.events]
-            : response.data.events,
-        );
+        setEvents((existing) => cursor
+          ? appendUniqueBy(existing, response.data.events, (event) => event.correction_id)
+          : response.data.events);
         setNextCursor(response.data.next_cursor || undefined);
         setVerifiedAt(new Date().toISOString());
       } else
@@ -97,27 +104,28 @@ export function CorrectionsConsole({
             response.requestReference,
           ),
         );
-      setLoading(false);
+      if (finishEvidenceRequest(listRequests.current, request.token)) setLoading(false);
     },
     [status],
   );
 
   const loadEvent = useCallback(async () => {
     if (!correctionId) return null;
-    const current = ++generation.current;
+    const request = beginEvidenceRequest(detailRequests.current, `correction:${correctionId}`);
+    if (!request) return null;
+    if (!request.sameResource) { setSelected(null); setVerifiedAt(undefined); }
     setLoading(true);
     setError(null);
     const response = await readJSON<TransferCorrection>(
       `/api/transfer-corrections/${encodeURIComponent(correctionId)}`,
     );
-    if (current !== generation.current) return null;
+    if (!isEvidenceRequestCurrent(detailRequests.current, request.token)) return null;
     if (response.ok && response.data.correction_id) {
       setSelected(response.data);
       setVerifiedAt(new Date().toISOString());
       setLoading(false);
       return response.data;
     } else {
-      setSelected(null);
       setError(
         response.status === 404
           ? `The correction record was not found in this authorized tenant scope. Request reference: ${response.requestReference}.`
@@ -128,7 +136,7 @@ export function CorrectionsConsole({
             ),
       );
     }
-    setLoading(false);
+    if (finishEvidenceRequest(detailRequests.current, request.token)) setLoading(false);
     return null;
   }, [correctionId]);
 
@@ -167,13 +175,16 @@ export function CorrectionsConsole({
   useEffect(() => {
     if (!session || !online || !session.scopes.includes("corrections:read"))
       return;
+    const listCoordinator = listRequests.current;
+    const detailCoordinator = detailRequests.current;
     const timer = window.setTimeout(
       () => void (correctionId ? loadEvent() : loadList()),
       0,
     );
     return () => {
       window.clearTimeout(timer);
-      generation.current += 1;
+      invalidateEvidenceRequests(listCoordinator);
+      invalidateEvidenceRequests(detailCoordinator);
     };
   }, [correctionId, loadEvent, loadList, online, session]);
 

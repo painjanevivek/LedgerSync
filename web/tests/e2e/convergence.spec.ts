@@ -27,6 +27,42 @@ test("same-filter event refresh failure retains its last verified page", async (
   await expect(page.getByText(/Event page not refreshed/)).toBeVisible();
 });
 
+test("an offline transition during refresh retains the last verified event page", async ({ page, context }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/events");
+  await expect(page.getByText(deliveryEvent.event_id, { exact: true })).toBeVisible();
+
+  let signalRefreshStarted: (() => void) | undefined;
+  let releaseRefresh: (() => void) | undefined;
+  const refreshStarted = new Promise<void>((resolve) => {
+    signalRefreshStarted = resolve;
+  });
+  const refreshReleased = new Promise<void>((resolve) => {
+    releaseRefresh = resolve;
+  });
+
+  await page.unroute(/\/api\/events\?(?:.*)/);
+  await page.route("**/api/events?*", async (route) => {
+    signalRefreshStarted?.();
+    await refreshReleased;
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) });
+  });
+
+  await page.getByRole("button", { name: "Refresh events" }).click();
+  await refreshStarted;
+  await context.setOffline(true);
+  await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+
+  await expect(page.getByText("You are offline.")).toBeVisible();
+  await expect(page.getByText(deliveryEvent.event_id, { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Refresh events" })).toBeDisabled();
+
+  releaseRefresh?.();
+  await expect(page.getByText(/Event page not refreshed/)).toBeVisible();
+  await expect(page.getByText(deliveryEvent.event_id, { exact: true })).toBeVisible();
+  await context.setOffline(false);
+});
+
 test("failed account picker is unavailable rather than an unfunded-account business state", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.unroute("**/api/me/accounts?*");
