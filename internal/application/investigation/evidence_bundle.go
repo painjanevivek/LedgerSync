@@ -128,8 +128,7 @@ func GenerateEvidenceBundle(request EvidenceBundleRequest) (EvidenceBundle, erro
 	var destination bytes.Buffer
 	archive := zip.NewWriter(&destination)
 	for _, file := range files {
-		header := &zip.FileHeader{Name: file.name, Method: zip.Deflate}
-		header.SetModTime(generatedAt)
+		header := &zip.FileHeader{Name: file.name, Method: zip.Deflate, Modified: generatedAt}
 		header.SetMode(0o600)
 		entry, createErr := archive.CreateHeader(header)
 		if createErr != nil {
