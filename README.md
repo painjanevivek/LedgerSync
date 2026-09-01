@@ -430,7 +430,7 @@ normal project's opaque financial fingerprint or named-volume set changes.
 
 ## Quick start
 
-The repository-root `docker-compose.yml` is the canonical local entry point and delegates to the supported topology in `deploy/compose/docker-compose.yml`. The archived `docker-compose.legacy-demo.yml` is retained only for historical reference; it is not a supported development, test, or production path.
+The repository-root `docker-compose.yml` is the single canonical local entry point and delegates to the supported topology in `deploy/compose/docker-compose.yml`. The retired predecessor services, dashboard, simulation, setup SQL, and legacy Compose topology have been removed; their review history remains available in `docs/reviews/` and Git.
 
 ### Complete local operator path
 

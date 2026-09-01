@@ -2,7 +2,6 @@
 .agents/
 .codebase-memory/
 node_modules/
-dashboard/node_modules/
 web/node_modules/
 .next/
 web/.next/

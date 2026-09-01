@@ -8,7 +8,7 @@ LedgerSync's highest-risk themes are cross-tenant authorization, token confusion
 
 In scope are the supported root Go API and worker, Next.js BFF/operator console, PostgreSQL schema and repositories, Redis cache/stream adapters, migration/provisioning/reconciliation commands, supported Compose topology, contracts, and CI/release controls. Primary evidence paths include `cmd/`, `internal/`, `web/src/`, `migrations/`, `deploy/`, `contracts/`, and `.github/workflows/`.
 
-The legacy `backend/`, `dashboard/`, `simulation/`, and `docker-compose.legacy-demo.yml` paths are excluded from the production model. Tests and local demo fixtures are evidence tools, not production identity or data sources.
+The retired predecessor services, dashboard, simulation, setup SQL, legacy Compose topology, and placeholder tests have been removed. Current boundary tests require those paths to remain absent. Historical cleanup reviews remain evidence of the decision; they are not runtime identity or data sources.
 
 Validated context:
 
