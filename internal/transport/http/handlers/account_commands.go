@@ -161,7 +161,7 @@ func (h *AccountCommandHandler) authorize(writer http.ResponseWriter, request *h
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, false
 	}
 	if identity.RequireScope(principal, "accounts:write") != nil {

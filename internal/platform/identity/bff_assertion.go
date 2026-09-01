@@ -100,7 +100,10 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 		return Principal{}, ErrUnauthenticated
 	}
 	if err := a.config.ReplayGuard.Use(ctx, payload.AssertionID, time.Unix(payload.ExpiresAt, 0)); err != nil {
-		return Principal{}, ErrUnauthenticated
+		if errors.Is(err, errAssertionReplay) {
+			return Principal{}, ErrUnauthenticated
+		}
+		return Principal{}, ErrAuthenticationUnavailable
 	}
 	actorPrincipal := Principal{SubjectID: payload.SubjectID, TenantID: payload.TenantID, Roles: allowedSet(payload.Roles, allowedRoles), Scopes: allowedSet(payload.Scopes, allowedScopes)}
 	if payload.AuthenticatedAt > 0 {

@@ -52,7 +52,11 @@ func (h *AccountsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		if errors.Is(err, identity.ErrAuthenticationUnavailable) {
+			httptransport.WriteError(writer, request, publicAccountError(accounts.ErrAccountDirectoryUnavailable))
+		} else {
+			writeAuthenticationError(writer, request, err)
+		}
 		return
 	}
 	if identity.RequireScope(principal, "accounts:read") != nil {

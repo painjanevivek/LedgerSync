@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -21,6 +22,14 @@ type AuditRecorder interface {
 }
 
 const tenantCapacityPrincipal = "ledgersync:tenant-capacity"
+
+func writeAuthenticationError(writer http.ResponseWriter, request *http.Request, err error) {
+	if errors.Is(err, identity.ErrAuthenticationUnavailable) {
+		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "temporary_unavailable", Message: "Authentication evidence is temporarily unavailable."})
+		return
+	}
+	httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+}
 
 // enforceTenantCapacity combines a one-second burst guard with a one-minute
 // sustained guard. Both counters are shared in PostgreSQL across API replicas;

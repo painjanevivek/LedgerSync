@@ -161,7 +161,7 @@ func (h *InvestigationHandler) authorizeRelationships(writer http.ResponseWriter
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, investigation.RelationshipAccess{}, false
 	}
 	if !principal.HasRole("tenant:operator") && !principal.HasRole("tenant:admin") {
@@ -194,7 +194,7 @@ func (h *InvestigationHandler) authorizeSearch(writer http.ResponseWriter, reque
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, investigation.SearchAccess{}, false
 	}
 	if !principal.HasRole("tenant:operator") && !principal.HasRole("tenant:admin") {
@@ -329,7 +329,7 @@ func (h *InvestigationHandler) authorize(writer http.ResponseWriter, request *ht
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, false
 	}
 	if identity.RequireScope(principal, scope) != nil {

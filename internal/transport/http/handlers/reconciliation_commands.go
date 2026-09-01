@@ -141,7 +141,7 @@ func (h *ReconciliationCommandHandler) authorize(writer http.ResponseWriter, req
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, false
 	}
 	if identity.RequireScope(principal, "reconciliation:write") != nil {

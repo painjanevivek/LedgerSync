@@ -242,7 +242,7 @@ func (h *DeveloperWebhookHandler) authorize(w http.ResponseWriter, r *http.Reque
 	}
 	p, err := h.authenticate(r)
 	if err != nil {
-		httptransport.WriteError(w, r, httptransport.ErrUnauthorized)
+		writeAuthenticationError(w, r, err)
 		return identity.Principal{}, false
 	}
 	if identity.RequireScope(p, scope) != nil {

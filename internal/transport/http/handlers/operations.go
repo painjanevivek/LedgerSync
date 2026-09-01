@@ -168,7 +168,7 @@ func (h *OperationsHandler) authorize(writer http.ResponseWriter, request *http.
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, false
 	}
 	if identity.RequireScope(principal, scope) != nil {

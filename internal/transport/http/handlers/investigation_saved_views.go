@@ -159,7 +159,7 @@ func (h *InvestigationHandler) authorizeSavedViews(writer http.ResponseWriter, r
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, investigation.SavedViewAccess{}, nil, false
 	}
 	if !principal.HasRole("tenant:operator") && !principal.HasRole("tenant:admin") {

@@ -47,7 +47,7 @@ func (h *ApprovalHandler) List(writer http.ResponseWriter, request *http.Request
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return
 	}
 	canFunding := principal.HasScope("funding:approve")

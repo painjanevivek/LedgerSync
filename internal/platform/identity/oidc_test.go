@@ -58,6 +58,32 @@ func (workloadProvider) Authenticate(context.Context, string) (Principal, error)
 	return Principal{SubjectID: "bff", TenantID: "tenant-a", Scopes: map[string]struct{}{BFFActorScope: {}}}, nil
 }
 
+type unavailableReplayGuard struct{}
+
+func (unavailableReplayGuard) Use(context.Context, string, time.Time) error {
+	return errors.New("replay store unavailable")
+}
+
+func TestBFFActorAssertionSeparatesReplayStoreOutageFromInvalidCredentials(t *testing.T) {
+	key := ActorAssertionKey{ID: DefaultActorAssertionKeyID, Secret: []byte("this-is-a-phase-seventeen-test-secret")}
+	now := time.Date(2026, 9, 1, 1, 0, 0, 0, time.UTC)
+	payload, err := json.Marshal(actorAssertionPayload{Issuer: DefaultActorAssertionIssuer, Audience: DefaultActorAssertionAudience, KeyID: key.ID, AssertionID: "assertion-store-outage", SubjectID: "customer-user", TenantID: "tenant-a", Scopes: []string{"accounts:read"}, IssuedAt: now.Unix(), ExpiresAt: now.Add(time.Minute).Unix()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mac := hmac.New(sha256.New, key.Secret)
+	_, _ = mac.Write(payload)
+	assertion := base64.RawURLEncoding.EncodeToString(payload) + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	authenticator, err := NewRequestAuthenticatorWithConfig(workloadProvider{}, ActorAssertionConfig{Issuer: DefaultActorAssertionIssuer, Audience: DefaultActorAssertionAudience, CurrentKey: key, MaxLifetime: time.Minute, ClockSkew: 5 * time.Second, ReplayGuard: unavailableReplayGuard{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	authenticator.now = func() time.Time { return now }
+	if _, err = authenticator.Authenticate(context.Background(), "workload-token", assertion); !errors.Is(err, ErrAuthenticationUnavailable) || errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("replay store outage must remain distinguishable from invalid credentials: %v", err)
+	}
+}
+
 func TestBFFActorAssertionRequiresSignedShortLivedActorContext(t *testing.T) {
 	key := "this-is-a-phase-five-test-secret-long-enough"
 	now := time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC)

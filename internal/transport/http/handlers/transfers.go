@@ -97,7 +97,7 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return
 	}
 	if identity.RequireScope(principal, "transfers:write") != nil {

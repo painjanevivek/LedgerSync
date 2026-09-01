@@ -275,7 +275,7 @@ func (h *InvestigationHandler) authorizeWorkspaces(writer http.ResponseWriter, r
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, investigation.SearchAccess{}, nil, false
 	}
 	if !principal.HasRole("tenant:operator") && !principal.HasRole("tenant:admin") {
