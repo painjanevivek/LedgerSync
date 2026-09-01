@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "3.2.0",
+  "contract_version": "3.3.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -116,6 +116,7 @@
       "label": "Recovery and exports",
       "operations": [
         { "operation_id": "getRecoveryEvidenceIndex", "method": "GET", "path": "/recovery/manifests", "scope": "recovery:read" },
+        { "operation_id": "downloadInvestigationEvidenceBundle", "method": "POST", "path": "/investigation/workspaces/{investigationId}/evidence-bundle", "scope": "exports:read" },
         { "operation_id": "exportTransfersCSV", "method": "GET", "path": "/exports/transfers.csv", "scope": "exports:read" },
         { "operation_id": "exportAccountLedgerCSV", "method": "GET", "path": "/exports/accounts/{accountId}/transactions.csv", "scope": "exports:read" },
         { "operation_id": "exportReconciliationCSV", "method": "GET", "path": "/exports/reconciliation.csv", "scope": "exports:read" }

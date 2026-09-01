@@ -18,6 +18,16 @@ test("investigation workspaces reopen historical context beside current evidence
   await expect(historical).toContainText(investigationWorkspace.historical_context.query_context.value);
   await expect(historical).toContainText("created");
 
+  await page.getByRole("button", { name: "Review evidence bundle" }).click();
+  const bundleReview = page.getByRole("dialog", { name: "Review investigation bundle" });
+  await expect(bundleReview).toContainText("2 identifier rows");
+  await expect(bundleReview).toContainText("3 root/relationship rows");
+  await expect(bundleReview).toContainText("not live financial authority");
+  const download = page.waitForEvent("download");
+  await bundleReview.getByRole("button", { name: "Generate audited ZIP" }).click();
+  await expect(page.getByRole("heading", { name: "Bundle download started" })).toBeVisible();
+  expect((await download).suggestedFilename()).toBe(`ledgersync-investigation-${investigationWorkspace.investigation_id}-20260819T120500Z-v1.zip`);
+
   await page.getByRole("button", { name: "Close investigation" }).click();
   await expect(page.getByRole("button", { name: "Reopen investigation" })).toBeVisible();
   await page.getByRole("button", { name: "Reopen investigation" }).click();

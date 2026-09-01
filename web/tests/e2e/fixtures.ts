@@ -204,6 +204,10 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
     if (!workspace || route.request().method() !== "POST") return json(route, { error: { code: "not_found" } }, 404);
     const action = new URL(route.request().url()).pathname.split("/").at(-1);
     const nextVersion = String(Number(workspace.version) + 1);
+    if (action === "evidence-bundle") {
+      const body = Buffer.from("PK\u0003\u0004bounded-test-archive", "utf8");
+      return route.fulfill({ status: 200, contentType: "application/zip", headers: { "Content-Disposition": `attachment; filename="ledgersync-investigation-${workspace.investigation_id}-20260819T120500Z-v1.zip"`, "Content-Length": String(body.byteLength), "X-LedgerSync-Bundle-Schema": "1", "X-LedgerSync-Bundle-SHA256": "a".repeat(64), "X-LedgerSync-Bundle-Expires-At": "2026-08-19T12:20:00Z" }, body });
+    }
     if (action === "handoff") { const id = workspace.investigation_id as string; workspace = null; return json(route, { investigation_id: id, outcome: "handed_off", version: nextVersion, occurred_at: "2026-08-19T12:08:00Z" }); }
     if (action === "close" || action === "reopen") {
       workspace.version = nextVersion; workspace.status = action === "close" ? "closed" : "open"; workspace.updated_at = "2026-08-19T12:08:00Z";

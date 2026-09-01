@@ -62,6 +62,17 @@ export async function authorizeInvestigationWorkspaces(request: NextRequest, ses
   return { session };
 }
 
+export async function authorizeInvestigationEvidenceBundle(request: NextRequest, session: Session | null, limiter: RateLimitStore): Promise<InvestigationSearchAuthorization | NextResponse> {
+  if (request.method !== "POST") { const response = jsonError("method_not_allowed", 405); response.headers.set("Allow", "POST"); return response; }
+  if (!session) return jsonError("unauthorized", 401);
+  if (!session.roles?.some((role) => operatorRoles.has(role)) || !session.scopes?.includes("investigation:read") || !session.scopes.includes("exports:read") || !session.scopes.some((scope) => searchableScopes.has(scope))) return jsonError("forbidden", 403);
+  if (!hasValidCSRF(request, session)) return jsonError("csrf_failed", 403);
+  if (!hasValidHost(request)) return jsonError("invalid_request", 400);
+  const decision = await limiter.consume(`investigation:evidence-bundle:${session.tenantId}:${session.subjectId}`, 10, 60);
+  if (!decision.allowed) { const response = jsonError("rate_limited", 429); response.headers.set("Retry-After", String(decision.retryAfterSeconds)); return response; }
+  return { session };
+}
+
 async function authorizeInvestigationRead(request: NextRequest, session: Session | null, limiter: RateLimitStore, boundary: "search" | "relationships"): Promise<InvestigationSearchAuthorization | NextResponse> {
   if (request.method !== "GET") {
     const response = jsonError("method_not_allowed", 405);

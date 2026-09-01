@@ -5,7 +5,7 @@ import test from "node:test";
 import { NextRequest } from "next/server";
 
 import { parseWorkspaceCreateInput, parseWorkspaceHandoffInput, readBoundedWorkspaceBody, sanitizeWorkspace, sanitizeWorkspacePage } from "../../src/lib/api/investigation-workspaces";
-import { authorizeInvestigationWorkspaces, isInvestigationSearchDenial } from "../../src/lib/investigation-search-boundary";
+import { authorizeInvestigationEvidenceBundle, authorizeInvestigationWorkspaces, isInvestigationSearchDenial } from "../../src/lib/investigation-search-boundary";
 import type { RateLimitStore } from "../../src/lib/rate-limit";
 import type { Session } from "../../src/lib/session";
 
@@ -46,6 +46,21 @@ test("workspace reads and mutations require operator, investigation, domain, hos
   assert.deepEqual(keys, ["investigation:workspaces-read:tenant-1:operator-1", "investigation:workspaces-write:tenant-1:operator-1"]);
 });
 
+test("evidence bundle generation requires export scope, CSRF, operator role, domain scope, and a dedicated rate bucket", async () => {
+  const exportSession = { ...session, scopes: [...(session.scopes ?? []), "exports:read"] };
+  assert.equal(isInvestigationSearchDenial(await authorizeInvestigationEvidenceBundle(request("POST", true), exportSession, allow)), false);
+  const denied = [
+    await authorizeInvestigationEvidenceBundle(request("POST", true), null, allow),
+    await authorizeInvestigationEvidenceBundle(request("POST", true), session, allow),
+    await authorizeInvestigationEvidenceBundle(request("POST"), exportSession, allow),
+    await authorizeInvestigationEvidenceBundle(request("GET", false), exportSession, allow),
+  ];
+  assert.deepEqual(denied.map((value) => isInvestigationSearchDenial(value) ? value.status : 0), [401, 403, 403, 405]);
+  const keys: string[] = []; const limited: RateLimitStore = { consume: async (key) => { keys.push(key); return { allowed: false, retryAfterSeconds: 5 }; } };
+  assert.equal(isInvestigationSearchDenial(await authorizeInvestigationEvidenceBundle(request("POST", true), exportSession, limited)), true);
+  assert.deepEqual(keys, ["investigation:evidence-bundle:tenant-1:operator-1"]);
+});
+
 test("workspace inputs reject notes, copied facts, unsafe titles, forged roots, and malformed recipients", () => {
   const valid = { title: "Transfer delivery review", taxonomy: "transfer_delivery", query_context: { kind: "immutable_id", record_type: "transfer", value: identifier }, root_record: { record_type: "transfer", record_id: identifier } };
   assert.deepEqual(parseWorkspaceCreateInput(valid), valid);
@@ -78,8 +93,10 @@ test("workspace transport is bounded and browser components do not persist case 
     readFile(`${process.cwd()}/src/app/api/investigation/workspaces/route.ts`, "utf8"),
     readFile(`${process.cwd()}/src/app/api/investigation/workspaces/[investigationId]/route.ts`, "utf8"),
     readFile(`${process.cwd()}/src/app/api/investigation/workspaces/[investigationId]/[action]/route.ts`, "utf8"),
+    readFile(`${process.cwd()}/src/app/api/investigation/workspaces/[investigationId]/evidence-bundle/route.ts`, "utf8"),
     readFile(`${process.cwd()}/src/features/investigation/WorkspaceCapture.tsx`, "utf8"),
     readFile(`${process.cwd()}/src/features/investigation/InvestigationWorkspaceController.tsx`, "utf8"),
+    readFile(`${process.cwd()}/src/features/investigation/EvidenceBundleControl.tsx`, "utf8"),
   ]);
   const source = files.join("\n");
   assert.match(source, /readBoundedJSON/);

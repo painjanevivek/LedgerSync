@@ -332,6 +332,7 @@ func main() {
 			router.HandleFunc("GET /api/investigation/workspaces", investigationHandler.Workspaces)
 			router.HandleFunc("POST /api/investigation/workspaces", investigationHandler.CreateWorkspace)
 			router.HandleFunc("GET /api/investigation/workspaces/{investigationId}", investigationHandler.Workspace)
+			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/evidence-bundle", investigationHandler.WorkspaceEvidenceBundle)
 			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/handoff", investigationHandler.HandoffWorkspace)
 			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/close", investigationHandler.CloseWorkspace)
 			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/reopen", investigationHandler.ReopenWorkspace)

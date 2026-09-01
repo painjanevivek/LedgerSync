@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "3.2.0"
+const APIVersion = "3.3.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string
@@ -23,6 +23,7 @@ var Operations = []Operation{
 	{ID: "createTransfer", Method: "POST", Path: "/transfers", Scope: "transfers:write", Idempotent: true},
 	{ID: "deleteSavedInvestigationView", Method: "DELETE", Path: "/investigation/saved-views/{savedViewId}", Scope: "investigation:write", Idempotent: false},
 	{ID: "disableDeveloperWebhook", Method: "POST", Path: "/developer/webhooks/{webhookId}/disablements", Scope: "webhooks:write", Idempotent: true},
+	{ID: "downloadInvestigationEvidenceBundle", Method: "POST", Path: "/investigation/workspaces/{investigationId}/evidence-bundle", Scope: "exports:read", Idempotent: false},
 	{ID: "downloadOpenAPI", Method: "GET", Path: "/openapi.yaml", Scope: "developer:read", Idempotent: false},
 	{ID: "explainTransferEvidence", Method: "GET", Path: "/transfers/{transferId}/explainability", Scope: "explainability:read", Idempotent: false},
 	{ID: "exportAccountLedgerCSV", Method: "GET", Path: "/exports/accounts/{accountId}/transactions.csv", Scope: "exports:read", Idempotent: false},

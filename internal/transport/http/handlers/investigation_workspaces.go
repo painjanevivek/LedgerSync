@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
@@ -33,6 +35,10 @@ type workspaceHandoffRequest struct {
 }
 
 type workspaceStatusRequest struct {
+	ExpectedVersion string `json:"expected_version"`
+}
+
+type workspaceEvidenceBundleRequest struct {
 	ExpectedVersion string `json:"expected_version"`
 }
 
@@ -112,6 +118,78 @@ func (h *InvestigationHandler) Workspace(writer http.ResponseWriter, request *ht
 		return
 	}
 	writeInvestigationJSON(writer, workspace)
+}
+
+func (h *InvestigationHandler) WorkspaceEvidenceBundle(writer http.ResponseWriter, request *http.Request) {
+	principal, access, repository, ok := h.authorizeWorkspaces(writer, request, false)
+	if !ok {
+		return
+	}
+	if !principal.HasScope("exports:read") {
+		writeScopeDenial(writer, request, h.audit, principal, "exports:read")
+		return
+	}
+	if !enforceRateLimit(writer, request, h.rateLimiter, principal, "investigation:evidence-bundle", h.rateLimit, true) {
+		return
+	}
+	if h.audit == nil || !onlyQueryParameters(request) {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	id := strings.ToLower(strings.TrimSpace(request.PathValue("investigationId")))
+	if !canonicalInvestigationUUID.MatchString(id) {
+		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+		return
+	}
+	var input workspaceEvidenceBundleRequest
+	if err := decodeSavedViewJSON(writer, request, &input); err != nil {
+		writeSavedViewDecodeError(writer, request, err)
+		return
+	}
+	expectedVersion, err := investigation.ParseWorkspaceVersion(input.ExpectedVersion)
+	if err != nil {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	workspace, err := repository.GetWorkspace(request.Context(), principal.TenantID, principal.SubjectID, id, access)
+	if err != nil {
+		httptransport.WriteError(writer, request, workspacePublicError(err))
+		return
+	}
+	currentVersion, err := investigation.ParseWorkspaceVersion(workspace.Version)
+	if err != nil {
+		httptransport.WriteError(writer, request, workspacePublicError(err))
+		return
+	}
+	if expectedVersion != currentVersion {
+		httptransport.WriteError(writer, request, workspacePublicError(investigation.ErrWorkspaceVersion))
+		return
+	}
+	generatedAt := time.Now().UTC()
+	correlationID := middleware.CorrelationID(request.Context())
+	bundle, err := investigation.GenerateEvidenceBundle(investigation.EvidenceBundleRequest{Workspace: workspace, CorrelationID: correlationID, GeneratedAt: generatedAt})
+	if err != nil {
+		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "export_unavailable", Message: "The evidence bundle could not be generated within its safe bounds."})
+		return
+	}
+	if err = h.audit.Record(request.Context(), db.AuditEvent{
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, EventType: "investigation.evidence_bundle_generated", TargetType: "investigation_workspace", TargetID: workspace.ID, Outcome: "succeeded", CorrelationID: correlationID, OccurredAt: generatedAt,
+		Metadata: map[string]string{"schema_version": investigation.EvidenceBundleSchemaVersion, "bundle_sha256": bundle.SHA256, "bundle_bytes": strconv.Itoa(len(bundle.Content)), "file_count": strconv.Itoa(bundle.FileCount), "historical_reference_rows": strconv.Itoa(bundle.ReferenceRows), "current_evidence_rows": strconv.Itoa(bundle.EvidenceRows), "workspace_version": workspace.Version, "expires_at_utc": bundle.ExpiresAt.Format(time.RFC3339Nano)},
+	}); err != nil {
+		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "export_unavailable", Message: "The evidence bundle could not establish required audit evidence."})
+		return
+	}
+	writer.Header().Set("Content-Type", "application/zip")
+	writer.Header().Set("Content-Disposition", `attachment; filename="`+bundle.Filename+`"`)
+	writer.Header().Set("Content-Length", strconv.Itoa(len(bundle.Content)))
+	writer.Header().Set("Cache-Control", "no-store, private, max-age=0")
+	writer.Header().Set("Pragma", "no-cache")
+	writer.Header().Set("X-Content-Type-Options", "nosniff")
+	writer.Header().Set("X-LedgerSync-Bundle-Schema", investigation.EvidenceBundleSchemaVersion)
+	writer.Header().Set("X-LedgerSync-Bundle-SHA256", bundle.SHA256)
+	writer.Header().Set("X-LedgerSync-Bundle-Expires-At", bundle.ExpiresAt.Format(time.RFC3339Nano))
+	writer.WriteHeader(http.StatusOK)
+	_, _ = writer.Write(bundle.Content)
 }
 
 func (h *InvestigationHandler) HandoffWorkspace(writer http.ResponseWriter, request *http.Request) {

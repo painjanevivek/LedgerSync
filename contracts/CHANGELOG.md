@@ -1,5 +1,14 @@
 # LedgerSync API changelog
 
+## 3.3.0 — 2026-09-01
+
+- Added an audited, bounded investigation evidence bundle download requiring
+  the current workspace version and current record authorization.
+- Added a versioned manifest, three identifier-only CSV files, generated/expiry
+  UTC, safe request reference, per-file hashes, and a complete ZIP digest.
+- Explicitly excluded money, payloads, credentials, free-form labels/notes and
+  server retention; downloaded bundles are historical, never live authority.
+
 ## 3.2.0 — 2026-09-01
 
 - Added tenant-and-operator-scoped investigation workspace create, list,

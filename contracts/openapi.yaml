@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 3.2.0
+  version: 3.3.0
   description: >-
     Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
@@ -13,7 +13,7 @@ info:
 servers: [{ url: /api }]
 security: [{ bearerAuth: [], actorAssertion: [] }]
 x-ledgersync-lifecycle:
-  semantic_version: 3.2.0
+  semantic_version: 3.3.0
   supported_window: current minor and immediately preceding minor, with at least 180 days notice before sunset
   changelog: ./CHANGELOG.md
   policy: ./api-lifecycle-policy.md
@@ -384,6 +384,33 @@ paths:
       parameters: [{ $ref: '#/components/parameters/InvestigationID' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/HandoffInvestigationWorkspaceRequest' } } } }
       responses: { '200': { description: Handoff receipt; the previous owner no longer has workspace access., content: { application/json: { schema: { $ref: '#/components/schemas/InvestigationWorkspaceReceipt' } } } }, '400': { $ref: '#/components/responses/InvalidRequest' }, '401': { $ref: '#/components/responses/Unauthorized' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { $ref: '#/components/responses/NotFound' }, '409': { $ref: '#/components/responses/InvestigationWorkspaceConflict' }, '415': { $ref: '#/components/responses/UnsupportedMediaType' }, '429': { $ref: '#/components/responses/RateLimited' }, '503': { $ref: '#/components/responses/Unavailable' } }
+  /investigation/workspaces/{investigationId}/evidence-bundle:
+    post:
+      operationId: downloadInvestigationEvidenceBundle
+      x-required-scope: exports:read
+      x-required-scopes-all: [investigation:read, exports:read]
+      x-required-scopes-any: [accounts:read, transfers:read, funding:read, events:read, reconciliation:read, corrections:read]
+      summary: Generate and download one bounded, audited investigation evidence ZIP.
+      description: >-
+        Reauthorizes the tenant, owner, root domain and current workspace version
+        before generating a maximum 512 KiB archive. The manifest and three CSV
+        files contain authorized identifiers, relationship/status metadata, UTC
+        timestamps, one safe request reference and SHA-256 content hashes. Amounts,
+        balances, payloads, free-form labels/notes and credentials are excluded.
+        The server does not retain the archive after the response. Its 15-minute
+        handling expiry never makes it live financial authority.
+      parameters: [{ $ref: '#/components/parameters/InvestigationID' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangeInvestigationWorkspaceStatusRequest' } } } }
+      responses:
+        '200': { $ref: '#/components/responses/InvestigationEvidenceBundle' }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/InvestigationWorkspaceConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/ExportUnavailable' }
   /investigation/workspaces/{investigationId}/close:
     post:
       operationId: closeInvestigationWorkspace
@@ -1095,7 +1122,7 @@ paths:
         '200':
           description: Canonical LedgerSync private API contract.
           headers:
-            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-3.2.0.yaml"' }
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-3.3.0.yaml"' }
           content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1627,7 +1654,7 @@ components:
       required: [investigation_id, title, taxonomy, status, version, created_at, updated_at]
       properties:
         investigation_id: { type: string, format: uuid }
-        title: { type: string, minLength: 1, maxLength: 80, description: Safe operational taxonomy label; no customer data, email, URL, credential, token, amount, markup, or free-form note. }
+        title: { type: string, minLength: 1, maxLength: 80, description: 'Safe operational taxonomy label; no customer data, email, URL, credential, token, amount, markup, or free-form note.' }
         taxonomy: { $ref: '#/components/schemas/InvestigationWorkspaceTaxonomy' }
         status: { type: string, enum: [open, closed] }
         version: { type: string, pattern: '^[1-9][0-9]{0,18}$' }
@@ -2198,8 +2225,8 @@ components:
     Conflict: { description: Idempotency conflict or in-progress request., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     StepUpRequired: { description: A recent verified authentication event is required before the sensitive production command can proceed., content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { error: { code: step_up_required, message: Recent authentication is required for this correction command., request_id: 00000000-0000-4000-8000-000000000099 } } } } }
     PreferenceConflict: { description: The onboarding preference version changed in another session; read the current summary before retrying., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    SavedViewConflict: { description: The saved-view name conflicts, the 25-view limit is reached, or its version changed in another session; reload current saved views before retrying., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    InvestigationWorkspaceConflict: { description: The workspace version or lifecycle state changed, or the open-workspace limit was reached; reload current workspace evidence before retrying., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    SavedViewConflict: { description: 'The saved-view name conflicts, the 25-view limit is reached, or its version changed in another session; reload current saved views before retrying.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    InvestigationWorkspaceConflict: { description: 'The workspace version or lifecycle state changed, or the open-workspace limit was reached; reload current workspace evidence before retrying.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     AccountConflict:
       description: External-reference, optimistic-version, lifecycle, idempotency, or in-progress conflict.
       content:
@@ -2233,6 +2260,14 @@ components:
         X-LedgerSync-Export-Rows: { description: HTTP trailer containing the exact emitted data-row count., schema: { type: string, pattern: '^(0|[1-9][0-9]{0,4})$' } }
         X-LedgerSync-Export-Limit-Reached: { description: HTTP trailer indicating that the selected row bound stopped iteration., schema: { type: string, enum: ['true', 'false'] } }
       content: { text/csv: { schema: { type: string, contentMediaType: text/csv } } }
+    InvestigationEvidenceBundle:
+      description: Bounded audited ZIP containing a manifest and three redacted CSV evidence files; it is a historical snapshot, not live financial authority.
+      headers:
+        Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-investigation-11111111-1111-4111-8111-111111111111-20260831T120000Z-v1.zip"' }
+        X-LedgerSync-Bundle-Schema: { schema: { type: string, enum: ['1'] } }
+        X-LedgerSync-Bundle-SHA256: { schema: { type: string, pattern: '^[0-9a-f]{64}$' } }
+        X-LedgerSync-Bundle-Expires-At: { schema: { type: string, format: date-time } }
+      content: { application/zip: { schema: { type: string, format: binary, maxLength: 524288 } } }
     RecoveryEvidenceUnavailable: { description: 'The fixed sanitized recovery evidence index is absent, unsafe, malformed, incomplete, or unavailable.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     ExportUnavailable: { description: 'Authorized evidence, capacity, or required audit persistence is temporarily unavailable.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     ExportTimeout: { description: CSV generation exceeded the bounded deadline before response streaming began., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

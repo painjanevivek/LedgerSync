@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.2.0",
-    "_postman_id": "ledgersync-aa76dd24-bb982734-2ef78d8a"
+    "version": "3.3.0",
+    "_postman_id": "ledgersync-4860d0fa-66515f29-73164cfe"
   },
   "variable": [
     {
@@ -242,6 +242,23 @@
           }
         ],
         "url": "{{baseUrl}}/developer/webhooks/{webhookId}/disablements"
+      }
+    },
+    {
+      "name": "downloadInvestigationEvidenceBundle",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/workspaces/{investigationId}/evidence-bundle"
       }
     },
     {

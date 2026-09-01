@@ -50,9 +50,16 @@ Every lifecycle transaction inserts an `audit_events` row with target type `inve
 - `POST /api/investigation/workspaces/{investigationId}/handoff`
 - `POST /api/investigation/workspaces/{investigationId}/close`
 - `POST /api/investigation/workspaces/{investigationId}/reopen`
+- `POST /api/investigation/workspaces/{investigationId}/evidence-bundle`
 
-Reads require an operator role, `investigation:read`, and at least one released record-domain read scope. Writes additionally require `investigation:write`, same-origin CSRF at the BFF, strict JSON, bounded rate limits, and a current optimistic version. The canonical OpenAPI 3.2.0 contract and generated SDK/Postman artifacts describe the same surface.
+Reads require an operator role, `investigation:read`, and at least one released record-domain read scope. Writes additionally require `investigation:write`, same-origin CSRF at the BFF, strict JSON, bounded rate limits, and a current optimistic version. Evidence-bundle generation requires `exports:read`, same-origin CSRF, current workspace version, and the same current root-domain/object authorization; it does not grant investigation mutation authority. The canonical OpenAPI 3.3.0 contract and generated SDK/Postman artifacts describe the same surface.
+
+## Evidence bundle custody boundary
+
+The evidence bundle is generated in memory only after the operator reviews its exact scope. It is capped at 512 KiB and contains `manifest.json`, `historical-references.csv`, `current-evidence.csv`, and `request-references.csv`. The manifest gives schema version, generated/expiry UTC, workspace and request references, row/byte counts, and SHA-256 hashes for every CSV. The complete ZIP digest is returned in a response header and independently verified by the BFF before delivery.
+
+The archive excludes titles, safe labels, amounts, balances, currencies, payloads, bodies, headers, credentials, notes, operator labels and tenant labels. The application records one immutable successful-generation audit event before writing bytes; this truthfully proves generation and authorization without claiming that a client completed its download. If generation or audit fails, no attachment headers or archive bytes are returned. The application retains no archive after the HTTP response; the 15-minute handling expiry is recorded in the manifest and audit metadata. A downloaded file remains historical evidence regardless of its age and must never be presented as current financial authority.
 
 ## Deliberate exclusions
 
-Free-form notes, attachments, arbitrary URLs, collaborator lists, external email delivery, background sharing links, and evidence exports are not part of this phase. Notes require an approved privacy, retention, search, rendering/injection, legal hold, and deletion policy. Evidence export is implemented separately because its redaction, expiry, hashing, download authorization, and custody boundaries are materially different.
+Free-form notes, arbitrary attachments, arbitrary URLs, collaborator lists, external email delivery, background sharing links, stored archives, public links, and vendor-hosted exports are not part of this phase. Notes require an approved privacy, retention, search, rendering/injection, legal hold, and deletion policy. The released evidence bundle is deliberately identifier-only, synchronous, bounded, audited, and unretained.

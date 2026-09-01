@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "3.2.0",
+  "api_version": "3.3.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "aa76dd24",
-    "bb982734",
-    "2ef78d8a",
-    "bff0d892",
-    "bb2d304b",
-    "acdfb8cb",
-    "dcb9ec46",
-    "733c5f56"
+    "4860d0fa",
+    "66515f29",
+    "73164cfe",
+    "a509bf1b",
+    "c093c695",
+    "57cbae32",
+    "0909a20f",
+    "b166ac48"
   ],
   "operations": [
     {
@@ -96,6 +96,13 @@
       "path": "/developer/webhooks/{webhookId}/disablements",
       "scope": "webhooks:write",
       "idempotent": true
+    },
+    {
+      "id": "downloadInvestigationEvidenceBundle",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/evidence-bundle",
+      "scope": "exports:read",
+      "idempotent": false
     },
     {
       "id": "downloadOpenAPI",
