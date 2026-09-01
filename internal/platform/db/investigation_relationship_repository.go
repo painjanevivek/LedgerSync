@@ -127,7 +127,9 @@ const relationshipSelectTail = `
 SELECT relationship_type,target_type,target_id,safe_label,status,occurred_at FROM relationships
 ORDER BY occurred_at DESC,relationship_type,target_id LIMIT $10`
 
-const accountRelationshipsSQL = `WITH relationships AS (
+const relationshipColumns = `relationships(relationship_type,target_type,target_id,safe_label,status,occurred_at)`
+
+const accountRelationshipsSQL = `WITH ` + relationshipColumns + ` AS (
  SELECT 'account_transaction','transfer',t.id::text,'Transfer',t.status,COALESCE(t.completed_at,t.created_at) FROM transfers t
   WHERE $5 AND t.tenant_id=$1 AND (t.debit_account_id=$3 OR t.credit_account_id=$3)
  UNION ALL SELECT 'account_funding','funding',f.id::text,'Funding record',f.status,f.updated_at FROM funding_events f
@@ -139,7 +141,7 @@ const accountRelationshipsSQL = `WITH relationships AS (
   FROM reconciliation_mismatches m WHERE $8 AND m.tenant_id=$1 AND m.account_id=$3
 )` + relationshipSelectTail
 
-const transferRelationshipsSQL = `WITH relationships AS (
+const transferRelationshipsSQL = `WITH ` + relationshipColumns + ` AS (
  SELECT CASE WHEN a.id=t.debit_account_id THEN 'transfer_source_account' ELSE 'transfer_destination_account' END,'account',a.id::text,'Account',a.status,a.created_at
  FROM transfers t JOIN accounts a ON a.tenant_id=t.tenant_id AND a.id IN (t.debit_account_id,t.credit_account_id)
  JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id AND owner.subject_id=$2 AND owner.permission IN ('read','debit')
@@ -165,7 +167,7 @@ const transferRelationshipsSQL = `WITH relationships AS (
  WHERE $9 AND c.tenant_id=$1 AND (c.original_transfer_id=$3 OR c.compensation_transfer_id=$3)
 )` + relationshipSelectTail
 
-const fundingRelationshipsSQL = `WITH relationships AS (
+const fundingRelationshipsSQL = `WITH ` + relationshipColumns + ` AS (
  SELECT CASE WHEN a.id=f.destination_account_id THEN 'funding_destination_account' ELSE 'funding_system_account' END,'account',a.id::text,'Account',a.status,a.created_at
  FROM funding_events f JOIN accounts a ON a.tenant_id=f.tenant_id AND a.id IN (f.destination_account_id,f.system_account_id)
  JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id AND owner.subject_id=$2 AND owner.permission IN ('read','debit')
@@ -182,25 +184,25 @@ const fundingRelationshipsSQL = `WITH relationships AS (
  FROM funding_events f WHERE $6 AND f.tenant_id=$1 AND (f.compensation_of_event_id=$3 OR f.id=(SELECT compensation_of_event_id FROM funding_events WHERE tenant_id=$1 AND id=$3))
 )` + relationshipSelectTail
 
-const eventRelationshipsSQL = `WITH relationships AS (
+const eventRelationshipsSQL = `WITH ` + relationshipColumns + ` AS (
  SELECT 'event_transfer','transfer',t.id::text,'Transfer',t.status,COALESCE(t.completed_at,t.created_at) FROM outbox_events e JOIN transfers t ON t.tenant_id=e.tenant_id AND t.id=e.transfer_id WHERE $5 AND e.tenant_id=$1 AND e.id=$3
  UNION ALL SELECT 'event_account','account',a.id::text,'Account',a.status,a.created_at FROM outbox_events e JOIN accounts a ON a.tenant_id=e.tenant_id AND a.id=e.account_id JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id AND owner.subject_id=$2 AND owner.permission IN ('read','debit') WHERE $4 AND e.tenant_id=$1 AND e.id=$3
  UNION ALL SELECT 'event_delivery','delivery_attempt',d.id::text,concat(initcap(d.delivery_kind),' delivery'),d.status,COALESCE(d.completed_at,d.started_at,d.created_at) FROM delivery_attempts d WHERE $7 AND d.tenant_id=$1 AND d.outbox_event_id=$3
 )` + relationshipSelectTail
 
-const reconciliationRunRelationshipsSQL = `WITH relationships AS (
+const reconciliationRunRelationshipsSQL = `WITH ` + relationshipColumns + ` AS (
  SELECT 'run_mismatch','reconciliation_mismatch',m.id::text,replace(m.classification,'_',' '),'mismatch',m.created_at FROM reconciliation_mismatches m WHERE $8 AND m.tenant_id=$1 AND m.run_id=$3
  UNION ALL SELECT 'mismatch_account','account',a.id::text,'Account',a.status,m.created_at FROM reconciliation_mismatches m JOIN accounts a ON a.tenant_id=m.tenant_id AND a.id=m.account_id JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id AND owner.subject_id=$2 AND owner.permission IN ('read','debit') WHERE $4 AND m.tenant_id=$1 AND m.run_id=$3
  UNION ALL SELECT 'mismatch_transfer','transfer',t.id::text,'Transfer',t.status,m.created_at FROM reconciliation_mismatches m JOIN transfers t ON t.tenant_id=m.tenant_id AND t.id=m.transfer_id WHERE $5 AND m.tenant_id=$1 AND m.run_id=$3
 )` + relationshipSelectTail
 
-const reconciliationMismatchRelationshipsSQL = `WITH relationships AS (
+const reconciliationMismatchRelationshipsSQL = `WITH ` + relationshipColumns + ` AS (
  SELECT 'mismatch_run','reconciliation_run',run.id::text,'Reconciliation run',run.status,run.completed_at FROM reconciliation_mismatches m JOIN reconciliation_runs run ON run.tenant_id=m.tenant_id AND run.id=m.run_id WHERE $8 AND m.tenant_id=$1 AND m.id=$3
  UNION ALL SELECT 'mismatch_account','account',a.id::text,'Account',a.status,m.created_at FROM reconciliation_mismatches m JOIN accounts a ON a.tenant_id=m.tenant_id AND a.id=m.account_id JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id AND owner.subject_id=$2 AND owner.permission IN ('read','debit') WHERE $4 AND m.tenant_id=$1 AND m.id=$3
  UNION ALL SELECT 'mismatch_transfer','transfer',t.id::text,'Transfer',t.status,m.created_at FROM reconciliation_mismatches m JOIN transfers t ON t.tenant_id=m.tenant_id AND t.id=m.transfer_id WHERE $5 AND m.tenant_id=$1 AND m.id=$3
 )` + relationshipSelectTail
 
-const correctionRelationshipsSQL = `WITH relationships AS (
+const correctionRelationshipsSQL = `WITH ` + relationshipColumns + ` AS (
  SELECT CASE WHEN t.id=c.original_transfer_id THEN 'correction_original_transfer' ELSE 'correction_compensation_transfer' END,'transfer',t.id::text,'Transfer',t.status,COALESCE(t.completed_at,t.created_at)
  FROM transfer_corrections c JOIN transfers t ON t.tenant_id=c.tenant_id AND t.id IN (c.original_transfer_id,c.compensation_transfer_id) WHERE $5 AND c.tenant_id=$1 AND c.id=$3
  UNION ALL SELECT 'correction_approval','approval',a.id::text,'Approval record',a.status,COALESCE(a.decided_at,a.created_at) FROM approval_records a WHERE $9 AND a.tenant_id=$1 AND a.target_id=$3 AND a.command_type='transfer_compensation'
