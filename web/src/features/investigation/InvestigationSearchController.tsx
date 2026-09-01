@@ -8,6 +8,8 @@ import { ConsoleRouteFrame } from "@/features/console/ConsoleRouteFrame";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { canSearchInvestigations, deriveConsoleCapabilities } from "@/features/console/capabilities";
 import { SavedViewsPanel } from "@/features/investigation/SavedViewsPanel";
+import { WorkspaceCapture } from "@/features/investigation/WorkspaceCapture";
+import { WorkspaceListPanel } from "@/features/investigation/WorkspaceListPanel";
 import { sanitizeInvestigationSearch, type InvestigationRecordType, type InvestigationSearchPage, type InvestigationSearchResult } from "@/lib/api/investigation-search";
 import { investigationSearchURL, parseInvestigationSearchPageQuery } from "@/lib/page-query/investigation-search";
 import { FormField } from "@/ui/forms/FormField.client";
@@ -44,7 +46,7 @@ function tone(status: string): StatusTone {
   return "neutral";
 }
 
-function SearchResultCard({ result }: Readonly<{ result: InvestigationSearchResult }>) {
+function SearchResultCard({ result, query, queryKind }: Readonly<{ result: InvestigationSearchResult; query: string; queryKind: "immutable_id" | "approved_reference" }>) {
   const href = investigationResultHref(result);
   return <li className="investigation-result">
     <div className="investigation-result-heading">
@@ -57,6 +59,7 @@ function SearchResultCard({ result }: Readonly<{ result: InvestigationSearchResu
       <div><dt>Source and freshness</dt><dd>PostgreSQL · search snapshot</dd></div>
     </dl>
     {href ? <RecordLink href={href} label={result.record_type === "request_reference" ? "Open referenced evidence" : "Open authoritative detail"} /> : <p className="muted">This locator has no released detail route. Use the exact identifier with an authorized operations team.</p>}
+    <WorkspaceCapture result={result} query={query} queryKind={queryKind} />
   </li>;
 }
 
@@ -120,6 +123,7 @@ export function InvestigationSearchController({ initialQuery, invalidQuery }: Re
   return <ConsoleRouteFrame section="search" loadingLabel="Search" pending={loading}>
     <div className="investigation-search-workspace">
       <PageHeader eyebrow="Investigate / Exact lookup" title="Search records" description="Locate authorized evidence by one complete immutable ID or approved external reference. LedgerSync does not perform broad or cross-tenant discovery." />
+      <WorkspaceListPanel />
       <SavedViewsPanel />
       {!canSearch && session ? <StatePanel kind="denied" title="Investigation authority required" message="Your server-issued role and scopes do not permit cross-domain lookup. No protected search was made." /> : invalidQuery ? <StatePanel kind="error" title="Invalid search URL" message="The shared URL contains an unknown, repeated, empty, oversized, partial, or malformed lookup. No protected search was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/search")}>Clear invalid lookup</button>} /> : <>
         <form className="investigation-search-form" role="search" onSubmit={submit}>
@@ -136,7 +140,7 @@ export function InvestigationSearchController({ initialQuery, invalidQuery }: Re
         {page && !loading && page.results.length === 0 && <StatePanel title="No authorized match" message="No matching evidence is visible in the current tenant and scopes. LedgerSync does not distinguish a missing record from one outside your authority." />}
         {page && page.results.length > 0 && <section className="investigation-results" aria-labelledby="investigation-results-heading">
           <div className="investigation-results-summary"><div><p className="eyebrow">Bounded lookup</p><h2 id="investigation-results-heading">{page.results.length} authorized locator{page.results.length === 1 ? "" : "s"}</h2></div><p>Generated <Timestamp value={page.generated_at} />{page.truncated ? " · Additional matches withheld by the result bound." : ""}</p></div>
-          <ol>{page.results.map((result) => <SearchResultCard key={`${result.record_type}-${result.record_id}-${result.related_record_id ?? "direct"}`} result={result} />)}</ol>
+          <ol>{page.results.map((result) => <SearchResultCard key={`${result.record_type}-${result.record_id}-${result.related_record_id ?? "direct"}`} result={result} query={initialQuery} queryKind={page.query_kind} />)}</ol>
         </section>}
       </>}
     </div>

@@ -27,6 +27,7 @@ type InvestigationHandler struct {
 	rateLimiter         RateLimiter
 	rateLimit           int
 	savedViewWriteLimit int
+	workspaceWriteLimit int
 	audit               AuditRecorder
 }
 
@@ -43,6 +44,10 @@ func (h *InvestigationHandler) WithRateLimiter(limiter RateLimiter, requestsPerM
 }
 func (h *InvestigationHandler) WithSavedViewWriteLimit(requestsPerMinute int) *InvestigationHandler {
 	h.savedViewWriteLimit = requestsPerMinute
+	return h
+}
+func (h *InvestigationHandler) WithWorkspaceWriteLimit(requestsPerMinute int) *InvestigationHandler {
+	h.workspaceWriteLimit = requestsPerMinute
 	return h
 }
 func (h *InvestigationHandler) WithAuditRecorder(audit AuditRecorder) *InvestigationHandler {

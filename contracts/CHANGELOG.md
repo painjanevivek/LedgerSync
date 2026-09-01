@@ -1,5 +1,14 @@
 # LedgerSync API changelog
 
+## 3.2.0 — 2026-09-01
+
+- Added tenant-and-operator-scoped investigation workspace create, list,
+  current-evidence read, handoff, close, and reopen operations.
+- Separated captured query/reference context from live reauthorized evidence;
+  workspaces never store balances, amounts, payloads, credentials, or notes.
+- Added optimistic lifecycle versions, non-disclosing ownership boundaries,
+  immutable audit history, and bounded server-derived relationship capture.
+
 ## 3.1.0 — 2026-08-31
 
 - Added tenant-scoped webhook endpoint evidence list and detail operations with

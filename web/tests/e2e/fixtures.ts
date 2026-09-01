@@ -60,6 +60,35 @@ export const savedInvestigationView = {
   created_at: "2026-08-19T12:04:00Z",
   updated_at: "2026-08-19T12:04:00Z",
 } as const;
+export const investigationWorkspace = {
+  investigation_id: "15151515-1515-4515-8515-151515151515",
+  title: "Transfer delivery review",
+  taxonomy: "transfer_delivery",
+  status: "open",
+  version: "1",
+  created_at: "2026-08-19T12:02:00Z",
+  updated_at: "2026-08-19T12:02:00Z",
+  historical_context: {
+    query_context: { kind: "immutable_id", record_type: "transfer", value: transfer.transfer_id },
+    references: [
+      { relationship_type: "root", record_type: "transfer", record_id: transfer.transfer_id, target_path: `/transfers/${transfer.transfer_id}`, captured_at: "2026-08-19T12:02:00Z" },
+      { relationship_type: "transfer_event", source_record_type: "transfer", source_record_id: transfer.transfer_id, record_type: "event", record_id: deliveryEvent.event_id, target_path: `/events/${deliveryEvent.event_id}`, captured_at: "2026-08-19T12:02:00Z" },
+    ],
+    withheld_reference_count: 0,
+    history: [{ action: "created", actor_is_current_operator: true, version: "1", status: "open", occurred_at: "2026-08-19T12:02:00Z" }],
+    history_truncated: false,
+  },
+  current_evidence: {
+    root: { record_type: "transfer", record_id: transfer.transfer_id, safe_label: "Transfer", status: "posted", occurred_at: transfer.completed_at, source: "postgresql", freshness: "search_snapshot" },
+    relationships: [
+      { relationship_type: "transfer_journal", target_type: "journal", target_id: transfer.journal_transaction_id, safe_label: "Journal transaction", status: "recorded", occurred_at: transfer.completed_at, source: "postgresql", freshness: "relationship_snapshot" },
+      { relationship_type: "transfer_event", target_type: "event", target_id: deliveryEvent.event_id, safe_label: deliveryEvent.event_type, status: "retrying", occurred_at: deliveryEvent.occurred_at, source: "postgresql", freshness: "relationship_snapshot" },
+    ],
+    generated_at: "2026-08-19T12:05:00Z",
+    truncated: false,
+    available: true,
+  },
+} as const;
 
 function relatedEvidencePage(url: string) {
   const parts = new URL(url).pathname.split("/");
@@ -94,6 +123,7 @@ function json(route: Route, body: unknown, status = 200) {
 
 export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
   let savedViews: Array<Record<string, unknown>> = [{ ...savedInvestigationView }];
+  let workspace: Record<string, unknown> | null = structuredClone(investigationWorkspace) as unknown as Record<string, unknown>;
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
     return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
@@ -154,6 +184,35 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
     }
     return json(route, { error: { code: "invalid_request" } }, 400);
   });
+  await page.route("**/api/investigation/workspaces", async (route) => {
+    if (route.request().method() === "GET") {
+      const summary = workspace ? Object.fromEntries(Object.entries(workspace).filter(([key]) => !["historical_context", "current_evidence"].includes(key))) : null;
+      return json(route, { investigations: summary ? [summary] : [], generated_at: "2026-08-19T12:05:00Z" });
+    }
+    if (route.request().method() === "POST") {
+      const input = route.request().postDataJSON() as { title: string; taxonomy: string; query_context: { kind: string; record_type: string; value: string }; root_record: { record_type: string; record_id: string } };
+      workspace = structuredClone(investigationWorkspace) as unknown as Record<string, unknown>;
+      workspace.investigation_id = "16161616-1616-4616-8616-161616161616";
+      workspace.title = input.title; workspace.taxonomy = input.taxonomy;
+      workspace.historical_context = { ...(workspace.historical_context as Record<string, unknown>), query_context: input.query_context, references: [{ relationship_type: "root", record_type: input.root_record.record_type, record_id: input.root_record.record_id, target_path: input.root_record.record_type === "account" ? `/accounts/${input.root_record.record_id}` : `/transfers/${input.root_record.record_id}`, captured_at: "2026-08-19T12:06:00Z" }] };
+      workspace.current_evidence = { ...(workspace.current_evidence as Record<string, unknown>), root: { record_type: input.root_record.record_type, record_id: input.root_record.record_id, safe_label: "Account", status: "active", occurred_at: sourceAccount.as_of, source: "postgresql", freshness: "search_snapshot" }, relationships: [] };
+      return json(route, workspace, 201);
+    }
+    return json(route, { error: { code: "invalid_request" } }, 400);
+  });
+  await page.route("**/api/investigation/workspaces/*/*", async (route) => {
+    if (!workspace || route.request().method() !== "POST") return json(route, { error: { code: "not_found" } }, 404);
+    const action = new URL(route.request().url()).pathname.split("/").at(-1);
+    const nextVersion = String(Number(workspace.version) + 1);
+    if (action === "handoff") { const id = workspace.investigation_id as string; workspace = null; return json(route, { investigation_id: id, outcome: "handed_off", version: nextVersion, occurred_at: "2026-08-19T12:08:00Z" }); }
+    if (action === "close" || action === "reopen") {
+      workspace.version = nextVersion; workspace.status = action === "close" ? "closed" : "open"; workspace.updated_at = "2026-08-19T12:08:00Z";
+      if (action === "close") workspace.closed_at = "2026-08-19T12:08:00Z"; else delete workspace.closed_at;
+      return json(route, { investigation_id: workspace.investigation_id, outcome: action === "close" ? "closed" : "reopened", version: nextVersion, occurred_at: "2026-08-19T12:08:00Z" });
+    }
+    return json(route, { error: { code: "invalid_request" } }, 400);
+  });
+  await page.route("**/api/investigation/workspaces/*", (route) => workspace ? json(route, workspace) : json(route, { error: { code: "not_found" } }, 404));
   await page.route(/\/api\/exports\/.*\.csv(?:\?.*)?$/, (route) => {
     const path=new URL(route.request().url()).pathname;
     const family=path.includes("/accounts/")?"account-ledger":path.includes("reconciliation")?"reconciliation":"transfers";

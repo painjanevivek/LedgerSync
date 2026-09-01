@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -70,6 +71,14 @@ func relationshipSourceAllowed(sourceType string, access investigation.Relations
 }
 
 func (r *InvestigationRepository) authorizedRelationshipSource(ctx context.Context, tenantID, actorID, sourceType, sourceID string) (bool, error) {
+	return authorizedRelationshipSourceWithQuerier(ctx, r.database, tenantID, actorID, sourceType, sourceID)
+}
+
+type relationshipSourceQuerier interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func authorizedRelationshipSourceWithQuerier(ctx context.Context, querier relationshipSourceQuerier, tenantID, actorID, sourceType, sourceID string) (bool, error) {
 	queries := map[string]string{
 		"account":                 `SELECT EXISTS(SELECT 1 FROM accounts a JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id WHERE a.tenant_id=$1 AND a.id=$3 AND owner.subject_id=$2 AND owner.permission IN ('read','debit') AND a.account_kind='customer')`,
 		"transfer":                `SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1 AND id=$3)`,
@@ -84,7 +93,7 @@ func (r *InvestigationRepository) authorizedRelationshipSource(ctx context.Conte
 		return false, nil
 	}
 	var exists bool
-	if err := r.database.QueryRowContext(ctx, query, tenantID, actorID, sourceID).Scan(&exists); err != nil {
+	if err := querier.QueryRowContext(ctx, query, tenantID, actorID, sourceID).Scan(&exists); err != nil {
 		return false, fmt.Errorf("authorize related investigation source: %w", err)
 	}
 	return exists, nil

@@ -59,6 +59,7 @@ for (const route of populatedRoutes) {
     await mockOperatorConsole(page);
     await page.goto(route.path);
     await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Search records" })).toBeVisible();
     await capture(page, route.name);
   });
 }
@@ -246,6 +247,8 @@ test("account lifecycle guard has a Windows local-console baseline", async ({ pa
   test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
   await mockOperatorConsole(page);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
+  await expect(page.getByText(/Balance details verified/u)).toBeVisible();
+  await expect(page.getByText(/2 explicit relationships/u)).toBeVisible();
   await page.getByRole("button", { name: "Freeze account" }).click();
   await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");
   await expect(page.getByRole("heading", { name: "Freeze account" })).toBeVisible();
@@ -274,6 +277,7 @@ test("reconciliation command review has a Windows local-console baseline", async
 test("reconciliation running control has a Windows local-console baseline", async ({ page }) => {
   test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
   const running = { ...run, run_id: "77777777-7777-4777-8777-777777777777", status: "running", ledger_watermark: "", application_version: "", schema_version: "", checked_account_count: "0", posting_count: "0", mismatch_count: "0", completed_at: "" };
+  await page.clock.setFixedTime(new Date("2026-08-31T19:43:37Z"));
   await mockOperatorConsole(page);
   await page.route("**/api/reconciliation/runs", (route) => json(route, running, 202));
   await page.route(`**/api/reconciliation/runs/${running.run_id}`, (route) => json(route, running));

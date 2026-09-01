@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.1.0",
-    "_postman_id": "ledgersync-f6e98efd-43cc6705-938cafc6"
+    "version": "3.2.0",
+    "_postman_id": "ledgersync-aa76dd24-bb982734-2ef78d8a"
   },
   "variable": [
     {
@@ -93,6 +93,23 @@
       }
     },
     {
+      "name": "closeInvestigationWorkspace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/workspaces/{investigationId}/close"
+      }
+    },
+    {
       "name": "createAccount",
       "request": {
         "method": "POST",
@@ -132,6 +149,23 @@
           }
         ],
         "url": "{{baseUrl}}/developer/credentials"
+      }
+    },
+    {
+      "name": "createInvestigationWorkspace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/workspaces"
       }
     },
     {
@@ -398,6 +432,23 @@
       }
     },
     {
+      "name": "getInvestigationWorkspace",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/workspaces/{investigationId}"
+      }
+    },
+    {
       "name": "getLocalDiagnostics",
       "request": {
         "method": "GET",
@@ -551,6 +602,23 @@
       }
     },
     {
+      "name": "handoffInvestigationWorkspace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/workspaces/{investigationId}/handoff"
+      }
+    },
+    {
       "name": "listAccountTransactions",
       "request": {
         "method": "GET",
@@ -667,6 +735,23 @@
           }
         ],
         "url": "{{baseUrl}}/funding-events"
+      }
+    },
+    {
+      "name": "listInvestigationWorkspaces",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/workspaces"
       }
     },
     {
@@ -900,6 +985,23 @@
           }
         ],
         "url": "{{baseUrl}}/investigation/saved-views/{savedViewId}"
+      }
+    },
+    {
+      "name": "reopenInvestigationWorkspace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/investigation/workspaces/{investigationId}/reopen"
       }
     },
     {

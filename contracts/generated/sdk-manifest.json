@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "3.1.0",
+  "api_version": "3.2.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "f6e98efd",
-    "43cc6705",
-    "938cafc6",
-    "d092b3b3",
-    "f84f7b6e",
-    "ceed2ada",
-    "dd02c1df",
-    "40816de7"
+    "aa76dd24",
+    "bb982734",
+    "2ef78d8a",
+    "bff0d892",
+    "bb2d304b",
+    "acdfb8cb",
+    "dcb9ec46",
+    "733c5f56"
   ],
   "operations": [
     {
@@ -42,6 +42,13 @@
       "idempotent": false
     },
     {
+      "id": "closeInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/close",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "createAccount",
       "method": "POST",
       "path": "/accounts",
@@ -54,6 +61,13 @@
       "path": "/developer/credentials",
       "scope": "credentials:write",
       "idempotent": true
+    },
+    {
+      "id": "createInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces",
+      "scope": "investigation:write",
+      "idempotent": false
     },
     {
       "id": "createSavedInvestigationView",
@@ -161,6 +175,13 @@
       "idempotent": false
     },
     {
+      "id": "getInvestigationWorkspace",
+      "method": "GET",
+      "path": "/investigation/workspaces/{investigationId}",
+      "scope": "investigation:read",
+      "idempotent": false
+    },
+    {
       "id": "getLocalDiagnostics",
       "method": "GET",
       "path": "/local/diagnostics",
@@ -224,6 +245,13 @@
       "idempotent": false
     },
     {
+      "id": "handoffInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/handoff",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "listAccountTransactions",
       "method": "GET",
       "path": "/accounts/{accountId}/transactions",
@@ -270,6 +298,13 @@
       "method": "GET",
       "path": "/funding-events",
       "scope": "funding:read",
+      "idempotent": false
+    },
+    {
+      "id": "listInvestigationWorkspaces",
+      "method": "GET",
+      "path": "/investigation/workspaces",
+      "scope": "investigation:read",
       "idempotent": false
     },
     {
@@ -360,6 +395,13 @@
       "id": "renameSavedInvestigationView",
       "method": "PUT",
       "path": "/investigation/saved-views/{savedViewId}",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
+      "id": "reopenInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/reopen",
       "scope": "investigation:write",
       "idempotent": false
     },

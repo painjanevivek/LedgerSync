@@ -41,6 +41,27 @@ export async function authorizeInvestigationSavedViews(request: NextRequest, ses
   return { session };
 }
 
+export async function authorizeInvestigationWorkspaces(request: NextRequest, session: Session | null, limiter: RateLimitStore, write: boolean): Promise<InvestigationSearchAuthorization | NextResponse> {
+  const expectedMethod = write ? "POST" : "GET";
+  if (request.method !== expectedMethod) {
+    const response = jsonError("method_not_allowed", 405);
+    response.headers.set("Allow", expectedMethod);
+    return response;
+  }
+  if (!session) return jsonError("unauthorized", 401);
+  if (!session.roles?.some((role) => operatorRoles.has(role)) || !session.scopes?.includes("investigation:read") || !session.scopes.some((scope) => searchableScopes.has(scope))) return jsonError("forbidden", 403);
+  if (write && (!session.scopes.includes("investigation:write") || !hasValidCSRF(request, session))) return jsonError(session.scopes.includes("investigation:write") ? "csrf_failed" : "forbidden", 403);
+  if (!hasValidHost(request)) return jsonError("invalid_request", 400);
+  const boundary = write ? "workspaces-write" : "workspaces-read";
+  const decision = await limiter.consume(`investigation:${boundary}:${session.tenantId}:${session.subjectId}`, write ? 12 : 30, 60);
+  if (!decision.allowed) {
+    const response = jsonError("rate_limited", 429);
+    response.headers.set("Retry-After", String(decision.retryAfterSeconds));
+    return response;
+  }
+  return { session };
+}
+
 async function authorizeInvestigationRead(request: NextRequest, session: Session | null, limiter: RateLimitStore, boundary: "search" | "relationships"): Promise<InvestigationSearchAuthorization | NextResponse> {
   if (request.method !== "GET") {
     const response = jsonError("method_not_allowed", 405);

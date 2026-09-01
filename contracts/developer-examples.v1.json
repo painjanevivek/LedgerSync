@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "3.1.0",
+  "contract_version": "3.2.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -95,6 +95,12 @@
         { "operation_id": "createSavedInvestigationView", "method": "POST", "path": "/investigation/saved-views", "scope": "investigation:write" },
         { "operation_id": "renameSavedInvestigationView", "method": "PUT", "path": "/investigation/saved-views/{savedViewId}", "scope": "investigation:write" },
         { "operation_id": "deleteSavedInvestigationView", "method": "DELETE", "path": "/investigation/saved-views/{savedViewId}", "scope": "investigation:write" },
+        { "operation_id": "listInvestigationWorkspaces", "method": "GET", "path": "/investigation/workspaces", "scope": "investigation:read" },
+        { "operation_id": "createInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces", "scope": "investigation:write" },
+        { "operation_id": "getInvestigationWorkspace", "method": "GET", "path": "/investigation/workspaces/{investigationId}", "scope": "investigation:read" },
+        { "operation_id": "handoffInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/handoff", "scope": "investigation:write" },
+        { "operation_id": "closeInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/close", "scope": "investigation:write" },
+        { "operation_id": "reopenInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/reopen", "scope": "investigation:write" },
         { "operation_id": "getLocalDiagnostics", "method": "GET", "path": "/local/diagnostics", "scope": "local:read" },
         { "operation_id": "getLocalOrientationEvidence", "method": "GET", "path": "/local/orientation", "scope": "local:read" },
         { "operation_id": "updateLocalOrientationPreferences", "method": "PUT", "path": "/local/orientation/preferences", "scope": "local:write" },
