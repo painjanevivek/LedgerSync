@@ -53,3 +53,19 @@ func TestRelatedEvidenceRequiresSourceScopeAndUsesBoundedMetadataQueries(t *test
 		t.Fatal("relationship source was authorized without its own domain scope")
 	}
 }
+
+func TestRelationshipSourceAuthorizationUsesContiguousTypedParameters(t *testing.T) {
+	query, args, ok := relationshipSourceAuthorization("account", "tenant", "actor", "record")
+	if !ok || len(args) != 3 || !strings.Contains(query, "$2") || !strings.Contains(query, "$3") {
+		t.Fatalf("account authorization query=%q args=%#v ok=%v", query, args, ok)
+	}
+	for _, sourceType := range []string{"transfer", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction"} {
+		query, args, ok = relationshipSourceAuthorization(sourceType, "tenant", "actor", "record")
+		if !ok || len(args) != 2 || !strings.Contains(query, "$2") || strings.Contains(query, "$3") {
+			t.Fatalf("source=%s authorization query=%q args=%#v ok=%v", sourceType, query, args, ok)
+		}
+	}
+	if query, args, ok = relationshipSourceAuthorization("unknown", "tenant", "actor", "record"); ok || query != "" || args != nil {
+		t.Fatalf("unknown authorization query=%q args=%#v ok=%v", query, args, ok)
+	}
+}

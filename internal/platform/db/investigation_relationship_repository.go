@@ -79,24 +79,34 @@ type relationshipSourceQuerier interface {
 }
 
 func authorizedRelationshipSourceWithQuerier(ctx context.Context, querier relationshipSourceQuerier, tenantID, actorID, sourceType, sourceID string) (bool, error) {
-	queries := map[string]string{
-		"account":                 `SELECT EXISTS(SELECT 1 FROM accounts a JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id WHERE a.tenant_id=$1 AND a.id=$3 AND owner.subject_id=$2 AND owner.permission IN ('read','debit') AND a.account_kind='customer')`,
-		"transfer":                `SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1 AND id=$3)`,
-		"funding":                 `SELECT EXISTS(SELECT 1 FROM funding_events WHERE tenant_id=$1 AND id=$3)`,
-		"event":                   `SELECT EXISTS(SELECT 1 FROM outbox_events WHERE tenant_id=$1 AND id=$3)`,
-		"reconciliation_run":      `SELECT EXISTS(SELECT 1 FROM reconciliation_runs WHERE tenant_id=$1 AND id=$3)`,
-		"reconciliation_mismatch": `SELECT EXISTS(SELECT 1 FROM reconciliation_mismatches WHERE tenant_id=$1 AND id=$3)`,
-		"correction":              `SELECT EXISTS(SELECT 1 FROM transfer_corrections WHERE tenant_id=$1 AND id=$3)`,
-	}
-	query, ok := queries[sourceType]
+	query, args, ok := relationshipSourceAuthorization(sourceType, tenantID, actorID, sourceID)
 	if !ok {
 		return false, nil
 	}
 	var exists bool
-	if err := querier.QueryRowContext(ctx, query, tenantID, actorID, sourceID).Scan(&exists); err != nil {
+	if err := querier.QueryRowContext(ctx, query, args...).Scan(&exists); err != nil {
 		return false, fmt.Errorf("authorize related investigation source: %w", err)
 	}
 	return exists, nil
+}
+
+func relationshipSourceAuthorization(sourceType, tenantID, actorID, sourceID string) (string, []any, bool) {
+	if sourceType == "account" {
+		return `SELECT EXISTS(SELECT 1 FROM accounts a JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id WHERE a.tenant_id=$1 AND a.id=$3 AND owner.subject_id=$2 AND owner.permission IN ('read','debit') AND a.account_kind='customer')`, []any{tenantID, actorID, sourceID}, true
+	}
+	queries := map[string]string{
+		"transfer":                `SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1 AND id=$2)`,
+		"funding":                 `SELECT EXISTS(SELECT 1 FROM funding_events WHERE tenant_id=$1 AND id=$2)`,
+		"event":                   `SELECT EXISTS(SELECT 1 FROM outbox_events WHERE tenant_id=$1 AND id=$2)`,
+		"reconciliation_run":      `SELECT EXISTS(SELECT 1 FROM reconciliation_runs WHERE tenant_id=$1 AND id=$2)`,
+		"reconciliation_mismatch": `SELECT EXISTS(SELECT 1 FROM reconciliation_mismatches WHERE tenant_id=$1 AND id=$2)`,
+		"correction":              `SELECT EXISTS(SELECT 1 FROM transfer_corrections WHERE tenant_id=$1 AND id=$2)`,
+	}
+	query, ok := queries[sourceType]
+	if !ok {
+		return "", nil, false
+	}
+	return query, []any{tenantID, sourceID}, true
 }
 
 func relationshipQuery(filter investigation.RelationshipFilter, tenantID, actorID string) (string, []any) {
