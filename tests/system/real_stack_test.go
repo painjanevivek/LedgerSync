@@ -92,7 +92,9 @@ func TestRealBFFControlledFundingLifecycle(t *testing.T) {
 	}
 
 	var after balancePayload
-	getJSON(t, client, baseURL+"/api/accounts/"+destinationID+"/balance?require_version="+posted.Event.BalanceVersion, &after)
+	// The BFF applies the signed consistency requirement from the rotated
+	// session cookie; callers cannot supply or weaken it through the query.
+	getJSON(t, client, baseURL+"/api/accounts/"+destinationID+"/balance", &after)
 	beforeMinor, parseErr := strconv.ParseInt(before.AvailableMinor, 10, 64)
 	if parseErr != nil {
 		t.Fatal(parseErr)
@@ -160,7 +162,9 @@ func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 		t.Fatalf("first request unexpectedly replayed idempotency key %q; use a new key for each intentional movement", key)
 	}
 	var afterFirst balancePayload
-	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance?require_version=1", &afterFirst)
+	// The transfer response rotates the signed session with the minimum
+	// committed balance version required by this follow-up read.
+	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance", &afterFirst)
 	second := postTransfer(t, client, baseURL, session.CSRFToken, key, body)
 	if !second.Replayed {
 		t.Fatalf("same-key retry was not identified as a replay for transfer %s", first.TransferID)
