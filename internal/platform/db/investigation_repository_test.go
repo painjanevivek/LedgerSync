@@ -80,10 +80,10 @@ func TestRelationshipQueriesDeclareStableProjectionColumns(t *testing.T) {
 		"reconciliation_mismatch": reconciliationMismatchRelationshipsSQL,
 		"correction":              correctionRelationshipsSQL,
 	}
-	want := "WITH " + relationshipColumns + " AS ("
+	want := "WITH " + relationshipParameters + ", " + relationshipColumns + " AS ("
 	for sourceType, query := range queries {
 		if !strings.HasPrefix(query, want) {
-			t.Fatalf("source=%s must declare the relationship projection columns: %q", sourceType, query)
+			t.Fatalf("source=%s must type every parameter and declare the relationship projection columns: %q", sourceType, query)
 		}
 	}
 }
