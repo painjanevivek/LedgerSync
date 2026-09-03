@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
@@ -19,9 +20,9 @@ func TestTransferAuthorizationFailsClosedBeforeObjectDisclosure(t *testing.T) {
 			fixture := transferCommandFixture{tenantID: testTenantID, actorID: testActorID, sourceID: testSourceID}
 			mutate(&fixture)
 			command := transferCommand(t, "authorization-denial-key-0001", "1.00")
-			command.TenantID = fixture.tenantID
+			command.TenantID = identifier.UUID(fixture.tenantID)
 			command.ActorSubjectID = fixture.actorID
-			command.DebitAccountID = fixture.sourceID
+			command.DebitAccountID = identifier.UUID(fixture.sourceID)
 			_, err := service.Submit(context.Background(), command)
 			if !errors.Is(err, db.ErrAccountNotFound) && !errors.Is(err, db.ErrNotAuthorized) {
 				t.Fatalf("error=%v, want non-disclosing authorization denial", err)

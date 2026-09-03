@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -77,6 +77,18 @@ func (h *InvestigationHandler) CreateWorkspace(writer http.ResponseWriter, reque
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
+	rootRecordID, ok := requireCanonicalIdentifier(writer, request, investigationIdentifierKind(input.RootRecord.RecordType), input.RootRecord.RecordID)
+	if !ok {
+		return
+	}
+	input.RootRecord.RecordID = rootRecordID
+	if input.QueryContext.Kind == "immutable_id" {
+		queryID, valid := requireCanonicalIdentifier(writer, request, investigationIdentifierKind(input.QueryContext.RecordType), input.QueryContext.Value)
+		if !valid {
+			return
+		}
+		input.QueryContext.Value = queryID
+	}
 	command, err := investigation.NormalizeWorkspaceCreate(investigation.WorkspaceCreate{
 		TenantID: principal.TenantID, ActorID: principal.SubjectID, Title: input.Title, Taxonomy: input.Taxonomy,
 		QueryKind: input.QueryContext.Kind, QueryValue: input.QueryContext.Value, RootRecordType: input.RootRecord.RecordType,
@@ -107,9 +119,8 @@ func (h *InvestigationHandler) Workspace(writer http.ResponseWriter, request *ht
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
-	id := strings.ToLower(strings.TrimSpace(request.PathValue("investigationId")))
-	if !canonicalInvestigationUUID.MatchString(id) {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	id, ok := requireCanonicalIdentifier(writer, request, identifier.KindInvestigation, request.PathValue("investigationId"))
+	if !ok {
 		return
 	}
 	workspace, err := repository.GetWorkspace(request.Context(), principal.TenantID, principal.SubjectID, id, access)
@@ -136,9 +147,8 @@ func (h *InvestigationHandler) WorkspaceEvidenceBundle(writer http.ResponseWrite
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
-	id := strings.ToLower(strings.TrimSpace(request.PathValue("investigationId")))
-	if !canonicalInvestigationUUID.MatchString(id) {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	id, ok := requireCanonicalIdentifier(writer, request, identifier.KindInvestigation, request.PathValue("investigationId"))
+	if !ok {
 		return
 	}
 	var input workspaceEvidenceBundleRequest
@@ -255,9 +265,8 @@ func (h *InvestigationHandler) authorizeWorkspaceMutation(writer http.ResponseWr
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return identity.Principal{}, investigation.SearchAccess{}, nil, "", false
 	}
-	id := strings.ToLower(strings.TrimSpace(request.PathValue("investigationId")))
-	if !canonicalInvestigationUUID.MatchString(id) {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	id, ok := requireCanonicalIdentifier(writer, request, identifier.KindInvestigation, request.PathValue("investigationId"))
+	if !ok {
 		return identity.Principal{}, investigation.SearchAccess{}, nil, "", false
 	}
 	return principal, access, repository, id, true
