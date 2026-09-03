@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -17,14 +18,15 @@ import (
 const maxCorrectionBodyBytes = 64 * 1024
 
 type CorrectionHandler struct {
-	service       *appcorrections.Service
-	identity      identity.Provider
-	authenticator *identity.RequestAuthenticator
-	rateLimiter   RateLimiter
-	readRate      int
-	writeRate     int
-	capacityLimit int
-	audit         AuditRecorder
+	service           *appcorrections.Service
+	identity          identity.Provider
+	authenticator     *identity.RequestAuthenticator
+	rateLimiter       RateLimiter
+	readRate          int
+	writeRate         int
+	capacityLimit     int
+	audit             AuditRecorder
+	committedObserver httptransport.CommittedResponseObserver
 }
 
 func NewCorrectionHandler(service *appcorrections.Service, provider identity.Provider) *CorrectionHandler {
@@ -43,6 +45,11 @@ func (h *CorrectionHandler) WithRateLimiter(limiter RateLimiter, readPerMinute, 
 
 func (h *CorrectionHandler) WithAuditRecorder(audit AuditRecorder) *CorrectionHandler {
 	h.audit = audit
+	return h
+}
+
+func (h *CorrectionHandler) WithCommittedResponseObserver(observer httptransport.CommittedResponseObserver) *CorrectionHandler {
+	h.committedObserver = observer
 	return h
 }
 
@@ -75,7 +82,7 @@ func (h *CorrectionHandler) Request(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionSubmission(writer, submission, http.StatusCreated)
+	writeCorrectionSubmission(request.Context(), writer, submission, http.StatusCreated, h.committedObserver)
 }
 
 func (h *CorrectionHandler) List(writer http.ResponseWriter, request *http.Request) {
@@ -152,7 +159,7 @@ func (h *CorrectionHandler) decide(writer http.ResponseWriter, request *http.Req
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionJSON(writer, http.StatusOK, event)
+	writeCorrectionCommitted(request.Context(), writer, http.StatusOK, event, event.CorrectionID, false, h.committedObserver)
 }
 
 func (h *CorrectionHandler) Cancel(writer http.ResponseWriter, request *http.Request) {
@@ -173,7 +180,7 @@ func (h *CorrectionHandler) Cancel(writer http.ResponseWriter, request *http.Req
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionJSON(writer, http.StatusOK, event)
+	writeCorrectionCommitted(request.Context(), writer, http.StatusOK, event, event.CorrectionID, false, h.committedObserver)
 }
 
 func (h *CorrectionHandler) Post(writer http.ResponseWriter, request *http.Request) {
@@ -189,7 +196,7 @@ func (h *CorrectionHandler) Post(writer http.ResponseWriter, request *http.Reque
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionSubmission(writer, submission, http.StatusOK)
+	writeCorrectionSubmission(request.Context(), writer, submission, http.StatusOK, h.committedObserver)
 }
 
 func (h *CorrectionHandler) authorize(writer http.ResponseWriter, request *http.Request, scope, operation string, write bool) (identity.Principal, bool) {
@@ -243,11 +250,23 @@ func decodeCorrectionJSON(writer http.ResponseWriter, request *http.Request, tar
 	return nil
 }
 
-func writeCorrectionSubmission(writer http.ResponseWriter, submission appcorrections.Submission, status int) {
-	if submission.Replayed {
-		writer.Header().Set("Idempotent-Replay", "true")
+func writeCorrectionSubmission(ctx context.Context, writer http.ResponseWriter, submission appcorrections.Submission, status int, observer httptransport.CommittedResponseObserver) {
+	writeCorrectionCommitted(ctx, writer, status, submission, submission.Event.CorrectionID, submission.Replayed, observer)
+}
+
+func writeCorrectionCommitted(ctx context.Context, writer http.ResponseWriter, status int, body any, commandID string, replayed bool, observer httptransport.CommittedResponseObserver) {
+	headers := make(http.Header)
+	if replayed {
+		headers.Set("Idempotent-Replay", "true")
 	}
-	writeCorrectionJSON(writer, status, submission)
+	httptransport.WriteCommittedJSON(ctx, writer, httptransport.CommittedResponse{
+		Status:       status,
+		CommandKind:  "correction",
+		CommandID:    commandID,
+		RecoveryPath: "/api/transfer-corrections/" + commandID,
+		Body:         body,
+		Headers:      headers,
+	}, observer)
 }
 
 func writeCorrectionJSON(writer http.ResponseWriter, status int, body any) {
