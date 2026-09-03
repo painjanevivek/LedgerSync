@@ -54,3 +54,8 @@ try {
 finally {
     Remove-Item -LiteralPath $testRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# The final negative fixture intentionally leaves LASTEXITCODE at 1. Normalize
+# the process result after every assertion has passed so CI sees the suite's
+# outcome instead of the expected child-process failure.
+exit 0
