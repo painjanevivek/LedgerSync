@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
 import { parseWorkspaceStatusInput } from "@/lib/api/investigation-workspaces";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 import { authorizeInvestigationEvidenceBundle, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
 import { InMemoryRateLimitStore } from "@/lib/rate-limit";
@@ -13,7 +14,6 @@ const rateLimit = new InMemoryRateLimitStore();
 const maximumRequestBytes = 4 << 10;
 const maximumBundleBytes = 512 * 1024;
 const maximumErrorBytes = 65_536;
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const digest = /^[0-9a-f]{64}$/u;
 const timestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
 const publicErrors = new Set(["invalid_request", "unauthorized", "forbidden", "not_found", "rate_limited", "export_unavailable", "investigation_version_conflict"]);
@@ -37,8 +37,8 @@ export async function POST(request: NextRequest, { params }: Readonly<{ params: 
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   const authorization = await authorizeInvestigationEvidenceBundle(request, session, rateLimit);
   if (isInvestigationSearchDenial(authorization)) return authorization;
-  const investigationId = (await params).investigationId.toLowerCase();
-  if (!uuid.test(investigationId) || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
+  const investigationId = canonicalUUID((await params).investigationId);
+  if (!investigationId || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
   let input: ReturnType<typeof parseWorkspaceStatusInput>;
   try { input = parseWorkspaceStatusInput(await readBoundedJSON<unknown>(request, maximumRequestBytes)); } catch { return jsonError("invalid_request", 400); }
   try {

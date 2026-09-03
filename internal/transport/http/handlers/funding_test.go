@@ -15,6 +15,11 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
+const (
+	fundingTestAccountID = "10000000-0000-4000-8000-000000000001"
+	fundingTestEventID   = "30000000-0000-4000-8000-000000000001"
+)
+
 type fundingHandlerRepository struct {
 	request       appfunding.RequestCommand
 	decision      appfunding.DecisionCommand
@@ -25,7 +30,7 @@ type fundingHandlerRepository struct {
 
 func (r *fundingHandlerRepository) Request(_ context.Context, command appfunding.RequestCommand, _ [sha256.Size]byte) (appfunding.Submission, error) {
 	r.request, r.requestCalls = command, r.requestCalls+1
-	return appfunding.Submission{Event: appfunding.Event{FundingEventID: "funding-1", Status: "requested", AmountMinor: strconv.FormatInt(command.Amount.Minor(), 10), Currency: command.Amount.Currency().Code}}, nil
+	return appfunding.Submission{Event: appfunding.Event{FundingEventID: fundingTestEventID, Status: "requested", AmountMinor: strconv.FormatInt(command.Amount.Minor(), 10), Currency: command.Amount.Currency().Code}}, nil
 }
 
 func (r *fundingHandlerRepository) Approve(_ context.Context, command appfunding.DecisionCommand, demo bool) (appfunding.Event, error) {
@@ -60,7 +65,7 @@ func (r *fundingHandlerRepository) Reconcile(context.Context, string, string, st
 func TestFundingRequestRequiresExactMinorUnitsAndWriteScope(t *testing.T) {
 	repository := &fundingHandlerRepository{}
 	handler := newTestFundingHandler(t, repository, []string{"funding:write"})
-	request := httptest.NewRequest(http.MethodPost, "/api/funding-requests", strings.NewReader(`{"destination_account_id":"account-1","amount_minor":"1250","currency":"USD","external_reference":"wire-1","evidence_reference":"evidence://wire-1"}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/funding-requests", strings.NewReader(`{"destination_account_id":"`+fundingTestAccountID+`","amount_minor":"1250","currency":"USD","external_reference":"wire-1","evidence_reference":"evidence://wire-1"}`))
 	request.Header.Set("Authorization", "Bearer development-local-only")
 	request.Header.Set("Idempotency-Key", strings.Repeat("i", 20))
 	response := httptest.NewRecorder()
@@ -86,12 +91,12 @@ func TestFundingRequestRequiresExactMinorUnitsAndWriteScope(t *testing.T) {
 func TestFundingApprovalPreservesExplicitLocalDemoLabel(t *testing.T) {
 	repository := &fundingHandlerRepository{}
 	handler := newTestFundingHandler(t, repository, []string{"funding:approve"})
-	request := httptest.NewRequest(http.MethodPost, "/api/funding-events/funding-1/approve", strings.NewReader(`{"reason":"evidence independently verified"}`))
-	request.SetPathValue("fundingEventId", "funding-1")
+	request := httptest.NewRequest(http.MethodPost, "/api/funding-events/"+fundingTestEventID+"/approve", strings.NewReader(`{"reason":"evidence independently verified"}`))
+	request.SetPathValue("fundingEventId", fundingTestEventID)
 	request.Header.Set("Authorization", "Bearer development-local-only")
 	response := httptest.NewRecorder()
 	middleware.Correlation(http.HandlerFunc(handler.Approve)).ServeHTTP(response, request)
-	if response.Code != http.StatusOK || repository.decisionCalls != 1 || !repository.demoApproval || repository.decision.FundingEventID != "funding-1" {
+	if response.Code != http.StatusOK || repository.decisionCalls != 1 || !repository.demoApproval || repository.decision.FundingEventID != fundingTestEventID {
 		t.Fatalf("status=%d decision=%#v demo=%t body=%s", response.Code, repository.decision, repository.demoApproval, response.Body.String())
 	}
 }

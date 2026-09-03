@@ -7,11 +7,11 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/idempotency"
 	accountdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -109,9 +109,8 @@ func (h *AccountCommandHandler) Patch(writer http.ResponseWriter, request *http.
 	if !ok {
 		return
 	}
-	accountID := strings.TrimSpace(request.PathValue("accountID"))
-	if accountID == "" {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	accountID, ok := requireCanonicalIdentifier(writer, request, identifier.KindAccount, request.PathValue("accountID"))
+	if !ok {
 		return
 	}
 	var input patchAccountRequest
