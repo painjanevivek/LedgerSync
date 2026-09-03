@@ -263,10 +263,10 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err := createJournal(ctx, tx, journalID, command.TenantID.String(), entry.ID, now); err != nil {
 		return transfers.Result{}, err
 	}
-	if err := createPosting(ctx, tx, debit); err != nil {
+	if err := createPosting(ctx, tx, command.TenantID.String(), debit); err != nil {
 		return transfers.Result{}, err
 	}
-	if err := createPosting(ctx, tx, credit); err != nil {
+	if err := createPosting(ctx, tx, command.TenantID.String(), credit); err != nil {
 		return transfers.Result{}, err
 	}
 
@@ -418,14 +418,16 @@ INSERT INTO transfers (
 }
 
 func createJournal(ctx context.Context, tx *sql.Tx, journalID, tenantID, transferID string, occurredAt time.Time) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO journal_transactions (id, tenant_id, transfer_id, occurred_at) VALUES ($1, $2, $3, $4)`, journalID, tenantID, transferID, occurredAt)
+	_, err := tx.ExecContext(ctx, `
+INSERT INTO journal_transactions (id, tenant_id, transfer_id, source_type, source_id, occurred_at)
+VALUES ($1, $2, $3, 'transfer', $3, $4)`, journalID, tenantID, transferID, occurredAt)
 	return wrap("create journal", err)
 }
 
-func createPosting(ctx context.Context, tx *sql.Tx, posting ledger.Posting) error {
+func createPosting(ctx context.Context, tx *sql.Tx, tenantID string, posting ledger.Posting) error {
 	_, err := tx.ExecContext(ctx, `
-INSERT INTO ledger_postings (id, journal_transaction_id, account_id, direction, amount_minor, currency, occurred_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)`, posting.ID, posting.JournalID, posting.AccountID, posting.Direction, posting.Amount.Minor(), posting.Amount.Currency().Code, posting.OccurredAt)
+INSERT INTO ledger_postings (id, journal_transaction_id, tenant_id, account_id, direction, amount_minor, currency, occurred_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, posting.ID, posting.JournalID, tenantID, posting.AccountID, posting.Direction, posting.Amount.Minor(), posting.Amount.Currency().Code, posting.OccurredAt)
 	return wrap("create ledger posting", err)
 }
 
