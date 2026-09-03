@@ -36,6 +36,34 @@ groups:
         annotations:
           summary: The balance projector is more than ten thousand events behind the Redis stream.
           runbook: docs/runbooks/outbox-backlog.md
+      - alert: LedgerSyncWorkerHeartbeatStale
+        expr: time() - ledgersync_worker_heartbeat_unix_seconds > 30
+        for: 1m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: A worker process has stopped emitting its independent heartbeat.
+          runbook: docs/runbooks/worker-stall.md
+      - alert: LedgerSyncWorkerQueueStalled
+        expr: (ledgersync_worker_active == 1) and on(queue) (ledgersync_worker_progress_age_seconds > 30)
+        for: 1m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: A worker queue is active but has not completed its current operation.
+          runbook: docs/runbooks/worker-stall.md
+      - alert: LedgerSyncWebhookKeyCacheSaturated
+        expr: increase(ledgersync_webhook_key_cache_evictions_total{reason="capacity"}[5m]) > 10
+        for: 5m
+        labels: { severity: warning, service: ledgersync }
+        annotations:
+          summary: Webhook signing-key cache capacity evictions are repeatedly occurring.
+          runbook: docs/runbooks/worker-stall.md
+      - alert: LedgerSyncWebhookKeyCacheLockSlow
+        expr: histogram_quantile(0.99, sum(rate(ledgersync_webhook_key_cache_lock_wait_milliseconds_bucket[5m])) by (le)) > 50
+        for: 5m
+        labels: { severity: warning, service: ledgersync }
+        annotations:
+          summary: Webhook signing-key cache lock wait p99 exceeds fifty milliseconds.
+          runbook: docs/runbooks/worker-stall.md
       - alert: LedgerSyncDeadWorkDetected
         expr: increase(ledgersync_recovery_dead_work_total[5m]) > 0
         for: 0m
