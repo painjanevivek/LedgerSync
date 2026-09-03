@@ -32,32 +32,34 @@ type Telemetry struct {
 	enabled bool
 	tracer  trace.Tracer
 
-	requests            metric.Int64Counter
-	boundaryCalls       metric.Int64Counter
-	boundaryDuration    metric.Float64Histogram
-	httpRouteDuration   metric.Float64Histogram
-	transferOutcomes    metric.Int64Counter
-	outboxAge           metric.Float64Histogram
-	ryewViolations      metric.Int64Counter
-	reconciliationRun   metric.Int64Counter
-	recoveryOperations  metric.Int64Counter
-	deadWork            metric.Int64Counter
-	retentionRuns       metric.Int64Counter
-	retentionDeleted    metric.Int64Counter
-	redisStreamDepth    metric.Int64Gauge
-	redisConsumerLag    metric.Int64Gauge
-	webhookKeyResolves  metric.Int64Counter
-	webhookKeyDuration  metric.Float64Histogram
-	webhookKeyLockWait  metric.Float64Histogram
-	webhookKeyEntries   metric.Int64Gauge
-	webhookKeyEvictions metric.Int64Counter
-	workerHeartbeat     metric.Int64Gauge
-	workerProgressAge   metric.Float64Gauge
-	workerActive        metric.Int64Gauge
-	workerLastStarted   metric.Int64Gauge
-	workerLastCompleted metric.Int64Gauge
-	workerLastFailure   metric.Int64Gauge
-	shutdown            func(context.Context) error
+	requests                     metric.Int64Counter
+	boundaryCalls                metric.Int64Counter
+	boundaryDuration             metric.Float64Histogram
+	httpRouteDuration            metric.Float64Histogram
+	transferOutcomes             metric.Int64Counter
+	outboxAge                    metric.Float64Histogram
+	ryewViolations               metric.Int64Counter
+	reconciliationRun            metric.Int64Counter
+	recoveryOperations           metric.Int64Counter
+	deadWork                     metric.Int64Counter
+	retentionRuns                metric.Int64Counter
+	retentionDeleted             metric.Int64Counter
+	redisStreamDepth             metric.Int64Gauge
+	redisConsumerLag             metric.Int64Gauge
+	webhookKeyResolves           metric.Int64Counter
+	webhookKeyDuration           metric.Float64Histogram
+	webhookKeyLockWait           metric.Float64Histogram
+	webhookKeyEntries            metric.Int64Gauge
+	webhookKeyEvictions          metric.Int64Counter
+	workerHeartbeat              metric.Int64Gauge
+	workerProgressAge            metric.Float64Gauge
+	workerActive                 metric.Int64Gauge
+	workerLastStarted            metric.Int64Gauge
+	workerLastCompleted          metric.Int64Gauge
+	workerLastFailure            metric.Int64Gauge
+	committedMetadataUnavailable metric.Int64Counter
+	committedWriteFailures       metric.Int64Counter
+	shutdown                     func(context.Context) error
 }
 
 func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) {
@@ -187,6 +189,14 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	if err != nil {
 		return nil, err
 	}
+	committedMetadataUnavailable, err := meter.Int64Counter("ledgersync.committed_response.metadata_unavailable")
+	if err != nil {
+		return nil, err
+	}
+	committedWriteFailures, err := meter.Int64Counter("ledgersync.committed_response.write_failures")
+	if err != nil {
+		return nil, err
+	}
 	telemetry.enabled, telemetry.tracer = true, tracerProvider.Tracer(instrumentationName)
 	telemetry.requests, telemetry.boundaryCalls, telemetry.boundaryDuration, telemetry.httpRouteDuration = requests, boundaryCalls, boundaryDuration, httpRouteDuration
 	telemetry.transferOutcomes, telemetry.outboxAge = transferOutcomes, outboxAge
@@ -197,6 +207,7 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	telemetry.webhookKeyEntries, telemetry.webhookKeyEvictions = webhookKeyEntries, webhookKeyEvictions
 	telemetry.workerHeartbeat, telemetry.workerProgressAge, telemetry.workerActive = workerHeartbeat, workerProgressAge, workerActive
 	telemetry.workerLastStarted, telemetry.workerLastCompleted, telemetry.workerLastFailure = workerLastStarted, workerLastCompleted, workerLastFailure
+	telemetry.committedMetadataUnavailable, telemetry.committedWriteFailures = committedMetadataUnavailable, committedWriteFailures
 	telemetry.shutdown = func(shutdownCtx context.Context) error {
 		return errors.Join(meterProvider.Shutdown(shutdownCtx), tracerProvider.Shutdown(shutdownCtx))
 	}
@@ -338,6 +349,27 @@ func (t *Telemetry) ObserveWorkerProgress(ctx context.Context, report WorkerProg
 		lastFailure = report.HeartbeatAt.Add(-*report.FailureAge).Unix()
 	}
 	t.workerLastFailure.Record(ctx, lastFailure, attributes)
+}
+
+func (t *Telemetry) ObserveCommittedResponseMetadataUnavailable(ctx context.Context, commandKind string) {
+	if t != nil && t.enabled {
+		t.committedMetadataUnavailable.Add(ctx, 1, metric.WithAttributes(attribute.String("command_kind", committedCommandKind(commandKind))))
+	}
+}
+
+func (t *Telemetry) ObserveCommittedResponseWriteFailure(ctx context.Context, commandKind string) {
+	if t != nil && t.enabled {
+		t.committedWriteFailures.Add(ctx, 1, metric.WithAttributes(attribute.String("command_kind", committedCommandKind(commandKind))))
+	}
+}
+
+func committedCommandKind(commandKind string) string {
+	switch commandKind {
+	case "transfer", "funding", "correction":
+		return commandKind
+	default:
+		return "unknown"
+	}
 }
 
 func isWorkerQueue(queue string) bool {
