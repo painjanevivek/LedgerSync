@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { SanitizedOperationsResponse } from "@/lib/api/operations";
 import { sanitizeOperationsBody } from "@/lib/api/operations";
+import { canonicalizeUUIDPathSegments } from "@/lib/canonical-uuid";
 import type { RateLimitStore } from "@/lib/rate-limit";
 import { hasValidHost, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
@@ -98,6 +99,9 @@ export async function proxyOperationsGET(
   query: URLSearchParams,
   sanitizer: (status: number, value: unknown) => SanitizedOperationsResponse,
 ): Promise<NextResponse> {
+  let canonicalPath: string;
+  try { canonicalPath = canonicalizeUUIDPathSegments(path); }
+  catch { return jsonError("validation_failed", 400); }
   let connection: Readonly<{ apiURL: string; headers: Record<string, string> }>;
   try {
     const { privateAPIContext } = await import("@/lib/private-api");
@@ -106,7 +110,7 @@ export async function proxyOperationsGET(
   catch { return jsonError("temporary_unavailable", 503); }
   try {
     const suffix = query.size ? `?${query}` : "";
-    const upstream = await fetch(`${connection.apiURL}${path}${suffix}`, {
+    const upstream = await fetch(`${connection.apiURL}${canonicalPath}${suffix}`, {
       headers: connection.headers,
       cache: "no-store",
       signal: AbortSignal.timeout(privateReadTimeoutMilliseconds),
