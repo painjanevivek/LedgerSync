@@ -9,6 +9,7 @@ import (
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -61,6 +62,10 @@ func (h *BalanceHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	principal, err := h.authenticate(request)
 	if err != nil {
 		writeAuthenticationError(writer, request, err)
+		return
+	}
+	accountID, ok = requireCanonicalIdentifier(writer, request, identifier.KindAccount, accountID)
+	if !ok {
 		return
 	}
 	if identity.RequireScope(principal, "accounts:read") != nil {

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
@@ -105,7 +106,7 @@ func TestHotTenantSequenceAvoidsExhaustedSerializationConflicts(t *testing.T) {
 			defer wait.Done()
 			command := transferCommand(t, key, "1.00")
 			if index%2 == 0 {
-				command.TenantID = strings.ToUpper(command.TenantID)
+				command.TenantID = identifier.UUID(strings.ToUpper(command.TenantID.String()))
 			}
 			_, err := service.Submit(context.Background(), command)
 			errs <- err
@@ -126,6 +127,9 @@ func TestHotTenantSequenceAvoidsExhaustedSerializationConflicts(t *testing.T) {
 	}
 	if got := countRows(t, database, `SELECT count(*) FROM transfer_velocity_events`); got != submissions {
 		t.Fatalf("velocity events=%d, want %d", got, submissions)
+	}
+	if got := countRows(t, database, `SELECT count(*) FROM transfer_velocity_totals WHERE tenant_id=$1`, testTenantID); got != 3 {
+		t.Fatalf("velocity dimensions=%d, want one canonical row per tenant, actor, and source", got)
 	}
 }
 
