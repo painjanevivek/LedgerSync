@@ -64,6 +64,20 @@ groups:
         annotations:
           summary: Webhook signing-key cache lock wait p99 exceeds fifty milliseconds.
           runbook: docs/runbooks/worker-stall.md
+      - alert: LedgerSyncCommittedResponseMetadataUnavailable
+        expr: increase(ledgersync_committed_response_metadata_unavailable_total[5m]) > 0
+        for: 0m
+        labels: { severity: warning, service: ledgersync }
+        annotations:
+          summary: A durable command completed but optional response metadata was unavailable.
+          runbook: docs/runbooks/committed-response-recovery.md
+      - alert: LedgerSyncCommittedResponseWriteFailure
+        expr: increase(ledgersync_committed_response_write_failures_total[5m]) > 0
+        for: 0m
+        labels: { severity: critical, service: ledgersync }
+        annotations:
+          summary: A durable command completed but its success body could not be delivered.
+          runbook: docs/runbooks/committed-response-recovery.md
       - alert: LedgerSyncDeadWorkDetected
         expr: increase(ledgersync_recovery_dead_work_total[5m]) > 0
         for: 0m

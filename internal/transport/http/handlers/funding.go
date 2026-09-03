@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -18,14 +19,15 @@ import (
 const maxFundingBodyBytes = 64 * 1024
 
 type FundingHandler struct {
-	service       *appfunding.Service
-	identity      identity.Provider
-	authenticator *identity.RequestAuthenticator
-	rateLimiter   RateLimiter
-	readRate      int
-	writeRate     int
-	capacityLimit int
-	audit         AuditRecorder
+	service           *appfunding.Service
+	identity          identity.Provider
+	authenticator     *identity.RequestAuthenticator
+	rateLimiter       RateLimiter
+	readRate          int
+	writeRate         int
+	capacityLimit     int
+	audit             AuditRecorder
+	committedObserver httptransport.CommittedResponseObserver
 }
 
 func NewFundingHandler(service *appfunding.Service, provider identity.Provider) *FundingHandler {
@@ -44,6 +46,11 @@ func (h *FundingHandler) WithRateLimiter(limiter RateLimiter, readPerMinute, wri
 
 func (h *FundingHandler) WithAuditRecorder(audit AuditRecorder) *FundingHandler {
 	h.audit = audit
+	return h
+}
+
+func (h *FundingHandler) WithCommittedResponseObserver(observer httptransport.CommittedResponseObserver) *FundingHandler {
+	h.committedObserver = observer
 	return h
 }
 
@@ -94,7 +101,7 @@ func (h *FundingHandler) Request(writer http.ResponseWriter, request *http.Reque
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingSubmission(writer, submission, http.StatusCreated)
+	writeFundingSubmission(request.Context(), writer, submission, http.StatusCreated, h.committedObserver)
 }
 
 func (h *FundingHandler) List(writer http.ResponseWriter, request *http.Request) {
@@ -172,7 +179,7 @@ func (h *FundingHandler) decide(writer http.ResponseWriter, request *http.Reques
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingJSON(writer, http.StatusOK, event)
+	writeFundingCommitted(request.Context(), writer, http.StatusOK, event, event.FundingEventID, false, h.committedObserver)
 }
 
 func (h *FundingHandler) Post(writer http.ResponseWriter, request *http.Request) {
@@ -188,7 +195,7 @@ func (h *FundingHandler) Post(writer http.ResponseWriter, request *http.Request)
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingSubmission(writer, submission, http.StatusOK)
+	writeFundingSubmission(request.Context(), writer, submission, http.StatusOK, h.committedObserver)
 }
 
 func (h *FundingHandler) Compensate(writer http.ResponseWriter, request *http.Request) {
@@ -210,7 +217,7 @@ func (h *FundingHandler) Compensate(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingSubmission(writer, submission, http.StatusCreated)
+	writeFundingSubmission(request.Context(), writer, submission, http.StatusCreated, h.committedObserver)
 }
 
 func (h *FundingHandler) Reconcile(writer http.ResponseWriter, request *http.Request) {
@@ -277,11 +284,23 @@ func decodeFundingJSON(writer http.ResponseWriter, request *http.Request, target
 	return nil
 }
 
-func writeFundingSubmission(writer http.ResponseWriter, submission appfunding.Submission, status int) {
-	if submission.Replayed {
-		writer.Header().Set("Idempotent-Replay", "true")
+func writeFundingSubmission(ctx context.Context, writer http.ResponseWriter, submission appfunding.Submission, status int, observer httptransport.CommittedResponseObserver) {
+	writeFundingCommitted(ctx, writer, status, submission, submission.Event.FundingEventID, submission.Replayed, observer)
+}
+
+func writeFundingCommitted(ctx context.Context, writer http.ResponseWriter, status int, body any, commandID string, replayed bool, observer httptransport.CommittedResponseObserver) {
+	headers := make(http.Header)
+	if replayed {
+		headers.Set("Idempotent-Replay", "true")
 	}
-	writeFundingJSON(writer, status, submission)
+	httptransport.WriteCommittedJSON(ctx, writer, httptransport.CommittedResponse{
+		Status:       status,
+		CommandKind:  "funding",
+		CommandID:    commandID,
+		RecoveryPath: "/api/funding-events/" + commandID,
+		Body:         body,
+		Headers:      headers,
+	}, observer)
 }
 
 func writeFundingJSON(writer http.ResponseWriter, status int, body any) {
