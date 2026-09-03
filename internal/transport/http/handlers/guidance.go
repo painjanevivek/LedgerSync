@@ -138,7 +138,7 @@ func (h *GuidanceHandler) authorize(writer http.ResponseWriter, request *http.Re
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return identity.Principal{}, false
 	}
 	for _, scope := range scopes {

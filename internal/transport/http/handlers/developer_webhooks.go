@@ -64,6 +64,9 @@ type webhookDisableRequest struct {
 type webhookReplayApprovalRequest struct {
 	ReasonCode string `json:"reason_code"`
 }
+type webhookReplayRequest struct {
+	ApprovalID string `json:"approval_id"`
+}
 
 func (h *DeveloperWebhookHandler) Register(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.authorize(w, r, "webhooks:write", "webhooks:register", true)
@@ -187,12 +190,15 @@ func (h *DeveloperWebhookHandler) ApproveReplay(w http.ResponseWriter, r *http.R
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	err := h.service.ApproveReplay(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), p.SubjectID, input.ReasonCode, middleware.CorrelationID(r.Context()))
+	result, err := h.service.ApproveReplay(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), p.SubjectID, input.ReasonCode, middleware.CorrelationID(r.Context()), r.Header.Get("Idempotency-Key"))
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
 	}
-	writeDeveloperCredentialJSON(w, http.StatusCreated, map[string]string{"status": "approved"})
+	if result.Replayed {
+		w.Header().Set("Idempotent-Replay", "true")
+	}
+	writeDeveloperCredentialJSON(w, http.StatusCreated, map[string]string{"approval_id": result.ApprovalID, "status": "approved"})
 }
 func (h *DeveloperWebhookHandler) Replay(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.authorize(w, r, "webhooks:replay", "webhooks:replay_execute", true)
@@ -203,17 +209,20 @@ func (h *DeveloperWebhookHandler) Replay(w http.ResponseWriter, r *http.Request)
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	var input struct{}
+	var input webhookReplayRequest
 	if decodeDeveloperCredentialJSON(w, r, &input) != nil {
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	jobID, err := h.service.ReplayDelivery(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), p.SubjectID, middleware.CorrelationID(r.Context()))
+	result, err := h.service.ReplayDelivery(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), input.ApprovalID, p.SubjectID, middleware.CorrelationID(r.Context()), r.Header.Get("Idempotency-Key"))
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
 	}
-	writeDeveloperCredentialJSON(w, http.StatusAccepted, map[string]string{"delivery_job_id": jobID, "status": "scheduled"})
+	if result.Replayed {
+		w.Header().Set("Idempotent-Replay", "true")
+	}
+	writeDeveloperCredentialJSON(w, http.StatusAccepted, map[string]string{"delivery_job_id": result.DeliveryJobID, "status": "scheduled"})
 }
 
 func (h *DeveloperWebhookHandler) writeSubmission(w http.ResponseWriter, r *http.Request, s developerplatform.WebhookSubmission, err error) {
@@ -233,7 +242,7 @@ func (h *DeveloperWebhookHandler) authorize(w http.ResponseWriter, r *http.Reque
 	}
 	p, err := h.authenticate(r)
 	if err != nil {
-		httptransport.WriteError(w, r, httptransport.ErrUnauthorized)
+		writeAuthenticationError(w, r, err)
 		return identity.Principal{}, false
 	}
 	if identity.RequireScope(p, scope) != nil {
@@ -288,8 +297,10 @@ func publicDeveloperWebhookError(err error) error {
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "webhook_version_conflict", Message: "The webhook changed before this command was applied."}
 	case errors.Is(err, developerplatform.ErrIdempotencyConflict):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "idempotency_conflict", Message: "The idempotency key belongs to a different webhook intent."}
+	case errors.Is(err, db.ErrDeliveryReplayIdempotencyConflict):
+		return &httptransport.PublicError{Status: http.StatusConflict, Code: "idempotency_conflict", Message: "The idempotency key belongs to a different delivery replay intent."}
 	case errors.Is(err, db.ErrDeliveryReplayNotApproved):
-		return &httptransport.PublicError{Status: http.StatusConflict, Code: "replay_not_approved", Message: "This delivery replay has not been approved for the correlation ID."}
+		return &httptransport.PublicError{Status: http.StatusConflict, Code: "replay_not_approved", Message: "This delivery replay does not have the referenced approval."}
 	case errors.Is(err, db.ErrReplaySeparationRequired):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "replay_separation_required", Message: "The replay operator must differ from the approver."}
 	case errors.Is(err, developerplatform.ErrConflict):

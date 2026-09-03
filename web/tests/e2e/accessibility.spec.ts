@@ -84,13 +84,27 @@ test("account balance and ledger history report independent truth states", async
 
 test("every populated MVP route has no automatically detectable WCAG A or AA violation", async ({ page }) => {
   await mockOperatorConsole(page);
-  const routes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/funding", "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
+  const routes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/funding", "/approvals", "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
   for (const route of routes) {
     await page.goto(route);
     await expect(page.locator("main h1")).toBeVisible();
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     expect(results.violations, `${route}: ${results.violations.map((violation) => violation.id).join(", ")}`).toEqual([]);
   }
+});
+
+test("compact approval evidence reflows through a keyboard-scrollable labelled region", async ({ page }) => {
+  await page.setViewportSize({ width:320,height:640 });
+  await mockOperatorConsole(page);
+  await page.goto("/approvals");
+  const queue = page.getByRole("region", { name:"Approval queue records" });
+  await expect(queue).toBeVisible();
+  await queue.focus();
+  await expect(queue).toBeFocused();
+  expect(await queue.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(results.violations).toEqual([]);
 });
 
 test("keyboard-only transfer review announces an unknown result and preserves the retry key", async ({ page }) => {

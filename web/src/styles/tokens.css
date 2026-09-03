@@ -34,6 +34,41 @@
   --skeleton: #e4e9e5;
   --skeleton-highlight: #f1f4f2;
   --white: #ffffff;
+  --workspace-topbar-surface: rgb(247 248 250 / 96%);
+  --navigation-mark-surface: #d8f4ea;
+  --navigation-border: rgb(216 232 225 / 18%);
+  --navigation-surface: rgb(255 255 255 / 4%);
+  --navigation-hover-surface: rgb(143 179 219 / 12%);
+  --navigation-active-surface: rgb(149 182 221 / 20%);
+  --navigation-divider: rgb(216 232 225 / 13%);
+  --navigation-control-border: rgb(216 232 225 / 20%);
+  --navigation-code-divider: rgb(216 232 225 / 16%);
+  --navigation-code-border: rgb(216 232 225 / 28%);
+  --navigation-mobile-control-border: rgb(255 255 255 / 25%);
+  --navigation-active-marker: #9adfc6;
+  --navigation-compact-active-marker: #9ccbb8;
+  --navigation-copy-soft: #d6e0ee;
+  --navigation-accent-muted: #8ec3af;
+  --navigation-copy-strong: #dce8e3;
+  --navigation-copy-muted: #adc1b9;
+  --navigation-danger-line: #d99a91;
+  --navigation-danger-surface: rgb(141 57 47 / 18%);
+  --navigation-danger-copy: #ffd8d3;
+  --drawer-backdrop: rgb(4 13 29 / 60%);
+  --dialog-backdrop: rgb(4 13 29 / 68%);
+  --authentication-shadow: 0 18px 48px rgb(11 30 60 / 10%);
+  --evidence-success-border: #aacbbb;
+  --evidence-success-copy: #557166;
+  --evidence-warning-border: #d9c59b;
+  --evidence-warning-copy: #715e3e;
+  --status-success-border: #b7d1c3;
+  --status-danger-border: #deb9b4;
+  --status-danger-copy: #7b3027;
+  --status-warning-border: #e1cb9d;
+  --status-warning-copy: #6d4b17;
+  --status-danger-emphasis-border: #efc2bc;
+  --status-warning-emphasis-border: #efc879;
+  --surface-field-muted: #eef3ef;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -79,15 +114,3 @@
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-family: var(--font-sans);
 }
-
-* { box-sizing: border-box; }
-html, body { width: 100%; min-width: 0; min-height: 100%; }
-html { scroll-behavior: smooth; }
-body { min-height: 100vh; min-height: 100dvh; margin: 0; background: var(--canvas); color: var(--ink); font-size: 14px; }
-button, input, select { font: inherit; }
-button { cursor: pointer; }
-button:disabled { cursor: not-allowed; opacity: .52; }
-a { color: inherit; }
-code, .mono { font-family: var(--font-mono); }
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

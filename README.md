@@ -107,7 +107,7 @@ xychart-beta
 | Phase 5 PostgreSQL ownership suite | **PASS in 2.513 s** | cross-account reads denied without disclosure |
 | BFF security suite | **3 / 3 tests passed** | session tamper/expiry, CSRF, response headers |
 | Phase 4 fault cases | **3 scenarios passed** | delayed projection, Redis loss/rebuild, monotonic cache version |
-| Ordered migrations | **26** | financial schema through lifecycle, investigation, recovery, shared replay controls, webhook verification, and permanent-post retry binding |
+| Ordered migrations | **29** | financial schema through lifecycle, investigation, recovery, shared replay controls, webhook verification, permanent-post retry binding, bounded approval and webhook evidence read models, and caller-owned delivery replay identity |
 | Journal postings / posted transfer | **2** | one debit + one credit |
 | Account events / transfer | **2** | one outbox event per affected account |
 | Consistency requirement lifetime | **10 min** | signed minimum balance version |
@@ -430,7 +430,7 @@ normal project's opaque financial fingerprint or named-volume set changes.
 
 ## Quick start
 
-The repository-root `docker-compose.yml` is the canonical local entry point and delegates to the supported topology in `deploy/compose/docker-compose.yml`. The archived `docker-compose.legacy-demo.yml` is retained only for historical reference; it is not a supported development, test, or production path.
+The repository-root `docker-compose.yml` is the single canonical local entry point and delegates to the supported topology in `deploy/compose/docker-compose.yml`. The retired predecessor services, dashboard, simulation, setup SQL, and legacy Compose topology have been removed; their review history remains available in `docs/reviews/` and Git.
 
 ### Complete local operator path
 

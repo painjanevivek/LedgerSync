@@ -1,0 +1,39 @@
+
+.filter-bar {
+  display: flex;
+  width: min(1080px, 100%);
+  align-items: end;
+  gap: 14px;
+  margin: 18px 0 8px;
+  border: 1px solid var(--line);
+  padding: 14px;
+  background: var(--paper);
+}
+.filter-bar label {
+  display: grid;
+  min-width: 180px;
+  flex: 1;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 750;
+}
+.filter-bar input,
+.filter-bar select {
+  min-height: var(--target-compact);
+  border: 1px solid var(--line-strong);
+  padding: 9px 11px;
+  background: var(--white);
+  color: var(--ink);
+}
+.filter-bar > span {
+  padding-bottom: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.filter-scope-note {
+  width: min(1080px, 100%);
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}

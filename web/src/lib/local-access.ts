@@ -8,6 +8,18 @@ export type LocalAccessConfiguration = Readonly<{
   tenantId: string;
 }>;
 
+export function isLocalSession(
+  session: Session | null,
+  configuration: LocalAccessConfiguration,
+) {
+  return Boolean(
+    session &&
+      configuration.enabled &&
+      session.subjectId === configuration.subjectId &&
+      session.tenantId === configuration.tenantId,
+  );
+}
+
 /**
  * Local login is a loopback-only development adapter. It never accepts browser
  * supplied identity and production-like environments reject its configuration.
@@ -83,6 +95,8 @@ export function createLocalSession(
       "local:read",
       "local:write",
       "events:read",
+      "investigation:read",
+      "investigation:write",
       "explainability:read",
       "developer:read",
       "credentials:read",

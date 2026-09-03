@@ -20,9 +20,19 @@ type DeadDelivery struct {
 }
 
 type DeliveryApproval struct {
-	TenantID, AttemptID, ActorSubjectID, ReasonCode, CorrelationID string
+	TenantID, AttemptID, ActorSubjectID, ReasonCode, CorrelationID, IdempotencyKey string
+}
+
+type DeliveryApprovalResult struct {
+	ApprovalID string
+	Replayed   bool
 }
 
 type DeliveryReplay struct {
-	TenantID, AttemptID, ActorSubjectID, CorrelationID string
+	TenantID, AttemptID, ApprovalID, ActorSubjectID, CorrelationID, IdempotencyKey string
+}
+
+type DeliveryReplayResult struct {
+	DeliveryJobID string
+	Replayed      bool
 }

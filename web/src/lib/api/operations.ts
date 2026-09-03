@@ -32,7 +32,41 @@ export type DeliveryAttempt = Readonly<{
   completed_at?: string;
   response_class?: string;
   error_code?: string;
+  endpoint_id?: string;
+  endpoint_label?: string;
+  endpoint_origin?: string;
 }>;
+
+export type WebhookEndpoint = Readonly<{
+  endpoint_id: string;
+  label: string;
+  origin: string;
+  status: "pending_verification" | "active" | "disabled" | "unknown";
+  subscribed_events: string[];
+  recent_delivery_state: "none" | "pending" | "retrying" | "delivered" | "dead" | "unknown";
+  recent_attempt_count: string;
+  recent_dead_count: string;
+  verified_at?: string;
+  disabled_at?: string;
+  latest_delivery_at?: string;
+  updated_at: string;
+}>;
+
+export type WebhookDeliveryAttempt = Readonly<{
+  attempt_id: string;
+  event_id?: string;
+  transfer_id: string;
+  state: "pending" | "retrying" | "delivered" | "dead" | "unknown";
+  attempt_number: string;
+  response_class?: string;
+  error_code?: string;
+  due_at: string;
+  started_at?: string;
+  completed_at?: string;
+}>;
+
+export type WebhookEndpointPage = Readonly<{ items: WebhookEndpoint[]; next_cursor: string }>;
+export type WebhookEndpointDetail = WebhookEndpoint & Readonly<{ delivery_attempts: WebhookDeliveryAttempt[]; delivery_attempts_truncated: boolean }>;
 
 export type EventTimelineItem = Readonly<{ kind: string; occurred_at: string }>;
 
@@ -73,6 +107,8 @@ const dependencyStates = new Set(["reachable", "unavailable"]);
 const eventStates = new Set(["pending", "retrying", "published", "dead", "unknown"]);
 const attemptKinds = new Set(["webhook", "notification", "unknown"]);
 const attemptStates = new Set(["pending", "retrying", "delivered", "dead", "unknown"]);
+const webhookEndpointStatuses = new Set(["pending_verification", "active", "disabled", "unknown"]);
+const webhookDeliveryStates = new Set(["none", "pending", "retrying", "delivered", "dead", "unknown"]);
 const responseClasses = new Set(["2xx", "3xx", "4xx", "5xx", "network_error", "timeout", "redacted"]);
 const eventErrorCodes = new Set(["publish_failed", "invalid_event", "redis_unavailable", "approved_replay", "redacted"]);
 const attemptErrorCodes = new Set(["timeout", "publish_failed", "invalid_event", "redis_unavailable", "recipient_unavailable", "connection_failed", "redacted"]);
@@ -109,6 +145,15 @@ function timestamp(value: unknown): value is string {
 
 function optionalTimestamp(value: unknown): value is string | undefined {
   return value === undefined || timestamp(value);
+}
+
+function endpointOrigin(value: unknown): value is string {
+  if (!bounded(value, 255)) return false;
+  if (value === "unavailable") return true;
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === "https:" || parsed.protocol === "http:") && parsed.username === "" && parsed.password === "" && parsed.origin === value && parsed.pathname === "/" && parsed.search === "" && parsed.hash === "";
+  } catch { return false; }
 }
 
 function count(value: unknown): string | null {
@@ -235,18 +280,64 @@ function event(value: unknown): DeliveryEvent | null {
 }
 
 function attempt(value: unknown): DeliveryAttempt | null {
-  if (!isRecord(value) || !keysAllowed(value, ["attempt_id", "kind", "state", "attempt_number", "due_at", "started_at", "completed_at", "response_class", "error_code"])) return null;
+  if (!isRecord(value) || !keysAllowed(value, ["attempt_id", "kind", "state", "attempt_number", "due_at", "started_at", "completed_at", "response_class", "error_code", "endpoint_id", "endpoint_label", "endpoint_origin"])) return null;
   const number = count(value.attempt_number);
   if (!safeUUID(value.attempt_id) || typeof value.kind !== "string" || !attemptKinds.has(value.kind) || typeof value.state !== "string" || !attemptStates.has(value.state) || number === null || !timestamp(value.due_at)
     || !optionalTimestamp(value.started_at) || !optionalTimestamp(value.completed_at)
     || value.response_class !== undefined && (typeof value.response_class !== "string" || !responseClasses.has(value.response_class))
-    || value.error_code !== undefined && (typeof value.error_code !== "string" || !attemptErrorCodes.has(value.error_code))) return null;
+    || value.error_code !== undefined && (typeof value.error_code !== "string" || !attemptErrorCodes.has(value.error_code))
+    || value.endpoint_id !== undefined && !safeUUID(value.endpoint_id)
+    || value.endpoint_label !== undefined && !bounded(value.endpoint_label, 100)
+    || value.endpoint_origin !== undefined && !endpointOrigin(value.endpoint_origin)
+    || value.endpoint_id === undefined && (value.endpoint_label !== undefined || value.endpoint_origin !== undefined)
+    || value.endpoint_id !== undefined && (value.endpoint_label === undefined || value.endpoint_origin === undefined)) return null;
   return {
     attempt_id: value.attempt_id, kind: value.kind, state: value.state, attempt_number: number, due_at: value.due_at,
     ...(value.started_at === undefined ? {} : { started_at: value.started_at }),
     ...(value.completed_at === undefined ? {} : { completed_at: value.completed_at }),
     ...(value.response_class === undefined ? {} : { response_class: value.response_class }),
     ...(value.error_code === undefined ? {} : { error_code: value.error_code }),
+    ...(value.endpoint_id === undefined ? {} : { endpoint_id: value.endpoint_id, endpoint_label: value.endpoint_label as string, endpoint_origin: value.endpoint_origin as string }),
+  };
+}
+
+function webhookEndpoint(value: unknown): WebhookEndpoint | null {
+  if (!isRecord(value) || !keysAllowed(value, ["endpoint_id", "label", "origin", "status", "subscribed_events", "recent_delivery_state", "recent_attempt_count", "recent_dead_count", "verified_at", "disabled_at", "latest_delivery_at", "updated_at"])) return null;
+  const recentAttempts = count(value.recent_attempt_count);
+  const recentDead = count(value.recent_dead_count);
+  if (!safeUUID(value.endpoint_id) || !bounded(value.label, 100) || !endpointOrigin(value.origin)
+    || typeof value.status !== "string" || !webhookEndpointStatuses.has(value.status)
+    || !Array.isArray(value.subscribed_events) || value.subscribed_events.length < 1 || value.subscribed_events.length > 32 || !value.subscribed_events.every((item) => safeIdentifier(item, 128))
+    || typeof value.recent_delivery_state !== "string" || !webhookDeliveryStates.has(value.recent_delivery_state)
+    || recentAttempts === null || recentDead === null || BigInt(recentDead) > BigInt(recentAttempts)
+    || !optionalTimestamp(value.verified_at) || !optionalTimestamp(value.disabled_at) || !optionalTimestamp(value.latest_delivery_at) || !timestamp(value.updated_at)
+    || value.status === "active" && value.verified_at === undefined
+    || value.status === "disabled" && value.disabled_at === undefined) return null;
+  return {
+    endpoint_id: value.endpoint_id, label: value.label, origin: value.origin,
+    status: value.status as WebhookEndpoint["status"], subscribed_events: [...value.subscribed_events] as string[],
+    recent_delivery_state: value.recent_delivery_state as WebhookEndpoint["recent_delivery_state"], recent_attempt_count: recentAttempts, recent_dead_count: recentDead,
+    ...(value.verified_at === undefined ? {} : { verified_at: value.verified_at }),
+    ...(value.disabled_at === undefined ? {} : { disabled_at: value.disabled_at }),
+    ...(value.latest_delivery_at === undefined ? {} : { latest_delivery_at: value.latest_delivery_at }),
+    updated_at: value.updated_at,
+  };
+}
+
+function webhookDeliveryAttempt(value: unknown): WebhookDeliveryAttempt | null {
+  if (!isRecord(value) || !keysAllowed(value, ["attempt_id", "event_id", "transfer_id", "state", "attempt_number", "response_class", "error_code", "due_at", "started_at", "completed_at"])) return null;
+  const number = count(value.attempt_number);
+  if (!safeUUID(value.attempt_id) || value.event_id !== undefined && !safeUUID(value.event_id) || !safeUUID(value.transfer_id)
+    || typeof value.state !== "string" || !attemptStates.has(value.state) || number === null || !timestamp(value.due_at)
+    || !optionalTimestamp(value.started_at) || !optionalTimestamp(value.completed_at)
+    || value.response_class !== undefined && (typeof value.response_class !== "string" || !responseClasses.has(value.response_class))
+    || value.error_code !== undefined && (typeof value.error_code !== "string" || !attemptErrorCodes.has(value.error_code))) return null;
+  return {
+    attempt_id: value.attempt_id, ...(value.event_id === undefined ? {} : { event_id: value.event_id }), transfer_id: value.transfer_id,
+    state: value.state as WebhookDeliveryAttempt["state"], attempt_number: number,
+    ...(value.response_class === undefined ? {} : { response_class: value.response_class }),
+    ...(value.error_code === undefined ? {} : { error_code: value.error_code }),
+    due_at: value.due_at, ...(value.started_at === undefined ? {} : { started_at: value.started_at }), ...(value.completed_at === undefined ? {} : { completed_at: value.completed_at }),
   };
 }
 
@@ -279,6 +370,25 @@ export function sanitizeEventDetail(status: number, value: unknown): SanitizedOp
   const items = timeline.map(timelineItem);
   if (attempts.some((item) => item === null) || items.some((item) => item === null)) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
   return { status: 200, body: { ...base, delivery_attempts: attempts, delivery_attempts_truncated, timeline: items } };
+}
+
+export function sanitizeWebhookEndpointPage(status: number, value: unknown): SanitizedOperationsResponse {
+  if (status < 200 || status >= 300) return sanitizeError(status, value);
+  if (!isRecord(value) || !keysAllowed(value, ["items", "next_cursor"]) || !Array.isArray(value.items) || value.items.length > 100 || !bounded(value.next_cursor, 2_048, true)) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  const items = value.items.map(webhookEndpoint);
+  if (items.some((item) => item === null)) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  return { status: 200, body: { items, next_cursor: value.next_cursor } };
+}
+
+export function sanitizeWebhookEndpointDetail(status: number, value: unknown): SanitizedOperationsResponse {
+  if (status < 200 || status >= 300) return sanitizeError(status, value);
+  if (!isRecord(value) || !keysAllowed(value, ["endpoint_id", "label", "origin", "status", "subscribed_events", "recent_delivery_state", "recent_attempt_count", "recent_dead_count", "verified_at", "disabled_at", "latest_delivery_at", "updated_at", "delivery_attempts", "delivery_attempts_truncated"])) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  const { delivery_attempts, delivery_attempts_truncated, ...baseValue } = value;
+  const base = webhookEndpoint(baseValue);
+  if (!base || !Array.isArray(delivery_attempts) || delivery_attempts.length > 25 || typeof delivery_attempts_truncated !== "boolean") return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  const attempts = delivery_attempts.map(webhookDeliveryAttempt);
+  if (attempts.some((item) => item === null)) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  return { status: 200, body: { ...base, delivery_attempts: attempts, delivery_attempts_truncated } };
 }
 
 export function sanitizeOperationsBody(status: number, raw: string, sanitizer: (status: number, value: unknown) => SanitizedOperationsResponse): SanitizedOperationsResponse {

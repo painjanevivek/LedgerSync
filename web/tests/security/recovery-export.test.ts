@@ -40,7 +40,7 @@ test("exports require exports:read plus the underlying read scope and exact Host
 });
 
 test("export queries are strict, bounded, typed, and cannot select tenant, filename, or path",()=>{
-  const valid=strictExportQuery(request("/api/exports/transfers.csv?status=posted&q=OPS-1&from=2026-08-01T00:00:00Z&to=2026-08-25T00:00:00Z&limit=10000"),"transfers");
+  const valid=strictExportQuery(request("/api/exports/transfers.csv?status=pending&q=ABC-1&from=2026-08-01T00:00:00Z&to=2026-08-25T00:00:00Z&limit=10000"),"transfers");
   assert.ok(valid instanceof URLSearchParams);
   for(const path of ["/api/exports/transfers.csv?tenantId=tenant-2","/api/exports/transfers.csv?filename=report.csv","/api/exports/transfers.csv?path=C:%5Cbackup","/api/exports/transfers.csv?status=posted&status=rejected","/api/exports/transfers.csv?limit=10001","/api/exports/transfers.csv?status=unknown","/api/exports/transfers.csv?accountId=secret","/api/exports/transfers.csv?from=2026-08-26T00:00:00Z&to=2026-08-25T00:00:00Z","/api/exports/transfers.csv?from=2026-08-01T00:00:00"]){assert.equal(strictExportQuery(request(path),"transfers") instanceof URLSearchParams,false,path);}
   assert.ok(strictExportQuery(request("/api/exports/reconciliation.csv?runId=55555555-5555-4555-8555-555555555555&status=matched&limit=1"),"reconciliation") instanceof URLSearchParams);

@@ -17,30 +17,42 @@ import {
   Receipt,
   X,
   BookOpenText,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+import {
+  canOpenApprovalInbox,
+  canOpenEventsAndWebhooks,
+  canSearchInvestigations,
+  deriveConsoleCapabilities,
+  type ConsoleCapabilities,
+} from "@/features/console/capabilities";
+import { COMPACT_NAVIGATION_MEDIA_QUERY } from "@/lib/responsive";
 
 export type ConsoleSection =
   | "overview"
   | "accounts"
   | "funding"
   | "transfers"
+  | "approvals"
   | "corrections"
   | "reconciliation"
   | "local-status"
   | "events"
   | "developer"
   | "recovery"
-  | "guide";
+  | "guide"
+  | "search";
 
 type Props = Readonly<{
   section: ConsoleSection;
@@ -52,74 +64,123 @@ type Props = Readonly<{
   operatorMeta: string;
 }>;
 
-const navigation = [
+const always = () => true;
+
+const navigation: ReadonlyArray<
+  Readonly<{
+    label: string;
+    items: ReadonlyArray<
+      Readonly<{
+        section: ConsoleSection;
+        label: string;
+        href: string;
+        icon: typeof Bank;
+        visible: (capabilities: ConsoleCapabilities) => boolean;
+      }>
+    >;
+  }>
+> = [
   {
-    label: "Financial workspace",
+    label: "Work",
     items: [
       {
         section: "overview" as const,
         label: "Overview",
         href: "/",
         icon: ChartDonut,
+        visible: always,
       },
       {
         section: "accounts" as const,
         label: "Accounts",
         href: "/accounts",
         icon: Bank,
+        visible: (capabilities) => capabilities.accountsRead,
       },
       {
         section: "funding" as const,
         label: "Funding records",
         href: "/funding",
         icon: Receipt,
+        visible: (capabilities) => capabilities.fundingRead,
       },
       {
         section: "transfers" as const,
         label: "Transfers",
         href: "/transfers",
         icon: ArrowsLeftRight,
+        visible: (capabilities) => capabilities.transfersRead,
+      },
+      {
+        section: "approvals" as const,
+        label: "Approvals",
+        href: "/approvals",
+        icon: CheckCircle,
+        visible: canOpenApprovalInbox,
+      },
+    ],
+  },
+  {
+    label: "Investigate",
+    items: [
+      {
+        section: "search" as const,
+        label: "Search records",
+        href: "/search",
+        icon: MagnifyingGlass,
+        visible: canSearchInvestigations,
       },
       {
         section: "corrections" as const,
         label: "Corrections",
         href: "/corrections",
         icon: ArrowsCounterClockwise,
+        visible: (capabilities) => capabilities.correctionsRead,
       },
       {
         section: "reconciliation" as const,
         label: "Reconciliation",
         href: "/reconciliation",
         icon: ShieldCheck,
+        visible: (capabilities) => capabilities.reconciliationRead,
+      },
+      {
+        section: "events" as const,
+        label: "Events & webhooks",
+        href: "/events",
+        icon: Broadcast,
+        visible: canOpenEventsAndWebhooks,
       },
     ],
   },
   {
-    label: "Local tools",
+    label: "Platform",
     items: [
-      {
-        section: "local-status" as const,
-        label: "Local status",
-        href: "/local-status",
-        icon: Pulse,
-      },
-      {
-        section: "events" as const,
-        label: "Events",
-        href: "/events",
-        icon: Broadcast,
-      },
       {
         section: "developer" as const,
         label: "Developer",
         href: "/developer",
         icon: Code,
+        visible: (capabilities) => capabilities.developerRead,
       },
       {
         section: "recovery" as const,
         label: "Recovery",
         href: "/recovery",
         icon: Archive,
+        visible: (capabilities) => capabilities.recoveryRead,
+      },
+    ],
+  },
+  {
+    label: "Environment",
+    items: [
+      {
+        section: "local-status" as const,
+        label: "Local status",
+        href: "/local-status",
+        icon: Pulse,
+        visible: (capabilities) => capabilities.localDiagnosticsRead,
       },
     ],
   },
@@ -136,6 +197,10 @@ export function ConsoleShell({
 }: Props) {
   const { session, online, signOut, signOutPending, signOutError } =
     useConsoleSession();
+  const capabilities = useMemo(
+    () => deriveConsoleCapabilities(session),
+    [session],
+  );
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [compactNavigation, setCompactNavigation] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -145,7 +210,7 @@ export function ConsoleShell({
     window.requestAnimationFrame(() => menuButton.current?.focus());
   }, []);
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 760px)");
+    const query = window.matchMedia(COMPACT_NAVIGATION_MEDIA_QUERY);
     const update = () => {
       setCompactNavigation(query.matches);
       if (!query.matches) setNavigationOpen(false);
@@ -261,10 +326,13 @@ export function ConsoleShell({
         </div>
 
         <nav className="primary-nav" aria-label="Primary navigation">
-          {navigation.map((group) => (
+          {navigation.map((group) => {
+            const items = group.items.filter((item) => item.visible(capabilities));
+            if (items.length === 0) return null;
+            return (
             <div className="nav-group" key={group.label}>
               <p className="nav-section-label">{group.label}</p>
-              {group.items.map((item) => {
+              {items.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
@@ -286,7 +354,8 @@ export function ConsoleShell({
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="nav-footer">

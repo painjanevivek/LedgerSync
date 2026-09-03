@@ -54,16 +54,7 @@ func TestRealBFFControlledFundingLifecycle(t *testing.T) {
 	if baseURL == "" {
 		t.Skip("LEDGERSYNC_SYSTEM_WEB_URL is required for the real-stack funding test")
 	}
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
-	var session sessionPayload
-	getJSON(t, client, baseURL+"/api/session", &session)
-	if session.CSRFToken == "" {
-		t.Fatal("real BFF did not establish the server-gated demo session")
-	}
+	client, session := newAuthenticatedClient(t, baseURL)
 
 	const destinationID = "10000000-0000-4000-8000-000000000006"
 	const key = "system-funding-idempotency-000001"
@@ -89,18 +80,21 @@ func TestRealBFFControlledFundingLifecycle(t *testing.T) {
 		t.Fatalf("demo funding approval=%+v", approved)
 	}
 	var posted fundingSubmissionPayload
-	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, "", nil, &posted)
+	const postKey = "system-funding-post-000001"
+	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, postKey, nil, &posted)
 	if posted.Event.Status != "posted" || posted.Event.JournalTransactionID == "" || posted.Event.BalanceVersion == "" {
 		t.Fatalf("posted funding journal=%+v", posted)
 	}
 	var postReplay fundingSubmissionPayload
-	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, "", nil, &postReplay)
+	postJSON(t, client, eventURL+"/post", baseURL, session.CSRFToken, postKey, nil, &postReplay)
 	if !postReplay.Replayed || postReplay.Event.JournalTransactionID != posted.Event.JournalTransactionID {
 		t.Fatalf("funding post replay=%+v", postReplay)
 	}
 
 	var after balancePayload
-	getJSON(t, client, baseURL+"/api/accounts/"+destinationID+"/balance?require_version="+posted.Event.BalanceVersion, &after)
+	// The BFF applies the signed consistency requirement from the rotated
+	// session cookie; callers cannot supply or weaken it through the query.
+	getJSON(t, client, baseURL+"/api/accounts/"+destinationID+"/balance", &after)
 	beforeMinor, parseErr := strconv.ParseInt(before.AvailableMinor, 10, 64)
 	if parseErr != nil {
 		t.Fatal(parseErr)
@@ -137,16 +131,7 @@ func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 	if baseURL == "" {
 		t.Skip("LEDGERSYNC_SYSTEM_WEB_URL is required for the real-stack smoke test")
 	}
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
-	var session sessionPayload
-	getJSON(t, client, baseURL+"/api/session", &session)
-	if session.CSRFToken == "" {
-		t.Fatal("real BFF did not establish the server-gated demo session")
-	}
+	client, session := newAuthenticatedClient(t, baseURL)
 	var accounts struct {
 		Accounts []struct {
 			AccountID string `json:"account_id"`
@@ -177,7 +162,9 @@ func TestRealBFFAPIAndPostgreSQLRetryPath(t *testing.T) {
 		t.Fatalf("first request unexpectedly replayed idempotency key %q; use a new key for each intentional movement", key)
 	}
 	var afterFirst balancePayload
-	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance?require_version=1", &afterFirst)
+	// The transfer response rotates the signed session with the minimum
+	// committed balance version required by this follow-up read.
+	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance", &afterFirst)
 	second := postTransfer(t, client, baseURL, session.CSRFToken, key, body)
 	if !second.Replayed {
 		t.Fatalf("same-key retry was not identified as a replay for transfer %s", first.TransferID)
@@ -216,13 +203,7 @@ func TestRealBFFSameKeyReplayAfterAPIProcessRestart(t *testing.T) {
 	if baseURL == "" || key == "" || os.Getenv("LEDGERSYNC_SYSTEM_EXPECT_RESTART_REPLAY") != "true" {
 		t.Skip("explicit post-restart system-test configuration is required for restart replay evidence")
 	}
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
-	var session sessionPayload
-	getJSON(t, client, baseURL+"/api/session", &session)
+	client, session := newAuthenticatedClient(t, baseURL)
 	var before balancePayload
 	getJSON(t, client, baseURL+"/api/accounts/10000000-0000-4000-8000-000000000001/balance", &before)
 
@@ -245,13 +226,7 @@ func TestRealBFFReconciliationEvidence(t *testing.T) {
 	if baseURL == "" {
 		t.Skip("LEDGERSYNC_SYSTEM_WEB_URL is required for the real-stack smoke test")
 	}
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
-	var session sessionPayload
-	getJSON(t, client, baseURL+"/api/session", &session)
+	client, _ := newAuthenticatedClient(t, baseURL)
 	var evidence struct {
 		Runs []struct {
 			Status        string `json:"status"`
@@ -263,6 +238,30 @@ func TestRealBFFReconciliationEvidence(t *testing.T) {
 	if len(evidence.Runs) != 1 || evidence.Runs[0].Status != "matched" || evidence.Runs[0].MismatchCount != "0" || evidence.Runs[0].RunID == "" {
 		t.Fatalf("latest reconciliation is not authoritative matched evidence: %+v", evidence.Runs)
 	}
+}
+
+func newAuthenticatedClient(t *testing.T, baseURL string) (*http.Client, sessionPayload) {
+	t.Helper()
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Jar: jar, Timeout: 10 * time.Second}
+	response, err := client.Get(baseURL + "/api/auth/sign-in?return_to=/")
+	if err != nil {
+		t.Fatalf("establish local test session: %v", err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+		t.Fatalf("local test sign-in returned %d: %s", response.StatusCode, body)
+	}
+	var session sessionPayload
+	getJSON(t, client, baseURL+"/api/session", &session)
+	if session.CSRFToken == "" {
+		t.Fatal("real BFF did not establish the server-gated local session")
+	}
+	return client, session
 }
 
 func getJSON(t *testing.T, client *http.Client, url string, target any) {

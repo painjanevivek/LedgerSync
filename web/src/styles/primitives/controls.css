@@ -1,0 +1,50 @@
+
+
+.mobile-bar,
+.drawer-close,
+.nav-backdrop {
+  display: none;
+}
+.workspace-card {
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+.copy-control {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+.copy-control code {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.copy-control button {
+  display: grid;
+  min-width: var(--target-compact);
+  min-height: var(--target-compact);
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.copy-control button svg {
+  width: 16px;
+  height: 16px;
+}
+.record-link {
+  display: inline-flex;
+  min-height: var(--target-compact);
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.record-link svg {
+  width: 14px;
+  height: 14px;
+}

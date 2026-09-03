@@ -1,0 +1,156 @@
+
+
+/* Login borrows the ruled-entry language of a ledger without exposing any
+   financial data before a session exists. */
+.login-shell {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  grid-template-rows: 72px 1fr;
+  background: var(--canvas);
+}
+.login-topbar {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding: 0 clamp(24px, 5vw, 72px);
+}
+.login-brand {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  text-decoration: none;
+}
+.login-brand span {
+  color: var(--green);
+}
+.login-context {
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--type-meta);
+  font-weight: 750;
+}
+.login-intro {
+  display: grid;
+  align-content: center;
+  padding: clamp(40px, 8vw, 112px);
+}
+.login-intro h1 {
+  max-width: 720px;
+  margin: 12px 0 18px;
+  font-family: var(--font-display);
+  font-size: clamp(42px, 6vw, 78px);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+.login-lede {
+  max-width: 640px;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(17px, 2vw, 21px);
+  line-height: 1.55;
+}
+.login-boundary {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 14px;
+  max-width: 620px;
+  margin-top: 38px;
+  border-top: 1px solid var(--line-strong);
+  padding-top: 20px;
+}
+.login-boundary > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--green);
+}
+.login-boundary p {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.login-boundary strong {
+  color: var(--ink);
+}
+.login-entry {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  margin: clamp(28px, 6vw, 72px);
+  align-self: center;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--green);
+  background: var(--paper);
+  box-shadow: var(--authentication-shadow);
+}
+.login-entry-rule {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  border-right: 1px solid var(--line);
+  background: var(--paper-subtle);
+}
+.login-entry-rule span {
+  display: grid;
+  place-items: center;
+  border-bottom: 1px solid var(--line);
+  color: var(--green);
+  font: 800 var(--type-label) var(--font-mono);
+}
+.login-entry-rule span:last-child {
+  border-bottom: 0;
+}
+.login-entry-content {
+  padding: clamp(30px, 5vw, 54px);
+}
+.login-entry-content > svg {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 28px;
+  color: var(--green);
+}
+.login-entry-content h2 {
+  margin: 7px 0 12px;
+  font-size: clamp(25px, 3vw, 36px);
+}
+.login-entry-content > p:not(.eyebrow, .login-error) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.login-error {
+  margin: 18px 0 0;
+  border-left: 3px solid var(--red);
+  padding: 12px;
+  background: var(--red-soft);
+  color: var(--red);
+}
+.login-button {
+  width: 100%;
+  min-height: 50px;
+  justify-content: center;
+  margin-top: 28px;
+}
+.login-button svg {
+  width: 18px;
+  height: 18px;
+}
+.login-assurance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.login-assurance svg {
+  flex: 0 0 auto;
+  color: var(--green);
+}

@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { ConsoleSessionBoundary } from "@/features/console/ConsoleSessionBoundary";
 import "../styles/tokens.css";
+import "../styles/foundations/reset.css";
 import "./globals.css";
-import "../styles/responsive.css";
+import "../styles/features/approvals.css";
+import "../styles/layout/responsive-shell.css";
 
 // A per-request CSP nonce requires dynamic rendering so Next can attach it to
 // its hydration scripts instead of reusing static HTML with an old nonce.

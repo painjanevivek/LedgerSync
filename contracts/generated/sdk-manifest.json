@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "2.0.0",
+  "api_version": "3.3.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "6b509567",
-    "2b0a92da",
-    "4efcc918",
-    "28dc19ae",
-    "c5d169bb",
-    "180a109a",
-    "babe7888",
-    "8d0e309d"
+    "4860d0fa",
+    "66515f29",
+    "73164cfe",
+    "a509bf1b",
+    "c093c695",
+    "57cbae32",
+    "0909a20f",
+    "b166ac48"
   ],
   "operations": [
     {
@@ -18,7 +18,7 @@
       "method": "POST",
       "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals",
       "scope": "webhooks:replay",
-      "idempotent": false
+      "idempotent": true
     },
     {
       "id": "approveFundingEvent",
@@ -42,6 +42,13 @@
       "idempotent": false
     },
     {
+      "id": "closeInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/close",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "createAccount",
       "method": "POST",
       "path": "/accounts",
@@ -56,6 +63,20 @@
       "idempotent": true
     },
     {
+      "id": "createInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
+      "id": "createSavedInvestigationView",
+      "method": "POST",
+      "path": "/investigation/saved-views",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "createTransfer",
       "method": "POST",
       "path": "/transfers",
@@ -63,11 +84,25 @@
       "idempotent": true
     },
     {
+      "id": "deleteSavedInvestigationView",
+      "method": "DELETE",
+      "path": "/investigation/saved-views/{savedViewId}",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "disableDeveloperWebhook",
       "method": "POST",
       "path": "/developer/webhooks/{webhookId}/disablements",
       "scope": "webhooks:write",
       "idempotent": true
+    },
+    {
+      "id": "downloadInvestigationEvidenceBundle",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/evidence-bundle",
+      "scope": "exports:read",
+      "idempotent": false
     },
     {
       "id": "downloadOpenAPI",
@@ -147,6 +182,13 @@
       "idempotent": false
     },
     {
+      "id": "getInvestigationWorkspace",
+      "method": "GET",
+      "path": "/investigation/workspaces/{investigationId}",
+      "scope": "investigation:read",
+      "idempotent": false
+    },
+    {
       "id": "getLocalDiagnostics",
       "method": "GET",
       "path": "/local/diagnostics",
@@ -182,6 +224,13 @@
       "idempotent": false
     },
     {
+      "id": "getRelatedInvestigationEvidence",
+      "method": "GET",
+      "path": "/investigation/related/{recordType}/{recordId}",
+      "scope": "investigation:read",
+      "idempotent": false
+    },
+    {
       "id": "getTransfer",
       "method": "GET",
       "path": "/transfers/{transferId}",
@@ -196,10 +245,31 @@
       "idempotent": false
     },
     {
+      "id": "getWebhookEndpointEvidence",
+      "method": "GET",
+      "path": "/webhook-endpoints/{endpointId}",
+      "scope": "webhooks:read",
+      "idempotent": false
+    },
+    {
+      "id": "handoffInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/handoff",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "listAccountTransactions",
       "method": "GET",
       "path": "/accounts/{accountId}/transactions",
       "scope": "transactions:read",
+      "idempotent": false
+    },
+    {
+      "id": "listApprovalEvidence",
+      "method": "GET",
+      "path": "/approvals",
+      "scope": "funding:approve",
       "idempotent": false
     },
     {
@@ -238,6 +308,13 @@
       "idempotent": false
     },
     {
+      "id": "listInvestigationWorkspaces",
+      "method": "GET",
+      "path": "/investigation/workspaces",
+      "scope": "investigation:read",
+      "idempotent": false
+    },
+    {
       "id": "listOwnedAccounts",
       "method": "GET",
       "path": "/me/accounts",
@@ -252,6 +329,13 @@
       "idempotent": false
     },
     {
+      "id": "listSavedInvestigationViews",
+      "method": "GET",
+      "path": "/investigation/saved-views",
+      "scope": "investigation:read",
+      "idempotent": false
+    },
+    {
       "id": "listTransferCorrections",
       "method": "GET",
       "path": "/transfer-corrections",
@@ -263,6 +347,13 @@
       "method": "GET",
       "path": "/transfers",
       "scope": "transfers:read",
+      "idempotent": false
+    },
+    {
+      "id": "listWebhookEndpointEvidence",
+      "method": "GET",
+      "path": "/webhook-endpoints",
+      "scope": "webhooks:read",
       "idempotent": false
     },
     {
@@ -308,11 +399,25 @@
       "idempotent": false
     },
     {
+      "id": "renameSavedInvestigationView",
+      "method": "PUT",
+      "path": "/investigation/saved-views/{savedViewId}",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
+      "id": "reopenInvestigationWorkspace",
+      "method": "POST",
+      "path": "/investigation/workspaces/{investigationId}/reopen",
+      "scope": "investigation:write",
+      "idempotent": false
+    },
+    {
       "id": "replayDeveloperWebhookDelivery",
       "method": "POST",
       "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays",
       "scope": "webhooks:replay",
-      "idempotent": false
+      "idempotent": true
     },
     {
       "id": "requestFunding",
@@ -362,6 +467,13 @@
       "path": "/reconciliation/runs",
       "scope": "reconciliation:write",
       "idempotent": true
+    },
+    {
+      "id": "searchInvestigationEvidence",
+      "method": "GET",
+      "path": "/investigation/search",
+      "scope": "investigation:read",
+      "idempotent": false
     },
     {
       "id": "updateAccount",

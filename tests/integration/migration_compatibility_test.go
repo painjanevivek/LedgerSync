@@ -28,16 +28,25 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 25 {
-		t.Fatalf("migration versions=%d, want 25", versions)
+	if versions != 33 {
+		t.Fatalf("migration versions=%d, want 33", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
 		}
 		if !exists {
 			t.Fatalf("required table %s is missing after migration", table)
+		}
+	}
+	for _, index := range []string{"funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx", "reconciliation_mismatches_tenant_transfer_idx", "journal_transactions_tenant_funding_idx", "outbox_events_tenant_account_relation_idx", "outbox_events_tenant_transfer_relation_idx", "transfer_corrections_tenant_compensation_idx", "investigation_saved_views_owner_name_idx", "investigation_saved_views_owner_recent_idx", "investigation_workspaces_owner_recent_idx", "investigation_workspace_references_record_idx"} {
+		var exists bool
+		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, index).Scan(&exists); err != nil {
+			t.Fatal(err)
+		}
+		if !exists {
+			t.Fatalf("required approval read-model index %s is missing after migration", index)
 		}
 	}
 	var columns int
@@ -62,14 +71,15 @@ WHERE table_schema = 'public'
     ('transfers', 'policy_version'),
     ('transfers', 'compensation_of_transfer_id'),
     ('tenant_transfer_policies', 'policy_version'),
-    ('tenant_transfer_policies', 'control_mode'),
-    ('tenant_transfer_policies', 'requires_step_up'),
-    ('tenant_transfer_policies', 'approval_ttl_minutes')
-  )`).Scan(&columns); err != nil {
+	    ('tenant_transfer_policies', 'control_mode'),
+	    ('tenant_transfer_policies', 'requires_step_up'),
+	    ('tenant_transfer_policies', 'approval_ttl_minutes'),
+	    ('reconciliation_mismatches', 'transfer_id')
+	  )`).Scan(&columns); err != nil {
 		t.Fatal(err)
 	}
-	if columns != 19 {
-		t.Fatalf("legacy and additive account contract columns=%d, want 19", columns)
+	if columns != 20 {
+		t.Fatalf("legacy and additive account contract columns=%d, want 20", columns)
 	}
 }
 
@@ -109,7 +119,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || strings.HasPrefix(entry.Name(), "000013_") || strings.HasPrefix(entry.Name(), "000014_") || strings.HasPrefix(entry.Name(), "000015_") || strings.HasPrefix(entry.Name(), "000016_") || strings.HasPrefix(entry.Name(), "000017_") || strings.HasPrefix(entry.Name(), "000018_") || strings.HasPrefix(entry.Name(), "000019_") || strings.HasPrefix(entry.Name(), "000022_") || strings.HasPrefix(entry.Name(), "000023_") {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") || entry.Name() >= "000013_" {
 			continue
 		}
 		content, err := os.ReadFile(filepath.Join(migrationDirectory, entry.Name()))
@@ -166,16 +176,21 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
 		t.Fatalf("apply post-upgrade database roles: %v", err)
 	}
-	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy bool
+	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
        has_table_privilege('ledgersync_api','audit_events','SELECT'),
        has_table_privilege('ledgersync_api','tenant_funding_policies','SELECT'),
-       has_table_privilege('ledgersync_api','tenant_funding_policies','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy); err != nil {
+       has_table_privilege('ledgersync_api','tenant_funding_policies','UPDATE'),
+       has_table_privilege('ledgersync_api','bff_actor_assertion_replays','INSERT'),
+       has_table_privilege('ledgersync_api','bff_actor_assertion_replays','DELETE'),
+       has_table_privilege('ledgersync_api','webhook_endpoint_verification_jobs','INSERT'),
+       has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','SELECT')
+         AND has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy, &canPersistAssertionReplay, &canDeleteAssertionReplay, &canInsertVerificationJob, &workerCanClaimVerificationJob); err != nil {
 		t.Fatal(err)
 	}
-	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy {
-		t.Fatalf("migrations did not preserve least-privilege API evidence grants: outbox=%t audit=%t funding_policy_read=%t funding_policy_update=%t", canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy)
+	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy || !canPersistAssertionReplay || !canDeleteAssertionReplay || !canInsertVerificationJob || !workerCanClaimVerificationJob {
+		t.Fatalf("migrations did not preserve least-privilege workload grants: outbox=%t audit=%t funding_policy_read=%t funding_policy_update=%t assertion_insert=%t assertion_delete=%t verification_insert=%t worker_verification_claim=%t", canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob)
 	}
 	wantBalances := map[string][3]int64{
 		legacyAccounts[0]: {725, 725, 9}, legacyAccounts[1]: {10, 10, 2}, legacyAccounts[2]: {20, 20, 3}, legacyAccounts[3]: {30, 30, 4},

@@ -1,19 +1,21 @@
 "use client";
 
 import { WarningCircle } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
-import { PageHeader, StatePanel } from "@/features/console/components";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
 import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
-import { EventDetailView, EventsListView, type EventFilters } from "@/features/operations/EventViews";
+import { EventDetailView, EventsListView } from "@/features/operations/EventViews";
 import { LocalStatusView } from "@/features/operations/LocalStatusView";
 import type { DeliveryEvent, DeliveryEventDetail, EventPage, LocalDiagnostics } from "@/lib/api/operations";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
+import { emptyEventFilters, eventsURL, type EventFilters } from "@/lib/page-query/operations";
 
-type Props = Readonly<{ section: "local-status" | "events"; eventId?: string; filters?: EventFilters; returnTo?: string }>;
-const emptyEventFilters: EventFilters = {};
+type Props = Readonly<{ section: "local-status" | "events"; eventId?: string; filters?: EventFilters; returnTo?: string; invalidQuery?: boolean }>;
 
 function eventQuery(filters: EventFilters) {
   const query = new URLSearchParams({ limit: "25" });
@@ -21,7 +23,8 @@ function eventQuery(filters: EventFilters) {
   return query.toString();
 }
 
-export function OperationsConsole({ section, eventId, filters = emptyEventFilters, returnTo }: Props) {
+export function OperationsConsole({ section, eventId, filters = emptyEventFilters, returnTo, invalidQuery = false }: Props) {
+  const router = useRouter();
   const { session, sessionError, sessionLoading, online, hasScope } = useConsoleSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,21 +83,21 @@ export function OperationsConsole({ section, eventId, filters = emptyEventFilter
     const eventListCoordinator = eventListRequests.current;
     const eventDetailCoordinator = eventDetailRequests.current;
     const timer = window.setTimeout(() => {
-      if (section === "local-status" && hasScope("local:read")) void loadDiagnostics();
-      if (section === "events" && hasScope("events:read")) void (eventId ? loadEvent() : loadEvents());
+      if (section === "local-status" && session.environment === "local" && hasScope("local:read")) void loadDiagnostics();
+      if (section === "events" && hasScope("events:read") && !invalidQuery) void (eventId ? loadEvent() : loadEvents());
     }, 0);
     return () => { window.clearTimeout(timer); invalidateEvidenceRequests(diagnosticsCoordinator); invalidateEvidenceRequests(eventListCoordinator); invalidateEvidenceRequests(eventDetailCoordinator); };
-  }, [eventId, hasScope, loadDiagnostics, loadEvent, loadEvents, online, section, session]);
+  }, [eventId, hasScope, invalidQuery, loadDiagnostics, loadEvent, loadEvents, online, section, session]);
 
   if (sessionLoading) return <ConsoleShell section={section} tenantLabel="Verifying tenant" tenantMeta="Secure session" environmentLabel="Checking environment" operatorLabel="Verifying operator" operatorMeta="Authorization pending"><PageHeader eyebrow="Local operations · LedgerSync" title="Verifying access" description="Checking the authorized tenant and read scope before operational evidence is displayed."/><StatePanel title="Loading authorized evidence" message="No dependency or delivery state is being inferred while the session is verified."/><ConsoleFooter/></ConsoleShell>;
   if (!session) return <main className="boot-screen"><p className="eyebrow">Access not verified</p><h1>Operator workspace unavailable</h1><StatePanel kind={sessionError ? "error" : "denied"} title={sessionError ? "Session evidence unavailable" : "No authorized session"} message={sessionError ?? "Log in to the local workspace or configure the approved OIDC provider. No operational data is displayed."} /></main>;
 
-  const canRead = section === "local-status" ? hasScope("local:read") : hasScope("events:read");
+  const canRead = section === "local-status" ? session.environment === "local" && hasScope("local:read") : hasScope("events:read");
   return <ConsoleShell section={section} tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "local" ? "Local workspace" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "local" ? "This workstation" : "Authorized operator"}>
     {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true"/><span><strong>You are offline.</strong> Read evidence is retained only with its last verified timestamp.</span></div>}
     {section === "local-status" && <LocalStatusView evidence={diagnostics} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadDiagnostics()} />}
     {section === "events" && eventId && <EventDetailView event={event} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canRead={canRead} returnTo={returnTo} onRefresh={() => void loadEvent()} />}
-    {section === "events" && !eventId && <EventsListView events={events} filters={filters} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadEvents()} />}
+    {section === "events" && !eventId && invalidQuery && canRead ? <><PageHeader eyebrow="Operations / Delivery" title="Delivery events" description="Check whether LedgerSync sent each update. This page does not change money or resend an event."/><StatePanel kind="error" title="Invalid event investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, malformed, or reversed filter. No protected event request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/events")}>Clear invalid filters</button>}/></> : section === "events" && !eventId && <EventsListView key={eventsURL(filters)} events={events} filters={filters} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canRead={canRead} onRefresh={() => void loadEvents()} />}
     <ConsoleFooter/>
   </ConsoleShell>;
 }

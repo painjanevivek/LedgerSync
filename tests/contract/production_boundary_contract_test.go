@@ -14,9 +14,15 @@ func TestDefaultComposeDelegatesToSupportedTopology(t *testing.T) {
 	if !strings.Contains(defaultCompose, "deploy/compose/docker-compose.yml") {
 		t.Fatal("default Compose entry point does not delegate to the supported topology")
 	}
-	legacyCompose := readContractFile(t, filepath.Join(root, "docker-compose.legacy-demo.yml"))
-	if !strings.Contains(legacyCompose, "LEGACY DEMONSTRATION REFERENCE ONLY") || !strings.Contains(legacyCompose, "ledgersync-legacy-demo-do-not-use") {
-		t.Fatal("legacy Compose topology is not unmistakably isolated")
+}
+
+func TestRetiredApplicationSliceDoesNotExist(t *testing.T) {
+	root := repositoryRoot(t)
+	for _, relative := range []string{"backend", "dashboard", "simulation", "setup", "docker-compose.legacy-demo.yml", filepath.Join("tests", "consistency_test.go"), filepath.Join("tests", "dashboard_test.py")} {
+		_, err := os.Stat(filepath.Join(root, relative))
+		if err == nil || !os.IsNotExist(err) {
+			t.Errorf("retired application path must remain absent: %s (error=%v)", relative, err)
+		}
 	}
 }
 
@@ -30,7 +36,7 @@ func TestProductionDeploymentFilesDoNotReferenceLegacyApplications(t *testing.T)
 	}
 	for _, path := range paths {
 		content := readContractFile(t, path)
-		for _, forbidden := range []string{"backend/", "dashboard/", "simulation/", "docker-compose.legacy-demo.yml"} {
+		for _, forbidden := range []string{"backend/", "dashboard/", "simulation/", "setup/", "docker-compose.legacy-demo.yml"} {
 			if strings.Contains(content, forbidden) {
 				t.Errorf("production deployment file %s references legacy path %q", filepath.Base(path), forbidden)
 			}

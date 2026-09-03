@@ -6,12 +6,10 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import type { TransferDetail } from "@/features/accounts/types";
-import {
-  CopyControl,
-  FormField,
-  StatePanel,
-  StatusBadge,
-} from "@/features/console/components";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
+import { FormField } from "@/ui/forms/FormField.client";
 import type {
   CorrectionReasonCode,
   CorrectionSubmission,

@@ -7,16 +7,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Account } from "@/features/accounts/types";
 import { ConsoleFooter, ConsoleShell, OperatorWorkspace } from "@/features/console/ConsoleShell";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
-import { PageHeader, StatePanel } from "@/features/console/components";
-import { appendUniqueBy, beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { FundingRequestFlow } from "@/features/funding/FundingRequestFlow";
 import { FundingDetailView, FundingListView, FundingWorkspaceRail } from "@/features/funding/FundingViews";
-import type { FundingEvent, FundingPage, FundingReconciliation, FundingSubmission } from "@/lib/api/funding";
+import type { FundingEvent, FundingFilters, FundingPage, FundingReconciliation, FundingSubmission } from "@/lib/api/funding";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
+import { fundingURL } from "@/lib/page-query/funding";
 
 type AccountPage = Readonly<{ accounts: Account[]; next_cursor?: string }>;
 
-export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: string }>) {
+export function FundingConsole({ fundingEventId, detailReturnTo, filters = { status: "" }, invalidQuery = false }: Readonly<{ fundingEventId?: string; detailReturnTo?: string; filters?: FundingFilters; invalidQuery?: boolean }>) {
   const router = useRouter();
   const { session, sessionLoading, sessionError, online, hasScope } = useConsoleSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -53,20 +55,23 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
     setAccountsLoading(false);
   }, []);
 
-  const loadList = useCallback(async (cursor?: string) => {
-    const request = beginEvidenceRequest(listRequests.current, "funding:list", cursor ? "append" : "replace");
+  const loadList = useCallback(async () => {
+    const query = new URLSearchParams({ limit: "25" });
+    if (filters.status) query.set("status", filters.status);
+    if (filters.cursor) query.set("cursor", filters.cursor);
+    const request = beginEvidenceRequest(listRequests.current, `funding:list:${query}`, "replace");
     if (!request) return;
+    if (!request.sameResource) { setEvents([]); setNextCursor(undefined); setVerifiedAt(undefined); }
     setLoading(true); setError(null);
-    const suffix = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
-    const response = await readJSON<FundingPage>(`/api/funding-events?limit=25${suffix}`);
+    const response = await readJSON<FundingPage>(`/api/funding-events?${query}`);
     if (!isEvidenceRequestCurrent(listRequests.current, request.token)) return;
     if (response.ok && Array.isArray(response.data.events)) {
-      setEvents((existing) => cursor ? appendUniqueBy(existing, response.data.events, (event) => event.funding_event_id) : response.data.events);
+      setEvents(response.data.events);
       setNextCursor(response.data.next_cursor || undefined);
       setVerifiedAt(new Date().toISOString());
     } else setError(unavailableMessage(response.status, "funding records", response.requestReference));
     if (finishEvidenceRequest(listRequests.current, request.token)) setLoading(false);
-  }, []);
+  }, [filters.cursor, filters.status]);
 
   const loadEvent = useCallback(async () => {
     if (!fundingEventId) return null;
@@ -89,12 +94,12 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   }, [fundingEventId]);
 
   useEffect(() => {
-    if (!session || !online || !hasScope("funding:read")) return;
+    if (!session || !online || !hasScope("funding:read") || invalidQuery) return;
     const listCoordinator = listRequests.current;
     const detailCoordinator = detailRequests.current;
     const timer = window.setTimeout(() => { void loadAccounts(); void (fundingEventId ? loadEvent() : loadList()); }, 0);
     return () => { window.clearTimeout(timer); invalidateEvidenceRequests(listCoordinator); invalidateEvidenceRequests(detailCoordinator); accountGeneration.current += 1; };
-  }, [fundingEventId, hasScope, loadAccounts, loadEvent, loadList, online, session]);
+  }, [fundingEventId, hasScope, invalidQuery, loadAccounts, loadEvent, loadList, online, session]);
 
   async function act(path: string, body?: Record<string, string>, idempotencyKey?: string) {
     if (!session || !selected) return false;
@@ -141,7 +146,7 @@ export function FundingConsole({ fundingEventId }: Readonly<{ fundingEventId?: s
   return <ConsoleShell section="funding" tenantLabel={session.tenant_label ?? "Ledger tenant"} tenantMeta={session.tenant_id} environmentLabel={session.environment === "local" ? "Local workspace" : "Verified production"} operatorLabel={session.operator_label ?? session.subject_id} operatorMeta={session.environment === "local" ? "This workstation" : "Authorized finance operator"}>
     <OperatorWorkspace className="funding-workspace" footer={<ConsoleFooter />} rail={<FundingWorkspaceRail events={events} event={selected} loading={loading} error={error} online={online} />} railLabel="Funding workflow context">
       {!online && <div className="offline-banner" role="status"><WarningCircle weight="fill" aria-hidden="true" /><span><strong>You are offline.</strong> Funding actions are disabled; retained evidence is historical until refreshed.</span></div>}
-      {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} onRefresh={loadEvent} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView events={events} accounts={accounts} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} onNext={() => nextCursor && void loadList(nextCursor)} /><FundingRequestFlow accounts={accounts} accountsLoading={accountsLoading} accountsError={accountsError} accountsScopeComplete={accountsScopeComplete} onRetryAccounts={() => void loadAccounts()} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
+      {!canRead ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="denied" title="Funding read scope required" message="Ask a tenant administrator for funding:read. LedgerSync does not broaden funding record visibility." /></> : invalidQuery && !fundingEventId ? <><PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Controlled external value references and their balanced journals." /><StatePanel kind="error" title="Invalid funding investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, or malformed filter. No protected funding or account request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/funding")}>Clear invalid filters</button>} /></> : fundingEventId ? <FundingDetailView event={selected} account={selectedAccount} session={session} reconciliation={reconciliation} verifiedAt={verifiedAt} loading={loading} actionBusy={actionBusy} error={error} online={online} canWrite={canWrite} canApprove={canApprove} backHref={detailReturnTo ?? "/funding"} onRefresh={loadEvent} onAction={act} onReconcile={() => void reconcile()} /> : <><FundingListView key={fundingURL(filters)} events={events} accounts={accounts} filters={filters} nextCursor={nextCursor} verifiedAt={verifiedAt} loading={loading} error={error} online={online} canWrite={canWrite} onApplyFilters={(next) => router.push(fundingURL(next))} onClearFilters={() => router.push("/funding")} onOpenRequest={() => setRequestOpen(true)} onRefresh={() => void loadList()} /><FundingRequestFlow accounts={accounts} accountsLoading={accountsLoading} accountsError={accountsError} accountsScopeComplete={accountsScopeComplete} onRetryAccounts={() => void loadAccounts()} csrfToken={session.csrf_token} online={online} canWrite={canWrite} open={requestOpen} onClose={() => setRequestOpen(false)} onCreated={async (created) => { setEvents((current) => [created, ...current]); router.push(`/funding/${encodeURIComponent(created.funding_event_id)}`); }} /></>}
     </OperatorWorkspace>
   </ConsoleShell>;
 }

@@ -4,6 +4,7 @@ import { InMemoryRateLimitStore } from "@/lib/rate-limit";
 import { hasValidHost, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
 import { isPrivateAPITimeout } from "@/lib/upstream-outcome";
+import { parseTransferSearchParams, transferExportQueryRules } from "@/lib/page-query/transfers";
 
 const exportRateLimit = new InMemoryRateLimitStore();
 const maximumCSVBytes = 16 * 1024 * 1024;
@@ -29,7 +30,17 @@ export function isEvidenceExportDenial(value: Session | NextResponse): value is 
 function strictDate(value: string) { return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && !Number.isNaN(Date.parse(value)); }
 
 export function strictExportQuery(request: NextRequest, family: "transfers" | "account" | "reconciliation") {
-  const allowed = family === "transfers" ? ["accountId", "status", "q", "from", "to", "limit"] : family === "reconciliation" ? ["runId", "status", "from", "to", "limit"] : ["limit"];
+  if (family === "transfers") {
+    const parsed = parseTransferSearchParams(request.nextUrl.searchParams, transferExportQueryRules);
+    if (!parsed.ok) return jsonError("validation_failed", 400);
+    const output = new URLSearchParams();
+    for (const key of ["accountId", "status", "q", "from", "to", "limit"] as const) {
+      const value = parsed.values[key];
+      if (value) output.set(key, value);
+    }
+    return output;
+  }
+  const allowed = family === "reconciliation" ? ["runId", "status", "from", "to", "limit"] : ["limit"];
   const output = new URLSearchParams();
   for (const [key] of request.nextUrl.searchParams) if (!allowed.includes(key) || request.nextUrl.searchParams.getAll(key).length !== 1) return jsonError("validation_failed", 400);
   for (const key of allowed) {
@@ -41,7 +52,7 @@ export function strictExportQuery(request: NextRequest, family: "transfers" | "a
     if ((key === "accountId" || key === "runId") && !uuid.test(value)) return jsonError("validation_failed", 400);
     if ((key === "from" || key === "to") && !strictDate(value)) return jsonError("validation_failed", 400);
     if (key === "q" && value.length > 128) return jsonError("validation_failed", 400);
-    if (key === "status" && !(family === "transfers" ? ["posted", "rejected"] : ["running", "matched", "mismatch", "failed"]).includes(value)) return jsonError("validation_failed", 400);
+    if (key === "status" && !["running", "matched", "mismatch", "failed"].includes(value)) return jsonError("validation_failed", 400);
     output.set(key, value);
   }
   const from = output.get("from"), to = output.get("to");

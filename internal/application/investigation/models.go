@@ -11,6 +11,70 @@ type TransferFilter struct {
 	Limit                            int
 }
 
+type SearchAccess struct {
+	Accounts, Transfers, Funding, Events, Reconciliation, Corrections bool
+}
+
+func (access SearchAccess) Any() bool {
+	return access.Accounts || access.Transfers || access.Funding || access.Events || access.Reconciliation || access.Corrections
+}
+
+type SearchFilter struct {
+	Query, QueryKind string
+	Limit            int
+	Access           SearchAccess
+}
+
+type SearchResult struct {
+	RecordType        string    `json:"record_type"`
+	RecordID          string    `json:"record_id"`
+	RelatedRecordType string    `json:"related_record_type,omitempty"`
+	RelatedRecordID   string    `json:"related_record_id,omitempty"`
+	SafeLabel         string    `json:"safe_label"`
+	Status            string    `json:"status"`
+	OccurredAt        time.Time `json:"occurred_at"`
+	Source            string    `json:"source"`
+	Freshness         string    `json:"freshness"`
+}
+
+type SearchPage struct {
+	Results     []SearchResult `json:"results"`
+	QueryKind   string         `json:"query_kind"`
+	GeneratedAt time.Time      `json:"generated_at"`
+	Truncated   bool           `json:"truncated"`
+}
+
+// RelationshipAccess is the server-derived authorization envelope for a
+// related-evidence read. A source can be visible while one or more targets are
+// withheld; callers must never infer a missing target from an absent edge.
+type RelationshipAccess = SearchAccess
+
+type RelationshipFilter struct {
+	SourceType string
+	SourceID   string
+	Limit      int
+	Access     RelationshipAccess
+}
+
+type Relationship struct {
+	RelationshipType string    `json:"relationship_type"`
+	TargetType       string    `json:"target_type"`
+	TargetID         string    `json:"target_id"`
+	SafeLabel        string    `json:"safe_label"`
+	Status           string    `json:"status"`
+	OccurredAt       time.Time `json:"occurred_at"`
+	Source           string    `json:"source"`
+	Freshness        string    `json:"freshness"`
+}
+
+type RelationshipPage struct {
+	SourceType    string         `json:"source_type"`
+	SourceID      string         `json:"source_id"`
+	Relationships []Relationship `json:"relationships"`
+	GeneratedAt   time.Time      `json:"generated_at"`
+	Truncated     bool           `json:"truncated"`
+}
+
 type TransferSummary struct {
 	ID                     string    `json:"transfer_id"`
 	DebitAccountID         string    `json:"source_account_id"`
@@ -85,8 +149,13 @@ type ReconciliationMismatch struct {
 }
 
 type Repository interface {
+	Search(ctx context.Context, tenantID, actorID string, filter SearchFilter) (SearchPage, error)
 	ListTransfers(ctx context.Context, tenantID string, filter TransferFilter) ([]TransferSummary, string, error)
 	GetTransfer(ctx context.Context, tenantID, transferID string) (TransferDetail, error)
 	ListReconciliationRuns(ctx context.Context, tenantID, cursor string, limit int) ([]ReconciliationRun, string, error)
 	GetReconciliationRun(ctx context.Context, tenantID, runID string) (ReconciliationRun, error)
+}
+
+type RelationshipRepository interface {
+	Related(ctx context.Context, tenantID, actorID string, filter RelationshipFilter) (RelationshipPage, error)
 }

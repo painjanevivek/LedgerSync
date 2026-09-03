@@ -1,4 +1,4 @@
-export type DeveloperOperation = Readonly<{ operation_id: string; method: "GET" | "POST" | "PUT" | "PATCH"; path: string; scope: string }>;
+export type DeveloperOperation = Readonly<{ operation_id: string; method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; path: string; scope: string }>;
 export type DeveloperEndpointGroup = Readonly<{ id: string; label: string; operations: DeveloperOperation[] }>;
 export type DeveloperExample = Readonly<{
   id: "create_transfer" | "create_account";
@@ -32,8 +32,8 @@ const identifier = /^[A-Za-z][A-Za-z0-9._:-]{0,127}$/;
 const pathPattern = /^\/[A-Za-z0-9{}._/-]{1,255}$/;
 const versionPattern = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 const visibleKey = /^[\x21-\x7e]{16,255}$/;
-const endpointGroupIDs = new Set(["accounts", "transfers", "corrections", "funding", "reconciliation", "operations", "recovery_exports", "credentials", "webhooks", "developer"]);
-const scopes = new Set(["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "corrections:read", "corrections:write", "corrections:approve", "funding:read", "funding:write", "funding:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"]);
+const endpointGroupIDs = new Set(["accounts", "transfers", "corrections", "funding", "approvals", "reconciliation", "operations", "recovery_exports", "credentials", "webhooks", "developer"]);
+const scopes = new Set(["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "corrections:read", "corrections:write", "corrections:approve", "funding:read", "funding:write", "funding:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"]);
 const retryCodes = new Set(["request_in_progress", "response_unknown", "funding_outcome_unknown", "temporary_unavailable", "transaction_conflict_retryable", "idempotency_conflict", "reconciliation_already_running"]);
 const errorCodes = new Set(["invalid_request", "unauthorized", "forbidden", "not_found", "account_version_conflict", "invalid_account_transition", "account_not_zero", "external_reference_conflict", "transfer_policy_denied", "invalid_funding_request", "funding_conflict", "funding_limit_exceeded", "evidence_unavailable"]);
 const lookupFields = new Set(["account_id", "transfer_id", "funding_event_id", "run_id", "event_id", "correlation_id"]);
@@ -51,14 +51,14 @@ function exactStringMap(value: unknown, keys: readonly string[]): value is Recor
 
 function sanitizeOperation(value: unknown): DeveloperOperation | null {
   if (!isRecord(value) || !exactKeys(value, ["operation_id", "method", "path", "scope"])
-    || !code(value.operation_id) || typeof value.method !== "string" || !["GET", "POST", "PUT", "PATCH"].includes(value.method)
+    || !code(value.operation_id) || typeof value.method !== "string" || !["GET", "POST", "PUT", "PATCH", "DELETE"].includes(value.method)
     || typeof value.path !== "string" || !pathPattern.test(value.path) || value.path.includes("//")
     || typeof value.scope !== "string" || !scopes.has(value.scope)) return null;
   return { operation_id:value.operation_id,method:value.method as DeveloperOperation["method"],path:value.path,scope:value.scope };
 }
 
 function sanitizeGroup(value: unknown): DeveloperEndpointGroup | null {
-  if (!isRecord(value) || !exactKeys(value, ["id", "label", "operations"]) || typeof value.id !== "string" || !endpointGroupIDs.has(value.id) || !bounded(value.label, 64) || !Array.isArray(value.operations) || value.operations.length < 1 || value.operations.length > 12) return null;
+  if (!isRecord(value) || !exactKeys(value, ["id", "label", "operations"]) || typeof value.id !== "string" || !endpointGroupIDs.has(value.id) || !bounded(value.label, 64) || !Array.isArray(value.operations) || value.operations.length < 1 || value.operations.length > 20) return null;
   const operations = value.operations.map(sanitizeOperation);
   if (operations.some((operation) => operation === null)) return null;
   return { id:value.id,label:value.label,operations:operations as DeveloperOperation[] };

@@ -3,10 +3,13 @@
 import { LinkSimple, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 
-import { CopyControl, EvidenceFreshness, EvidenceStepMarker, StatePanel, StatusBadge } from "@/features/console/components";
-import { utcDateTime } from "@/features/console/format";
+import { CopyControl } from "@/ui/controls/CopyControl.client";
+import { EvidenceFreshness, EvidenceStepMarker } from "@/ui/display/Evidence";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { StatusBadge } from "@/ui/display/StatusBadge";
 import type { ExplainabilityEvidence, ExplainabilityStage, TransferExplainability } from "@/lib/api/orientation";
-import { formatMinorUnits } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 
 const stageCopy: Record<ExplainabilityStage["kind"], { title: string; description: string }> = {
   request: { title: "Request and idempotency outcome", description: "The retained command outcome for the original intent, when stored." },
@@ -52,12 +55,12 @@ export function TransferEvidenceTimeline({ evidence, loading, error, online, can
           <header><div><h3>{stageCopy[stage.kind].title}</h3><p>{stageCopy[stage.kind].description}</p></div><StatusBadge tone={stageTone(stage)}>{stage.state === "available" ? stage.truncated ? "Available · bounded" : "Available" : stage.state === "missing" ? "Missing" : "Unavailable"}</StatusBadge></header>
           {stage.evidence.length > 0 ? <ul className="stage-evidence-list">{stage.evidence.map((item, index) => {
             const href = relatedHref(item, backTo);
-            return <li key={`${item.evidence_type}-${item.evidence_id ?? index}`}><div><strong>{item.evidence_type.replaceAll("_", " ")}</strong><time>{utcDateTime(item.occurred_at)}</time></div>{item.status && <StatusBadge tone={item.status === "posted" || item.status === "published" || item.status === "delivered" || item.status === "matched" || item.status === "completed" ? "success" : item.status === "rejected" || item.status === "dead" || item.status === "failed" || item.status === "mismatch" ? "danger" : "warning"}>{item.status}</StatusBadge>}{item.amount_minor !== undefined && item.currency && <strong className="number-cell">{formatMinorUnits(item.currency, item.amount_minor)}</strong>}{item.balance_version !== undefined && <span className="mono">version {item.balance_version}</span>}{item.attempt_number !== undefined && <span className="mono">attempt {item.attempt_number}</span>}{href ? <Link className="record-link" href={href}><LinkSimple aria-hidden="true"/>Open related evidence</Link> : item.evidence_id ? <CopyControl value={item.evidence_id} /> : null}</li>;
+            return <li key={`${item.evidence_type}-${item.evidence_id ?? index}`}><div><strong>{item.evidence_type.replaceAll("_", " ")}</strong><Timestamp value={item.occurred_at} inheritTypography={false} /></div>{item.status && <StatusBadge tone={item.status === "posted" || item.status === "published" || item.status === "delivered" || item.status === "matched" || item.status === "completed" ? "success" : item.status === "rejected" || item.status === "dead" || item.status === "failed" || item.status === "mismatch" ? "danger" : "warning"}>{item.status}</StatusBadge>}{item.amount_minor !== undefined && item.currency && <strong className="number-cell"><Money currency={item.currency} minorUnits={item.amount_minor} /></strong>}{item.balance_version !== undefined && <span className="mono">version {item.balance_version}</span>}{item.attempt_number !== undefined && <span className="mono">attempt {item.attempt_number}</span>}{href ? <Link className="record-link" href={href}><LinkSimple aria-hidden="true"/>Open related evidence</Link> : item.evidence_id ? <CopyControl value={item.evidence_id} /> : null}</li>;
           })}</ul> : <p className="stage-gap"><WarningCircle weight="fill" aria-hidden="true"/><span>{stage.reason_code ? missingCopy[stage.reason_code] : "No stored evidence was returned for this stage."}</span></p>}
           {stage.truncated && <p className="stage-gap"><WarningCircle weight="fill" aria-hidden="true"/><span>This bounded stage is incomplete. Open its related evidence view for the authorized detail.</span></p>}
         </article>
       </li>)}
     </ol>
-    <footer><span>Generated {utcDateTime(evidence.generated_at)}</span><span>Transfer {transferId}</span></footer>
+    <footer><span>Generated <Timestamp value={evidence.generated_at} /></span><span>Transfer {transferId}</span></footer>
   </section>;
 }

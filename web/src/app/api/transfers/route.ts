@@ -6,10 +6,13 @@ import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { toPrivateTransferRequest, type CreateTransferInput } from "@/lib/api/transfers";
 import { privateAPIContext, proxyPrivateGET } from "@/lib/private-api";
 import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
+import { parseTransferSearchParams, transferBFFQueryRules } from "@/lib/page-query/transfers";
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   if (!session) return jsonError("unauthorized", 401);
+  if (!parseTransferSearchParams(request.nextUrl.searchParams, transferBFFQueryRules).ok)
+    return jsonError("invalid_request", 400);
   return proxyPrivateGET(request, session, "/api/transfers", ["cursor", "limit", "accountId", "status", "q", "from", "to"]);
 }
 

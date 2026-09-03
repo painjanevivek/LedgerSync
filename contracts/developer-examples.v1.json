@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "2.0.0",
+  "contract_version": "3.3.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -79,14 +79,35 @@
       ]
     },
     {
+      "id": "approvals",
+      "label": "Independent approval evidence",
+      "operations": [
+        { "operation_id": "listApprovalEvidence", "method": "GET", "path": "/approvals", "scope": "funding:approve" }
+      ]
+    },
+    {
       "id": "operations",
       "label": "Local operations",
       "operations": [
+        { "operation_id": "searchInvestigationEvidence", "method": "GET", "path": "/investigation/search", "scope": "investigation:read" },
+        { "operation_id": "getRelatedInvestigationEvidence", "method": "GET", "path": "/investigation/related/{recordType}/{recordId}", "scope": "investigation:read" },
+        { "operation_id": "listSavedInvestigationViews", "method": "GET", "path": "/investigation/saved-views", "scope": "investigation:read" },
+        { "operation_id": "createSavedInvestigationView", "method": "POST", "path": "/investigation/saved-views", "scope": "investigation:write" },
+        { "operation_id": "renameSavedInvestigationView", "method": "PUT", "path": "/investigation/saved-views/{savedViewId}", "scope": "investigation:write" },
+        { "operation_id": "deleteSavedInvestigationView", "method": "DELETE", "path": "/investigation/saved-views/{savedViewId}", "scope": "investigation:write" },
+        { "operation_id": "listInvestigationWorkspaces", "method": "GET", "path": "/investigation/workspaces", "scope": "investigation:read" },
+        { "operation_id": "createInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces", "scope": "investigation:write" },
+        { "operation_id": "getInvestigationWorkspace", "method": "GET", "path": "/investigation/workspaces/{investigationId}", "scope": "investigation:read" },
+        { "operation_id": "handoffInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/handoff", "scope": "investigation:write" },
+        { "operation_id": "closeInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/close", "scope": "investigation:write" },
+        { "operation_id": "reopenInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/reopen", "scope": "investigation:write" },
         { "operation_id": "getLocalDiagnostics", "method": "GET", "path": "/local/diagnostics", "scope": "local:read" },
         { "operation_id": "getLocalOrientationEvidence", "method": "GET", "path": "/local/orientation", "scope": "local:read" },
         { "operation_id": "updateLocalOrientationPreferences", "method": "PUT", "path": "/local/orientation/preferences", "scope": "local:write" },
         { "operation_id": "listEventEvidence", "method": "GET", "path": "/events", "scope": "events:read" },
         { "operation_id": "getEventEvidence", "method": "GET", "path": "/events/{eventId}", "scope": "events:read" },
+        { "operation_id": "listWebhookEndpointEvidence", "method": "GET", "path": "/webhook-endpoints", "scope": "webhooks:read" },
+        { "operation_id": "getWebhookEndpointEvidence", "method": "GET", "path": "/webhook-endpoints/{endpointId}", "scope": "webhooks:read" },
         { "operation_id": "explainTransferEvidence", "method": "GET", "path": "/transfers/{transferId}/explainability", "scope": "explainability:read" }
       ]
     },
@@ -95,6 +116,7 @@
       "label": "Recovery and exports",
       "operations": [
         { "operation_id": "getRecoveryEvidenceIndex", "method": "GET", "path": "/recovery/manifests", "scope": "recovery:read" },
+        { "operation_id": "downloadInvestigationEvidenceBundle", "method": "POST", "path": "/investigation/workspaces/{investigationId}/evidence-bundle", "scope": "exports:read" },
         { "operation_id": "exportTransfersCSV", "method": "GET", "path": "/exports/transfers.csv", "scope": "exports:read" },
         { "operation_id": "exportAccountLedgerCSV", "method": "GET", "path": "/exports/accounts/{accountId}/transactions.csv", "scope": "exports:read" },
         { "operation_id": "exportReconciliationCSV", "method": "GET", "path": "/exports/reconciliation.csv", "scope": "exports:read" }

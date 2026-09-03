@@ -107,6 +107,18 @@ test("shared field labels show the server-backed required or optional state", as
   await expect(page.getByLabel("Amount")).toHaveAttribute("required", "");
 
   await page.goto("/events");
-  await expect(page.locator(".event-filter-document .field-requirement.optional")).toHaveCount(6);
+  await expect(page.locator(".event-filter-document .field-requirement.optional")).toHaveCount(7);
   await expect(page.getByLabel("Event type")).not.toHaveAttribute("required", "");
+});
+
+test("approval filters and exact decision evidence remain usable from compact to ultrawide", async ({ page }) => {
+  await mockOperatorConsole(page);
+  for (const viewport of [{ width:320,height:640 }, ...viewports]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/approvals");
+    await expect(page.getByRole("heading", { name:"Approvals",exact:true })).toBeVisible();
+    await expect(page.getByRole("button", { name:"Apply filters" })).toBeVisible();
+    await expect(page.getByRole("region", { name:"Approval queue records" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  }
 });

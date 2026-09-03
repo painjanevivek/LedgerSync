@@ -64,7 +64,7 @@ func (h *DeveloperContractHandler) authorize(writer http.ResponseWriter, request
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return false
 	}
 	if identity.RequireScope(principal, "developer:read") != nil {

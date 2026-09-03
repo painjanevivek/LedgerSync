@@ -1,12 +1,8 @@
 import { OperationsConsole } from "@/features/operations/OperationsConsole";
-
-function single(value: string | string[] | undefined, maximum = 256) {
-  if (typeof value !== "string") return undefined;
-  const clean = value.trim();
-  return clean && clean.length <= maximum ? clean : undefined;
-}
+import { emptyEventFilters, parseEventPageQuery } from "@/lib/page-query/operations";
 
 export default async function EventsPage({ searchParams }: Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>) {
   const query = await searchParams;
-  return <OperationsConsole section="events" filters={{ eventType: single(query.eventType), state: single(query.state, 16), relatedId: single(query.relatedId), correlationId: single(query.correlationId), from: single(query.from, 64), to: single(query.to, 64), cursor: single(query.cursor, 2_048) }} />;
+  const parsed = parseEventPageQuery(query);
+  return <OperationsConsole section="events" filters={parsed.ok ? parsed.filters : emptyEventFilters} invalidQuery={!parsed.ok} />;
 }

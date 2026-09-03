@@ -4,10 +4,13 @@ import { ArrowLeft, CheckCircle, Receipt, WarningCircle, X } from "@phosphor-ico
 import { FormEvent, useMemo, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
-import { FocusedRetry, FormField, StatePanel } from "@/features/console/components";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { StatePanel } from "@/ui/display/StatePanel";
+import { FormField } from "@/ui/forms/FormField.client";
 import { accountLabel } from "@/features/console/format";
 import type { FundingEvent, FundingSubmission } from "@/lib/api/funding";
-import { minorUnitsFromDecimal, formatMinorUnits } from "@/lib/money";
+import { minorUnitsFromDecimal } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
 
 type Props = Readonly<{
   accounts: Account[];
@@ -93,7 +96,7 @@ export function FundingRequestFlow({ accounts, accountsLoading, accountsError, a
       <footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={!online}>Review details</button></footer>
     </form> : <div className="funding-review">
       <div className="review-kicker"><span>Check your details</span><strong>Your balance will not change yet</strong></div>
-      <dl><div><dt>Account</dt><dd>{destination ? accountLabel(destination) : prepared.destinationAccountId}</dd></div><div><dt>Amount</dt><dd className="number-cell">{formatMinorUnits(prepared.currency, prepared.amountMinor)}</dd></div><div><dt>Reference number</dt><dd>{prepared.externalReference}</dd></div><div><dt>Supporting document</dt><dd>{prepared.evidenceReference}</dd></div></dl>
+      <dl><div><dt>Account</dt><dd>{destination ? accountLabel(destination) : prepared.destinationAccountId}</dd></div><div><dt>Amount</dt><dd className="number-cell"><Money currency={prepared.currency} minorUnits={prepared.amountMinor} /></dd></div><div><dt>Reference number</dt><dd>{prepared.externalReference}</dd></div><div><dt>Supporting document</dt><dd>{prepared.evidenceReference}</dd></div></dl>
       <div className="funding-inline-notice"><WarningCircle weight="fill" aria-hidden="true" /><p><strong>What happens next?</strong> Saving sends this record for review. Your balance changes only after another operator approves it.</p></div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <footer><button className="button secondary" type="button" disabled={busy} onClick={() => setPrepared(null)}><ArrowLeft aria-hidden="true" />Edit details</button><button className="button primary" type="button" disabled={busy || !online} onClick={() => void recordEvidence()}>{busy ? "Saving…" : "Save for review"}</button></footer>

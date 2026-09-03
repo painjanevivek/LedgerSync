@@ -16,7 +16,7 @@ async function authorizeCorrections(page: Page) {
   }));
 }
 
-test("rapid funding pagination dispatches once and deduplicates overlapping records", async ({ page }) => {
+test("funding cursor navigation dispatches one URL-bound page request", async ({ page }) => {
   let cursorRequests = 0;
   const nextFunding = { ...fundingEvent, funding_event_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", external_reference: "BANK-NEXT-20260831" };
   await mockOperatorConsole(page);
@@ -29,10 +29,10 @@ test("rapid funding pagination dispatches once and deduplicates overlapping reco
   });
 
   await page.goto("/funding");
-  const more = page.getByRole("button", { name: "Next records page" });
-  await more.evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+  await page.getByRole("link", { name: "Next page" }).click();
 
   await expect(page.getByText(nextFunding.external_reference, { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/cursor=opaque-funding-cursor/);
   expect(cursorRequests).toBe(1);
   await expect(page.getByText(fundingEvent.external_reference, { exact: true })).toHaveCount(1);
 });
@@ -120,9 +120,10 @@ test("a correction filter change rejects an in-flight cursor page", async ({ pag
   });
 
   await page.goto("/corrections");
-  await page.getByRole("button", { name: "Load more" }).click();
+  await page.getByRole("link", { name: "Next page" }).click({ noWaitAfter: true });
   await expect.poll(() => Boolean(pendingCursor)).toBe(true);
-  await page.getByLabel("Status").selectOption("requested");
+  await page.getByLabel("Exact correction status").selectOption("requested");
+  await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.getByText(requested.correction_id, { exact: true })).toBeVisible();
 
   await json(pendingCursor!.route, { events: [stalePage], next_cursor: "" });

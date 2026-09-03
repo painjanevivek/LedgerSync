@@ -166,3 +166,45 @@ test("a sensitive correction request turns step-up failure into a safe return pa
     page.getByText(/No correction request was assumed to succeed/),
   ).toBeVisible();
 });
+
+test("correction status, page count, cursor, and detail return context are URL reproducible", async ({ page }) => {
+  let requestedURL = "";
+  await mockOperatorConsole(page);
+  await authorizeCorrections(page);
+  await page.unroute("**/api/transfer-corrections?*");
+  await page.route("**/api/transfer-corrections?*", (route) => {
+    requestedURL = route.request().url();
+    const cursor = new URL(requestedURL).searchParams.get("cursor");
+    return json(route, { events: [correction], next_cursor: cursor ? "" : "correction-next" });
+  });
+
+  await page.goto("/corrections");
+  await page.getByLabel("Exact correction status").selectOption("approved");
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/\/corrections\?status=approved$/);
+  await expect.poll(() => requestedURL).toContain("status=approved");
+  await expect(page.getByText("1 record on this page. A total is not calculated or implied.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open control record" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/corrections?status=approved")}`));
+  await page.getByRole("link", { name: "Next page" }).click();
+  await expect(page).toHaveURL(/status=approved&cursor=correction-next/);
+  await expect.poll(() => requestedURL).toContain("cursor=correction-next");
+  await page.getByRole("button", { name: "Clear all" }).click();
+  await expect(page).toHaveURL(/\/corrections$/);
+  await expect(page.getByLabel("Exact correction status")).toHaveValue("");
+});
+
+test("invalid correction URLs do not request protected correction evidence", async ({ page }) => {
+  let requested = false;
+  await mockOperatorConsole(page);
+  await authorizeCorrections(page);
+  await page.unroute("**/api/transfer-corrections?*");
+  await page.route("**/api/transfer-corrections?*", (route) => {
+    requested = true;
+    return json(route, {}, 500);
+  });
+
+  await page.goto("/corrections?status=requested&status=posted");
+
+  await expect(page.getByText("Invalid correction investigation URL")).toBeVisible();
+  expect(requested).toBe(false);
+});

@@ -207,3 +207,36 @@ test("review and running controls pass axe and reflow across compact, zoom-equiv
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
+
+test("reconciliation page count, cursor, and run return context are URL reproducible", async ({ page }) => {
+  let requestedURL = "";
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/reconciliation/runs?*");
+  await page.route("**/api/reconciliation/runs?*", (route) => {
+    requestedURL = route.request().url();
+    const cursor = new URL(requestedURL).searchParams.get("cursor");
+    return json(route, { runs: [run], next_cursor: cursor ? "" : "reconciliation-next" });
+  });
+
+  await page.goto("/reconciliation");
+  await expect(page.getByText("1 run on this page. A total is not calculated or implied. Starting a new run never replaces prior results.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open result" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/reconciliation")}`));
+  await page.getByRole("link", { name: "Next page" }).click();
+  await expect(page).toHaveURL(/\/reconciliation\?cursor=reconciliation-next$/);
+  await expect.poll(() => requestedURL).toContain("cursor=reconciliation-next");
+});
+
+test("invalid reconciliation URLs do not request protected run evidence", async ({ page }) => {
+  let requested = false;
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/reconciliation/runs?*");
+  await page.route("**/api/reconciliation/runs?*", (route) => {
+    requested = true;
+    return json(route, {}, 500);
+  });
+
+  await page.goto("/reconciliation?cursor=one&cursor=two");
+
+  await expect(page.getByText("Invalid reconciliation investigation URL")).toBeVisible();
+  expect(requested).toBe(false);
+});

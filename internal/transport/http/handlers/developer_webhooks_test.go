@@ -10,11 +10,29 @@ import (
 	"time"
 
 	developerplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/developerplatform"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/recovery"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
 type webhookHandlerRepository struct{}
+
+type webhookReplayHandlerRepository struct {
+	approval recovery.DeliveryApproval
+	replay   recovery.DeliveryReplay
+}
+
+func (r *webhookReplayHandlerRepository) Inspect(context.Context, string, string) (recovery.DeadDelivery, error) {
+	return recovery.DeadDelivery{AttemptID: "70000000-0000-4000-8000-000000000002", Kind: "webhook", EndpointReference: "70000000-0000-4000-8000-000000000001"}, nil
+}
+func (r *webhookReplayHandlerRepository) Approve(_ context.Context, command recovery.DeliveryApproval) (recovery.DeliveryApprovalResult, error) {
+	r.approval = command
+	return recovery.DeliveryApprovalResult{ApprovalID: "70000000-0000-4000-8000-000000000003", Replayed: true}, nil
+}
+func (r *webhookReplayHandlerRepository) Replay(_ context.Context, command recovery.DeliveryReplay) (recovery.DeliveryReplayResult, error) {
+	r.replay = command
+	return recovery.DeliveryReplayResult{DeliveryJobID: "70000000-0000-4000-8000-000000000004", Replayed: true}, nil
+}
 
 func (*webhookHandlerRepository) RegisterWebhook(_ context.Context, c developerplatform.RegisterWebhookCommand, _ [sha256.Size]byte) (developerplatform.WebhookSubmission, error) {
 	return developerplatform.WebhookSubmission{Webhook: developerplatform.Webhook{ID: "70000000-0000-4000-8000-000000000001", EndpointURL: c.EndpointURL, Status: "pending_verification", Version: "1"}}, nil
@@ -70,5 +88,33 @@ func TestDeveloperWebhookRegistrationRequiresWriteScope(t *testing.T) {
 	middleware.Correlation(http.HandlerFunc(handler.Register)).ServeHTTP(response, request)
 	if response.Code != http.StatusForbidden {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+func TestDeveloperWebhookReplayCarriesStableIdentityAndApprovalReference(t *testing.T) {
+	replayRepository := &webhookReplayHandlerRepository{}
+	service, _ := developerplatform.NewWebhookService(&webhookHandlerRepository{}, replayRepository, "production", time.Now, nil)
+	handler := NewDeveloperWebhookHandler(service, identity.DevelopmentProvider{SubjectID: "operator", TenantID: "tenant-1", Scopes: []string{"webhooks:replay"}})
+	router := http.NewServeMux()
+	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", handler.ApproveReplay)
+	router.HandleFunc("POST /api/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", handler.Replay)
+
+	approvalRequest := httptest.NewRequest(http.MethodPost, "/api/developer/webhooks/70000000-0000-4000-8000-000000000001/deliveries/70000000-0000-4000-8000-000000000002/replay-approvals", strings.NewReader(`{"reason_code":"endpoint_restored"}`))
+	approvalRequest.Header.Set("Authorization", "Bearer development-local-only")
+	approvalRequest.Header.Set("Content-Type", "application/json")
+	approvalRequest.Header.Set("Idempotency-Key", "delivery-approval-0001")
+	approvalResponse := httptest.NewRecorder()
+	middleware.Correlation(router).ServeHTTP(approvalResponse, approvalRequest)
+	if approvalResponse.Code != http.StatusCreated || approvalResponse.Header().Get("Idempotent-Replay") != "true" || !strings.Contains(approvalResponse.Body.String(), `"approval_id":"70000000-0000-4000-8000-000000000003"`) || replayRepository.approval.IdempotencyKey != "delivery-approval-0001" {
+		t.Fatalf("approval status=%d header=%q body=%s command=%+v", approvalResponse.Code, approvalResponse.Header().Get("Idempotent-Replay"), approvalResponse.Body.String(), replayRepository.approval)
+	}
+
+	replayRequest := httptest.NewRequest(http.MethodPost, "/api/developer/webhooks/70000000-0000-4000-8000-000000000001/deliveries/70000000-0000-4000-8000-000000000002/replays", strings.NewReader(`{"approval_id":"70000000-0000-4000-8000-000000000003"}`))
+	replayRequest.Header = approvalRequest.Header.Clone()
+	replayRequest.Header.Set("Idempotency-Key", "delivery-execution-0001")
+	replayResponse := httptest.NewRecorder()
+	middleware.Correlation(router).ServeHTTP(replayResponse, replayRequest)
+	if replayResponse.Code != http.StatusAccepted || replayResponse.Header().Get("Idempotent-Replay") != "true" || !strings.Contains(replayResponse.Body.String(), `"delivery_job_id":"70000000-0000-4000-8000-000000000004"`) || replayRepository.replay.ApprovalID != "70000000-0000-4000-8000-000000000003" || replayRepository.replay.IdempotencyKey != "delivery-execution-0001" {
+		t.Fatalf("replay status=%d header=%q body=%s command=%+v", replayResponse.Code, replayResponse.Header().Get("Idempotent-Replay"), replayResponse.Body.String(), replayRepository.replay)
 	}
 }

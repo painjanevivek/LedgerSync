@@ -60,7 +60,7 @@ func (h *BalanceHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return
 	}
 	if identity.RequireScope(principal, "accounts:read") != nil {

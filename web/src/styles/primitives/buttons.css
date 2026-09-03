@@ -1,0 +1,51 @@
+
+
+.button {
+  display: inline-flex;
+  min-height: var(--target-compact);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.button.primary {
+  background: var(--blue);
+  color: var(--white);
+}
+.button.primary:hover {
+  background: var(--blue-hover);
+}
+.button.secondary {
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+}
+.button.secondary:hover {
+  background: var(--paper);
+}
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.text-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.text-link svg,
+.row-action svg {
+  width: 14px;
+  height: 14px;
+}

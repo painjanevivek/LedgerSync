@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { deliveryEvent, diagnostics, eventDetail, mockOperatorConsole } from "./fixtures";
+import { deliveryEvent, diagnostics, eventDetail, mockOperatorConsole, webhookEndpoint, webhookEndpointDetail } from "./fixtures";
 
 function json(route: Route, body: unknown, status = 200) { return route.fulfill({ status, contentType:"application/json", body:JSON.stringify(body) }); }
 
@@ -79,6 +79,82 @@ test("event list exposes authorized related evidence links", async ({ page }) =>
   await expect(related.getByRole("link", { name:"Account" })).toHaveAttribute("href", `/accounts/${deliveryEvent.account_id}?return_to=%2Fevents`);
 });
 
+test("webhook endpoint list exposes safe origin and exact URL-backed filters", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto("/webhooks");
+  await expect(page.getByRole("heading", { name:"Webhook endpoints", exact:true })).toBeVisible();
+  await expect(page.getByText(webhookEndpoint.origin, { exact:true })).toBeVisible();
+  await expect(page.getByText(/2 recent · 1 dead/i)).toBeVisible();
+  await expect(page.getByText(/private\/hooks|credential=|signing_key/i)).toHaveCount(0);
+  await page.getByLabel("Endpoint status").selectOption("active");
+  await page.getByLabel("Subscribed event").fill("transfer.posted");
+  const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/webhook-endpoints" && new URL(request.url()).searchParams.get("status") === "active");
+  await page.getByRole("button", { name:"Apply filters" }).click();
+  const request = await requestPromise;
+  expect(Object.fromEntries(new URL(request.url()).searchParams)).toEqual({ eventType:"transfer.posted",limit:"25",status:"active" });
+  await expectNoSeriousA11yViolations(page);
+});
+
+test("dead webhook detail links event and financial evidence without implying rollback", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto(`/webhooks/${webhookEndpoint.endpoint_id}`);
+  await expect(page.getByRole("heading", { level:1,name:webhookEndpoint.label, exact:true })).toBeVisible();
+  await expect(page.getByText("Delivery stopped; the financial record is unchanged")).toBeVisible();
+  const related = page.getByRole("navigation", { name:"Related evidence for attempt 2" });
+  await expect(related.getByRole("link", { name:"Event" })).toHaveAttribute("href", `/events/${deliveryEvent.event_id}?return_to=%2Fwebhooks%2F${webhookEndpoint.endpoint_id}`);
+  await expect(related.getByRole("link", { name:"Transfer" })).toHaveAttribute("href", `/transfers/${webhookEndpointDetail.delivery_attempts[0].transfer_id}?return_to=%2Fwebhooks%2F${webhookEndpoint.endpoint_id}`);
+  await expect(page.getByText(/replay resends the existing event only/i)).toBeVisible();
+  await expect(page.getByText(/endpoint_url|raw payload|private\/hooks/i)).toHaveCount(0);
+  await expectNoSeriousA11yViolations(page);
+});
+
+test("webhook replay approval is an exact independently handed-off command", async ({ page }) => {
+  await mockOperatorConsole(page);
+  const approvalId = "13131313-1313-4313-8313-131313131313";
+  let approvalKey = "";
+  await page.route(`**/api/webhook-endpoints/${webhookEndpoint.endpoint_id}/deliveries/${webhookEndpointDetail.delivery_attempts[0].attempt_id}/replay-approvals`, async (route) => {
+    approvalKey = route.request().headers()["idempotency-key"] ?? "";
+    expect(route.request().postDataJSON()).toEqual({ reason_code:"endpoint_restored" });
+    expect(route.request().headers()["x-csrf-token"]).toBe("csrf-test-token");
+    return json(route, { approval_id:approvalId,status:"approved" }, 201);
+  });
+  await page.goto(`/webhooks/${webhookEndpoint.endpoint_id}`);
+  await page.getByText("Controlled delivery replay").click();
+  await page.getByRole("button", { name:"Record replay approval" }).click();
+  await expect(page.getByText("Approval recorded for independent handoff")).toBeVisible();
+  await expect(page.getByRole("button", { name:"Copy replay approval ID" })).toBeVisible();
+  expect(approvalKey).toMatch(/^webhook-approval-/);
+  await expect(page.getByText(/cannot edit the payload, destination, transfer, or ledger/i)).toBeVisible();
+});
+
+test("unknown webhook replay execution retains the exact approved command", async ({ page }) => {
+  await mockOperatorConsole(page);
+  const approvalId = "13131313-1313-4313-8313-131313131313";
+  let executionKey = "";
+  await page.route(`**/api/webhook-endpoints/${webhookEndpoint.endpoint_id}/deliveries/${webhookEndpointDetail.delivery_attempts[0].attempt_id}/replay`, async (route) => {
+    executionKey = route.request().headers()["idempotency-key"] ?? "";
+    expect(route.request().postDataJSON()).toEqual({ approval_id:approvalId });
+    return json(route, { error:{ code:"execution_outcome_unknown" } }, 504);
+  });
+  await page.goto(`/webhooks/${webhookEndpoint.endpoint_id}`);
+  await page.getByText("Controlled delivery replay").click();
+  await page.getByLabel("Approved command ID").fill(approvalId);
+  await page.getByRole("button", { name:"Schedule existing event replay" }).click();
+  await expect(page.getByText("Replay command outcome unknown")).toBeVisible();
+  await expect(page.getByRole("button", { name:"Retry exact execution" })).toBeVisible();
+  await expect(page.getByLabel("Approved command ID")).toHaveAttribute("readonly", "");
+  expect(executionKey).toMatch(/^webhook-execution-/);
+});
+
+test("disabled webhook status is explicit and does not erase prior delivered evidence", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route(`**/api/webhook-endpoints/${webhookEndpoint.endpoint_id}`, (route) => json(route, { ...webhookEndpointDetail,status:"disabled",disabled_at:"2026-08-19T12:00:00Z",recent_delivery_state:"delivered",recent_dead_count:"0" }));
+  await page.goto(`/webhooks/${webhookEndpoint.endpoint_id}`);
+  await expect(page.getByText("Disabled", { exact:true }).first()).toBeVisible();
+  await expect(page.getByText("Delivered", { exact:true })).toBeVisible();
+  await expect(page.getByText("2026-08-19 12:00:00 UTC", { exact:true })).toBeVisible();
+});
+
 test("missing operations scopes are distinct from empty evidence and do not call the BFF", async ({ page }) => {
   await mockOperatorConsole(page);
   let requested = false;
@@ -89,6 +165,11 @@ test("missing operations scopes are distinct from empty evidence and do not call
   expect(requested).toBe(false);
   await page.goto("/events");
   await expect(page.getByText("Event evidence not authorized")).toBeVisible();
+  let webhookRequested = false;
+  await page.route("**/api/webhook-endpoints?*", (route) => { webhookRequested = true; return json(route, {items:[],next_cursor:""}); });
+  await page.goto("/webhooks");
+  await expect(page.getByText("Webhook evidence not authorized")).toBeVisible();
+  expect(webhookRequested).toBe(false);
 });
 
 test("operations screens reflow at 320px and 200-percent-equivalent width with forced colors and reduced motion", async ({ page }) => {
@@ -98,6 +179,9 @@ test("operations screens reflow at 320px and 200-percent-equivalent width with f
     await page.goto(viewport.width === 640 ? `/events/${deliveryEvent.event_id}` : "/local-status");
     await expect(page.locator("body")).toHaveJSProperty("scrollWidth", viewport.width);
   }
+  await page.setViewportSize({width:320,height:760});
+  await page.goto(`/webhooks/${webhookEndpoint.endpoint_id}`);
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 320);
   await page.emulateMedia({ forcedColors:"active", reducedMotion:"reduce" });
   await page.goto(`/events/${deliveryEvent.event_id}`);
   await expect(page.getByText("Delivery is not confirmed; financial status is separate")).toBeVisible();
@@ -112,4 +196,58 @@ test("offline status retains its timestamp but disables refresh", async ({ page,
   await expect(page.getByText("Offline — evidence is not current")).toBeVisible();
   await expect(page.getByRole("button", { name:"Refresh evidence" })).toBeDisabled();
   await context.setOffline(false);
+});
+
+test("event cursor and detail return context preserve the exact filtered investigation", async ({ page }) => {
+  let requestedURL = "";
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/events?*");
+  await page.route("**/api/events?*", (route) => {
+    requestedURL = route.request().url();
+    const cursor = new URL(requestedURL).searchParams.get("cursor");
+    return json(route, { events: [deliveryEvent], next_cursor: cursor ? "" : "event-next" });
+  });
+
+  await page.goto("/events?state=dead");
+  await expect(page.getByText("1 event on this page. A total is not calculated or implied.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open event" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/events?state=dead")}`));
+  await page.getByRole("link", { name: "Next page" }).click();
+  await expect(page).toHaveURL(/state=dead&cursor=event-next/);
+  await expect.poll(() => requestedURL).toContain("cursor=event-next");
+});
+
+test("webhook cursor and detail return context preserve the exact filtered investigation", async ({ page }) => {
+  let requestedURL = "";
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/webhook-endpoints?*");
+  await page.route("**/api/webhook-endpoints?*", (route) => {
+    requestedURL = route.request().url();
+    const cursor = new URL(requestedURL).searchParams.get("cursor");
+    return json(route, { items: [webhookEndpoint], next_cursor: cursor ? "" : "webhook-next" });
+  });
+
+  await page.goto("/webhooks?status=active");
+  await expect(page.getByText("1 endpoint on this page. A total is not calculated or implied.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open endpoint" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/webhooks?status=active")}`));
+  await page.getByRole("link", { name: "Next page" }).click();
+  await expect(page).toHaveURL(/status=active&cursor=webhook-next/);
+  await expect.poll(() => requestedURL).toContain("cursor=webhook-next");
+});
+
+test("invalid event and webhook URLs do not request protected evidence", async ({ page }) => {
+  let eventRequested = false;
+  let webhookRequested = false;
+  await mockOperatorConsole(page);
+  await page.unroute("**/api/events?*");
+  await page.unroute("**/api/webhook-endpoints?*");
+  await page.route("**/api/events?*", (route) => { eventRequested = true; return json(route, {}, 500); });
+  await page.route("**/api/webhook-endpoints?*", (route) => { webhookRequested = true; return json(route, {}, 500); });
+
+  await page.goto("/events?state=dead&state=published");
+  await expect(page.getByText("Invalid event investigation URL")).toBeVisible();
+  expect(eventRequested).toBe(false);
+
+  await page.goto("/webhooks?status=paused");
+  await expect(page.getByText("Invalid webhook investigation URL")).toBeVisible();
+  expect(webhookRequested).toBe(false);
 });

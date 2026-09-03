@@ -127,21 +127,29 @@ func TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation(t *testing.T) {
 		t.Fatal(err)
 	}
 	deliveryCorrelation := "00000000-0000-0000-0000-000000000222"
-	if err = delivery.Approve(ctx, recovery.DeliveryApproval{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "approver", ReasonCode: "endpoint_restored", CorrelationID: deliveryCorrelation}); err != nil {
+	approvalKey := "delivery-approval-0001"
+	approved, err := delivery.Approve(ctx, recovery.DeliveryApproval{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "approver", ReasonCode: "endpoint_restored", CorrelationID: deliveryCorrelation, IdempotencyKey: approvalKey})
+	if err != nil || approved.ApprovalID == "" || approved.Replayed {
 		t.Fatal(err)
 	}
-	if err = delivery.Approve(ctx, recovery.DeliveryApproval{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "approver", ReasonCode: "endpoint_restored", CorrelationID: deliveryCorrelation}); err != nil {
-		t.Fatalf("identical delivery approval retry must be idempotent: %v", err)
+	approvedRetry, err := delivery.Approve(ctx, recovery.DeliveryApproval{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "approver", ReasonCode: "endpoint_restored", CorrelationID: "00000000-0000-0000-0000-000000000224", IdempotencyKey: approvalKey})
+	if err != nil || approvedRetry.ApprovalID != approved.ApprovalID || !approvedRetry.Replayed {
+		t.Fatalf("identical delivery approval retry=%+v error=%v", approvedRetry, err)
 	}
-	if _, err = delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "approver", CorrelationID: deliveryCorrelation}); !errors.Is(err, db.ErrReplaySeparationRequired) {
+	executionKey := "delivery-execution-0001"
+	if _, err = delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ApprovalID: approved.ApprovalID, ActorSubjectID: "approver", CorrelationID: deliveryCorrelation, IdempotencyKey: executionKey}); !errors.Is(err, db.ErrReplaySeparationRequired) {
 		t.Fatalf("same-operator delivery replay error=%v", err)
 	}
-	newAttemptID, err := delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "executor", CorrelationID: deliveryCorrelation})
-	if err != nil || newAttemptID == "" {
-		t.Fatalf("delivery replay id=%q error=%v", newAttemptID, err)
+	replayed, err := delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ApprovalID: approved.ApprovalID, ActorSubjectID: "executor", CorrelationID: deliveryCorrelation, IdempotencyKey: executionKey})
+	if err != nil || replayed.DeliveryJobID == "" || replayed.Replayed {
+		t.Fatalf("delivery replay=%+v error=%v", replayed, err)
 	}
-	if _, err = delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ActorSubjectID: "executor", CorrelationID: deliveryCorrelation}); err == nil {
-		t.Fatal("duplicate delivery replay must not create another attempt")
+	replayedRetry, err := delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ApprovalID: approved.ApprovalID, ActorSubjectID: "executor", CorrelationID: "00000000-0000-0000-0000-000000000225", IdempotencyKey: executionKey})
+	if err != nil || replayedRetry.DeliveryJobID != replayed.DeliveryJobID || !replayedRetry.Replayed {
+		t.Fatalf("delivery replay retry=%+v error=%v", replayedRetry, err)
+	}
+	if _, err = delivery.Replay(ctx, recovery.DeliveryReplay{TenantID: testTenantID, AttemptID: deadAttemptID, ApprovalID: approved.ApprovalID, ActorSubjectID: "executor", CorrelationID: deliveryCorrelation, IdempotencyKey: "delivery-execution-0002"}); !errors.Is(err, db.ErrDeliveryReplayIdempotencyConflict) {
+		t.Fatalf("changed delivery replay key error=%v", err)
 	}
 	if countRows(t, database, `SELECT count(*) FROM delivery_attempts WHERE transfer_id=$1`, result.Result.TransferID) != 1 || countRows(t, database, `SELECT count(*) FROM webhook_delivery_jobs WHERE replay_of_attempt_id=$1`, deadAttemptID) != 1 || countRows(t, database, `SELECT count(*) FROM delivery_replay_actions WHERE action='executed'`) != 1 {
 		t.Fatal("delivery replay was not exactly once")

@@ -4,11 +4,16 @@ import { ArrowRight, Bank, ShieldCheck } from "@phosphor-icons/react";
 import Link from "next/link";
 
 import type { Account, ReconciliationRun, TransferSummary } from "@/features/accounts/types";
-import { EvidenceFreshness, FocusedRetry, PageHeader, RecordLink, StatePanel } from "@/features/console/components";
-import { utcDateTime } from "@/features/console/format";
+import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
+import { EvidenceFreshness } from "@/ui/display/Evidence";
+import { PageHeader } from "@/ui/display/PageHeader";
+import { RecordLink } from "@/ui/display/RecordLink";
+import { StatePanel } from "@/ui/display/StatePanel";
+import type { ConsoleCapabilities } from "@/features/console/capabilities";
 import { LocalOrientationPanel } from "@/features/orientation/LocalOrientationPanel";
 import { TransferList } from "@/features/transfers/TransferViews";
-import { formatMinorUnits } from "@/lib/money";
+import { Money } from "@/ui/display/Money";
+import { Timestamp } from "@/ui/display/Timestamp";
 import { approvedCurrencyGroups, isAuthoritativelyReconciled } from "@/lib/financial-ui";
 import type { LocalOrientation, OperatorPreferenceStepID } from "@/lib/api/orientation";
 import { uiDataState } from "@/lib/api/client";
@@ -27,6 +32,7 @@ type Props = Readonly<{
   transfersVerifiedAt?: string;
   reconciliationVerifiedAt?: string;
   online: boolean;
+  capabilities: ConsoleCapabilities;
   orientation: LocalOrientation | null;
   orientationLoading: boolean;
   orientationError: string | null;
@@ -44,7 +50,7 @@ type Props = Readonly<{
   onUpdateOrientationPreferences: (change: Readonly<{ dismissed: boolean; completedStepIDs: OperatorPreferenceStepID[] }>) => Promise<boolean>;
 }>;
 
-export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, orientation, orientationLoading, orientationError, orientationPreferenceError, orientationPreferenceSaving, canReadOrientation, canWriteOrientation, localWorkspace, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation, onUpdateOrientationPreferences }: Props) {
+export function OverviewView({ accounts, transfers, reconciliation, accountsLoading, transfersLoading, reconciliationLoading, accountsError, transfersError, reconciliationError, accountsVerifiedAt, transfersVerifiedAt, reconciliationVerifiedAt, online, capabilities, orientation, orientationLoading, orientationError, orientationPreferenceError, orientationPreferenceSaving, canReadOrientation, canWriteOrientation, localWorkspace, forceOrientation, onRefreshAccounts, onRefreshTransfers, onRefreshReconciliation, onRefreshAll, onRefreshOrientation, onUpdateOrientationPreferences }: Props) {
   const { currency, mixedCurrency, operatingMinor: operating, customerFundsMinor: customerFunds }=approvedCurrencyGroups(accounts);
   const asOf=accounts.map((account)=>account.as_of).filter(Boolean).sort().at(0);
   const busy = accountsLoading || transfersLoading || reconciliationLoading;
@@ -58,12 +64,15 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
     !accountsError &&
     !transfersError &&
     !reconciliationError &&
+    capabilities.accountsRead &&
+    capabilities.transfersRead &&
     accounts.length === 0 &&
     transfers.length === 0 &&
     !reconciliation;
   return <>
-    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}><button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button></PageHeader>
-    {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
+    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}>{(capabilities.accountsRead||capabilities.transfersRead||capabilities.reconciliationRead)&&<button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button>}</PageHeader>
+    {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} capabilities={capabilities} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
+    {!capabilities.accountsRead&&!capabilities.transfersRead&&!capabilities.reconciliationRead&&<StatePanel kind="denied" title="No financial read capability" message="Your server-issued session has no account, transfer, or reconciliation read scope. Protected overview requests were not made."/>}
     {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
       <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
       <div className="new-workspace-copy">
@@ -71,15 +80,15 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
         <h2 id="new-workspace-title">Start with four simple steps</h2>
         <p>Create an account, add a funding record, review it, then make a transfer.</p>
         <div className="new-workspace-actions">
-          <Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>
+          {capabilities.accountsWrite&&<Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>}
           <Link className="button secondary" href="/guide">Follow the guide</Link>
         </div>
       </div>
       <ol className="new-workspace-path" aria-label="First ledger steps">
-        <li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>
-        <li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>
-        <li><Link href="/funding"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>
-        <li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>
+        {capabilities.accountsWrite&&<li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>}
+        {capabilities.fundingWrite&&<li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>}
+        {capabilities.fundingApprove&&<li><Link href="/approvals"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>}
+        {capabilities.transfersWrite&&<li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>}
       </ol>
     </section>}
     <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account details state">
@@ -93,7 +102,7 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
       {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account details" message="Authoritative account balances are loading. No zero balance or empty tenant is inferred."/>}
       {!newWorkspace&&!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title="No authorized accounts" message="The verified authorized scope is empty. Create an account or ask an administrator to grant account access."/>}
       {accounts.length>0&&mixedCurrency&&<StatePanel kind="error" title="Mixed-currency pilot data blocked" message="Loaded accounts are preserved, but LedgerSync will not combine balances across currencies. Investigate tenant provisioning before relying on overview totals."/>}
-      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of {utcDateTime(asOf)}</span></div><strong className="hero-amount">{formatMinorUnits(currency,operating)}</strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount">{formatMinorUnits(currency,customerFunds)}</strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
+      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of <Timestamp value={asOf} /></span></div><strong className="hero-amount"><Money currency={currency} minorUnits={operating} /></strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount"><Money currency={currency} minorUnits={customerFunds} /></strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
     </section>
     {!newWorkspace&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation results state">
       {reconciliationError && <StatePanel
@@ -109,7 +118,7 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
           <ShieldCheck weight="fill" aria-hidden="true" />
           <div>
             <strong>{isAuthoritativelyReconciled(reconciliation) ? "Latest reconciliation passed" : "Reconciliation requires attention"}</strong>
-            <span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · {utcDateTime(reconciliation.completed_at)}</span>
+            <span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · <Timestamp value={reconciliation.completed_at} /></span>
           </div>
           <RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open result" />
         </section>

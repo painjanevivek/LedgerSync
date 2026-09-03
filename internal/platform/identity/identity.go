@@ -9,6 +9,7 @@ import (
 )
 
 var ErrUnauthenticated = errors.New("unauthenticated")
+var ErrAuthenticationUnavailable = errors.New("authentication temporarily unavailable")
 var ErrUnauthorized = errors.New("unauthorized")
 
 type Principal struct {

@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS transfer_corrections_tenant_correlation_search_idx;
+DROP INDEX IF EXISTS funding_events_tenant_correlation_search_idx;
+DROP INDEX IF EXISTS reconciliation_runs_tenant_correlation_search_idx;
+DROP INDEX IF EXISTS audit_events_tenant_correlation_search_idx;

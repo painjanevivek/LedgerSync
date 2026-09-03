@@ -1,0 +1,43 @@
+.route-boundary {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  padding: clamp(24px, 6vw, 72px);
+  background:
+    linear-gradient(90deg, transparent 0 31px, var(--line) 31px 32px, transparent 32px),
+    var(--canvas);
+}
+.route-boundary-card {
+  width: min(680px, 100%);
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--green);
+  padding: clamp(28px, 6vw, 52px);
+  background: var(--paper);
+  box-shadow: var(--shadow-surface);
+}
+.route-boundary-card-error {
+  border-top-color: var(--red);
+}
+.route-boundary-card h1 {
+  max-width: 560px;
+  margin: 10px 0 14px;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 5vw, 46px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+.route-boundary-card > p:not(.eyebrow) {
+  max-width: 590px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-body-lg);
+  line-height: 1.6;
+}
+.route-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-7);
+}

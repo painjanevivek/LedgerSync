@@ -1,0 +1,79 @@
+
+.field-note,
+.muted,
+.permission-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.permission-note {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  color: var(--red);
+}
+.intent-lock-note {
+  margin: 0;
+  border-left: 3px solid var(--amber);
+  padding: 11px 12px;
+  background: var(--amber-soft);
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.inline-alert {
+  width: min(1080px, 100%);
+  margin: 18px 0;
+  border: 1px solid;
+  padding: 13px 15px;
+  font-size: 11px;
+}
+.inline-alert p {
+  margin: 5px 0 0;
+  line-height: 1.5;
+}
+.inline-alert.success {
+  border-color: var(--status-success-border);
+  background: var(--green-soft);
+  color: var(--green-dark);
+}
+.inline-alert.error {
+  border-color: var(--status-danger-border);
+  background: var(--red-soft);
+  color: var(--status-danger-copy);
+}
+.inline-alert.unknown {
+  border-color: var(--status-warning-border);
+  background: var(--amber-soft);
+  color: var(--status-warning-copy);
+}
+.empty-document {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(1080px, 100%);
+  border: 1px solid var(--line);
+  padding: 22px;
+  background: var(--paper);
+}
+.empty-document > svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--green);
+}
+.empty-document div {
+  display: grid;
+  gap: 5px;
+}
+.empty-document strong {
+  font-size: 11px;
+}
+.empty-document p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}

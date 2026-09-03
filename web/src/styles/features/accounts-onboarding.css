@@ -1,0 +1,84 @@
+
+
+/* A first workspace is presented as a ledger path, not an empty analytics
+   dashboard. The ordered rail mirrors the evidence sequence users will create. */
+.new-workspace {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 20px;
+  width: min(1080px, 100%);
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--green);
+  padding: clamp(22px, 3vw, 34px);
+  background: var(--paper);
+  box-shadow: var(--shadow-surface);
+}
+.new-workspace-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.new-workspace-mark svg {
+  width: 24px;
+  height: 24px;
+}
+.new-workspace-copy h2 {
+  margin-top: 6px;
+  font-size: clamp(24px, 3vw, 36px);
+}
+.new-workspace-copy > p:not(.eyebrow) {
+  max-width: 720px;
+  color: var(--muted);
+  font-size: var(--type-body-lg);
+  line-height: 1.55;
+}
+.new-workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.new-workspace-actions .button svg {
+  width: 17px;
+  height: 17px;
+}
+.new-workspace-path {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 12px 0 0;
+  border: 1px solid var(--line);
+  padding: 0;
+  list-style: none;
+}
+.new-workspace-path li {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  border-right: 1px solid var(--line);
+  padding: 17px;
+}
+.new-workspace-path a {
+  display: grid;
+  gap: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+.new-workspace-path a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+.new-workspace-path li:last-child {
+  border-right: 0;
+}
+.new-workspace-path span {
+  color: var(--green);
+  font: 800 var(--type-label) var(--font-mono);
+}
+.new-workspace-path small {
+  color: var(--muted);
+  line-height: 1.4;
+}

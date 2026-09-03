@@ -56,7 +56,7 @@ func (h *TransactionsHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 	}
 	principal, err := h.authenticate(request)
 	if err != nil {
-		httptransport.WriteError(writer, request, httptransport.ErrUnauthorized)
+		writeAuthenticationError(writer, request, err)
 		return
 	}
 	if identity.RequireScope(principal, "transactions:read") != nil {

@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "2.0.0"
+const APIVersion = "3.3.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string
@@ -11,14 +11,19 @@ type Operation struct {
 }
 
 var Operations = []Operation{
-	{ID: "approveDeveloperWebhookReplay", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", Scope: "webhooks:replay", Idempotent: false},
+	{ID: "approveDeveloperWebhookReplay", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", Scope: "webhooks:replay", Idempotent: true},
 	{ID: "approveFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/approve", Scope: "funding:approve", Idempotent: false},
 	{ID: "approveTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/approve", Scope: "corrections:approve", Idempotent: false},
 	{ID: "cancelTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/cancel", Scope: "corrections:write", Idempotent: false},
+	{ID: "closeInvestigationWorkspace", Method: "POST", Path: "/investigation/workspaces/{investigationId}/close", Scope: "investigation:write", Idempotent: false},
 	{ID: "createAccount", Method: "POST", Path: "/accounts", Scope: "accounts:write", Idempotent: true},
 	{ID: "createDeveloperCredential", Method: "POST", Path: "/developer/credentials", Scope: "credentials:write", Idempotent: true},
+	{ID: "createInvestigationWorkspace", Method: "POST", Path: "/investigation/workspaces", Scope: "investigation:write", Idempotent: false},
+	{ID: "createSavedInvestigationView", Method: "POST", Path: "/investigation/saved-views", Scope: "investigation:write", Idempotent: false},
 	{ID: "createTransfer", Method: "POST", Path: "/transfers", Scope: "transfers:write", Idempotent: true},
+	{ID: "deleteSavedInvestigationView", Method: "DELETE", Path: "/investigation/saved-views/{savedViewId}", Scope: "investigation:write", Idempotent: false},
 	{ID: "disableDeveloperWebhook", Method: "POST", Path: "/developer/webhooks/{webhookId}/disablements", Scope: "webhooks:write", Idempotent: true},
+	{ID: "downloadInvestigationEvidenceBundle", Method: "POST", Path: "/investigation/workspaces/{investigationId}/evidence-bundle", Scope: "exports:read", Idempotent: false},
 	{ID: "downloadOpenAPI", Method: "GET", Path: "/openapi.yaml", Scope: "developer:read", Idempotent: false},
 	{ID: "explainTransferEvidence", Method: "GET", Path: "/transfers/{transferId}/explainability", Scope: "explainability:read", Idempotent: false},
 	{ID: "exportAccountLedgerCSV", Method: "GET", Path: "/exports/accounts/{accountId}/transactions.csv", Scope: "exports:read", Idempotent: false},
@@ -30,30 +35,40 @@ var Operations = []Operation{
 	{ID: "getDeveloperWebhook", Method: "GET", Path: "/developer/webhooks/{webhookId}", Scope: "webhooks:read", Idempotent: false},
 	{ID: "getEventEvidence", Method: "GET", Path: "/events/{eventId}", Scope: "events:read", Idempotent: false},
 	{ID: "getFundingEvent", Method: "GET", Path: "/funding-events/{fundingEventId}", Scope: "funding:read", Idempotent: false},
+	{ID: "getInvestigationWorkspace", Method: "GET", Path: "/investigation/workspaces/{investigationId}", Scope: "investigation:read", Idempotent: false},
 	{ID: "getLocalDiagnostics", Method: "GET", Path: "/local/diagnostics", Scope: "local:read", Idempotent: false},
 	{ID: "getLocalOrientationEvidence", Method: "GET", Path: "/local/orientation", Scope: "local:read", Idempotent: false},
 	{ID: "getOwnedAccount", Method: "GET", Path: "/accounts/{accountId}", Scope: "accounts:read", Idempotent: false},
 	{ID: "getReconciliationRun", Method: "GET", Path: "/reconciliation/runs/{runId}", Scope: "reconciliation:read", Idempotent: false},
 	{ID: "getRecoveryEvidenceIndex", Method: "GET", Path: "/recovery/manifests", Scope: "recovery:read", Idempotent: false},
+	{ID: "getRelatedInvestigationEvidence", Method: "GET", Path: "/investigation/related/{recordType}/{recordId}", Scope: "investigation:read", Idempotent: false},
 	{ID: "getTransfer", Method: "GET", Path: "/transfers/{transferId}", Scope: "transfers:read", Idempotent: false},
 	{ID: "getTransferCorrection", Method: "GET", Path: "/transfer-corrections/{correctionId}", Scope: "corrections:read", Idempotent: false},
+	{ID: "getWebhookEndpointEvidence", Method: "GET", Path: "/webhook-endpoints/{endpointId}", Scope: "webhooks:read", Idempotent: false},
+	{ID: "handoffInvestigationWorkspace", Method: "POST", Path: "/investigation/workspaces/{investigationId}/handoff", Scope: "investigation:write", Idempotent: false},
 	{ID: "listAccountTransactions", Method: "GET", Path: "/accounts/{accountId}/transactions", Scope: "transactions:read", Idempotent: false},
+	{ID: "listApprovalEvidence", Method: "GET", Path: "/approvals", Scope: "funding:approve", Idempotent: false},
 	{ID: "listDeveloperCredentials", Method: "GET", Path: "/developer/credentials", Scope: "credentials:read", Idempotent: false},
 	{ID: "listDeveloperWebhookDeliveries", Method: "GET", Path: "/developer/webhooks/{webhookId}/deliveries", Scope: "webhooks:read", Idempotent: false},
 	{ID: "listDeveloperWebhooks", Method: "GET", Path: "/developer/webhooks", Scope: "webhooks:read", Idempotent: false},
 	{ID: "listEventEvidence", Method: "GET", Path: "/events", Scope: "events:read", Idempotent: false},
 	{ID: "listFundingEvents", Method: "GET", Path: "/funding-events", Scope: "funding:read", Idempotent: false},
+	{ID: "listInvestigationWorkspaces", Method: "GET", Path: "/investigation/workspaces", Scope: "investigation:read", Idempotent: false},
 	{ID: "listOwnedAccounts", Method: "GET", Path: "/me/accounts", Scope: "accounts:read", Idempotent: false},
 	{ID: "listReconciliationRuns", Method: "GET", Path: "/reconciliation/runs", Scope: "reconciliation:read", Idempotent: false},
+	{ID: "listSavedInvestigationViews", Method: "GET", Path: "/investigation/saved-views", Scope: "investigation:read", Idempotent: false},
 	{ID: "listTransferCorrections", Method: "GET", Path: "/transfer-corrections", Scope: "corrections:read", Idempotent: false},
 	{ID: "listTransfers", Method: "GET", Path: "/transfers", Scope: "transfers:read", Idempotent: false},
+	{ID: "listWebhookEndpointEvidence", Method: "GET", Path: "/webhook-endpoints", Scope: "webhooks:read", Idempotent: false},
 	{ID: "postFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/post", Scope: "funding:write", Idempotent: true},
 	{ID: "postTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/post", Scope: "corrections:approve", Idempotent: true},
 	{ID: "reconcileFundingEvent", Method: "GET", Path: "/funding-events/{fundingEventId}/reconciliation", Scope: "funding:read", Idempotent: false},
 	{ID: "registerDeveloperWebhook", Method: "POST", Path: "/developer/webhooks", Scope: "webhooks:write", Idempotent: true},
 	{ID: "rejectFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/reject", Scope: "funding:approve", Idempotent: false},
 	{ID: "rejectTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/reject", Scope: "corrections:approve", Idempotent: false},
-	{ID: "replayDeveloperWebhookDelivery", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", Scope: "webhooks:replay", Idempotent: false},
+	{ID: "renameSavedInvestigationView", Method: "PUT", Path: "/investigation/saved-views/{savedViewId}", Scope: "investigation:write", Idempotent: false},
+	{ID: "reopenInvestigationWorkspace", Method: "POST", Path: "/investigation/workspaces/{investigationId}/reopen", Scope: "investigation:write", Idempotent: false},
+	{ID: "replayDeveloperWebhookDelivery", Method: "POST", Path: "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", Scope: "webhooks:replay", Idempotent: true},
 	{ID: "requestFunding", Method: "POST", Path: "/funding-requests", Scope: "funding:write", Idempotent: true},
 	{ID: "requestFundingCompensation", Method: "POST", Path: "/funding-events/{fundingEventId}/compensations", Scope: "funding:write", Idempotent: true},
 	{ID: "requestTransferCorrection", Method: "POST", Path: "/transfers/{transferId}/corrections", Scope: "corrections:write", Idempotent: true},
@@ -61,6 +76,7 @@ var Operations = []Operation{
 	{ID: "rotateDeveloperCredential", Method: "POST", Path: "/developer/credentials/{credentialId}/rotations", Scope: "credentials:write", Idempotent: true},
 	{ID: "rotateDeveloperWebhookSignature", Method: "POST", Path: "/developer/webhooks/{webhookId}/signature-rotations", Scope: "webhooks:write", Idempotent: true},
 	{ID: "runReconciliation", Method: "POST", Path: "/reconciliation/runs", Scope: "reconciliation:write", Idempotent: true},
+	{ID: "searchInvestigationEvidence", Method: "GET", Path: "/investigation/search", Scope: "investigation:read", Idempotent: false},
 	{ID: "updateAccount", Method: "PATCH", Path: "/accounts/{accountId}", Scope: "accounts:write", Idempotent: true},
 	{ID: "updateLocalOrientationPreferences", Method: "PUT", Path: "/local/orientation/preferences", Scope: "local:write", Idempotent: false},
 }

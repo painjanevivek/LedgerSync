@@ -1,5 +1,10 @@
 export type CorrectionStatus =
   "requested" | "approved" | "rejected" | "cancelled" | "expired" | "posted";
+export type CorrectionFilters = Readonly<{
+  status: "" | CorrectionStatus;
+  cursor?: string;
+}>;
+export const emptyCorrectionFilters: CorrectionFilters = { status: "" };
 export type CorrectionReasonCode =
   | "duplicate"
   | "wrong_destination"

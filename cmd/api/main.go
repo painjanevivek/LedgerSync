@@ -136,7 +136,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -214,6 +214,8 @@ func main() {
 			accountsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
 			transactionsHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
 			investigationHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute)
+			investigationHandler.WithSavedViewWriteLimit(configuration.WriteRateLimitPerMinute)
+			investigationHandler.WithWorkspaceWriteLimit(configuration.WriteRateLimitPerMinute)
 			fundingHandler.WithRateLimiter(rateLimiter, configuration.ReadRateLimitPerMinute, configuration.WriteRateLimitPerMinute, configuration.WriteCapacityPerSecond)
 			auditRepository, err := db.NewAuditRepository(database)
 			if err != nil {
@@ -307,6 +309,13 @@ func main() {
 				slog.Error("correction route initialization failed", "error", err)
 				os.Exit(1)
 			}
+			if err := registerApprovalRoutes(router, approvalRouteConfig{
+				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter,
+				ReadRatePerMinute: configuration.ReadRateLimitPerMinute,
+			}); err != nil {
+				slog.Error("approval route initialization failed", "error", err)
+				os.Exit(1)
+			}
 			router.Handle("POST /api/transfers", transferHandler)
 			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)
 			router.Handle("GET /api/me/accounts", accountsHandler)
@@ -314,6 +323,19 @@ func main() {
 			router.Handle("GET /api/accounts/{accountID}/transactions", transactionsHandler)
 			router.HandleFunc("GET /api/transfers", investigationHandler.Transfers)
 			router.HandleFunc("GET /api/transfers/{transferID}", investigationHandler.Transfer)
+			router.HandleFunc("GET /api/investigation/search", investigationHandler.Search)
+			router.HandleFunc("GET /api/investigation/related/{recordType}/{recordId}", investigationHandler.Related)
+			router.HandleFunc("GET /api/investigation/saved-views", investigationHandler.SavedViews)
+			router.HandleFunc("POST /api/investigation/saved-views", investigationHandler.CreateSavedView)
+			router.HandleFunc("PUT /api/investigation/saved-views/{savedViewId}", investigationHandler.RenameSavedView)
+			router.HandleFunc("DELETE /api/investigation/saved-views/{savedViewId}", investigationHandler.DeleteSavedView)
+			router.HandleFunc("GET /api/investigation/workspaces", investigationHandler.Workspaces)
+			router.HandleFunc("POST /api/investigation/workspaces", investigationHandler.CreateWorkspace)
+			router.HandleFunc("GET /api/investigation/workspaces/{investigationId}", investigationHandler.Workspace)
+			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/evidence-bundle", investigationHandler.WorkspaceEvidenceBundle)
+			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/handoff", investigationHandler.HandoffWorkspace)
+			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/close", investigationHandler.CloseWorkspace)
+			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/reopen", investigationHandler.ReopenWorkspace)
 			router.HandleFunc("GET /api/reconciliation/runs", investigationHandler.ReconciliationRuns)
 			router.HandleFunc("GET /api/reconciliation/runs/{runID}", investigationHandler.ReconciliationRun)
 			router.HandleFunc("POST /api/funding-requests", fundingHandler.Request)

@@ -32,3 +32,58 @@ func TestTransferCursorIsBoundToCanonicalFilters(t *testing.T) {
 		t.Fatal("oversized transfer cursor was accepted")
 	}
 }
+
+func TestRelatedEvidenceRequiresSourceScopeAndUsesBoundedMetadataQueries(t *testing.T) {
+	full := investigation.RelationshipAccess{Accounts: true, Transfers: true, Funding: true, Events: true, Reconciliation: true, Corrections: true}
+	for _, sourceType := range []string{"account", "transfer", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction"} {
+		if !relationshipSourceAllowed(sourceType, full) {
+			t.Fatalf("released source type %q was not authorized", sourceType)
+		}
+		query, args := relationshipQuery(investigation.RelationshipFilter{SourceType: sourceType, SourceID: "11111111-1111-4111-8111-111111111111", Limit: 20, Access: full}, "tenant", "actor")
+		if !strings.Contains(query, "LIMIT $10") || len(args) != 10 || args[9] != 21 {
+			t.Fatalf("source=%s query is not hard bounded: args=%#v", sourceType, args)
+		}
+		for _, forbidden := range []string{"amount_minor", "available_minor", "ledger_minor", "payload", "operator_note", "evidence_reference"} {
+			if strings.Contains(query, forbidden) {
+				t.Fatalf("source=%s relationship query copied forbidden field %q", sourceType, forbidden)
+			}
+		}
+	}
+	if relationshipSourceAllowed("transfer", investigation.RelationshipAccess{Accounts: true}) || relationshipSourceAllowed("unknown", full) {
+		t.Fatal("relationship source was authorized without its own domain scope")
+	}
+}
+
+func TestRelationshipSourceAuthorizationUsesContiguousTypedParameters(t *testing.T) {
+	query, args, ok := relationshipSourceAuthorization("account", "tenant", "actor", "record")
+	if !ok || len(args) != 3 || !strings.Contains(query, "$2") || !strings.Contains(query, "$3") {
+		t.Fatalf("account authorization query=%q args=%#v ok=%v", query, args, ok)
+	}
+	for _, sourceType := range []string{"transfer", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction"} {
+		query, args, ok = relationshipSourceAuthorization(sourceType, "tenant", "actor", "record")
+		if !ok || len(args) != 2 || !strings.Contains(query, "$2") || strings.Contains(query, "$3") {
+			t.Fatalf("source=%s authorization query=%q args=%#v ok=%v", sourceType, query, args, ok)
+		}
+	}
+	if query, args, ok = relationshipSourceAuthorization("unknown", "tenant", "actor", "record"); ok || query != "" || args != nil {
+		t.Fatalf("unknown authorization query=%q args=%#v ok=%v", query, args, ok)
+	}
+}
+
+func TestRelationshipQueriesDeclareStableProjectionColumns(t *testing.T) {
+	queries := map[string]string{
+		"account":                 accountRelationshipsSQL,
+		"transfer":                transferRelationshipsSQL,
+		"funding":                 fundingRelationshipsSQL,
+		"event":                   eventRelationshipsSQL,
+		"reconciliation_run":      reconciliationRunRelationshipsSQL,
+		"reconciliation_mismatch": reconciliationMismatchRelationshipsSQL,
+		"correction":              correctionRelationshipsSQL,
+	}
+	want := "WITH " + relationshipParameters + ", " + relationshipColumns + " AS ("
+	for sourceType, query := range queries {
+		if !strings.HasPrefix(query, want) {
+			t.Fatalf("source=%s must type every parameter and declare the relationship projection columns: %q", sourceType, query)
+		}
+	}
+}

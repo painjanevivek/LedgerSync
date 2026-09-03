@@ -198,21 +198,21 @@ test("account and transfer scopes independently govern create, lifecycle, and fu
     await page.route("**/api/session", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes, environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Scoped operator" }) }));
   }
 
-  await useScopes(["accounts:write"]);
+  await useScopes(["accounts:read", "accounts:write"]);
   await page.goto("/accounts");
   await expect(page.getByRole("link", { name: "Create account" })).toBeVisible();
   await page.goto(`/accounts/${sourceAccount.account_id}`);
   await expect(page.getByRole("button", { name: "Freeze account" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Fund account" })).toHaveCount(0);
 
-  await useScopes(["transfers:write"]);
+  await useScopes(["accounts:read", "transfers:write"]);
   await page.goto("/accounts");
   await expect(page.getByRole("link", { name: "Create account" })).toHaveCount(0);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
   await expect(page.getByRole("button", { name: "Freeze account" })).toBeDisabled();
   await expect(page.getByRole("link", { name: "Fund account" })).toBeVisible();
 
-  await useScopes([]);
+  await useScopes(["accounts:read"]);
   await page.goto("/accounts");
   await expect(page.getByRole("link", { name: "Create account" })).toHaveCount(0);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
@@ -235,7 +235,7 @@ test("detail funding fails closed when the bounded authorized picker is incomple
   expect(requestedLimits).toContain("100");
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
-  expect(requestedLimits).toContain("25");
+  await expect.poll(() => requestedLimits).toContain("25");
 });
 
 test("close dialog refreshes account configuration and both balances before enabling confirmation", async ({ page }) => {

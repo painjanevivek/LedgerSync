@@ -81,6 +81,11 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
   await session.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   await installWebVitalObservers(page);
   await mockOperatorConsole(page, { sessionDelayMilliseconds: 300 });
+  let initialTransferredBytes = 0;
+  let initialLoadComplete = false;
+  session.on("Network.loadingFinished", ({ encodedDataLength }) => {
+    if (!initialLoadComplete) initialTransferredBytes += encodedDataLength;
+  });
   const boundedRequests: string[] = [];
   const apiRequests: string[] = [];
   page.on("request", (request) => {
@@ -96,6 +101,7 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
   const initialLoad = await metrics(page);
   const initialRequestCount = boundedRequests.length;
   const initialApiRequestCount = apiRequests.length;
+  initialLoadComplete = true;
   console.log(`compact_initial_vitals=${JSON.stringify(initialLoad)}`);
   await page.getByRole("button", { name: "Menu" }).click();
   await page.getByRole("link", { name: "Accounts" }).click();
@@ -105,13 +111,13 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
   const observed = await metrics(page);
   const requestFrequency = Object.fromEntries([...new Set(apiRequests)].map((path) => [path, apiRequests.filter((item) => item === path).length]));
   console.log(`compact_observed_vitals=${JSON.stringify(observed)}`);
-  console.log(`compact_request_budget=${JSON.stringify({ initialRequestCount, initialApiRequestCount, totalRequestCount: boundedRequests.length, apiRequestCount: apiRequests.length, requestFrequency })}`);
+  console.log(`compact_request_budget=${JSON.stringify({ initialRequestCount, initialApiRequestCount, initialTransferredBytes, totalRequestCount: boundedRequests.length, apiRequestCount: apiRequests.length, requestFrequency })}`);
   await testInfo.attach("compact-web-vitals.json", {
     body: Buffer.from(JSON.stringify({
       profile: { viewport: "390x844", cpuThrottle: 4, network: "constrained-4g" },
       initialLoad,
       observed,
-      requests: { initialRequestCount, initialApiRequestCount, totalRequestCount: boundedRequests.length, apiRequestCount: apiRequests.length, requestFrequency },
+      requests: { initialRequestCount, initialApiRequestCount, initialTransferredBytes, totalRequestCount: boundedRequests.length, apiRequestCount: apiRequests.length, requestFrequency },
     }, null, 2)),
     contentType: "application/json",
   });
@@ -122,6 +128,7 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
   expect(initialLoad.cls).toBeLessThanOrEqual(0.1);
   expect(initialRequestCount).toBeLessThanOrEqual(32);
   expect(initialApiRequestCount).toBeLessThanOrEqual(8);
+  expect(initialTransferredBytes).toBeLessThanOrEqual(3_000_000);
   expect(apiRequests.length).toBeLessThanOrEqual(12);
   expect(requestFrequency["GET /api/session"]).toBe(1);
   expect(Math.max(0, ...Object.values(requestFrequency))).toBeLessThanOrEqual(2);
@@ -150,4 +157,37 @@ test("large bounded history progressively renders without blocking navigation", 
   await expect(page.getByRole("link", { name: "Transfers" })).toBeVisible();
   await page.getByRole("link", { name: "Transfers" }).click();
   await expect(page.getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
+});
+
+test("bounded approval evidence progressively renders without blocking navigation", { tag: "@performance" }, async ({ page }) => {
+  await mockOperatorConsole(page);
+  const items = Array.from({ length:25 }, (_, index) => ({
+    domain:index % 2 === 0 ? "funding" : "correction",
+    record_id:`80000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    requester_subject_id:`operator-${index + 2}`,
+    requested_at:`2026-08-${String(index + 1).padStart(2, "0")}T09:00:00Z`,
+    age_seconds:String((25 - index) * 86_400),
+    status:"requested",
+    amount_minor:String(1_000 + index),
+    currency:"INR",
+    related_account_id:sourceAccount.account_id,
+    evidence_complete:true,
+    self_approval_blocked:false,
+    actionable_by_me:true,
+    required_scope:index % 2 === 0 ? "funding:approve" : "corrections:approve",
+    step_up_status:"not_required",
+    safe_next_action:"review_decision",
+  }));
+  await page.unroute("**/api/approvals?*");
+  await page.route("**/api/approvals?*", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await route.fulfill({ status:200,contentType:"application/json",body:JSON.stringify({ items,page_count:items.length,next_cursor:"next-page" }) });
+  });
+
+  await page.goto("/approvals");
+  await expect(page.getByText("Loading approval evidence")).toBeVisible();
+  await expect(page.locator(".approval-table tbody tr")).toHaveCount(25);
+  await expect(page.getByText("25 records on this page. A total is not calculated or implied.")).toBeVisible();
+  await page.getByRole("link", { name:"Transfers" }).click();
+  await expect(page.getByRole("heading", { name:"Transfers",exact:true })).toBeVisible();
 });

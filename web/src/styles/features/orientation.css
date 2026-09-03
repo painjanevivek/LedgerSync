@@ -1,0 +1,333 @@
+
+
+/* The operator journey is a ledger trail: ordered, evidence-labelled and resumable. */
+.local-orientation {
+  display: grid;
+  width: min(1080px, 100%);
+  margin: 0 0 24px;
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--green);
+  background: var(--paper);
+}
+.local-orientation > header {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 44px;
+  align-items: start;
+  gap: 16px;
+  padding: 22px 24px;
+}
+.local-orientation > header > svg {
+  width: 30px;
+  height: 30px;
+  color: var(--green);
+}
+.local-orientation > header > div {
+  min-width: 0;
+}
+.local-orientation > header h2 {
+  margin: 4px 0 7px;
+}
+.local-orientation > header p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.orientation-dismiss {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.orientation-dismiss svg {
+  width: 18px;
+  height: 18px;
+}
+.orientation-boundary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-block: 1px solid var(--line);
+  background: var(--paper-subtle);
+}
+.orientation-boundary > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  padding: 13px 18px;
+}
+.orientation-boundary > div:last-child {
+  border-right: 0;
+}
+.orientation-boundary strong {
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.orientation-boundary span {
+  font: 10px var(--font-mono);
+}
+.recommended-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 22px 24px;
+  background: linear-gradient(105deg, var(--green-soft), var(--paper) 72%);
+}
+.recommended-action.blocked {
+  background: linear-gradient(105deg, var(--amber-soft), var(--paper) 72%);
+}
+.recommended-action h3 {
+  margin: 4px 0 6px;
+  font-size: 17px;
+}
+.recommended-action p:not(.eyebrow) {
+  max-width: 700px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.recommended-blocked {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--amber);
+  padding: 0 14px;
+  color: var(--amber);
+  font: 9px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.recommended-blocked svg {
+  width: 17px;
+  height: 17px;
+}
+.orientation-checklist {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: orientation-step;
+}
+.orientation-checklist li {
+  display: grid;
+  grid-template-columns: 30px 28px minmax(220px, 1fr) auto minmax(150px, auto);
+  align-items: center;
+  gap: 12px;
+  min-height: 84px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 22px;
+}
+.orientation-checklist li.current {
+  box-shadow: inset 3px 0 0 var(--blue);
+  background: var(--blue-soft);
+}
+.orientation-checklist-loading li {
+  grid-template-columns: 30px minmax(220px, 1fr) auto;
+}
+.orientation-step-number {
+  color: var(--muted);
+  font: 9px var(--font-mono);
+  letter-spacing: 0.08em;
+}
+.orientation-check {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--muted);
+}
+.orientation-check.completed,
+.orientation-check.operator_confirmed {
+  border-color: var(--green);
+  color: var(--green);
+}
+.orientation-check.evidence_available {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.orientation-check.missing,
+.orientation-check.unavailable {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.orientation-check svg {
+  width: 15px;
+  height: 15px;
+}
+.orientation-checklist li > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.orientation-checklist li p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.orientation-checklist li small {
+  color: var(--muted);
+  font: 8px/1.5 var(--font-mono);
+}
+.orientation-step-actions {
+  display: flex !important;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.orientation-confirm {
+  min-height: 36px;
+  cursor: pointer;
+}
+.orientation-confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.orientation-state {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  border-bottom: 1px solid var(--line);
+  padding: 18px 22px;
+  background: var(--amber-soft);
+}
+.orientation-state > svg {
+  width: 19px;
+  height: 19px;
+  color: var(--amber);
+}
+.orientation-state p {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.orientation-state span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.orientation-preference-state {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding: 13px 22px;
+  background: var(--paper-subtle);
+  color: var(--muted);
+}
+.orientation-preference-state svg {
+  color: var(--blue);
+}
+.orientation-preference-state p {
+  margin: 0;
+  font-size: 9px;
+}
+.orientation-definitions {
+  border-top: 1px solid var(--line);
+  padding: 0 22px;
+  background: var(--paper-subtle);
+}
+.orientation-definitions summary {
+  min-height: 44px;
+  padding: 14px 0;
+  cursor: pointer;
+  font: 9px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.orientation-definitions dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin: 0 0 18px;
+  border: 1px solid var(--line);
+}
+.orientation-definitions dl > div {
+  border-right: 1px solid var(--line);
+  padding: 12px;
+}
+.orientation-definitions dl > div:last-child {
+  border-right: 0;
+}
+.orientation-definitions dt {
+  font: 9px var(--font-mono);
+}
+.orientation-definitions dd {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+.local-orientation > footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 22px;
+  background: var(--rail);
+  color: var(--rail-text);
+}
+.local-orientation > footer p {
+  margin: 4px 0 0;
+  color: var(--rail-muted);
+  font-size: 10px;
+}
+.local-orientation > footer .copy-control {
+  color: var(--rail-text);
+}
+.local-orientation > footer .copy-control button {
+  color: var(--rail-text);
+}
+.orientation-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.orientation-footer-actions .button {
+  border-color: var(--rail-muted);
+  color: var(--rail-text);
+}
+.orientation-compact {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: min(1080px, 100%);
+  margin: 0 0 24px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--green);
+  padding: 16px 18px;
+  background: var(--paper);
+}
+.orientation-compact > svg {
+  width: 26px;
+  height: 26px;
+  color: var(--green);
+}
+.orientation-compact h2 {
+  margin: 3px 0 4px;
+  font-size: 14px;
+}
+.orientation-compact p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+.orientation-compact > .permission-note {
+  grid-column: 2/-1;
+}

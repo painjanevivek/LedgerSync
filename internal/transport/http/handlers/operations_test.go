@@ -32,6 +32,15 @@ func (operationsEventRepositoryStub) GetEvent(context.Context, string, string, s
 	return operations.EventDetail{DeliveryAttempts: []operations.DeliveryEvidence{}, Timeline: []operations.EventTimelineItem{}}, nil
 }
 
+type operationsWebhookRepositoryStub struct{}
+
+func (operationsWebhookRepositoryStub) ListWebhookEndpoints(context.Context, string, string, operations.WebhookEndpointFilter) (operations.WebhookEndpointPage, error) {
+	return operations.WebhookEndpointPage{Items: []operations.WebhookEndpointEvidence{}}, nil
+}
+func (operationsWebhookRepositoryStub) GetWebhookEndpoint(context.Context, string, string, string) (operations.WebhookEndpointDetail, error) {
+	return operations.WebhookEndpointDetail{DeliveryAttempts: []operations.WebhookDeliveryEvidence{}}, nil
+}
+
 func operationsTestHandler(t *testing.T, scopes []string, roles []string, limiters ...RateLimiter) http.Handler {
 	t.Helper()
 	diagnostics, err := operations.NewDiagnosticService(operationsDiagnosticRepositoryStub{}, operationsProbeStub{}, operations.BuildFacts{Environment: "development"}, func() time.Time { return time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC) })
@@ -42,7 +51,11 @@ func operationsTestHandler(t *testing.T, scopes []string, roles []string, limite
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := NewOperationsHandler(diagnostics, events, identity.DevelopmentProvider{SubjectID: "operator", TenantID: "tenant", Scopes: scopes, Roles: roles})
+	webhooks, err := operations.NewWebhookEndpointService(operationsWebhookRepositoryStub{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewOperationsHandler(diagnostics, events, webhooks, identity.DevelopmentProvider{SubjectID: "operator", TenantID: "tenant", Scopes: scopes, Roles: roles})
 	if len(limiters) > 0 {
 		handler.WithRateLimiter(limiters[0], 1)
 	}
@@ -50,7 +63,22 @@ func operationsTestHandler(t *testing.T, scopes []string, roles []string, limite
 	router.HandleFunc("GET /api/local/diagnostics", handler.Diagnostics)
 	router.HandleFunc("GET /api/events", handler.Events)
 	router.HandleFunc("GET /api/events/{eventID}", handler.Event)
+	router.HandleFunc("GET /api/webhook-endpoints", handler.WebhookEndpoints)
+	router.HandleFunc("GET /api/webhook-endpoints/{endpointId}", handler.WebhookEndpoint)
 	return middleware.Correlation(router)
+}
+
+func TestWebhookEvidenceRequiresScopeAndRejectsUnknownFilters(t *testing.T) {
+	denied := httptest.NewRecorder()
+	operationsTestHandler(t, []string{"events:read"}, []string{"tenant:operator"}).ServeHTTP(denied, operationsRequest(http.MethodGet, "/api/webhook-endpoints"))
+	if denied.Code != http.StatusForbidden {
+		t.Fatalf("denied status=%d body=%s", denied.Code, denied.Body.String())
+	}
+	unknown := httptest.NewRecorder()
+	operationsTestHandler(t, []string{"webhooks:read"}, []string{"tenant:operator"}).ServeHTTP(unknown, operationsRequest(http.MethodGet, "/api/webhook-endpoints?endpoint_url=true"))
+	if unknown.Code != http.StatusBadRequest {
+		t.Fatalf("unknown status=%d body=%s", unknown.Code, unknown.Body.String())
+	}
 }
 
 func TestOperationsReadsApplyRateLimit(t *testing.T) {

@@ -82,7 +82,7 @@ try {
         throw "Redis flush fault was not applied as expected."
     }
     $cacheRebuildOutput = Invoke-LedgerSyncCacheRebuild -TargetTenantId $TenantId
-    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "outbox-worker") | Out-Null
+    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "--no-deps", "outbox-worker") | Out-Null
     Invoke-LedgerSyncWebSmoke
     $redisKeyCount = [int64]((& docker exec $redisContainer redis-cli DBSIZE).Trim())
     if ($redisKeyCount -lt 1) {
@@ -95,14 +95,14 @@ try {
     Assert-LedgerSyncRedisDiagnosticDegradation -Session $operationsSession
     Invoke-LedgerSyncWebSmoke -TimeoutSeconds 8
     Write-Output "REDIS_UNAVAILABLE_DIAGNOSTICS_AND_PRIMARY_FALLBACK=PASS"
-    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "redis", "outbox-worker", "api", "web") | Out-Null
+    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "--no-deps", "redis", "outbox-worker", "api", "web") | Out-Null
 
     Invoke-LedgerSyncCompose -ComposeArguments @("restart", "outbox-worker") | Out-Null
-    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "outbox-worker") | Out-Null
+    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "--no-deps", "outbox-worker") | Out-Null
     Write-Output "OUTBOX_WORKER_RESTART=PASS"
 
     Invoke-LedgerSyncCompose -ComposeArguments @("restart", "api", "web") | Out-Null
-    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "api", "web") | Out-Null
+    Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait", "--no-deps", "api", "web") | Out-Null
     Invoke-LedgerSyncWebSmoke
     Write-Output "STATELESS_SERVICE_RESTART=PASS"
 

@@ -4,7 +4,6 @@ import { useCallback, useRef, useState } from "react";
 
 import type { TransferDetail, TransferSummary } from "@/features/accounts/types";
 import {
-  appendUniqueBy,
   beginEvidenceRequest,
   createEvidenceRequestCoordinator,
   finishEvidenceRequest,
@@ -12,13 +11,14 @@ import {
 } from "@/features/console/evidenceRequestCoordinator";
 import { readJSON, unavailableMessage } from "@/lib/api/client";
 import type { TransferExplainability } from "@/lib/api/orientation";
+import { emptyTransferFilters, type TransferFilters } from "@/lib/page-query/transfers";
 
 type TransfersPayload = Readonly<{
   transfers?: TransferSummary[];
   next_cursor?: string;
 }>;
 
-export function useTransferWorkspace(filters?: Readonly<{ query: string; status: string }>) {
+export function useTransferWorkspace(filters: TransferFilters = emptyTransferFilters) {
   const [transfers, setTransfers] = useState<TransferSummary[]>([]);
   const [detail, setDetail] = useState<TransferDetail | null>(null);
   const [explainability, setExplainability] = useState<TransferExplainability | null>(null);
@@ -32,12 +32,15 @@ export function useTransferWorkspace(filters?: Readonly<{ query: string; status:
   const listRequests = useRef(createEvidenceRequestCoordinator());
   const detailRequests = useRef(createEvidenceRequestCoordinator());
   const explainabilityRequests = useRef(createEvidenceRequestCoordinator());
-  const query = filters?.query ?? "";
-  const status = filters?.status ?? "all";
-
-  const loadList = useCallback(async (cursor?: string, append = false) => {
-    const resourceKey = `transfers:q=${encodeURIComponent(query)}&status=${encodeURIComponent(status)}`;
-    const request = beginEvidenceRequest(listRequests.current, resourceKey, append ? "append" : "replace");
+  const loadList = useCallback(async () => {
+    const parameters = new URLSearchParams({ limit: "25" });
+    if (filters.cursor) parameters.set("cursor", filters.cursor);
+    if (filters.query) parameters.set("q", filters.query);
+    if (filters.accountId) parameters.set("accountId", filters.accountId);
+    if (filters.status) parameters.set("status", filters.status);
+    if (filters.from) parameters.set("from", filters.from);
+    if (filters.to) parameters.set("to", filters.to);
+    const request = beginEvidenceRequest(listRequests.current, `transfers:${parameters}`, "replace");
     if (!request) return;
     if (!request.sameResource) {
       setTransfers([]);
@@ -45,23 +48,19 @@ export function useTransferWorkspace(filters?: Readonly<{ query: string; status:
       setVerifiedAt(undefined);
     }
     setListLoading(true);
-    const parameters = new URLSearchParams({ limit: "25" });
-    if (cursor) parameters.set("cursor", cursor);
-    if (query) parameters.set("q", query);
-    if (status !== "all") parameters.set("status", status);
     const response = await readJSON<TransfersPayload>(`/api/transfers?${parameters}`);
     if (!isEvidenceRequestCurrent(listRequests.current, request.token)) return;
     if (!response.ok) {
       setError(unavailableMessage(response.status, "transfer records", response.requestReference));
     } else {
       const items = Array.isArray(response.data.transfers) ? response.data.transfers : [];
-      setTransfers((current) => append ? appendUniqueBy(current, items, (transfer) => transfer.transfer_id) : items);
+      setTransfers(items);
       setNextCursor(response.data.next_cursor || undefined);
       setVerifiedAt(new Date().toISOString());
       setError(null);
     }
     if (finishEvidenceRequest(listRequests.current, request.token)) setListLoading(false);
-  }, [query, status]);
+  }, [filters.accountId, filters.cursor, filters.from, filters.query, filters.status, filters.to]);
 
   const loadDetail = useCallback(async (transferId: string) => {
     const request = beginEvidenceRequest(detailRequests.current, `transfer:${transferId}`);

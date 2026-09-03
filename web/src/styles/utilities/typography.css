@@ -1,0 +1,82 @@
+
+
+/* Phase 9 canonical type contract from DESIGN.md §3.2. Component-specific
+   density may change spacing, but never shrinks readable evidence below it. */
+.console-main
+  :where(p, li, td, dd, a, button, input, select, textarea, summary) {
+  font-size: var(--type-body);
+  line-height: 1.43;
+}
+.console-main
+  :where(
+    .eyebrow,
+    label,
+    th,
+    dt,
+    small,
+    time,
+    code,
+    .status-label,
+    .method-label,
+    .document-topline span,
+    .table-scroll-hint
+  ) {
+  font-size: var(--type-label);
+  line-height: 1.33;
+}
+.console-main :where(code, time, .mono, .number-cell) {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.console-main time.timestamp-value.inherit-typography {
+  font-size: inherit;
+  font-variant-numeric: inherit;
+  line-height: inherit;
+}
+.console-main :where(h2) {
+  font-size: var(--type-h2);
+  line-height: 1.45;
+}
+.console-main :where(h3) {
+  font-size: var(--type-h3);
+  line-height: 1.47;
+}
+.side-nav
+  :where(
+    .nav-kicker,
+    .context-label,
+    .nav-section-label,
+    .workspace-card small,
+    .operator-row small,
+    .environment-row,
+    .preview-chip
+  ) {
+  font-size: var(--type-label);
+  line-height: 1.33;
+}
+.console-footer {
+  font-size: var(--type-meta);
+  line-height: 1.33;
+}
+
+@media (forced-colors: active) {
+  .local-orientation,
+  .orientation-compact,
+  .orientation-dismiss,
+  .orientation-boundary,
+  .orientation-boundary > div,
+  .recommended-action,
+  .recommended-blocked,
+  .orientation-check,
+  .orientation-checklist li,
+  .orientation-state,
+  .orientation-preference-state,
+  .orientation-definitions,
+  .orientation-definitions dl,
+  .orientation-definitions dl > div,
+  .transfer-evidence-chain,
+  .evidence-stage > article,
+  .stage-evidence-list > li,
+  .stage-gap {
+    border-color: CanvasText;
+  }
+}

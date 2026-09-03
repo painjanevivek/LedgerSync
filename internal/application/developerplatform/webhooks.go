@@ -117,8 +117,8 @@ type WebhookRepository interface {
 
 type DeliveryReplayRepository interface {
 	Inspect(context.Context, string, string) (recovery.DeadDelivery, error)
-	Approve(context.Context, recovery.DeliveryApproval) error
-	Replay(context.Context, recovery.DeliveryReplay) (string, error)
+	Approve(context.Context, recovery.DeliveryApproval) (recovery.DeliveryApprovalResult, error)
+	Replay(context.Context, recovery.DeliveryReplay) (recovery.DeliveryReplayResult, error)
 }
 
 type WebhookService struct {
@@ -217,26 +217,33 @@ func (s *WebhookService) Deliveries(ctx context.Context, tenantID, webhookID str
 	return s.repository.ListWebhookDeliveries(ctx, tenantID, webhookID, query)
 }
 
-func (s *WebhookService) ApproveReplay(ctx context.Context, tenantID, webhookID, attemptID, actorID, reason, correlationID string) error {
+func (s *WebhookService) ApproveReplay(ctx context.Context, tenantID, webhookID, attemptID, actorID, reason, correlationID, idempotencyKey string) (recovery.DeliveryApprovalResult, error) {
 	if s.replay == nil {
-		return errors.New("delivery replay repository is required")
+		return recovery.DeliveryApprovalResult{}, errors.New("delivery replay repository is required")
 	}
 	item, err := s.inspectDelivery(ctx, tenantID, webhookID, attemptID)
 	if err != nil {
-		return err
+		return recovery.DeliveryApprovalResult{}, err
 	}
-	return s.replay.Approve(ctx, recovery.DeliveryApproval{TenantID: tenantID, AttemptID: item.AttemptID, ActorSubjectID: actorID, ReasonCode: strings.TrimSpace(reason), CorrelationID: correlationID})
+	if !validEnvelope(tenantID, actorID, correlationID, strings.TrimSpace(idempotencyKey)) {
+		return recovery.DeliveryApprovalResult{}, ErrInvalidCommand
+	}
+	return s.replay.Approve(ctx, recovery.DeliveryApproval{TenantID: tenantID, AttemptID: item.AttemptID, ActorSubjectID: actorID, ReasonCode: strings.TrimSpace(reason), CorrelationID: correlationID, IdempotencyKey: strings.TrimSpace(idempotencyKey)})
 }
 
-func (s *WebhookService) ReplayDelivery(ctx context.Context, tenantID, webhookID, attemptID, actorID, correlationID string) (string, error) {
+func (s *WebhookService) ReplayDelivery(ctx context.Context, tenantID, webhookID, attemptID, approvalID, actorID, correlationID, idempotencyKey string) (recovery.DeliveryReplayResult, error) {
 	if s.replay == nil {
-		return "", errors.New("delivery replay repository is required")
+		return recovery.DeliveryReplayResult{}, errors.New("delivery replay repository is required")
 	}
 	item, err := s.inspectDelivery(ctx, tenantID, webhookID, attemptID)
 	if err != nil {
-		return "", err
+		return recovery.DeliveryReplayResult{}, err
 	}
-	return s.replay.Replay(ctx, recovery.DeliveryReplay{TenantID: tenantID, AttemptID: item.AttemptID, ActorSubjectID: actorID, CorrelationID: correlationID})
+	approvalID, idempotencyKey = strings.ToLower(strings.TrimSpace(approvalID)), strings.TrimSpace(idempotencyKey)
+	if !canonicalUUID.MatchString(approvalID) || !validEnvelope(tenantID, actorID, correlationID, idempotencyKey) {
+		return recovery.DeliveryReplayResult{}, ErrInvalidCommand
+	}
+	return s.replay.Replay(ctx, recovery.DeliveryReplay{TenantID: tenantID, AttemptID: item.AttemptID, ApprovalID: approvalID, ActorSubjectID: actorID, CorrelationID: correlationID, IdempotencyKey: idempotencyKey})
 }
 
 func (s *WebhookService) inspectDelivery(ctx context.Context, tenantID, webhookID, attemptID string) (recovery.DeadDelivery, error) {

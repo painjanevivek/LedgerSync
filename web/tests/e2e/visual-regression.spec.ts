@@ -1,6 +1,6 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 
-import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
+import { deliveryEvent, destinationAccount, mockOperatorConsole, run, sourceAccount, transfer, webhookEndpoint } from "./fixtures";
 
 const compact = { width: 390, height: 844 };
 const tablet = { width: 768, height: 1024 };
@@ -16,13 +16,20 @@ function json(route: Route, body: unknown, status = 200) {
   });
 }
 
-async function capture(page: Page, name: string, viewport = desktop) {
+async function capture(page: Page, name: string, viewport = desktop, mask: Locator[] = []) {
   await page.setViewportSize(viewport);
-  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  });
+  await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
     animations: "disabled",
     caret: "hide",
     fullPage: true,
+    mask,
+    maskColor: "#f4f6f8",
     maxDiffPixelRatio: 0.002,
   });
 }
@@ -32,6 +39,7 @@ const populatedRoutes = [
   { name: "accounts-populated", path: "/accounts", heading: "Accounts" },
   { name: "account-detail-populated", path: `/accounts/${sourceAccount.account_id}`, heading: sourceAccount.display_name },
   { name: "funding-records-populated", path: "/funding", heading: "Funding records" },
+  { name: "approvals-populated", path: "/approvals", heading: "Approvals" },
   { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
   { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
   { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
@@ -39,15 +47,19 @@ const populatedRoutes = [
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
   { name: "events-populated", path: "/events", heading: "Delivery events" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
+  { name: "webhooks-populated", path: "/webhooks", heading: "Webhook endpoints" },
+  { name: "webhook-detail-dead", path: `/webhooks/${webhookEndpoint.endpoint_id}`, heading: webhookEndpoint.label, headingLevel: 1 },
   { name: "developer-contract", path: "/developer", heading: "Developer" },
   { name: "recovery-evidence", path: "/recovery", heading: "Recovery" },
+  { name: "investigation-search-populated", path: `/search?q=${sourceAccount.account_id}`, heading: "Search records" },
 ] as const;
 
 for (const route of populatedRoutes) {
   test(`${route.name} has a reviewed desktop baseline`, async ({ page }) => {
     await mockOperatorConsole(page);
     await page.goto(route.path);
-    await expect(page.getByRole("heading", { name: route.heading, exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Search records" })).toBeVisible();
     await capture(page, route.name);
   });
 }
@@ -73,6 +85,14 @@ test("compact account directory preserves the selected information hierarchy", a
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
   await capture(page, "accounts-populated-compact", compact);
+});
+
+test("compact exact search preserves locator evidence without page overflow", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.goto(`/search?q=${sourceAccount.account_id}`);
+  await expect(page.getByRole("heading", { name: "Search records", exact: true })).toBeVisible();
+  await expect(page.getByText("2 authorized locators")).toBeVisible();
+  await capture(page, "investigation-search-populated-compact", compact);
 });
 
 test("compact developer contract preserves code and retry hierarchy",async({page})=>{
@@ -130,7 +150,7 @@ test("offline state preserves already verified evidence and disables writes", as
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
   await context.setOffline(true);
   await expect(page.getByText("You are offline.")).toBeVisible();
-  await capture(page, "accounts-offline", compact);
+  await capture(page, "accounts-offline", compact, [page.locator(".console-footer")]);
   await context.setOffline(false);
 });
 
@@ -175,12 +195,12 @@ test("missing session renders the login layer with no financial evidence", async
 
 test("read-only transfer role explains why posting is disabled", async ({ page }) => {
   await mockOperatorConsole(page);
-  await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: [], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
+  await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "transfers:read"], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
   await page.goto("/transfers");
   await expect(
     page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),
   ).toHaveText("Read-only role: transfer posting is not permitted.");
-  await capture(page, "transfers-read-only", desktop);
+  await capture(page, "transfers-read-only-capability", desktop);
 });
 
 test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
@@ -189,6 +209,24 @@ test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Mixed-currency pilot data blocked")).toBeVisible();
   await capture(page, "overview-mixed-currency-error", desktop);
+});
+
+test("an unavailable route has a reviewed non-disclosing baseline", async ({ page }) => {
+  await mockOperatorConsole(page);
+  const response = await page.goto("/visual-unreleased-route");
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Page unavailable" })).toBeVisible();
+  await capture(page, "route-unavailable", desktop);
+  await capture(page, "route-unavailable-compact", compact);
+});
+
+test("a render interruption has a reviewed safe-retry baseline", async ({ page }) => {
+  await mockOperatorConsole(page);
+  const response = await page.goto("/test-support/route-error?attempt=14141414-1414-4141-8141-141414141414");
+  expect(response?.status()).toBe(500);
+  await expect(page.getByRole("heading", { name: "This page could not be shown safely." })).toBeVisible();
+  await capture(page, "route-render-error", desktop);
+  await capture(page, "route-render-error-compact", compact);
 });
 
 test("account create review has a Windows local-console baseline", async ({ page }) => {
@@ -209,6 +247,8 @@ test("account lifecycle guard has a Windows local-console baseline", async ({ pa
   test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
   await mockOperatorConsole(page);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
+  await expect(page.getByText(/Balance details verified/u)).toBeVisible();
+  await expect(page.getByText(/2 explicit relationships/u)).toBeVisible();
   await page.getByRole("button", { name: "Freeze account" }).click();
   await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");
   await expect(page.getByRole("heading", { name: "Freeze account" })).toBeVisible();
@@ -237,6 +277,7 @@ test("reconciliation command review has a Windows local-console baseline", async
 test("reconciliation running control has a Windows local-console baseline", async ({ page }) => {
   test.skip(process.platform !== "win32", "The supported local product environment is the reviewed Windows workstation.");
   const running = { ...run, run_id: "77777777-7777-4777-8777-777777777777", status: "running", ledger_watermark: "", application_version: "", schema_version: "", checked_account_count: "0", posting_count: "0", mismatch_count: "0", completed_at: "" };
+  await page.clock.setFixedTime(new Date("2026-08-31T19:43:37Z"));
   await mockOperatorConsole(page);
   await page.route("**/api/reconciliation/runs", (route) => json(route, running, 202));
   await page.route(`**/api/reconciliation/runs/${running.run_id}`, (route) => json(route, running));
