@@ -264,7 +264,7 @@ WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID,
 			}
 		}
 		journalID, _ := newUUID()
-		if _, err = tx.ExecContext(ctx, `INSERT INTO journal_transactions(id,tenant_id,funding_event_id,occurred_at) VALUES($1,$2,$3,$4)`, journalID, command.TenantID, command.FundingEventID, command.OccurredAt); err != nil {
+		if _, err = tx.ExecContext(ctx, `INSERT INTO journal_transactions(id,tenant_id,funding_event_id,source_type,source_id,occurred_at) VALUES($1,$2,$3,'funding_event',$3,$4)`, journalID, command.TenantID, command.FundingEventID, command.OccurredAt); err != nil {
 			return err
 		}
 		exact, err := money.New(currency, amount)
@@ -288,10 +288,10 @@ WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID,
 		if err = ledger.ValidateBalanced([]ledger.Posting{debit, credit}); err != nil {
 			return err
 		}
-		if err = createPosting(ctx, tx, debit); err != nil {
+		if err = createPosting(ctx, tx, command.TenantID, debit); err != nil {
 			return err
 		}
-		if err = createPosting(ctx, tx, credit); err != nil {
+		if err = createPosting(ctx, tx, command.TenantID, credit); err != nil {
 			return err
 		}
 		systemDelta, destinationDelta := -amount, amount

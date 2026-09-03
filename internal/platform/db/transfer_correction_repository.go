@@ -345,10 +345,10 @@ VALUES($1,$2,$3,$4,$5,$6,$7,'posted',$8,$9,$9,$10,$11)`, compensationID, command
 		if err = ledger.ValidateBalanced([]ledger.Posting{debitPosting, creditPosting}); err != nil {
 			return err
 		}
-		if err = createPosting(ctx, tx, debitPosting); err != nil {
+		if err = createPosting(ctx, tx, command.TenantID, debitPosting); err != nil {
 			return err
 		}
-		if err = createPosting(ctx, tx, creditPosting); err != nil {
+		if err = createPosting(ctx, tx, command.TenantID, creditPosting); err != nil {
 			return err
 		}
 		updatedSource, err := applyBalanceDelta(ctx, tx, creditID, -amount, command.OccurredAt)
