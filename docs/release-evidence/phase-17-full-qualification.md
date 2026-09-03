@@ -160,7 +160,24 @@ The exact final commit passed:
 - SPDX SBOM generation for all three images;
 - GitHub artifact provenance attestations for each SBOM.
 
-Local `govulncheck` reported **zero called vulnerabilities**. It also reported GO-2026-5158 in imported-but-unreachable OpenTelemetry 1.43.0 code, with 1.44.0 identified as the fixed line. This is scheduled dependency remediation, not a claim that an exploitable LedgerSync call path was found.
+The original exact-candidate `govulncheck` run reported **zero called vulnerabilities**. It also reported GO-2026-5158 in imported-but-unreachable OpenTelemetry 1.43.0 code, with 1.44.0 identified as the fixed line. No LedgerSync source imported the affected baggage parser or propagator.
+
+### R17-05 dependency-remediation follow-up — 2026-09-03
+
+The repository module graph now resolves the OpenTelemetry API, SDK, metric, trace, and OTLP exporter modules at 1.44.0. `go mod tidy` refreshed the locked checksums and the resolver-required `grpc-gateway` and Google `genproto` transitive versions; `go mod tidy -diff` then reported no remaining metadata drift.
+
+Focused follow-up results:
+
+```text
+PASS  go test ./internal/platform/observability ./tests/unit -run Telemetry -count=1
+PASS  go vet ./internal/platform/observability ./cmd/api ./cmd/outbox-worker ./cmd/reconcile
+PASS  go mod verify
+PASS  go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 -show verbose ./cmd/... ./contracts/... ./internal/... ./tests/...
+```
+
+`go mod verify` reported that all downloaded modules matched the locked checksums. The verbose scan resolved all eight modules from the affected OpenTelemetry 1.43.0 release family at 1.44.0, scanned 49 modules plus the Go 1.26.6 standard library, reported **no vulnerabilities found**, and no longer reported GO-2026-5158. The original imported-package trigger therefore does not reproduce. The existing telemetry no-op/configuration behavior passed its focused unit test, while the API, worker, and reconciliation caller packages passed focused vet; together these establish dependency compatibility without claiming an enabled-exporter runtime exercise.
+
+This is a dependency-remediation follow-up only. It does not rewrite the original exact-commit workflow or artifact record and does not convert any manual or external gate into a pass. A broader local Go test command was not recorded as passing because the pre-existing worktree deletion of `.env.example` causes `tests/contract/TestSupportedPilotArtifactsUseApprovedINRBoundary` to fail before reading that required artifact; the dependency-focused packages in that run passed.
 
 ## Preserved artifacts
 
@@ -204,7 +221,7 @@ Release criterion: named reviewers must sign and date this checklist, attach iss
 | R17-02 | Release blocker | Define an approved dependency-license allow/deny policy and run a candidate-bound license review | Legal/security owner — unassigned | Before any external distribution | `OPEN` |
 | R17-03 | Release blocker | Approve browser telemetry schema, allowlist/redaction, consent, retention/deletion, vendor/collector and incident owner | Privacy, security and SRE — unassigned | Before Phase 15 telemetry or production release | `OPEN` |
 | R17-04 | Release blocker | Provision and prove managed OIDC, secrets/KMS, TLS/WAF, network isolation, backups/PITR, alerting and operational runbooks | Platform/SRE and security — unassigned | Phase 19, before production | `OPEN` |
-| R17-05 | Scheduled remediation | Upgrade OpenTelemetry 1.43.0 to a compatible fixed line at or above 1.44.0 and rerun all telemetry/security gates | Engineering dependency owner — unassigned | Target 2026-09-08 | `OPEN` |
+| R17-05 | Dependency remediation | OpenTelemetry upgraded from 1.43.0 to the fixed 1.44.0 line; focused telemetry tests, vet, module-metadata convergence, and the full-scope pinned `govulncheck` passed | Engineering dependency owner — unassigned | Completed 2026-09-03 | `CLOSED` |
 | R17-06 | Evidence-retention risk | Copy expiring GitHub artifacts into an approved immutable evidence store and verify digests | Release/operations owner — unassigned | Before platform artifact expiry | `OPEN` |
 | R17-07 | Product decision | Decide whether Phase 18 public trust site is required, approve claims/audiences and create its separate deployment boundary | Product/legal/security — unassigned | Before public launch | `OPEN` |
 
@@ -214,7 +231,7 @@ No risk above is silently accepted. An owner with authority must either close it
 
 - **Phase 15:** browser observability remains gated. Adding a vendor or collector without privacy, consent, retention and incident ownership would violate the plan.
 - **Phase 16:** completed; the retired legacy application slice was removed in dedicated commit `0046f0a` and is recoverable through Git.
-- **Phase 17 automated work:** completed and reproducible from `5370c4c`.
+- **Phase 17 automated work:** completed and reproducible from `5370c4c`; the 2026-09-03 R17-05 local follow-up closes the scheduled OpenTelemetry remediation without replacing that exact-candidate record.
 - **Phase 17 manual/external work:** blocked on named human and organizational owners; production remains no-go.
 - **Phase 18:** intentionally planned as a separate public website/trust surface. It was not invented inside the authenticated runtime because audience, approved claims, legal content and publishing ownership are external product decisions.
 - **Phase 19:** cannot be implemented from repository code alone. Managed identity, key custody, edge controls, production recovery and operational approval require selected infrastructure and accountable owners.
@@ -236,5 +253,4 @@ No risk above is silently accepted. An owner with authority must either close it
 
 **Controlled engineering candidate:** `GO` for continued review, manual validation and managed-environment preparation.
 
-**Production deployment:** `NO-GO` until R17-01 through R17-04 are closed, R17-05 and R17-06 have accountable dispositions, and engineering, product, accessibility, security/privacy, operations and legal sign the exact candidate evidence.
-
+**Production deployment:** `NO-GO` until R17-01 through R17-04 are closed, R17-06 has an accountable disposition, the R17-05 follow-up is repeated on and bound to the next exact candidate in CI, and engineering, product, accessibility, security/privacy, operations and legal sign that exact candidate evidence.
