@@ -97,7 +97,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = admin.Close() }()
+	t.Cleanup(func() { _ = admin.Close() })
 	if _, err := admin.Exec(`CREATE DATABASE ` + databaseName); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = upgradeDatabase.Close() }()
+	t.Cleanup(func() { _ = upgradeDatabase.Close() })
 	_, sourceFile, _, _ := runtime.Caller(0)
 	migrationDirectory := filepath.Join(filepath.Dir(sourceFile), "..", "..", "migrations")
 	phaseSeven := fstest.MapFS{}
@@ -176,6 +176,14 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
 		t.Fatalf("apply post-upgrade database roles: %v", err)
 	}
+	verifyDatabaseRoleCapabilities(
+		t,
+		upgradeDatabase,
+		parsed.String(),
+		"supported-upgrade",
+		"00000000-0000-4000-8000-000000000806",
+		legacyTenant,
+	)
 	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
@@ -233,21 +241,7 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		t.Fatal(err)
 	}
 
-	loginRole := fmt.Sprintf("ledgersync_upgrade_api_%d", time.Now().UnixNano())
-	const loginPassword = "phase1_upgrade_test"
-	if _, err := upgradeDatabase.Exec(`CREATE ROLE ` + loginRole + ` LOGIN PASSWORD '` + loginPassword + `'`); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := upgradeDatabase.Exec(`GRANT ledgersync_api TO ` + loginRole); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _, _ = admin.Exec(`DROP ROLE IF EXISTS ` + loginRole) })
-	limitedURL := *parsed
-	limitedURL.User = url.UserPassword(loginRole, loginPassword)
-	limitedDatabase, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: limitedURL.String()})
-	if err != nil {
-		t.Fatal(err)
-	}
+	limitedDatabase := provisionWorkloadSession(t, upgradeDatabase, parsed.String(), "ledgersync_api").db
 	commandRepository, err := db.NewAccountCommandRepository(limitedDatabase, func() time.Time { return createdAt.Add(time.Hour) })
 	if err != nil {
 		t.Fatal(err)
