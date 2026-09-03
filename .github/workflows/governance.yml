@@ -1,0 +1,33 @@
+name: Governance gates
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review-policy:
+    name: Review policy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Test governance policy
+        shell: pwsh
+        run: ./tests/scripts/test-pr-governance.ps1
+      - name: Materialize bounded pull-request evidence
+        shell: pwsh
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff --name-only "$env:BASE_SHA...$env:HEAD_SHA" | Set-Content -LiteralPath "$env:RUNNER_TEMP/changed-files.txt"
+          Set-Content -LiteralPath "$env:RUNNER_TEMP/pull-request-body.md" -Value $env:PR_BODY
+      - name: Enforce reviewable scope and evidence
+        shell: pwsh
+        run: ./scripts/check-pr-governance.ps1 -ChangedFilesPath "$env:RUNNER_TEMP/changed-files.txt" -PullRequestBodyPath "$env:RUNNER_TEMP/pull-request-body.md"

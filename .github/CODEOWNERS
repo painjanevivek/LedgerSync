@@ -1,0 +1,22 @@
+# Baseline owner for every repository change. GitHub rulesets must require a
+# CODEOWNER review and an independent approval; this file cannot enforce
+# reviewer independence by itself.
+* @painjanevivek
+
+# Financial authority and integrity boundaries.
+/migrations/ @painjanevivek
+/deploy/postgres/ @painjanevivek
+/internal/domain/ @painjanevivek
+/internal/application/transfers/ @painjanevivek
+/internal/application/funding/ @painjanevivek
+/internal/application/corrections/ @painjanevivek
+/internal/platform/db/ @painjanevivek
+
+# Identity, public contracts, release controls, and recovery evidence.
+/internal/platform/identity/ @painjanevivek
+/web/src/lib/oidc.ts @painjanevivek
+/web/src/lib/actor-assertion.ts @painjanevivek
+/contracts/ @painjanevivek
+/.github/workflows/ @painjanevivek
+/deploy/backup/ @painjanevivek
+/docs/runbooks/ @painjanevivek
