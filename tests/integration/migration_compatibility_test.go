@@ -28,8 +28,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 37 {
-		t.Fatalf("migration versions=%d, want 37", versions)
+	if versions != 38 {
+		t.Fatalf("migration versions=%d, want 38", versions)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "opening_import_batches", "opening_import_rows", "opening_import_approvals", "opening_import_executions", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
@@ -133,14 +133,14 @@ FROM pg_proc procedure
 JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
 JOIN pg_roles owner ON owner.oid=procedure.proowner
 WHERE namespace.nspname='public'
-  AND procedure.proname IN ('controlled_submit_transfer_v1','controlled_post_funding_v1','controlled_post_transfer_correction_v1','controlled_provision_account_v1','controlled_request_opening_import_v1','controlled_approve_opening_import_v1','controlled_execute_opening_import_v1')
+  AND procedure.proname IN ('controlled_submit_transfer_v1','controlled_post_funding_v1','controlled_post_transfer_correction_v1','controlled_provision_account_v1','controlled_request_opening_import_v1','controlled_approve_opening_import_v1','controlled_execute_opening_import_v1','controlled_append_audit_event_v1','controlled_update_account_v1','controlled_ensure_funding_account_v1','controlled_rollback_provisioned_tenant_v1')
   AND procedure.prosecdef
   AND owner.rolname='ledgersync_migration_owner'
   AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
   AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&controlledFinancialFunctions); err != nil {
 		t.Fatal(err)
 	}
-	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 7 || semanticTriggers != 4 {
+	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 11 || semanticTriggers != 4 {
 		t.Fatalf("ledger validation controls unique=%d validated_fk=%d hardened_hydrators=%d hardened_semantic_functions=%d controlled_financial_functions=%d semantic_triggers=%d", compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, controlledFinancialFunctions, semanticTriggers)
 	}
 }
@@ -376,6 +376,15 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		_ = limitedDatabase.Close()
 		t.Fatalf("account command with migrated API grants: %v", err)
 	}
+	updated, err := commandService.UpdateMetadata(context.Background(), accountapp.UpdateAccountMetadataCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", CorrelationID: "00000000-0000-0000-0000-000000000894",
+		IdempotencyKey: "upgrade-role-account-update", AccountID: created.Result.AccountID, ExpectedVersion: 1,
+		DisplayName: "Upgrade-created account updated", Reference: "upgrade-created-updated", Category: "operating",
+	})
+	if err != nil || updated.Result.Version != "2" {
+		_ = limitedDatabase.Close()
+		t.Fatalf("account update through controlled capability: result=%#v error=%v", updated, err)
+	}
 	reconciliationRepository, err := db.NewReconciliationRepository(limitedDatabase)
 	if err != nil {
 		t.Fatal(err)
@@ -391,7 +400,7 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		_ = limitedDatabase.Close()
 		t.Fatalf("reconciliation command with migrated API grants: result=%#v error=%v", reconciled, err)
 	}
-	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1`, created.Result.AccountID) != 1 {
+	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1 AND version=2`, created.Result.AccountID) != 1 {
 		t.Fatalf("limited-role account create result=%#v", created.Result)
 	}
 	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'upgrade-operator','finance')`, legacyTenant); err != nil {

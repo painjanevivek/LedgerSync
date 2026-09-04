@@ -443,8 +443,11 @@ func insertCorrectionAudit(ctx context.Context, tx *sql.Tx, tenantID, actorID, t
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'transfer_correction',$5,$6,$7,$8,$9)`, id, tenantID, actorID, eventType, targetID, outcome, correlationID, encoded, at)
-	return err
+	return appendControlledAuditPayload(ctx, tx, id, AuditEvent{
+		TenantID: tenantID, ActorSubjectID: actorID, EventType: eventType,
+		TargetType: "transfer_correction", TargetID: targetID, Outcome: outcome,
+		CorrelationID: correlationID, OccurredAt: at,
+	}, encoded)
 }
 func classifyCorrectionInsert(err error) error {
 	if err == nil {

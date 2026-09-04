@@ -84,7 +84,7 @@ func (r *FundingRepository) Request(ctx context.Context, command appfunding.Requ
 		if command.Amount.Minor() > policy.PerCommand {
 			return appfunding.ErrLimitExceeded
 		}
-		systemAccountID, err := ensureFundingAccount(ctx, tx, command.TenantID, currency, command.RequestedAt)
+		systemAccountID, err := ensureFundingAccount(ctx, tx, command.TenantID, command.ActorSubjectID, currency, command.CorrelationID, command.RequestedAt)
 		if err != nil {
 			return err
 		}
@@ -444,35 +444,19 @@ func loadFundingPolicy(ctx context.Context, tx *sql.Tx, tenantID, destinationID,
 	err := tx.QueryRowContext(ctx, `
 SELECT policy.mode,policy.finance_activated,policy.policy_version,policy.per_command_minor,policy.operator_rolling_24h_minor,policy.tenant_rolling_24h_minor
 FROM accounts account JOIN tenant_funding_policies policy ON policy.tenant_id=account.tenant_id AND policy.currency=account.currency
-WHERE account.tenant_id=$1 AND account.id=$2 AND account.currency=$3 AND account.status='active' AND account.account_kind='customer'
-FOR UPDATE OF account`, tenantID, destinationID, currency).Scan(&policy.Mode, &policy.FinanceActive, &policy.Version, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling)
+WHERE account.tenant_id=$1 AND account.id=$2 AND account.currency=$3 AND account.status='active' AND account.account_kind='customer'`, tenantID, destinationID, currency).Scan(&policy.Mode, &policy.FinanceActive, &policy.Version, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling)
 	if errors.Is(err, sql.ErrNoRows) {
 		return policy, appfunding.ErrNotFound
 	}
 	return policy, err
 }
 
-func ensureFundingAccount(ctx context.Context, tx *sql.Tx, tenantID, currency string, now time.Time) (string, error) {
+func ensureFundingAccount(ctx context.Context, tx *sql.Tx, tenantID, actorSubjectID, currency, correlationID string, now time.Time) (string, error) {
 	var accountID string
-	err := tx.QueryRowContext(ctx, `SELECT id::text FROM accounts WHERE tenant_id=$1 AND currency=$2 AND account_kind='funding_clearing' FOR UPDATE`, tenantID, currency).Scan(&accountID)
-	if err == nil {
-		return accountID, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return "", err
-	}
-	accountID, err = newUUID()
+	err := tx.QueryRowContext(ctx, `SELECT public.controlled_ensure_funding_account_v1($1,$2,$3,$4,$5)::text`,
+		tenantID, actorSubjectID, currency, correlationID, now).Scan(&accountID)
 	if err != nil {
-		return "", err
-	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO accounts(id,tenant_id,currency,status,display_name,category,external_reference,account_kind,created_at,updated_at) VALUES($1,$2,$3,'active',$4,'system',$5,'funding_clearing',$6,$6)`, accountID, tenantID, currency, "Funding clearing · "+currency, "system-funding-"+strings.ToLower(currency), now); err != nil {
-		return "", err
-	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO account_balance_projections(account_id,available_minor,ledger_minor,balance_version,allow_negative,updated_at) VALUES($1,0,0,0,true,$2)`, accountID, now); err != nil {
-		return "", err
-	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO account_opening_balances(account_id,opening_ledger_minor) VALUES($1,0)`, accountID); err != nil {
-		return "", err
+		return "", fmt.Errorf("ensure controlled funding account: %w", err)
 	}
 	return accountID, nil
 }
@@ -547,7 +531,11 @@ func insertFundingAudit(ctx context.Context, tx *sql.Tx, tenantID, actorID, even
 	if err != nil {
 		return err
 	}
-	metadata, _ := json.Marshal(map[string]string{"funding_event_id": eventID, "terminology": "recorded external value evidence"})
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'funding_event',$5,$6,$7,$8,$9)`, id, tenantID, actorID, eventType, eventID, outcome, correlationID, metadata, occurredAt)
-	return err
+	return appendControlledAudit(ctx, tx, id, AuditEvent{
+		TenantID: tenantID, ActorSubjectID: actorID, EventType: eventType,
+		TargetType: "funding_event", TargetID: eventID, Outcome: outcome,
+		CorrelationID: correlationID,
+		Metadata:      map[string]string{"funding_event_id": eventID, "terminology": "recorded external value evidence"},
+		OccurredAt:    occurredAt,
+	})
 }

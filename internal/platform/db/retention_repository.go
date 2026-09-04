@@ -68,7 +68,11 @@ func (r *RetentionRepository) Run(ctx context.Context, policy retention.Policy, 
 		return retention.Result{}, err
 	}
 	metadata, _ := json.Marshal(map[string]any{"mode": mode, "published_outbox_count": result.PublishedOutbox, "retained_idempotency_count": result.RetainedIdempotency, "expired_rate_window_count": result.ExpiredRates})
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,'retention.completed','retention_run',$6,'succeeded',$3,$4,$5)`, result.RunID, policy.TenantID, correlationID, metadata, result.CompletedAt, result.RunID); err != nil {
+	if err = appendControlledAuditPayload(ctx, tx, result.RunID, AuditEvent{
+		TenantID: policy.TenantID, EventType: "retention.completed", TargetType: "retention_run",
+		TargetID: result.RunID, Outcome: "succeeded", CorrelationID: correlationID,
+		OccurredAt: result.CompletedAt,
+	}, metadata); err != nil {
 		return retention.Result{}, err
 	}
 	if err = tx.Commit(); err != nil {

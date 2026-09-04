@@ -44,3 +44,9 @@ Roll out this expand slice in this order:
 5. Stop rollout on any controlled-function SQLSTATE outside the documented application mapping, any reconciliation mismatch, replay divergence, or material latency regression.
 
 The down migration may remove the function only before PR-009 revokes direct DML and only while the deployed application can still use the legacy path. Once the capability contract is required, repair forward. Never delete a committed transfer, journal, audit record, or outbox event to roll back this change.
+
+## Financial DML boundary contraction
+
+Migration `000038_revoke_direct_financial_dml` is the contract point after which workload identities cannot mutate protected financial and evidence tables directly. It adds controlled account update, funding-clearing account, provisioning rollback, and append-only audit capabilities for paths found during the PR-008 compatibility rehearsal, then removes the superseded table grants. Its down migration deliberately fails with SQLSTATE `55000`; restoring broad DML is not a safe rollback.
+
+Follow the [database capability boundary runbook](database-capability-boundary.md) for the pre/post reconciliation, real-role smoke matrix, privilege diff, permission-denied alert, break-glass process, and forward-repair procedure. Applying `deploy/postgres/roles.sql` after the migration is mandatory because that step transfers function ownership to the non-login migration role and grants only the enumerated workload executions.

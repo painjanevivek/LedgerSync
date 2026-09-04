@@ -79,7 +79,11 @@ func (r *OutboxReplayRepository) Approve(ctx context.Context, approval recovery.
 		return tx.Commit()
 	}
 	metadata, _ := json.Marshal(map[string]string{"reason_code": approval.ReasonCode})
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'outbox.replay_approved','outbox_event',$4,'succeeded',$5,$6,$7)`, id, approval.TenantID, approval.ActorSubjectID, approval.EventID, approval.CorrelationID, metadata, now); err != nil {
+	if err = appendControlledAuditPayload(ctx, tx, id, AuditEvent{
+		TenantID: approval.TenantID, ActorSubjectID: approval.ActorSubjectID,
+		EventType: "outbox.replay_approved", TargetType: "outbox_event", TargetID: approval.EventID,
+		Outcome: "succeeded", CorrelationID: approval.CorrelationID, OccurredAt: now,
+	}, metadata); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -122,7 +126,11 @@ func (r *OutboxReplayRepository) Replay(ctx context.Context, command recovery.Re
 		return fmt.Errorf("persist replay execution: %w", err)
 	}
 	metadata, _ := json.Marshal(map[string]string{"reason_code": reason, "approved_by": approver})
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'outbox.replayed','outbox_event',$4,'succeeded',$5,$6,$7)`, id, command.TenantID, command.ActorSubjectID, command.EventID, command.CorrelationID, metadata, now); err != nil {
+	if err = appendControlledAuditPayload(ctx, tx, id, AuditEvent{
+		TenantID: command.TenantID, ActorSubjectID: command.ActorSubjectID,
+		EventType: "outbox.replayed", TargetType: "outbox_event", TargetID: command.EventID,
+		Outcome: "succeeded", CorrelationID: command.CorrelationID, OccurredAt: now,
+	}, metadata); err != nil {
 		return err
 	}
 	return tx.Commit()

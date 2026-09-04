@@ -82,7 +82,11 @@ func (r *DeliveryReplayRepository) Approve(ctx context.Context, approval recover
 		return recovery.DeliveryApprovalResult{ApprovalID: id, Replayed: true}, nil
 	}
 	metadata, _ := json.Marshal(map[string]string{"reason_code": approval.ReasonCode})
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'delivery.replay_approved','delivery_attempt',$4,'succeeded',$5,$6,$7)`, id, approval.TenantID, approval.ActorSubjectID, approval.AttemptID, approval.CorrelationID, metadata, now); err != nil {
+	if err = appendControlledAuditPayload(ctx, tx, id, AuditEvent{
+		TenantID: approval.TenantID, ActorSubjectID: approval.ActorSubjectID,
+		EventType: "delivery.replay_approved", TargetType: "delivery_attempt", TargetID: approval.AttemptID,
+		Outcome: "succeeded", CorrelationID: approval.CorrelationID, OccurredAt: now,
+	}, metadata); err != nil {
 		return recovery.DeliveryApprovalResult{}, err
 	}
 	if err = tx.Commit(); err != nil {
@@ -169,7 +173,11 @@ WHERE event.id=$8 AND event.tenant_id=$2 AND event.transfer_id=$3 AND event.even
 		if _, err = tx.ExecContext(ctx, `INSERT INTO delivery_replay_actions(id,tenant_id,attempt_id,action,actor_subject_id,reason_code,correlation_id,request_key,sanitized_details,created_at)VALUES($1,$2,$3,'executed',$4,$5,$6,$7,$8,$9)`, actionID, command.TenantID, command.AttemptID, command.ActorSubjectID, reason, command.CorrelationID, command.IdempotencyKey, details, now); err != nil {
 			return fmt.Errorf("persist delivery replay execution: %w", err)
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'delivery.replayed','delivery_attempt',$4,'succeeded',$5,$6,$7)`, actionID, command.TenantID, command.ActorSubjectID, command.AttemptID, command.CorrelationID, details, now); err != nil {
+		if err = appendControlledAuditPayload(ctx, tx, actionID, AuditEvent{
+			TenantID: command.TenantID, ActorSubjectID: command.ActorSubjectID,
+			EventType: "delivery.replayed", TargetType: "delivery_attempt", TargetID: command.AttemptID,
+			Outcome: "succeeded", CorrelationID: command.CorrelationID, OccurredAt: now,
+		}, details); err != nil {
 			return err
 		}
 		submission = recovery.DeliveryReplayResult{DeliveryJobID: newJobID}

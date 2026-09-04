@@ -74,8 +74,7 @@ SELECT a.id,a.tenant_id,a.currency,a.status,a.display_name,a.external_reference,
 FROM accounts a
 JOIN account_balance_projections b ON b.account_id=a.id
 JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id AND owner.subject_id=$3 AND owner.permission='debit'
-WHERE a.tenant_id=$1 AND a.id=$2
-FOR UPDATE OF a,b`, tenantID, accountID, actorID).Scan(&aggregate.ID, &aggregate.TenantID, &currency, &status, &metadata.DisplayName, &metadata.ExternalReference, &metadata.Category, &version, &createdAt, &updatedAt, &closedAt, &available, &ledger, &permission)
+WHERE a.tenant_id=$1 AND a.id=$2`, tenantID, accountID, actorID).Scan(&aggregate.ID, &aggregate.TenantID, &currency, &status, &metadata.DisplayName, &metadata.ExternalReference, &metadata.Category, &version, &createdAt, &updatedAt, &closedAt, &available, &ledger, &permission)
 	if errors.Is(err, sql.ErrNoRows) {
 		return accountdomain.Account{}, 0, 0, accounts.ErrAccountNotFound
 	}
@@ -124,14 +123,16 @@ GROUP BY opening.opening_ledger_minor`, accountID).Scan(&authoritative)
 	return accountdomain.FinancialState{AvailableMinor: available, LedgerMinor: projectedLedger, Consistent: authoritativeMinor == projectedLedger}, nil
 }
 
-func updateAccountRow(ctx context.Context, tx *sql.Tx, aggregate accountdomain.Account, expectedVersion int64) error {
+func updateAccountRow(ctx context.Context, tx *sql.Tx, aggregate accountdomain.Account, actorSubjectID string, expectedVersion int64) error {
 	if _, err := tx.ExecContext(ctx, `SAVEPOINT account_reference_write`); err != nil {
 		return fmt.Errorf("create account reference savepoint: %w", err)
 	}
-	result, err := tx.ExecContext(ctx, `
-UPDATE accounts
-SET display_name=$4,external_reference=$5,category=$6,status=$7,closed_at=$8,version=$9,updated_at=$10
-WHERE tenant_id=$1 AND id=$2 AND version=$3`, aggregate.TenantID, aggregate.ID, expectedVersion, aggregate.DisplayName, aggregate.ExternalReference, aggregate.Category, aggregate.Status, nullableTime(aggregate.ClosedAt), aggregate.Version, aggregate.UpdatedAt)
+	var updated bool
+	err := tx.QueryRowContext(ctx, `
+SELECT public.controlled_update_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+		aggregate.TenantID, actorSubjectID, aggregate.ID, expectedVersion,
+		aggregate.DisplayName, aggregate.ExternalReference, aggregate.Category, aggregate.Status,
+		nullableTime(aggregate.ClosedAt), aggregate.Version, aggregate.UpdatedAt).Scan(&updated)
 	if err != nil {
 		var postgresError *pgconn.PgError
 		if errors.As(err, &postgresError) && postgresError.Code == "23505" {
@@ -148,11 +149,7 @@ WHERE tenant_id=$1 AND id=$2 AND version=$3`, aggregate.TenantID, aggregate.ID, 
 	if _, err := tx.ExecContext(ctx, `RELEASE SAVEPOINT account_reference_write`); err != nil {
 		return fmt.Errorf("release account reference savepoint: %w", err)
 	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("read account update result: %w", err)
-	}
-	if rows != 1 {
+	if !updated {
 		return accounts.ErrVersionConflict
 	}
 	return nil
@@ -163,17 +160,12 @@ func insertAccountAudit(ctx context.Context, tx *sql.Tx, envelope commandEnvelop
 	if err != nil {
 		return err
 	}
-	encoded, err := json.Marshal(sanitizeAuditMetadata(metadata))
-	if err != nil {
-		return fmt.Errorf("marshal account audit metadata: %w", err)
-	}
-	_, err = tx.ExecContext(ctx, `
-INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)
-VALUES($1,$2,$3,$4,'account',NULLIF($5,''),$6,$7,$8,$9)`, id, envelope.TenantID, envelope.ActorID, eventType, accountID, outcome, envelope.CorrelationID, encoded, envelope.OccurredAt)
-	if err != nil {
-		return fmt.Errorf("insert account audit event: %w", err)
-	}
-	return nil
+	return appendControlledAudit(ctx, tx, id, AuditEvent{
+		TenantID: envelope.TenantID, ActorSubjectID: envelope.ActorID,
+		EventType: eventType, TargetType: "account", TargetID: accountID,
+		Outcome: outcome, CorrelationID: envelope.CorrelationID,
+		Metadata: metadata, OccurredAt: envelope.OccurredAt,
+	})
 }
 
 func insertAccountOutbox(ctx context.Context, tx *sql.Tx, envelope commandEnvelope, aggregate accountdomain.Account, eventType string, summary ...map[string]string) error {
