@@ -7,7 +7,9 @@ param(
     [ValidateRange(1, 500)]
     [int]$MaximumChangedFiles = 60,
     [ValidateRange(1, 500)]
-    [int]$MaximumCriticalFiles = 30
+    [int]$MaximumCriticalFiles = 30,
+    [ValidateRange(1, 500)]
+    [int]$MaximumVisualBaselineFiles = 60
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,14 +29,23 @@ $changedFiles = @(
 $body = Get-Content -LiteralPath $PullRequestBodyPath -Raw
 
 $criticalPathPattern = '^(migrations/|deploy/postgres/|contracts/|\.github/workflows/|internal/domain/|internal/platform/(db|identity)/|internal/application/(transfers|funding|corrections)/|web/src/lib/(oidc|actor-assertion)\.ts$)'
-$criticalFiles = @($changedFiles | Where-Object { $_ -match $criticalPathPattern })
+$visualBaselinePattern = '^docs/design/qa/responsive/baselines/(linux|windows)/chromium/.+\.png$'
+$visualBaselineFiles = @($changedFiles | Where-Object { $_ -match $visualBaselinePattern })
+$reviewFiles = @($changedFiles | Where-Object { $_ -notmatch $visualBaselinePattern })
+$criticalFiles = @($reviewFiles | Where-Object { $_ -match $criticalPathPattern })
 $errors = [System.Collections.Generic.List[string]]::new()
 
 if ($changedFiles.Count -eq 0) {
     $errors.Add("The pull request contains no changed-file evidence.")
 }
-if ($changedFiles.Count -gt $MaximumChangedFiles) {
-    $errors.Add("The pull request changes $($changedFiles.Count) files; the review limit is $MaximumChangedFiles. Split it or document an approved exception in a dedicated governance change.")
+if ($reviewFiles.Count -gt $MaximumChangedFiles) {
+    $errors.Add("The pull request changes $($reviewFiles.Count) review files; the review limit is $MaximumChangedFiles. Split it or document an approved exception in a dedicated governance change.")
+}
+if ($visualBaselineFiles.Count -gt $MaximumVisualBaselineFiles) {
+    $errors.Add("The pull request changes $($visualBaselineFiles.Count) visual baselines; the baseline review limit is $MaximumVisualBaselineFiles.")
+}
+if ($visualBaselineFiles.Count -gt 0 -and $changedFiles -notcontains 'docs/design/qa/responsive/baseline-approvals.md') {
+    $errors.Add("Visual baseline changes require an entry in docs/design/qa/responsive/baseline-approvals.md.")
 }
 if ($criticalFiles.Count -gt $MaximumCriticalFiles) {
     $errors.Add("The pull request changes $($criticalFiles.Count) critical files; the critical review limit is $MaximumCriticalFiles.")
@@ -61,4 +72,4 @@ if ($errors.Count -gt 0) {
     exit 1
 }
 
-Write-Host "Governance evidence accepted: files=$($changedFiles.Count), critical=$($criticalFiles.Count)."
+Write-Host "Governance evidence accepted: review_files=$($reviewFiles.Count), visual_baselines=$($visualBaselineFiles.Count), critical=$($criticalFiles.Count)."
