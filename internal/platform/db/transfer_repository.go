@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger"
@@ -74,28 +75,32 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = r.clock().UTC()
 	}
-	// PostgreSQL UUID input is case-insensitive. Normalize the textual tenant
-	// identity as well so equivalent configured UUID spellings cannot split the
-	// cross-replica policy sequence into separate advisory-lock keys.
-	sequenceTenant := command.TenantID.String()
-	err = WithSerializableSequence(ctx, r.database, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
-		resolved, replay, err := reserveOrReplay(ctx, tx, command, fingerprint)
+	if command.Amount.Currency().Code != r.pilotCurrency {
+		return transfers.Submission{}, ErrUnsupportedPilotCurrency
+	}
+	if command.CorrelationID == "" {
+		command.CorrelationID, err = newUUID()
 		if err != nil {
-			return err
+			return transfers.Submission{}, err
 		}
-		if replay {
-			submission = transfers.Submission{Result: resolved, Replayed: true}
-			return nil
+	}
+	err = withSerializableRetry(ctx, r.database, 5, func(tx *sql.Tx) error {
+		var response []byte
+		var replayed bool
+		queryErr := tx.QueryRowContext(ctx, `
+SELECT response_body,replayed
+FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID,
+			command.Amount.Minor(), command.Amount.Currency().Code, command.IdempotencyKey, fingerprint[:], command.CorrelationID,
+		).Scan(&response, &replayed)
+		if queryErr != nil {
+			return classifyControlledTransferError(queryErr)
 		}
-
-		result, err := r.postOrReject(ctx, tx, command)
-		if err != nil {
-			return err
+		var result transfers.Result
+		if unmarshalErr := json.Unmarshal(response, &result); unmarshalErr != nil {
+			return fmt.Errorf("decode controlled transfer outcome: %w", unmarshalErr)
 		}
-		if err := storeOutcome(ctx, tx, command, result); err != nil {
-			return err
-		}
-		submission = transfers.Submission{Result: result}
+		submission = transfers.Submission{Result: result, Replayed: replayed}
 		return nil
 	})
 	if err != nil {
@@ -106,6 +111,47 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 		}
 	}
 	return submission, err
+}
+
+func classifyControlledTransferError(err error) error {
+	var postgresError *pgconn.PgError
+	if !errors.As(err, &postgresError) {
+		return fmt.Errorf("execute controlled transfer: %w", err)
+	}
+	switch postgresError.ConstraintName {
+	case "controlled_transfer_actor", "controlled_transfer_source_actor":
+		return ErrNotAuthorized
+	case "controlled_transfer_destination_actor":
+		return ErrDestinationNotAuthorized
+	case "controlled_transfer_tenant":
+		return ErrAccountNotFound
+	case "controlled_transfer_account_status":
+		return ErrAccountInactive
+	case "controlled_transfer_policy_missing":
+		return ErrTenantPolicyMissing
+	case "controlled_transfer_currency":
+		return ErrUnsupportedPilotCurrency
+	case "controlled_transfer_account_currency":
+		return money.ErrCurrencyMismatch
+	case "controlled_transfer_amount_minimum":
+		return ErrTransferBelowMinimum
+	case "controlled_transfer_amount_maximum":
+		return ErrTransferAboveMaximum
+	case "controlled_transfer_actor_velocity":
+		return ErrActorVelocityExceeded
+	case "controlled_transfer_source_velocity":
+		return ErrSourceVelocityExceeded
+	case "controlled_transfer_tenant_velocity":
+		return ErrTenantVelocityExceeded
+	case "controlled_transfer_idempotency":
+		return transfers.ErrIdempotencyConflict
+	case "controlled_transfer_in_progress":
+		return transfers.ErrRequestInProgress
+	case "controlled_transfer_input", "controlled_transfer_fingerprint":
+		return transfers.ErrInvalidCommand
+	default:
+		return err
+	}
 }
 
 func (r *TransferRepository) start(ctx context.Context, name string) (context.Context, trace.Span) {
