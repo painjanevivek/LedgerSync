@@ -16,6 +16,7 @@ test("account filters and cursor context survive an object-specific investigatio
 
   await page.goto("/accounts");
   await page.getByLabel("Search accounts").fill("Scale");
+  await page.getByText("Advanced filters", { exact: true }).click();
   await page.getByLabel("Status").selectOption("active");
   await page.getByLabel("Category").selectOption("operating");
   await page.getByRole("button", { name: "Apply filters" }).click();

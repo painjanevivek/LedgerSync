@@ -6,6 +6,7 @@ import { mockOperatorConsole } from "./fixtures";
 test("saved operational views open current evidence and support audited preference maintenance", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/search");
+  await page.getByText("Case tools", { exact: true }).click();
 
   const panel = page.getByRole("region", { name: "Saved operational views" });
   await expect(panel.getByText("Dead delivery events")).toBeVisible();
