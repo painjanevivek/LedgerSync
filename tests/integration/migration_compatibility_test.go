@@ -28,10 +28,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 34 {
-		t.Fatalf("migration versions=%d, want 34", versions)
+	if versions != 35 {
+		t.Fatalf("migration versions=%d, want 35", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -84,7 +84,7 @@ WHERE table_schema = 'public'
 	if columns != 23 {
 		t.Fatalf("legacy and additive account contract columns=%d, want 23", columns)
 	}
-	var compositeUniqueKeys, pendingCompositeForeignKeys, hardenedHydrators int
+	var compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, semanticTriggers int
 	if err := database.QueryRowContext(context.Background(), `
 SELECT count(*) FROM pg_constraint
 WHERE conname IN ('journal_transactions_id_tenant_key','ledger_postings_id_tenant_key')
@@ -94,7 +94,7 @@ WHERE conname IN ('journal_transactions_id_tenant_key','ledger_postings_id_tenan
 	if err := database.QueryRowContext(context.Background(), `
 SELECT count(*) FROM pg_constraint
 WHERE conname IN ('journal_transfer_tenant_fk','journal_funding_tenant_fk','ledger_posting_journal_tenant_fk','ledger_posting_account_tenant_fk')
-  AND contype='f' AND NOT convalidated`).Scan(&pendingCompositeForeignKeys); err != nil {
+  AND contype='f' AND convalidated`).Scan(&validatedCompositeForeignKeys); err != nil {
 		t.Fatal(err)
 	}
 	if err := database.QueryRowContext(context.Background(), `
@@ -108,8 +108,26 @@ WHERE namespace.nspname='public'
   AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&hardenedHydrators); err != nil {
 		t.Fatal(err)
 	}
-	if compositeUniqueKeys != 2 || pendingCompositeForeignKeys != 4 || hardenedHydrators != 2 {
-		t.Fatalf("ledger expansion controls unique=%d pending_fk=%d hardened_hydrators=%d", compositeUniqueKeys, pendingCompositeForeignKeys, hardenedHydrators)
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*) FROM pg_trigger
+WHERE tgname IN ('journal_transactions_semantic_shape','ledger_postings_semantic_shape','transfers_semantic_shape','funding_events_semantic_shape')
+  AND tgconstraint<>0
+  AND (SELECT condeferrable AND condeferred FROM pg_constraint WHERE oid=tgconstraint)`).Scan(&semanticTriggers); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*)
+FROM pg_proc procedure
+JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
+WHERE namespace.nspname='public'
+  AND procedure.proname IN ('validate_ledger_semantic_shape','enforce_ledger_semantic_shape')
+  AND procedure.prosecdef
+  AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
+  AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&hardenedSemanticFunctions); err != nil {
+		t.Fatal(err)
+	}
+	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || semanticTriggers != 4 {
+		t.Fatalf("ledger validation controls unique=%d validated_fk=%d hardened_hydrators=%d hardened_semantic_functions=%d semantic_triggers=%d", compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, semanticTriggers)
 	}
 }
 
