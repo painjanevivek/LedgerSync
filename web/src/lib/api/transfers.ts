@@ -1,3 +1,5 @@
+import { canonicalUUID } from "@/lib/canonical-uuid";
+
 export type ExactMoneyInput = Readonly<{
   currency: string;
   minorUnits: string;
@@ -18,6 +20,12 @@ export type TransferResult = Readonly<{
   minimum_balance_versions: Record<string, string>;
   balances?: Record<string, TransferBalance>;
   rejection_code?: string;
+  metadata_status?: "complete" | "partial" | "unavailable";
+  warnings?: readonly (
+    | "destination_consistency_unavailable"
+    | "consistency_requirement_unavailable"
+    | "consistency_header_unavailable"
+  )[];
 }>;
 
 export type TransferBalance = Readonly<{
@@ -61,8 +69,8 @@ export function decimalFromMinorUnits(currency: string, minorUnits: string): str
 }
 
 export function toPrivateTransferRequest(input: CreateTransferInput): PrivateTransferRequest {
-  const sourceAccountId = input.sourceAccountId.trim();
-  const destinationAccountId = input.destinationAccountId.trim();
+  const sourceAccountId = canonicalUUID(input.sourceAccountId);
+  const destinationAccountId = canonicalUUID(input.destinationAccountId);
   const currency = input.amount.currency.trim().toUpperCase();
   if (!sourceAccountId || !destinationAccountId || sourceAccountId === destinationAccountId) {
     throw new Error("invalid transfer account input");

@@ -178,7 +178,9 @@ func main() {
 				slog.Error("history service initialization failed", "error", err)
 				os.Exit(1)
 			}
-			transferHandler := handlers.NewTransferHandler(service, provider, issuer).WithConsistencyBalanceReader(balanceRepository)
+			transferHandler := handlers.NewTransferHandler(service, provider, issuer).
+				WithConsistencyBalanceReader(balanceRepository).
+				WithCommittedResponseObserver(telemetry)
 			balanceHandler := handlers.NewBalanceHandler(balanceReader, provider)
 			accountsHandler := handlers.NewAccountsHandler(accountService, provider)
 			transactionsHandler := handlers.NewTransactionsHandler(history, provider)
@@ -196,7 +198,7 @@ func main() {
 				slog.Error("funding service initialization failed", "error", err)
 				os.Exit(1)
 			}
-			fundingHandler := handlers.NewFundingHandler(fundingService, provider)
+			fundingHandler := handlers.NewFundingHandler(fundingService, provider).WithCommittedResponseObserver(telemetry)
 			investigationRepository, err := db.NewInvestigationRepository(database)
 			if err != nil {
 				slog.Error("investigation repository initialization failed", "error", err)
@@ -303,7 +305,8 @@ func main() {
 			}
 			if err := registerCorrectionRoutes(router, correctionRouteConfig{
 				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
-				ReadRatePerMinute: configuration.ReadRateLimitPerMinute, WriteRatePerMinute: configuration.WriteRateLimitPerMinute,
+				CommittedResponseObserver: telemetry,
+				ReadRatePerMinute:         configuration.ReadRateLimitPerMinute, WriteRatePerMinute: configuration.WriteRateLimitPerMinute,
 				CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
 			}); err != nil {
 				slog.Error("correction route initialization failed", "error", err)
@@ -349,7 +352,8 @@ func main() {
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
-	handler := middleware.Correlation(middleware.Contract(configuration.Environment, telemetry.HTTP(router)))
+	identifierAwareRouter := httptransport.WithIdentifierObserver(router, telemetry)
+	handler := middleware.Correlation(middleware.Contract(configuration.Environment, telemetry.HTTP(identifierAwareRouter)))
 	server := &http.Server{
 		Addr: configuration.HTTPAddress, Handler: handler,
 		ReadHeaderTimeout: configuration.HTTPReadHeaderTimeout,

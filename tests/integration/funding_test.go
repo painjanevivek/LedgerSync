@@ -104,8 +104,8 @@ INSERT INTO tenant_funding_policies(
 		t.Fatalf("posted funding onboarding evidence=%+v err=%v", orientation.Steps[4], err)
 	}
 	if countRows(t, database, `SELECT count(*) FROM funding_events WHERE tenant_id=$1`, testTenantID) != 1 ||
-		countRows(t, database, `SELECT count(*) FROM journal_transactions WHERE funding_event_id=$1`, created.Event.FundingEventID) != 1 ||
-		countRows(t, database, `SELECT count(*) FROM ledger_postings WHERE journal_transaction_id=$1`, posted.Event.JournalTransactionID) != 2 ||
+		countRows(t, database, `SELECT count(*) FROM journal_transactions WHERE funding_event_id=$1 AND source_type='funding_event' AND source_id=$1 AND tenant_id=$2`, created.Event.FundingEventID, testTenantID) != 1 ||
+		countRows(t, database, `SELECT count(*) FROM ledger_postings WHERE journal_transaction_id=$1 AND tenant_id=$2`, posted.Event.JournalTransactionID, testTenantID) != 2 ||
 		countRows(t, database, `SELECT count(*) FROM approval_records WHERE target_id=$1 AND status='approved'`, created.Event.FundingEventID) != 1 ||
 		countRows(t, database, `SELECT count(*) FROM audit_events WHERE target_id=$1 AND event_type='funding.posted'`, created.Event.FundingEventID) != 1 ||
 		countRows(t, database, `SELECT count(*) FROM outbox_events WHERE funding_event_id=$1`, created.Event.FundingEventID) != 1 {

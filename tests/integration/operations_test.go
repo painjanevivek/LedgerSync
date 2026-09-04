@@ -161,7 +161,7 @@ func TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.SchemaVersion != "000033_investigation_workspaces.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
+	if facts.SchemaVersion != "000035_ledger_semantic_validation.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
 		t.Fatalf("unexpected database-derived facts: %#v", facts)
 	}
 }

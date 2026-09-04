@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	appfunding "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -18,14 +20,15 @@ import (
 const maxFundingBodyBytes = 64 * 1024
 
 type FundingHandler struct {
-	service       *appfunding.Service
-	identity      identity.Provider
-	authenticator *identity.RequestAuthenticator
-	rateLimiter   RateLimiter
-	readRate      int
-	writeRate     int
-	capacityLimit int
-	audit         AuditRecorder
+	service           *appfunding.Service
+	identity          identity.Provider
+	authenticator     *identity.RequestAuthenticator
+	rateLimiter       RateLimiter
+	readRate          int
+	writeRate         int
+	capacityLimit     int
+	audit             AuditRecorder
+	committedObserver httptransport.CommittedResponseObserver
 }
 
 func NewFundingHandler(service *appfunding.Service, provider identity.Provider) *FundingHandler {
@@ -44,6 +47,11 @@ func (h *FundingHandler) WithRateLimiter(limiter RateLimiter, readPerMinute, wri
 
 func (h *FundingHandler) WithAuditRecorder(audit AuditRecorder) *FundingHandler {
 	h.audit = audit
+	return h
+}
+
+func (h *FundingHandler) WithCommittedResponseObserver(observer httptransport.CommittedResponseObserver) *FundingHandler {
+	h.committedObserver = observer
 	return h
 }
 
@@ -74,6 +82,10 @@ func (h *FundingHandler) Request(writer http.ResponseWriter, request *http.Reque
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
+	destinationAccountID, ok := requireCanonicalIdentifier(writer, request, identifier.KindAccount, input.DestinationAccountID)
+	if !ok {
+		return
+	}
 	minor, err := appfunding.ParseMinor(input.AmountMinor)
 	if err != nil || minor == 0 {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
@@ -86,7 +98,7 @@ func (h *FundingHandler) Request(writer http.ResponseWriter, request *http.Reque
 	}
 	submission, err := h.service.Request(request.Context(), appfunding.RequestCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID,
-		DestinationAccountID: input.DestinationAccountID, Amount: amount,
+		DestinationAccountID: destinationAccountID, Amount: amount,
 		ExternalReference: input.ExternalReference, EvidenceReference: input.EvidenceReference,
 		IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()),
 	})
@@ -94,7 +106,7 @@ func (h *FundingHandler) Request(writer http.ResponseWriter, request *http.Reque
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingSubmission(writer, submission, http.StatusCreated)
+	writeFundingSubmission(request.Context(), writer, submission, http.StatusCreated, h.committedObserver)
 }
 
 func (h *FundingHandler) List(writer http.ResponseWriter, request *http.Request) {
@@ -126,7 +138,11 @@ func (h *FundingHandler) Get(writer http.ResponseWriter, request *http.Request) 
 	if !ok {
 		return
 	}
-	event, err := h.service.Get(request.Context(), principal.TenantID, principal.SubjectID, request.PathValue("fundingEventId"))
+	fundingEventID, ok := requireCanonicalIdentifier(writer, request, identifier.KindFunding, request.PathValue("fundingEventId"))
+	if !ok {
+		return
+	}
+	event, err := h.service.Get(request.Context(), principal.TenantID, principal.SubjectID, fundingEventID)
 	if err != nil {
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
@@ -151,6 +167,10 @@ func (h *FundingHandler) decide(writer http.ResponseWriter, request *http.Reques
 	if !ok {
 		return
 	}
+	fundingEventID, ok := requireCanonicalIdentifier(writer, request, identifier.KindFunding, request.PathValue("fundingEventId"))
+	if !ok {
+		return
+	}
 	var input fundingDecisionRequest
 	if err := decodeFundingJSON(writer, request, &input); err != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
@@ -158,7 +178,7 @@ func (h *FundingHandler) decide(writer http.ResponseWriter, request *http.Reques
 	}
 	command := appfunding.DecisionCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID,
-		FundingEventID: request.PathValue("fundingEventId"), Reason: input.Reason,
+		FundingEventID: fundingEventID, Reason: input.Reason,
 		CorrelationID: middleware.CorrelationID(request.Context()),
 	}
 	var event appfunding.Event
@@ -172,7 +192,7 @@ func (h *FundingHandler) decide(writer http.ResponseWriter, request *http.Reques
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingJSON(writer, http.StatusOK, event)
+	writeFundingCommitted(request.Context(), writer, http.StatusOK, event, event.FundingEventID, false, h.committedObserver)
 }
 
 func (h *FundingHandler) Post(writer http.ResponseWriter, request *http.Request) {
@@ -180,19 +200,27 @@ func (h *FundingHandler) Post(writer http.ResponseWriter, request *http.Request)
 	if !ok {
 		return
 	}
+	fundingEventID, ok := requireCanonicalIdentifier(writer, request, identifier.KindFunding, request.PathValue("fundingEventId"))
+	if !ok {
+		return
+	}
 	submission, err := h.service.Post(request.Context(), appfunding.ActionCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID,
-		FundingEventID: request.PathValue("fundingEventId"), IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()),
+		FundingEventID: fundingEventID, IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()),
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingSubmission(writer, submission, http.StatusOK)
+	writeFundingSubmission(request.Context(), writer, submission, http.StatusOK, h.committedObserver)
 }
 
 func (h *FundingHandler) Compensate(writer http.ResponseWriter, request *http.Request) {
 	principal, ok := h.authorize(writer, request, "funding:write", "funding:compensate", true)
+	if !ok {
+		return
+	}
+	fundingEventID, ok := requireCanonicalIdentifier(writer, request, identifier.KindFunding, request.PathValue("fundingEventId"))
 	if !ok {
 		return
 	}
@@ -203,14 +231,14 @@ func (h *FundingHandler) Compensate(writer http.ResponseWriter, request *http.Re
 	}
 	submission, err := h.service.Compensate(request.Context(), appfunding.CompensationCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID,
-		FundingEventID: request.PathValue("fundingEventId"), ReasonCode: input.ReasonCode, OperatorNote: input.OperatorNote,
+		FundingEventID: fundingEventID, ReasonCode: input.ReasonCode, OperatorNote: input.OperatorNote,
 		IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()),
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
 	}
-	writeFundingSubmission(writer, submission, http.StatusCreated)
+	writeFundingSubmission(request.Context(), writer, submission, http.StatusCreated, h.committedObserver)
 }
 
 func (h *FundingHandler) Reconcile(writer http.ResponseWriter, request *http.Request) {
@@ -218,7 +246,11 @@ func (h *FundingHandler) Reconcile(writer http.ResponseWriter, request *http.Req
 	if !ok {
 		return
 	}
-	result, err := h.service.Reconcile(request.Context(), principal.TenantID, principal.SubjectID, request.PathValue("fundingEventId"))
+	fundingEventID, ok := requireCanonicalIdentifier(writer, request, identifier.KindFunding, request.PathValue("fundingEventId"))
+	if !ok {
+		return
+	}
+	result, err := h.service.Reconcile(request.Context(), principal.TenantID, principal.SubjectID, fundingEventID)
 	if err != nil {
 		httptransport.WriteError(writer, request, publicFundingError(err))
 		return
@@ -277,11 +309,23 @@ func decodeFundingJSON(writer http.ResponseWriter, request *http.Request, target
 	return nil
 }
 
-func writeFundingSubmission(writer http.ResponseWriter, submission appfunding.Submission, status int) {
-	if submission.Replayed {
-		writer.Header().Set("Idempotent-Replay", "true")
+func writeFundingSubmission(ctx context.Context, writer http.ResponseWriter, submission appfunding.Submission, status int, observer httptransport.CommittedResponseObserver) {
+	writeFundingCommitted(ctx, writer, status, submission, submission.Event.FundingEventID, submission.Replayed, observer)
+}
+
+func writeFundingCommitted(ctx context.Context, writer http.ResponseWriter, status int, body any, commandID string, replayed bool, observer httptransport.CommittedResponseObserver) {
+	headers := make(http.Header)
+	if replayed {
+		headers.Set("Idempotent-Replay", "true")
 	}
-	writeFundingJSON(writer, status, submission)
+	httptransport.WriteCommittedJSON(ctx, writer, httptransport.CommittedResponse{
+		Status:       status,
+		CommandKind:  "funding",
+		CommandID:    commandID,
+		RecoveryPath: "/api/funding-events/" + commandID,
+		Body:         body,
+		Headers:      headers,
+	}, observer)
 }
 
 func writeFundingJSON(writer http.ResponseWriter, status int, body any) {

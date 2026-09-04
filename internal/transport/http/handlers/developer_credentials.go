@@ -10,6 +10,7 @@ import (
 	"time"
 
 	developerplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/developerplatform"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
@@ -136,7 +137,11 @@ func (h *DeveloperCredentialHandler) Get(writer http.ResponseWriter, request *ht
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
-	credential, err := h.service.Get(request.Context(), principal.TenantID, request.PathValue("credentialId"))
+	credentialID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCredential, request.PathValue("credentialId"))
+	if !ok {
+		return
+	}
+	credential, err := h.service.Get(request.Context(), principal.TenantID, credentialID)
 	if err != nil {
 		httptransport.WriteError(writer, request, publicDeveloperCredentialError(err))
 		return
@@ -146,6 +151,10 @@ func (h *DeveloperCredentialHandler) Get(writer http.ResponseWriter, request *ht
 
 func (h *DeveloperCredentialHandler) Rotate(writer http.ResponseWriter, request *http.Request) {
 	principal, ok := h.authorize(writer, request, "credentials:write", "credentials:rotate", true)
+	if !ok {
+		return
+	}
+	credentialID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCredential, request.PathValue("credentialId"))
 	if !ok {
 		return
 	}
@@ -161,7 +170,7 @@ func (h *DeveloperCredentialHandler) Rotate(writer http.ResponseWriter, request 
 		return
 	}
 	submission, err := h.service.Rotate(request.Context(), developerplatform.RotateCredentialCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrelationID: middleware.CorrelationID(request.Context()), IdempotencyKey: request.Header.Get("Idempotency-Key"), CredentialID: request.PathValue("credentialId"),
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrelationID: middleware.CorrelationID(request.Context()), IdempotencyKey: request.Header.Get("Idempotency-Key"), CredentialID: credentialID,
 		ExpectedVersion: version, ExternalReference: input.ExternalReference, Audience: input.Audience, Scopes: input.Scopes, ExpiresAt: expiresAt,
 	})
 	if err != nil {
@@ -176,6 +185,10 @@ func (h *DeveloperCredentialHandler) Revoke(writer http.ResponseWriter, request 
 	if !ok {
 		return
 	}
+	credentialID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCredential, request.PathValue("credentialId"))
+	if !ok {
+		return
+	}
 	var input developerCredentialRevokeRequest
 	if err := decodeDeveloperCredentialJSON(writer, request, &input); err != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
@@ -187,7 +200,7 @@ func (h *DeveloperCredentialHandler) Revoke(writer http.ResponseWriter, request 
 		return
 	}
 	submission, err := h.service.Revoke(request.Context(), developerplatform.RevokeCredentialCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrelationID: middleware.CorrelationID(request.Context()), IdempotencyKey: request.Header.Get("Idempotency-Key"), CredentialID: request.PathValue("credentialId"), ExpectedVersion: version, Reason: input.Reason,
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrelationID: middleware.CorrelationID(request.Context()), IdempotencyKey: request.Header.Get("Idempotency-Key"), CredentialID: credentialID, ExpectedVersion: version, Reason: input.Reason,
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicDeveloperCredentialError(err))

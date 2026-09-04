@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
@@ -24,27 +24,50 @@ import (
 const maxTransferBodyBytes = 64 * 1024
 
 type TransferHandler struct {
-	service       *transfers.Service
-	identity      identity.Provider
-	authenticator *identity.RequestAuthenticator
-	issuer        *consistency.Issuer
-	balanceReader consistencyBalanceReader
-	rateLimiter   RateLimiter
-	rateLimit     int
-	capacityLimit int
-	audit         AuditRecorder
+	service           *transfers.Service
+	identity          identity.Provider
+	authenticator     *identity.RequestAuthenticator
+	issuer            consistencyIssuer
+	balanceReader     consistencyBalanceReader
+	metadataEncoder   func(map[string]string) (string, error)
+	committedObserver httptransport.CommittedResponseObserver
+	rateLimiter       RateLimiter
+	rateLimit         int
+	capacityLimit     int
+	audit             AuditRecorder
 }
 
 type consistencyBalanceReader interface {
 	ReadCurrent(context.Context, string, string, string) (accounts.Balance, error)
 }
 
-func NewTransferHandler(service *transfers.Service, provider identity.Provider, issuers ...*consistency.Issuer) *TransferHandler {
-	var issuer *consistency.Issuer
+type consistencyIssuer interface {
+	Issue(string, string, int64) (string, error)
+}
+
+func NewTransferHandler(service *transfers.Service, provider identity.Provider, issuers ...consistencyIssuer) *TransferHandler {
+	var issuer consistencyIssuer
 	if len(issuers) > 0 {
 		issuer = issuers[0]
 	}
-	return &TransferHandler{service: service, identity: provider, issuer: issuer}
+	return &TransferHandler{service: service, identity: provider, issuer: issuer, metadataEncoder: encodeConsistencyRequirements}
+}
+
+func (h *TransferHandler) WithConsistencyIssuer(issuer consistencyIssuer) *TransferHandler {
+	h.issuer = issuer
+	return h
+}
+
+func (h *TransferHandler) WithConsistencyMetadataEncoder(encoder func(map[string]string) (string, error)) *TransferHandler {
+	if encoder != nil {
+		h.metadataEncoder = encoder
+	}
+	return h
+}
+
+func (h *TransferHandler) WithCommittedResponseObserver(observer httptransport.CommittedResponseObserver) *TransferHandler {
+	h.committedObserver = observer
+	return h
 }
 
 func (h *TransferHandler) WithRequestAuthenticator(authenticator *identity.RequestAuthenticator) *TransferHandler {
@@ -120,11 +143,19 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
+	tenantID, tenantOK := parseIdentifier(request, identifier.KindTenant, principal.TenantID)
+	sourceAccountID, sourceOK := parseIdentifier(request, identifier.KindAccount, input.SourceAccountID)
+	destinationAccountID, destinationOK := parseIdentifier(request, identifier.KindAccount, input.DestinationAccountID)
+	if !tenantOK || !sourceOK || !destinationOK || sourceAccountID == destinationAccountID {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	input.SourceAccountID, input.DestinationAccountID = sourceAccountID.String(), destinationAccountID.String()
 	submission, err := h.service.Submit(request.Context(), transfers.Command{
-		TenantID:        principal.TenantID,
+		TenantID:        tenantID,
 		ActorSubjectID:  principal.SubjectID,
-		DebitAccountID:  input.SourceAccountID,
-		CreditAccountID: input.DestinationAccountID,
+		DebitAccountID:  sourceAccountID,
+		CreditAccountID: destinationAccountID,
 		Amount:          amount,
 		IdempotencyKey:  request.Header.Get("Idempotency-Key"),
 		CorrelationID:   middleware.CorrelationID(request.Context()),
@@ -133,11 +164,12 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, publicTransferError(err))
 		return
 	}
-	writer.Header().Set("Content-Type", "application/json")
-	writer.Header().Set("Cache-Control", "no-store")
+	responseHeaders := make(http.Header)
 	if submission.Replayed {
-		writer.Header().Set("Idempotent-Replay", "true")
+		responseHeaders.Set("Idempotent-Replay", "true")
 	}
+	metadataStatus := "complete"
+	warnings := make([]string, 0, 2)
 	if h.issuer != nil && submission.Result.Status == "posted" {
 		versions := make(map[string]int64, len(submission.Result.MinimumBalanceVersions)+1)
 		for accountID, version := range submission.Result.MinimumBalanceVersions {
@@ -146,26 +178,77 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		if h.balanceReader != nil {
 			if destination, readErr := h.balanceReader.ReadCurrent(request.Context(), principal.TenantID, principal.SubjectID, input.DestinationAccountID); readErr == nil {
 				versions[destination.AccountID] = destination.Version
+			} else {
+				metadataStatus = "partial"
+				warnings = append(warnings, "destination_consistency_unavailable")
 			}
 		}
 		requirements := make(map[string]string, len(versions))
 		for accountID, version := range versions {
 			requirement, err := h.issuer.Issue(principal.TenantID, accountID, version)
 			if err != nil {
-				httptransport.WriteError(writer, request, err)
-				return
+				metadataStatus = "unavailable"
+				warnings = []string{"consistency_requirement_unavailable"}
+				requirements = nil
+				break
 			}
 			requirements[accountID] = requirement
 		}
-		encoded, err := json.Marshal(requirements)
-		if err != nil {
-			httptransport.WriteError(writer, request, err)
-			return
+		if requirements != nil {
+			encoded, encodeErr := h.metadataEncoder(requirements)
+			if encodeErr != nil {
+				metadataStatus = "unavailable"
+				warnings = []string{"consistency_header_unavailable"}
+			} else {
+				responseHeaders.Set("X-LedgerSync-Consistency-Requirements", encoded)
+			}
 		}
-		writer.Header().Set("X-LedgerSync-Consistency-Requirements", string(encoded))
 	}
-	writer.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(writer).Encode(submission.Result)
+	if metadataStatus == "unavailable" && h.committedObserver != nil {
+		h.committedObserver.ObserveCommittedResponseMetadataUnavailable(request.Context(), "transfer")
+	}
+	responseHeaders.Set("X-LedgerSync-Metadata-Status", metadataStatus)
+	httptransport.WriteCommittedJSON(request.Context(), writer, httptransport.CommittedResponse{
+		Status:       http.StatusCreated,
+		CommandKind:  "transfer",
+		CommandID:    submission.Result.TransferID,
+		RecoveryPath: "/api/transfers/" + submission.Result.TransferID,
+		Body:         transferResponse{Result: submission.Result, MetadataStatus: metadataStatus, Warnings: warnings},
+		Headers:      responseHeaders,
+	}, h.committedObserver)
+}
+
+type transferResponse struct {
+	Result         transfers.Result
+	MetadataStatus string
+	Warnings       []string
+}
+
+func (response transferResponse) MarshalJSON() ([]byte, error) {
+	result, err := json.Marshal(response.Result)
+	if err != nil {
+		return nil, err
+	}
+	fields := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(result, &fields); err != nil {
+		return nil, err
+	}
+	fields["metadata_status"], _ = json.Marshal(response.MetadataStatus)
+	if len(response.Warnings) > 0 {
+		fields["warnings"], _ = json.Marshal(response.Warnings)
+	}
+	return json.Marshal(fields)
+}
+
+func encodeConsistencyRequirements(requirements map[string]string) (string, error) {
+	encoded, err := json.Marshal(requirements)
+	if err != nil {
+		return "", err
+	}
+	if len(encoded) > 16*1024 || strings.ContainsAny(string(encoded), "\r\n") {
+		return "", errors.New("consistency requirements exceed the private header boundary")
+	}
+	return string(encoded), nil
 }
 
 func (h *TransferHandler) authenticate(request *http.Request) (identity.Principal, error) {
