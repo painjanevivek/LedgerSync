@@ -163,7 +163,11 @@ ORDER BY a.id`, tenantID)
 	if err != nil {
 		return reconciliation.Result{}, err
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.completed','reconciliation_run',$4,$5,$6,$7,$8)`, auditID, tenantID, nullableString(actorID), runID, outcome, correlationID, auditDetails, completedAt); err != nil {
+	if err := appendControlledAuditPayload(ctx, tx, auditID, AuditEvent{
+		TenantID: tenantID, ActorSubjectID: actorID, EventType: "reconciliation.completed",
+		TargetType: "reconciliation_run", TargetID: runID, Outcome: outcome,
+		CorrelationID: correlationID, OccurredAt: completedAt,
+	}, auditDetails); err != nil {
 		return reconciliation.Result{}, fmt.Errorf("persist reconciliation audit: %w", err)
 	}
 	return reconciliation.Result{ID: runID, TenantID: tenantID, CorrelationID: correlationID, Scope: reconciliationScope, LedgerWatermark: watermark, ApplicationVersion: applicationVersion, SchemaVersion: schemaVersion, Status: status, CheckedAccountCount: checked, PostingCount: postingCount, MismatchCount: len(mismatches), StartedAt: startedAt, CompletedAt: completedAt}, nil

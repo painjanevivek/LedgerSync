@@ -11,6 +11,14 @@ DO $$ BEGIN CREATE ROLE ledgersync_provisioning NOLOGIN; EXCEPTION WHEN duplicat
 DO $$ BEGIN CREATE ROLE ledgersync_support_readonly NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE ROLE ledgersync_break_glass NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+ALTER ROLE ledgersync_migration_owner WITH NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE ledgersync_api WITH NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE ledgersync_worker WITH NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE ledgersync_reconciliation WITH NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE ledgersync_provisioning WITH NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE ledgersync_support_readonly WITH NOLOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE ledgersync_break_glass WITH NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO ledgersync_migration_owner, ledgersync_api, ledgersync_worker, ledgersync_reconciliation, ledgersync_provisioning, ledgersync_support_readonly;
 
@@ -51,6 +59,51 @@ BEGIN
     EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_execute_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) FROM PUBLIC';
     EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_execute_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) TO ledgersync_provisioning';
   END IF;
+  IF to_regprocedure('public.controlled_append_audit_event_v1(uuid,uuid,text,text,text,text,text,uuid,jsonb,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_append_audit_event_v1(uuid,uuid,text,text,text,text,text,uuid,jsonb,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_append_audit_event_v1(uuid,uuid,text,text,text,text,text,uuid,jsonb,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_append_audit_event_v1(uuid,uuid,text,text,text,text,text,uuid,jsonb,timestamptz) TO ledgersync_api,ledgersync_worker,ledgersync_reconciliation,ledgersync_provisioning';
+  END IF;
+  IF to_regprocedure('public.controlled_update_account_v1(uuid,text,uuid,bigint,text,text,text,text,timestamptz,bigint,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_update_account_v1(uuid,text,uuid,bigint,text,text,text,text,timestamptz,bigint,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_update_account_v1(uuid,text,uuid,bigint,text,text,text,text,timestamptz,bigint,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_update_account_v1(uuid,text,uuid,bigint,text,text,text,text,timestamptz,bigint,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_ensure_funding_account_v1(uuid,text,text,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_ensure_funding_account_v1(uuid,text,text,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_ensure_funding_account_v1(uuid,text,text,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_ensure_funding_account_v1(uuid,text,text,uuid,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_request_transfer_correction_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_request_transfer_correction_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_request_transfer_correction_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_request_transfer_correction_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_decide_transfer_correction_v1(uuid,text,uuid,text,text,uuid,timestamptz,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_decide_transfer_correction_v1(uuid,text,uuid,text,text,uuid,timestamptz,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_decide_transfer_correction_v1(uuid,text,uuid,text,text,uuid,timestamptz,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_decide_transfer_correction_v1(uuid,text,uuid,text,text,uuid,timestamptz,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz) TO ledgersync_provisioning';
+  END IF;
 END $$;
 
 -- SECURITY DEFINER command functions run as the non-login migration owner.
@@ -62,12 +115,13 @@ GRANT SELECT ON tenants, tenant_subject_roles, tenant_transfer_policies, account
   idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
   transfers, journal_transactions, ledger_postings, developer_webhook_endpoints,
   tenant_funding_policies, funding_events, approval_records, funding_velocity_events,
-  transfer_corrections, opening_import_batches, opening_import_rows,
+  transfer_corrections, partner_provisioning_requests, opening_import_batches, opening_import_rows,
   opening_import_approvals, opening_import_executions
   TO ledgersync_migration_owner;
 GRANT INSERT ON idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
   transfers, journal_transactions, ledger_postings, audit_events, outbox_events,
-  webhook_delivery_jobs, funding_velocity_events, approval_records, accounts,
+  webhook_delivery_jobs, funding_events, funding_velocity_events, approval_records,
+  transfer_corrections, accounts,
   account_balance_projections, account_opening_balances, account_owners,
   account_credit_permissions, opening_import_batches, opening_import_rows,
   opening_import_approvals, opening_import_executions TO ledgersync_migration_owner;
@@ -77,7 +131,8 @@ GRANT UPDATE ON tenant_transfer_policies, accounts, idempotency_requests,
   transfer_velocity_totals, transfers, account_balance_projections, funding_events,
   transfer_corrections, account_opening_balances, opening_import_batches
   TO ledgersync_migration_owner;
-GRANT DELETE ON transfer_velocity_events TO ledgersync_migration_owner;
+GRANT DELETE ON transfer_velocity_events, account_credit_permissions, account_owners,
+  tenant_subject_roles TO ledgersync_migration_owner;
 
 GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections, account_opening_balances,
   tenant_transfer_policies, tenant_subject_roles, partner_credential_events, developer_credentials, developer_credential_events, developer_command_idempotency,
@@ -86,18 +141,14 @@ GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, a
   transfer_velocity_events, transfer_velocity_totals,
   journal_transactions, ledger_postings, delivery_attempts, webhook_delivery_jobs, delivery_replay_actions,
   reconciliation_runs, reconciliation_mismatches, outbox_events, audit_events, schema_migrations TO ledgersync_api;
-GRANT INSERT ON accounts, account_balance_projections, account_opening_balances, account_owners, account_credit_permissions,
-  transfers, idempotency_requests, journal_transactions, ledger_postings,
-  reconciliation_runs, reconciliation_mismatches,
-  outbox_events, audit_events, api_rate_limit_windows, retention_runs,
-  transfer_velocity_events, transfer_velocity_totals,
+GRANT INSERT ON idempotency_requests, reconciliation_runs, reconciliation_mismatches,
+  outbox_events, api_rate_limit_windows, retention_runs,
   outbox_replay_actions, delivery_replay_actions, developer_credentials, developer_credential_events, developer_command_idempotency,
   developer_webhook_endpoints, developer_webhook_events, developer_webhook_command_idempotency, webhook_delivery_jobs,
   webhook_endpoint_verification_jobs, bff_actor_assertion_replays TO ledgersync_api;
-GRANT UPDATE ON accounts, transfers, idempotency_requests, account_balance_projections,
-  api_rate_limit_windows, transfer_velocity_totals, developer_credentials, developer_command_idempotency,
+GRANT UPDATE ON idempotency_requests, api_rate_limit_windows, developer_credentials, developer_command_idempotency,
   developer_webhook_endpoints, developer_webhook_command_idempotency TO ledgersync_api;
-GRANT DELETE ON transfer_velocity_events, bff_actor_assertion_replays TO ledgersync_api;
+GRANT DELETE ON bff_actor_assertion_replays TO ledgersync_api;
 
 DO $$
 BEGIN
@@ -125,32 +176,29 @@ END $$;
 DO $$
 BEGIN
   IF to_regclass('public.funding_events') IS NOT NULL THEN
-    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON funding_events TO ledgersync_api';
-    EXECUTE 'GRANT SELECT,INSERT ON approval_records,funding_velocity_events TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON funding_events,funding_velocity_events TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON approval_records TO ledgersync_api';
     EXECUTE 'GRANT SELECT ON tenant_funding_policies TO ledgersync_api';
   END IF;
   IF to_regclass('public.transfer_corrections') IS NOT NULL THEN
-    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON transfer_corrections TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON transfer_corrections TO ledgersync_api';
     EXECUTE 'GRANT SELECT ON transfer_policy_versions TO ledgersync_api';
   END IF;
 END $$;
 
 GRANT SELECT, UPDATE ON outbox_events, webhook_delivery_jobs, webhook_endpoint_verification_jobs TO ledgersync_worker;
-GRANT INSERT ON delivery_attempts, audit_events, outbox_replay_actions, delivery_replay_actions TO ledgersync_worker;
+GRANT INSERT ON delivery_attempts, outbox_replay_actions, delivery_replay_actions TO ledgersync_worker;
 GRANT SELECT ON transfers, tenants, outbox_replay_actions, delivery_attempts, delivery_replay_actions,
   developer_webhook_endpoints, webhook_delivery_jobs TO ledgersync_worker;
 
 GRANT SELECT ON tenants, accounts, account_opening_balances,
   account_balance_projections, transfers, journal_transactions, ledger_postings,
   schema_migrations TO ledgersync_reconciliation;
-GRANT INSERT ON reconciliation_runs, reconciliation_mismatches, audit_events TO ledgersync_reconciliation;
+GRANT INSERT ON reconciliation_runs, reconciliation_mismatches TO ledgersync_reconciliation;
 
 GRANT SELECT ON tenants, transfers, partner_provisioning_requests, partner_credential_events TO ledgersync_provisioning;
 GRANT INSERT ON tenants, tenant_transfer_policies, tenant_subject_roles, partner_credential_events,
-  accounts, account_balance_projections, account_opening_balances, account_owners,
-  account_credit_permissions, partner_provisioning_requests, audit_events TO ledgersync_provisioning;
-GRANT UPDATE ON accounts TO ledgersync_provisioning;
-GRANT DELETE ON account_credit_permissions, account_owners, tenant_subject_roles TO ledgersync_provisioning;
+  partner_provisioning_requests TO ledgersync_provisioning;
 
 GRANT SELECT ON tenants, accounts, account_owners, account_balance_projections,
   transfers, journal_transactions, ledger_postings, delivery_attempts, webhook_delivery_jobs,
