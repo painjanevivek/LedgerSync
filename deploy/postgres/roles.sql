@@ -12,7 +12,33 @@ DO $$ BEGIN CREATE ROLE ledgersync_support_readonly NOLOGIN; EXCEPTION WHEN dupl
 DO $$ BEGIN CREATE ROLE ledgersync_break_glass NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-GRANT USAGE ON SCHEMA public TO ledgersync_api, ledgersync_worker, ledgersync_reconciliation, ledgersync_provisioning, ledgersync_support_readonly;
+GRANT USAGE ON SCHEMA public TO ledgersync_migration_owner, ledgersync_api, ledgersync_worker, ledgersync_reconciliation, ledgersync_provisioning, ledgersync_support_readonly;
+
+DO $$
+BEGIN
+  IF to_regprocedure('public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) TO ledgersync_api';
+  END IF;
+END $$;
+
+-- SECURITY DEFINER command functions run as the non-login migration owner.
+-- Apply its least-privilege object ACL after ownership transfer and before any
+-- workload execution. Workloads receive EXECUTE, never membership in this role.
+GRANT SELECT ON tenants, tenant_subject_roles, tenant_transfer_policies, accounts,
+  account_owners, account_credit_permissions, account_balance_projections,
+  idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
+  transfers, journal_transactions, ledger_postings, developer_webhook_endpoints TO ledgersync_migration_owner;
+GRANT INSERT ON idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
+  transfers, journal_transactions, ledger_postings, audit_events, outbox_events,
+  webhook_delivery_jobs TO ledgersync_migration_owner;
+-- PostgreSQL requires UPDATE privilege for SELECT ... FOR SHARE even when the
+-- controlled function never mutates the policy row.
+GRANT UPDATE ON tenant_transfer_policies, accounts, idempotency_requests,
+  transfer_velocity_totals, transfers, account_balance_projections
+  TO ledgersync_migration_owner;
+GRANT DELETE ON transfer_velocity_events TO ledgersync_migration_owner;
 
 GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections, account_opening_balances,
   tenant_transfer_policies, tenant_subject_roles, partner_credential_events, developer_credentials, developer_credential_events, developer_command_idempotency,

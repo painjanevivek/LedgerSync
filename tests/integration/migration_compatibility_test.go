@@ -28,8 +28,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 35 {
-		t.Fatalf("migration versions=%d, want 35", versions)
+	if versions != 36 {
+		t.Fatalf("migration versions=%d, want 36", versions)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
@@ -84,7 +84,7 @@ WHERE table_schema = 'public'
 	if columns != 23 {
 		t.Fatalf("legacy and additive account contract columns=%d, want 23", columns)
 	}
-	var compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, semanticTriggers int
+	var compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, controlledFinancialFunctions, semanticTriggers int
 	if err := database.QueryRowContext(context.Background(), `
 SELECT count(*) FROM pg_constraint
 WHERE conname IN ('journal_transactions_id_tenant_key','ledger_postings_id_tenant_key')
@@ -126,8 +126,21 @@ WHERE namespace.nspname='public'
   AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&hardenedSemanticFunctions); err != nil {
 		t.Fatal(err)
 	}
-	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || semanticTriggers != 4 {
-		t.Fatalf("ledger validation controls unique=%d validated_fk=%d hardened_hydrators=%d hardened_semantic_functions=%d semantic_triggers=%d", compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, semanticTriggers)
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*)
+FROM pg_proc procedure
+JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
+JOIN pg_roles owner ON owner.oid=procedure.proowner
+WHERE namespace.nspname='public'
+  AND procedure.proname='controlled_submit_transfer_v1'
+  AND procedure.prosecdef
+  AND owner.rolname='ledgersync_migration_owner'
+  AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
+  AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&controlledFinancialFunctions); err != nil {
+		t.Fatal(err)
+	}
+	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 1 || semanticTriggers != 4 {
+		t.Fatalf("ledger validation controls unique=%d validated_fk=%d hardened_hydrators=%d hardened_semantic_functions=%d controlled_financial_functions=%d semantic_triggers=%d", compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, controlledFinancialFunctions, semanticTriggers)
 	}
 }
 
