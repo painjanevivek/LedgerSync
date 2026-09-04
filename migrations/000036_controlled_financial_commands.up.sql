@@ -76,6 +76,11 @@ BEGIN
       USING ERRCODE='22023', CONSTRAINT='controlled_transfer_fingerprint';
   END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM public.tenants tenant WHERE tenant.id=p_tenant_id) THEN
+    RAISE EXCEPTION 'controlled transfer tenant boundary denied'
+      USING ERRCODE='42501', CONSTRAINT='controlled_transfer_tenant';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1
     FROM public.tenants tenant

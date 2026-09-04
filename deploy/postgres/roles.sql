@@ -14,9 +14,18 @@ DO $$ BEGIN CREATE ROLE ledgersync_break_glass NOLOGIN; EXCEPTION WHEN duplicate
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO ledgersync_migration_owner, ledgersync_api, ledgersync_worker, ledgersync_reconciliation, ledgersync_provisioning, ledgersync_support_readonly;
 
+DO $$
+BEGIN
+  IF to_regprocedure('public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) TO ledgersync_api';
+  END IF;
+END $$;
+
 -- SECURITY DEFINER command functions run as the non-login migration owner.
--- The role has only the object capabilities needed by versioned command code;
--- workloads receive EXECUTE, never membership in this owner role.
+-- Apply its least-privilege object ACL after ownership transfer and before any
+-- workload execution. Workloads receive EXECUTE, never membership in this role.
 GRANT SELECT ON tenants, tenant_subject_roles, tenant_transfer_policies, accounts,
   account_owners, account_credit_permissions, account_balance_projections,
   idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
@@ -27,15 +36,6 @@ GRANT INSERT ON idempotency_requests, transfer_velocity_events, transfer_velocit
 GRANT UPDATE ON idempotency_requests, transfer_velocity_totals, transfers,
   account_balance_projections TO ledgersync_migration_owner;
 GRANT DELETE ON transfer_velocity_events TO ledgersync_migration_owner;
-
-DO $$
-BEGIN
-  IF to_regprocedure('public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid)') IS NOT NULL THEN
-    EXECUTE 'ALTER FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) OWNER TO ledgersync_migration_owner';
-    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) FROM PUBLIC';
-    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) TO ledgersync_api';
-  END IF;
-END $$;
 
 GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections, account_opening_balances,
   tenant_transfer_policies, tenant_subject_roles, partner_credential_events, developer_credentials, developer_credential_events, developer_command_idempotency,

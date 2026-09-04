@@ -17,13 +17,15 @@ func TestControlledTransferFunctionUsesFixedDefinerBoundary(t *testing.T) {
 	requireWorkloadRoles(t, database)
 
 	var owner, searchPath string
-	var securityDefiner, apiCanExecute, supportCanExecute, publicCanExecute bool
+	var securityDefiner, apiCanExecute, supportCanExecute, publicCanExecute, ownerCanReadPolicy, ownerCanWriteLedger bool
 	err := database.QueryRowContext(context.Background(), `
 SELECT owner.rolname,
        procedure.prosecdef,
        COALESCE((SELECT setting FROM unnest(procedure.proconfig) setting WHERE setting LIKE 'search_path=%'),''),
 	       has_function_privilege('ledgersync_api',$1,'EXECUTE'),
 	       has_function_privilege('ledgersync_support_readonly',$1,'EXECUTE'),
+	       has_table_privilege('ledgersync_migration_owner','public.tenant_transfer_policies','SELECT'),
+	       has_table_privilege('ledgersync_migration_owner','public.ledger_postings','INSERT'),
 	       EXISTS(
 	         SELECT 1 FROM aclexplode(procedure.proacl) acl
 	         WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
@@ -32,12 +34,12 @@ FROM pg_proc procedure
 JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
 JOIN pg_roles owner ON owner.oid=procedure.proowner
 WHERE namespace.nspname='public' AND procedure.proname='controlled_submit_transfer_v1'`, controlledTransferFunction).
-		Scan(&owner, &securityDefiner, &searchPath, &apiCanExecute, &supportCanExecute, &publicCanExecute)
+		Scan(&owner, &securityDefiner, &searchPath, &apiCanExecute, &supportCanExecute, &ownerCanReadPolicy, &ownerCanWriteLedger, &publicCanExecute)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if owner != "ledgersync_migration_owner" || !securityDefiner || searchPath != "search_path=pg_catalog, public" || !apiCanExecute || supportCanExecute || publicCanExecute {
-		t.Fatalf("unsafe controlled transfer metadata owner=%q definer=%t search_path=%q api=%t support=%t public=%t", owner, securityDefiner, searchPath, apiCanExecute, supportCanExecute, publicCanExecute)
+	if owner != "ledgersync_migration_owner" || !securityDefiner || searchPath != "search_path=pg_catalog, public" || !apiCanExecute || supportCanExecute || !ownerCanReadPolicy || !ownerCanWriteLedger || publicCanExecute {
+		t.Fatalf("unsafe controlled transfer metadata owner=%q definer=%t search_path=%q api=%t support=%t owner_policy_read=%t owner_ledger_write=%t public=%t", owner, securityDefiner, searchPath, apiCanExecute, supportCanExecute, ownerCanReadPolicy, ownerCanWriteLedger, publicCanExecute)
 	}
 }
 
