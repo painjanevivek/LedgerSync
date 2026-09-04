@@ -927,6 +927,178 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION controlled_provision_account_v1(
+  p_tenant_id UUID,
+  p_actor_subject_id TEXT,
+  p_account_id UUID,
+  p_currency TEXT,
+  p_display_name TEXT,
+  p_category TEXT,
+  p_external_reference TEXT,
+  p_read_subject_ids TEXT[],
+  p_debit_subject_ids TEXT[],
+  p_credit_subject_ids TEXT[],
+  p_correlation_id UUID,
+  p_occurred_at TIMESTAMPTZ
+)
+RETURNS TABLE(replayed BOOLEAN, conflicted BOOLEAN)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_existing RECORD;
+  v_actual_owners TEXT[];
+  v_expected_owners TEXT[];
+  v_actual_credits TEXT[];
+  v_expected_credits TEXT[];
+  v_audit_id UUID := gen_random_uuid();
+BEGIN
+  IF p_tenant_id IS NULL OR p_account_id IS NULL OR p_correlation_id IS NULL OR p_occurred_at IS NULL
+     OR p_actor_subject_id IS NULL OR p_actor_subject_id='' OR btrim(p_actor_subject_id)<>p_actor_subject_id
+     OR p_currency IS NULL OR p_currency!~'^[A-Z]{3}$'
+     OR p_display_name IS NULL OR p_display_name='' OR btrim(p_display_name)<>p_display_name
+     OR p_category IS NULL OR p_category NOT IN ('customer_funds','expenses','operating','payables','payroll','reserve')
+     OR p_external_reference IS NULL OR p_external_reference='' OR btrim(p_external_reference)<>p_external_reference
+     OR p_read_subject_ids IS NULL OR p_debit_subject_ids IS NULL OR p_credit_subject_ids IS NULL
+     OR cardinality(p_read_subject_ids)>10000 OR cardinality(p_debit_subject_ids)>10000
+     OR cardinality(p_credit_subject_ids)>10000 THEN
+    RAISE EXCEPTION 'controlled account provisioning input is invalid'
+      USING ERRCODE='22023', CONSTRAINT='controlled_account_input';
+  END IF;
+
+  IF NOT pg_has_role(session_user,'ledgersync_provisioning','MEMBER')
+     AND NOT EXISTS (
+       SELECT 1 FROM public.tenant_subject_roles role
+        WHERE role.tenant_id=p_tenant_id AND role.subject_id=p_actor_subject_id
+          AND role.role IN ('operator','finance')
+     ) THEN
+    RAISE EXCEPTION 'controlled account actor is not authorized'
+      USING ERRCODE='42501', CONSTRAINT='controlled_account_actor';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.tenants tenant WHERE tenant.id=p_tenant_id) THEN
+    RAISE EXCEPTION 'controlled account tenant was not found'
+      USING ERRCODE='P0002', CONSTRAINT='controlled_account_not_found';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+      FROM unnest(p_read_subject_ids||p_debit_subject_ids||p_credit_subject_ids) subject(subject_id)
+     WHERE subject.subject_id IS NULL OR subject.subject_id='' OR btrim(subject.subject_id)<>subject.subject_id
+        OR NOT EXISTS (
+          SELECT 1 FROM public.tenant_subject_roles role
+           WHERE role.tenant_id=p_tenant_id AND role.subject_id=subject.subject_id
+        )
+  ) THEN
+    RAISE EXCEPTION 'controlled account permission subject is invalid'
+      USING ERRCODE='42501', CONSTRAINT='controlled_account_subject';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended('account-provision|'||p_tenant_id::text||'|'||p_account_id::text,0));
+
+  SELECT account.currency,account.status,account.display_name,account.category,
+         account.external_reference,account.account_kind,account.version
+    INTO v_existing
+    FROM public.accounts account
+   WHERE account.tenant_id=p_tenant_id AND account.id=p_account_id;
+  IF FOUND THEN
+    SELECT COALESCE(array_agg(owner.subject_id||':'||owner.permission ORDER BY owner.subject_id),'{}'::TEXT[])
+      INTO v_actual_owners
+      FROM public.account_owners owner
+     WHERE owner.tenant_id=p_tenant_id AND owner.account_id=p_account_id;
+    SELECT COALESCE(array_agg(expected.subject_id||':'||expected.permission ORDER BY expected.subject_id),'{}'::TEXT[])
+      INTO v_expected_owners
+      FROM (
+        SELECT candidate.subject_id,
+               CASE WHEN bool_or(candidate.permission='debit') THEN 'debit' ELSE 'read' END AS permission
+          FROM (
+            SELECT subject_id,'read' AS permission FROM unnest(p_read_subject_ids) subject_id
+            UNION ALL
+            SELECT subject_id,'debit' AS permission FROM unnest(p_debit_subject_ids) subject_id
+          ) candidate
+         GROUP BY candidate.subject_id
+      ) expected;
+    SELECT COALESCE(array_agg(permission.subject_id ORDER BY permission.subject_id),'{}'::TEXT[])
+      INTO v_actual_credits
+      FROM public.account_credit_permissions permission
+     WHERE permission.tenant_id=p_tenant_id AND permission.account_id=p_account_id;
+    SELECT COALESCE(array_agg(DISTINCT subject_id ORDER BY subject_id),'{}'::TEXT[])
+      INTO v_expected_credits
+      FROM unnest(p_credit_subject_ids) subject_id;
+    IF v_existing.currency=p_currency AND v_existing.status='active'
+       AND v_existing.display_name=p_display_name AND v_existing.category=p_category
+       AND v_existing.external_reference=p_external_reference
+       AND v_existing.account_kind='customer' AND v_existing.version=1
+       AND v_actual_owners=v_expected_owners AND v_actual_credits=v_expected_credits
+       AND EXISTS (
+         SELECT 1 FROM public.account_balance_projections balance
+          WHERE balance.account_id=p_account_id AND balance.available_minor=0
+            AND balance.ledger_minor=0 AND balance.balance_version=0
+       )
+       AND EXISTS (
+         SELECT 1 FROM public.account_opening_balances opening
+          WHERE opening.account_id=p_account_id AND opening.opening_ledger_minor=0
+       ) THEN
+      RETURN QUERY SELECT TRUE,FALSE;
+      RETURN;
+    END IF;
+    RAISE EXCEPTION 'controlled account conflicts with existing state'
+      USING ERRCODE='23505', CONSTRAINT='controlled_account_conflict';
+  END IF;
+
+  INSERT INTO public.accounts(
+    id,tenant_id,currency,status,display_name,category,external_reference,
+    account_kind,version,created_at,updated_at
+  ) VALUES(
+    p_account_id,p_tenant_id,p_currency,'active',p_display_name,p_category,
+    p_external_reference,'customer',1,p_occurred_at,p_occurred_at
+  );
+  INSERT INTO public.account_balance_projections(
+    account_id,available_minor,ledger_minor,balance_version,updated_at
+  ) VALUES(p_account_id,0,0,0,p_occurred_at);
+  INSERT INTO public.account_opening_balances(
+    account_id,opening_ledger_minor,created_at
+  ) VALUES(p_account_id,0,p_occurred_at);
+  INSERT INTO public.account_owners(
+    tenant_id,account_id,subject_id,permission,created_at
+  )
+  SELECT p_tenant_id,p_account_id,expected.subject_id,expected.permission,p_occurred_at
+    FROM (
+      SELECT candidate.subject_id,
+             CASE WHEN bool_or(candidate.permission='debit') THEN 'debit' ELSE 'read' END AS permission
+        FROM (
+          SELECT subject_id,'read' AS permission FROM unnest(p_read_subject_ids) subject_id
+          UNION ALL
+          SELECT subject_id,'debit' AS permission FROM unnest(p_debit_subject_ids) subject_id
+        ) candidate
+       GROUP BY candidate.subject_id
+    ) expected;
+  INSERT INTO public.account_credit_permissions(
+    tenant_id,account_id,subject_id,created_at
+  )
+  SELECT p_tenant_id,p_account_id,subject_id,p_occurred_at
+    FROM (SELECT DISTINCT subject_id FROM unnest(p_credit_subject_ids) subject_id) expected;
+  INSERT INTO public.audit_events(
+    id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,
+    correlation_id,sanitized_metadata,occurred_at
+  ) VALUES(
+    v_audit_id,p_tenant_id,p_actor_subject_id,'account.provisioned_controlled','account',
+    p_account_id::text,'succeeded',p_correlation_id,
+    jsonb_build_object(
+      'function','controlled_provision_account_v1',
+      'opening_minor','0',
+      'read_subject_count',cardinality(p_read_subject_ids),
+      'debit_subject_count',cardinality(p_debit_subject_ids),
+      'credit_subject_count',cardinality(p_credit_subject_ids)
+    ),p_occurred_at
+  );
+
+  RETURN QUERY SELECT FALSE,FALSE;
+EXCEPTION
+  WHEN unique_violation THEN
+    RETURN QUERY SELECT FALSE,TRUE;
+END;
+$$;
+
 COMMENT ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID,TEXT,TIMESTAMPTZ)
   IS 'Atomic, tenant-validated transfer command capability; returns the immutable idempotency outcome';
 
@@ -936,6 +1108,10 @@ COMMENT ON FUNCTION controlled_post_funding_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAM
 COMMENT ON FUNCTION controlled_post_transfer_correction_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ,TIMESTAMPTZ)
   IS 'Atomic, tenant-validated exact transfer-compensation posting capability';
 
+COMMENT ON FUNCTION controlled_provision_account_v1(UUID,TEXT,UUID,TEXT,TEXT,TEXT,TEXT,TEXT[],TEXT[],TEXT[],UUID,TIMESTAMPTZ)
+  IS 'Atomic customer-account provisioning capability with a mandatory zero opening baseline';
+
 REVOKE ALL ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID,TEXT,TIMESTAMPTZ) FROM PUBLIC;
 REVOKE ALL ON FUNCTION controlled_post_funding_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ) FROM PUBLIC;
 REVOKE ALL ON FUNCTION controlled_post_transfer_correction_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ,TIMESTAMPTZ) FROM PUBLIC;
+REVOKE ALL ON FUNCTION controlled_provision_account_v1(UUID,TEXT,UUID,TEXT,TEXT,TEXT,TEXT,TEXT[],TEXT[],TEXT[],UUID,TIMESTAMPTZ) FROM PUBLIC;

@@ -62,7 +62,7 @@ func (r *AccountCommandRepository) Create(ctx context.Context, command accounts.
 		if err != nil {
 			return err
 		}
-		if commandErr := insertAccountAggregate(ctx, tx, aggregate); commandErr != nil {
+		if commandErr := insertAccountAggregate(ctx, tx, envelope, aggregate); commandErr != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_create", "", commandErr, &committedDenial)
 		}
 		result = accountCommandResult(aggregate, 0, 0)
