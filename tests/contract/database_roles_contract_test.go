@@ -31,6 +31,7 @@ func TestDatabaseRoleContractKeepsSupportReadOnlyAndBreakGlassGrantless(t *testi
 	for _, marker := range []string{
 		"controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz)",
 		"controlled_post_funding_v1(uuid,text,uuid,text,uuid,timestamptz)",
+		"controlled_post_transfer_correction_v1(uuid,text,uuid,text,uuid,timestamptz,timestamptz)",
 		"OWNER TO ledgersync_migration_owner",
 		"GRANT EXECUTE ON FUNCTION",
 	} {
