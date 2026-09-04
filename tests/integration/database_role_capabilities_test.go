@@ -317,7 +317,7 @@ func probeCapability(t *testing.T, database *sql.DB, capability, otherTenantID s
 		_, err := database.ExecContext(ctx, `SELECT public.reject_ledger_mutation()`)
 		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"0A000": true})
 	case "function.controlled_submit_transfer_v1.EXECUTE":
-		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_submit_transfer_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_submit_transfer_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
 		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
 	case "database.schema.CREATE":
 		return probeSchemaCreate(t, database)

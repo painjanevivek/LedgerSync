@@ -13,7 +13,9 @@ CREATE FUNCTION controlled_submit_transfer_v1(
   p_currency TEXT,
   p_idempotency_key TEXT,
   p_request_fingerprint BYTEA,
-  p_correlation_id UUID
+  p_correlation_id UUID,
+  p_pilot_currency TEXT,
+  p_occurred_at TIMESTAMPTZ
 )
 RETURNS TABLE(response_body JSONB, replayed BOOLEAN)
 LANGUAGE plpgsql
@@ -21,7 +23,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $$
 DECLARE
-  v_now TIMESTAMPTZ := clock_timestamp();
+  v_now TIMESTAMPTZ := p_occurred_at;
   v_expected_fingerprint BYTEA;
   v_reserved INTEGER;
   v_existing_fingerprint BYTEA;
@@ -52,10 +54,11 @@ DECLARE
   v_result JSONB;
 BEGIN
   IF p_tenant_id IS NULL OR p_debit_account_id IS NULL OR p_credit_account_id IS NULL
-     OR p_correlation_id IS NULL OR p_debit_account_id=p_credit_account_id
+     OR p_correlation_id IS NULL OR p_occurred_at IS NULL OR p_debit_account_id=p_credit_account_id
      OR p_actor_subject_id IS NULL OR p_actor_subject_id='' OR btrim(p_actor_subject_id)<>p_actor_subject_id
      OR p_amount_minor IS NULL OR p_amount_minor<=0
      OR p_currency IS NULL OR p_currency!~'^[A-Z]{3}$'
+     OR p_pilot_currency IS NULL OR p_pilot_currency!~'^[A-Z]{3}$'
      OR p_idempotency_key IS NULL OR p_idempotency_key!~'^[!-~]{16,255}$'
      OR p_request_fingerprint IS NULL OR octet_length(p_request_fingerprint)<>32 THEN
     RAISE EXCEPTION 'controlled transfer input is invalid'
@@ -124,6 +127,13 @@ BEGIN
     END IF;
     RAISE EXCEPTION 'controlled transfer request is already in progress'
       USING ERRCODE='55000', CONSTRAINT='controlled_transfer_in_progress';
+  END IF;
+
+  -- Resolve an existing key before applying mutable deployment policy so the
+  -- original outcome/conflict remains stable across configuration changes.
+  IF p_currency<>p_pilot_currency THEN
+    RAISE EXCEPTION 'controlled transfer currency is outside the configured pilot'
+      USING ERRCODE='22023', CONSTRAINT='controlled_transfer_currency';
   END IF;
 
   -- One tenant policy is the exact serialization boundary for rolling limits.
@@ -427,7 +437,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID)
+COMMENT ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID,TEXT,TIMESTAMPTZ)
   IS 'Atomic, tenant-validated transfer command capability; returns the immutable idempotency outcome';
 
-REVOKE ALL ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID,TEXT,TIMESTAMPTZ) FROM PUBLIC;

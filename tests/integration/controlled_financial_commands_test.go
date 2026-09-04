@@ -10,14 +10,17 @@ import (
 	apptransfers "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 )
 
-const controlledTransferFunction = `public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid)`
+const (
+	controlledTransferFunction   = `public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz)`
+	controlledTransferOccurredAt = "2026-08-18T09:15:00Z"
+)
 
 func TestControlledTransferFunctionUsesFixedDefinerBoundary(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	requireWorkloadRoles(t, database)
 
 	var owner, searchPath string
-	var securityDefiner, apiCanExecute, supportCanExecute, publicCanExecute, ownerCanReadPolicy, ownerCanWriteLedger bool
+	var securityDefiner, apiCanExecute, supportCanExecute, publicCanExecute, ownerCanReadPolicy, ownerCanLockPolicy, ownerCanLockAccounts, ownerCanWriteLedger bool
 	err := database.QueryRowContext(context.Background(), `
 SELECT owner.rolname,
        procedure.prosecdef,
@@ -25,6 +28,8 @@ SELECT owner.rolname,
 	       has_function_privilege('ledgersync_api',$1,'EXECUTE'),
 	       has_function_privilege('ledgersync_support_readonly',$1,'EXECUTE'),
 	       has_table_privilege('ledgersync_migration_owner','public.tenant_transfer_policies','SELECT'),
+	       has_table_privilege('ledgersync_migration_owner','public.tenant_transfer_policies','UPDATE'),
+	       has_table_privilege('ledgersync_migration_owner','public.accounts','UPDATE'),
 	       has_table_privilege('ledgersync_migration_owner','public.ledger_postings','INSERT'),
 	       EXISTS(
 	         SELECT 1 FROM aclexplode(procedure.proacl) acl
@@ -34,12 +39,12 @@ FROM pg_proc procedure
 JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
 JOIN pg_roles owner ON owner.oid=procedure.proowner
 WHERE namespace.nspname='public' AND procedure.proname='controlled_submit_transfer_v1'`, controlledTransferFunction).
-		Scan(&owner, &securityDefiner, &searchPath, &apiCanExecute, &supportCanExecute, &ownerCanReadPolicy, &ownerCanWriteLedger, &publicCanExecute)
+		Scan(&owner, &securityDefiner, &searchPath, &apiCanExecute, &supportCanExecute, &ownerCanReadPolicy, &ownerCanLockPolicy, &ownerCanLockAccounts, &ownerCanWriteLedger, &publicCanExecute)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if owner != "ledgersync_migration_owner" || !securityDefiner || searchPath != "search_path=pg_catalog, public" || !apiCanExecute || supportCanExecute || !ownerCanReadPolicy || !ownerCanWriteLedger || publicCanExecute {
-		t.Fatalf("unsafe controlled transfer metadata owner=%q definer=%t search_path=%q api=%t support=%t owner_policy_read=%t owner_ledger_write=%t public=%t", owner, securityDefiner, searchPath, apiCanExecute, supportCanExecute, ownerCanReadPolicy, ownerCanWriteLedger, publicCanExecute)
+	if owner != "ledgersync_migration_owner" || !securityDefiner || searchPath != "search_path=pg_catalog, public" || !apiCanExecute || supportCanExecute || !ownerCanReadPolicy || !ownerCanLockPolicy || !ownerCanLockAccounts || !ownerCanWriteLedger || publicCanExecute {
+		t.Fatalf("unsafe controlled transfer metadata owner=%q definer=%t search_path=%q api=%t support=%t owner_policy_read=%t owner_policy_lock=%t owner_accounts_lock=%t owner_ledger_write=%t public=%t", owner, securityDefiner, searchPath, apiCanExecute, supportCanExecute, ownerCanReadPolicy, ownerCanLockPolicy, ownerCanLockAccounts, ownerCanWriteLedger, publicCanExecute)
 	}
 }
 
@@ -79,9 +84,9 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 		command := transferCommand(t, "controlled-spoof-actor-0001", "1.00")
 		command.ActorSubjectID = "spoofed-finance-actor"
 		fingerprint := transferFingerprint(t, command)
-		_, err := api.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		_, err := api.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
-			command.IdempotencyKey, fingerprint, command.CorrelationID)
+			command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt)
 		if sqlState(err) != "42501" {
 			t.Fatalf("actor spoof SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
 		}
@@ -105,9 +110,9 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 		command := transferCommand(t, "controlled-cross-tenant-0001", "1.00")
 		command.DebitAccountID = otherAccount
 		fingerprint := transferFingerprint(t, command)
-		_, err := api.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		_, err := api.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
-			command.IdempotencyKey, fingerprint, command.CorrelationID)
+			command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt)
 		if sqlState(err) != "42501" {
 			t.Fatalf("cross-tenant command SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
 		}
@@ -128,9 +133,9 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 			t.Fatal(err)
 		}
 		var response []byte
-		if err = tx.QueryRow(`SELECT response_body FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		if err = tx.QueryRow(`SELECT response_body FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
-			command.IdempotencyKey, fingerprint, command.CorrelationID).Scan(&response); err != nil {
+			command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt).Scan(&response); err != nil {
 			t.Fatalf("fixed search path execution: %v", err)
 		}
 		if err = tx.Rollback(); err != nil {
@@ -141,9 +146,9 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 	t.Run("support role denied", func(t *testing.T) {
 		command := transferCommand(t, "controlled-support-denied-0001", "0.01")
 		fingerprint := transferFingerprint(t, command)
-		_, err := support.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		_, err := support.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
-			command.IdempotencyKey, fingerprint, command.CorrelationID)
+			command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt)
 		if sqlState(err) != "42501" {
 			t.Fatalf("support execution SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
 		}
@@ -154,9 +159,9 @@ func invokeControlledTransfer(t *testing.T, database queryRower, command apptran
 	t.Helper()
 	var response []byte
 	var replayed bool
-	err := database.QueryRowContext(context.Background(), `SELECT response_body,replayed FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+	err := database.QueryRowContext(context.Background(), `SELECT response_body,replayed FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 		command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
-		command.IdempotencyKey, fingerprint, command.CorrelationID).Scan(&response, &replayed)
+		command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt).Scan(&response, &replayed)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -69,23 +69,22 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = r.clock().UTC()
 	}
-	if command.Amount.Currency().Code != r.pilotCurrency {
-		return transfers.Submission{}, ErrUnsupportedPilotCurrency
-	}
 	if command.CorrelationID == "" {
 		command.CorrelationID, err = newUUID()
 		if err != nil {
 			return transfers.Submission{}, err
 		}
 	}
-	err = withSerializableRetry(ctx, r.database, 5, func(tx *sql.Tx) error {
+	sequenceTenant := command.TenantID.String()
+	err = WithSerializableSequence(ctx, r.database, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
 		var response []byte
 		var replayed bool
 		queryErr := tx.QueryRowContext(ctx, `
 SELECT response_body,replayed
-FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID,
 			command.Amount.Minor(), command.Amount.Currency().Code, command.IdempotencyKey, fingerprint[:], command.CorrelationID,
+			r.pilotCurrency, command.OccurredAt,
 		).Scan(&response, &replayed)
 		if queryErr != nil {
 			return classifyControlledTransferError(queryErr)
