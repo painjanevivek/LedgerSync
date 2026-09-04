@@ -26,36 +26,11 @@ FROM idempotency_requests
 WHERE tenant_id = $1 AND actor_subject_id = $2 AND operation = $3 AND idempotency_key = $4
 FOR UPDATE;
 
--- name: CreateTransfer :exec
-INSERT INTO transfers (
-    id, tenant_id, actor_subject_id, debit_account_id, credit_account_id,
-    amount_minor, currency, status, created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8);
-
--- name: CreateJournalTransaction :exec
-INSERT INTO journal_transactions (id, tenant_id, transfer_id, occurred_at)
-VALUES ($1, $2, $3, $4);
-
--- name: CreateLedgerPosting :exec
-INSERT INTO ledger_postings (
-    id, journal_transaction_id, account_id, direction, amount_minor, currency, occurred_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7);
-
--- name: ApplyBalanceDelta :one
-UPDATE account_balance_projections
-SET available_minor = available_minor + $2,
-    ledger_minor = ledger_minor + $2,
-    balance_version = balance_version + 1,
-    updated_at = $3
-WHERE account_id = $1
-  AND available_minor + $2 >= 0
-  AND ledger_minor + $2 >= 0
-RETURNING available_minor, ledger_minor, balance_version, updated_at;
-
--- name: MarkTransferPosted :exec
-UPDATE transfers
-SET status = 'posted', journal_transaction_id = $2, completed_at = $3
-WHERE id = $1 AND status = 'pending';
+-- name: SubmitControlledTransfer :one
+SELECT response_body, replayed
+FROM controlled_submit_transfer_v1(
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+);
 
 -- name: StoreIdempotencyOutcome :exec
 UPDATE idempotency_requests

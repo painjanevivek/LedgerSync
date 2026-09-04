@@ -2,6 +2,8 @@
 
 Migration `000038_revoke_direct_financial_dml` removes general workload DML from protected account, balance, journal, posting, ownership, audit, and opening-import tables. The API and provisioning applications must be procedure-capable before this migration is applied. Workload roles receive only the fixed-search-path functions and the reads needed by their documented contracts.
 
+Funding request, approval, rejection, compensation, and posting are confined to the `controlled_*_funding_v1` functions. Transfer-correction request, approval, rejection, cancellation, expiry, and exact compensating posting are confined to the `controlled_*_transfer_correction_v1` functions. The API role retains read-only access to `funding_events`, `transfer_corrections`, and `approval_records`; it must never receive direct mutation grants on those evidence tables.
+
 ## Pre-deployment gate
 
 1. Confirm the deployed application contains migrations `000036` through `000038` and calls the controlled transfer, funding, correction, account, audit, provisioning, and opening-import capabilities.
