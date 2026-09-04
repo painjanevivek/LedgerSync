@@ -32,6 +32,7 @@ func TestDatabaseRoleContractKeepsSupportReadOnlyAndBreakGlassGrantless(t *testi
 		"controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz)",
 		"controlled_post_funding_v1(uuid,text,uuid,text,uuid,timestamptz)",
 		"controlled_post_transfer_correction_v1(uuid,text,uuid,text,uuid,timestamptz,timestamptz)",
+		"controlled_provision_account_v1(uuid,text,uuid,text,text,text,text,text[],text[],text[],uuid,timestamptz)",
 		"OWNER TO ledgersync_migration_owner",
 		"GRANT EXECUTE ON FUNCTION",
 	} {
