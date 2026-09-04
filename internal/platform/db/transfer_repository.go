@@ -213,13 +213,6 @@ func newUUID() (string, error) {
 	return strings.Join([]string{encoded[0:8], encoded[8:12], encoded[12:16], encoded[16:20], encoded[20:32]}, "-"), nil
 }
 
-func wrap(operation string, err error) error {
-	if err == nil {
-		return nil
-	}
-	return fmt.Errorf("%s: %w", operation, err)
-}
-
 func requireOneRow(result sql.Result, operation string) error {
 	rows, err := result.RowsAffected()
 	if err != nil {
