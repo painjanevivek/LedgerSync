@@ -30,3 +30,17 @@ The validator requires exactly two transfer postings with the command's source d
 Before rollout, run the migration compatibility rehearsal and all real-role transfer, funding, correction and reconciliation tests. After rollout, page on any `ledger_semantic_validation` failure and stop the affected write path until the emitting application version is understood. Do not weaken or disable the trigger to make a malformed writer succeed.
 
 Disabling semantic validation is an incident action, not an ordinary rollback. The down migration requires the session-local `ledgersync.semantic_validation_rollback_reason` to contain the incident-approved reason. It records the actor, reason and time in `ledger_semantic_control_events` before removing the triggers. The incident commander and ledger owner must approve this action, preserve the marker with release evidence, and require reconciliation before and after the change.
+
+## Controlled transfer capability expansion
+
+Migration `000036_controlled_financial_commands` adds `controlled_submit_transfer_v1` without revoking the legacy application grants. The fixed-search-path `SECURITY DEFINER` function is owned by the non-login migration role after `deploy/postgres/roles.sql` runs; only the API workload receives `EXECUTE`. It computes and verifies the canonical request fingerprint, validates the stored tenant/actor/account/policy boundary, serializes exact rolling limits, and commits the transfer, journal, postings, projections, velocity, audit, outbox, delivery jobs, and replay outcome as one transaction.
+
+Roll out this expand slice in this order:
+
+1. Apply migration `000036` as the database owner, then apply `deploy/postgres/roles.sql` to transfer ownership and grant only API execution.
+2. Run the real-role capability matrix. Support, worker, reconciliation, provisioning, break-glass, and `PUBLIC` execution must be denied.
+3. Deploy the function-backed transfer repository while the old direct grants still exist. Exercise posted, insufficient-funds, policy-denial, same-key replay, different-body conflict, cross-tenant, and search-path-poisoning cases.
+4. Compare transfer/journal/posting/outbox counts and reconcile every pilot tenant for at least one complete operational window.
+5. Stop rollout on any controlled-function SQLSTATE outside the documented application mapping, any reconciliation mismatch, replay divergence, or material latency regression.
+
+The down migration may remove the function only before PR-009 revokes direct DML and only while the deployed application can still use the legacy path. Once the capability contract is required, repair forward. Never delete a committed transfer, journal, audit record, or outbox event to roll back this change.
