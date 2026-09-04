@@ -74,6 +74,7 @@ test("operator reviews exact scope and a completed run preserves prior history",
   await expect(page.getByRole("heading", { name: "Reconciliation passed" })).toBeFocused();
   expect(postedKey).toMatch(/^[\x21-\x7e]{16,255}$/);
   await expect(page.getByText("reconcile-request-1", { exact: true })).toBeVisible();
+  await page.getByText("Previous reconciliation runs", { exact: true }).click();
   const history = page.getByRole("region", { name: "Reconciliation run history" });
   await expect(history.getByText(completed.run_id, { exact: true })).toBeVisible();
   await expect(history.getByText(run.run_id, { exact: true })).toBeVisible();
@@ -92,7 +93,7 @@ test("running state never infers a result and manual refresh resolves one stable
   await expect(running.getByText(/no passing or mismatch result is inferred/i)).toBeVisible();
   await expect(running.getByText(runningRun.run_id, { exact: true })).toBeVisible();
   await running.getByRole("button", { name: "Refresh run status" }).click();
-  await expect(page.getByRole("heading", { name: "Mismatch detected", exact: true }).first()).toBeFocused();
+  await expect(page.getByRole("region", { name: "Mismatch detected" }).getByRole("heading", { name: "Mismatch detected", exact: true })).toBeFocused();
   await expect(page.getByRole("link", { name: "Open authoritative run result" })).toHaveAttribute("href", `/reconciliation/${mismatchRun.run_id}`);
 });
 
@@ -219,6 +220,7 @@ test("reconciliation page count, cursor, and run return context are URL reproduc
   });
 
   await page.goto("/reconciliation");
+  await page.getByText("Previous reconciliation runs", { exact: true }).click();
   await expect(page.getByText("1 run on this page. A total is not calculated or implied. Starting a new run never replaces prior results.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Open result" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/reconciliation")}`));
   await page.getByRole("link", { name: "Next page" }).click();

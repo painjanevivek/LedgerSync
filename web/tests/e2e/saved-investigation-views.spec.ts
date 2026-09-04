@@ -1,11 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-import { mockOperatorConsole } from "./fixtures";
+import { mockOperatorConsole, sourceAccount } from "./fixtures";
 
 test("saved operational views open current evidence and support audited preference maintenance", async ({ page }) => {
   await mockOperatorConsole(page);
-  await page.goto("/search");
+  await page.goto(`/search?q=${sourceAccount.account_id}`);
   await page.getByText("Case tools", { exact: true }).click();
 
   const panel = page.getByRole("region", { name: "Saved operational views" });

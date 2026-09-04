@@ -98,7 +98,7 @@ export function DisclosureSection({
         </span>
         {attention ? <b>Needs attention</b> : null}
       </summary>
-      {open || !lazy ? (
+      {attention || open || !lazy ? (
         <div className="disclosure-content">{children}</div>
       ) : null}
     </details>

@@ -3,11 +3,22 @@
 /* The operator journey is a ledger trail: ordered, evidence-labelled and resumable. */
 .local-orientation {
   display: grid;
+  min-width: 0;
   width: min(1080px, 100%);
   margin: 0 0 24px;
   border: 1px solid var(--line-strong);
   border-top: 3px solid var(--green);
   background: var(--paper);
+}
+.local-orientation > *,
+.recommended-action > div,
+.orientation-checklist-disclosed details,
+.orientation-step-detail,
+.local-orientation > footer > div,
+.orientation-footer-actions,
+.orientation-definitions dl,
+.orientation-definitions dl > div {
+  min-width: 0;
 }
 .local-orientation > header {
   display: grid;
@@ -235,6 +246,9 @@
   }
   .orientation-checklist-disclosed .orientation-step-detail {
     padding: 0 14px 16px 66px;
+  }
+  .orientation-checklist-disclosed .orientation-step-actions {
+    grid-column: auto;
   }
 }
 .orientation-state {

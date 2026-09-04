@@ -6,6 +6,7 @@ test("same-account refresh failure retains timestamped historical balance and hi
   await mockOperatorConsole(page);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
   await expect(page.getByLabel("INR 1250.00 posted balance")).toBeVisible();
+  await page.getByText("Transactions and export", { exact: true }).click();
   await page.unroute("**/api/accounts/*/balance");
   await page.route("**/api/accounts/*/balance", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
   await page.getByRole("button", { name: "Refresh accounts" }).click();
