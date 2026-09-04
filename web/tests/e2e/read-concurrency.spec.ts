@@ -51,6 +51,7 @@ test("rapid account-history pagination dispatches once and removes page overlap"
   });
 
   await page.goto(`/accounts/${sourceAccount.account_id}`);
+  await page.getByText("Transactions and export", { exact: true }).click();
   const more = page.getByRole("button", { name: "Load more" });
   await more.evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
 
