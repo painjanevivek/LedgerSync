@@ -19,7 +19,7 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
-const databaseCapabilityMatrixVersion = "2026-09-05.pr008.v1"
+const databaseCapabilityMatrixVersion = "2026-09-05.pr009.v1"
 
 var (
 	capabilityRoles = []string{
@@ -37,6 +37,7 @@ var (
 		"journal_transactions",
 		"ledger_postings",
 		"account_owners",
+		"account_credit_permissions",
 		"audit_events",
 		"opening_import_batches",
 		"opening_import_rows",
@@ -50,6 +51,7 @@ var (
 		"journal_transactions":        "occurred_at",
 		"ledger_postings":             "occurred_at",
 		"account_owners":              "permission",
+		"account_credit_permissions":  "subject_id",
 		"audit_events":                "outcome",
 		"opening_import_batches":      "content_sha256",
 		"opening_import_rows":         "opening_minor",
@@ -85,6 +87,7 @@ type workloadSession struct {
 func TestDatabaseRoleCapabilities(t *testing.T) {
 	_, admin := requireTransferService(t, 10_000)
 	requireWorkloadRoles(t, admin)
+	verifyCapabilityBoundaryMetadata(t, admin)
 
 	const otherTenantID = "00000000-0000-4000-8000-000000000902"
 	const otherAccountID = "00000000-0000-4000-8000-000000000903"
@@ -100,6 +103,41 @@ VALUES($2,$1,'USD','active','Capability isolation account','operating','capabili
 	evidence := verifyDatabaseRoleCapabilities(t, admin, os.Getenv("LEDGERSYNC_TEST_DATABASE_URL"), "fresh-install", testTenantID, otherTenantID)
 	if reportPath := os.Getenv("LEDGERSYNC_CAPABILITY_REPORT_PATH"); reportPath != "" {
 		writeCapabilityReport(t, reportPath, evidence)
+	}
+}
+
+func verifyCapabilityBoundaryMetadata(t *testing.T, admin *sql.DB) {
+	t.Helper()
+	var unsafeAttributes, workloadOwnedProtectedObjects, publicProtectedDML, breakGlassStandingGrants int
+	if err := admin.QueryRow(`
+SELECT count(*) FROM pg_roles
+WHERE rolname=ANY($1::text[])
+  AND (rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls)`, capabilityRoles).Scan(&unsafeAttributes); err != nil {
+		t.Fatal(err)
+	}
+	if err := admin.QueryRow(`
+SELECT count(*)
+FROM pg_class object
+JOIN pg_namespace namespace ON namespace.oid=object.relnamespace
+JOIN pg_roles owner ON owner.oid=object.relowner
+WHERE namespace.nspname='public' AND object.relname=ANY($1::text[]) AND owner.rolname=ANY($2::text[])`, capabilityTables, capabilityRoles).Scan(&workloadOwnedProtectedObjects); err != nil {
+		t.Fatal(err)
+	}
+	if err := admin.QueryRow(`
+SELECT count(*) FROM information_schema.role_table_grants
+WHERE grantee='PUBLIC' AND table_schema='public' AND table_name=ANY($1::text[])
+  AND privilege_type IN ('INSERT','UPDATE','DELETE')`, capabilityTables).Scan(&publicProtectedDML); err != nil {
+		t.Fatal(err)
+	}
+	if err := admin.QueryRow(`
+SELECT
+  (SELECT count(*) FROM information_schema.role_table_grants WHERE grantee='ledgersync_break_glass')
+  +(SELECT count(*) FROM information_schema.role_routine_grants WHERE grantee='ledgersync_break_glass')
+  +(SELECT count(*) FROM information_schema.role_usage_grants WHERE grantee='ledgersync_break_glass')`).Scan(&breakGlassStandingGrants); err != nil {
+		t.Fatal(err)
+	}
+	if unsafeAttributes != 0 || workloadOwnedProtectedObjects != 0 || publicProtectedDML != 0 || breakGlassStandingGrants != 0 {
+		t.Fatalf("unsafe capability metadata attributes=%d workload_owned=%d public_dml=%d break_glass_grants=%d", unsafeAttributes, workloadOwnedProtectedObjects, publicProtectedDML, breakGlassStandingGrants)
 	}
 }
 
@@ -144,6 +182,10 @@ func verifyDatabaseRoleCapabilities(t *testing.T, admin *sql.DB, databaseURL, in
 			"function.controlled_request_opening_import_v1.EXECUTE",
 			"function.controlled_approve_opening_import_v1.EXECUTE",
 			"function.controlled_execute_opening_import_v1.EXECUTE",
+			"function.controlled_append_audit_event_v1.EXECUTE",
+			"function.controlled_update_account_v1.EXECUTE",
+			"function.controlled_ensure_funding_account_v1.EXECUTE",
+			"function.controlled_rollback_provisioned_tenant_v1.EXECUTE",
 			"database.schema.CREATE",
 		} {
 			if !probeCapability(t, admin, capability, otherTenantID) {
@@ -164,18 +206,15 @@ func verifyDatabaseRoleCapabilities(t *testing.T, admin *sql.DB, databaseURL, in
 func databaseCapabilityExpectations() []capabilityExpectation {
 	current := map[string]map[string]string{
 		"ledgersync_api": {
-			"accounts": "SIU", "account_opening_balances": "SI", "account_balance_projections": "SIU",
-			"journal_transactions": "SI", "ledger_postings": "SI", "account_owners": "SI", "audit_events": "SI",
+			"accounts": "S", "account_opening_balances": "S", "account_balance_projections": "S",
+			"journal_transactions": "S", "ledger_postings": "S", "account_owners": "S", "account_credit_permissions": "S", "audit_events": "S",
 		},
-		"ledgersync_worker": {"audit_events": "I"},
+		"ledgersync_worker": {},
 		"ledgersync_reconciliation": {
 			"accounts": "S", "account_opening_balances": "S", "account_balance_projections": "S",
-			"journal_transactions": "S", "ledger_postings": "S", "audit_events": "I",
+			"journal_transactions": "S", "ledger_postings": "S",
 		},
-		"ledgersync_provisioning": {
-			"accounts": "IU", "account_opening_balances": "I", "account_balance_projections": "I",
-			"account_owners": "ID", "audit_events": "I",
-		},
+		"ledgersync_provisioning": {},
 		"ledgersync_support_readonly": {
 			"accounts": "S", "account_balance_projections": "S", "journal_transactions": "S",
 			"ledger_postings": "S", "account_owners": "S", "audit_events": "S",
@@ -185,7 +224,7 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 	targetReads := map[string]map[string]bool{
 		"ledgersync_api": {
 			"accounts": true, "account_opening_balances": true, "account_balance_projections": true,
-			"journal_transactions": true, "ledger_postings": true, "account_owners": true, "audit_events": true,
+			"journal_transactions": true, "ledger_postings": true, "account_owners": true, "account_credit_permissions": true, "audit_events": true,
 		},
 		"ledgersync_worker": {},
 		"ledgersync_reconciliation": {
@@ -225,6 +264,10 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 			capabilityExpectation{Role: role, Capability: "function.controlled_request_opening_import_v1.EXECUTE", CurrentAllowed: role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_provisioning"},
 			capabilityExpectation{Role: role, Capability: "function.controlled_approve_opening_import_v1.EXECUTE", CurrentAllowed: role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_provisioning"},
 			capabilityExpectation{Role: role, Capability: "function.controlled_execute_opening_import_v1.EXECUTE", CurrentAllowed: role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_provisioning"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_append_audit_event_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api" || role == "ledgersync_worker" || role == "ledgersync_reconciliation" || role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_api" || role == "ledgersync_worker" || role == "ledgersync_reconciliation" || role == "ledgersync_provisioning"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_update_account_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_ensure_funding_account_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_rollback_provisioned_tenant_v1.EXECUTE", CurrentAllowed: role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_provisioning"},
 			capabilityExpectation{Role: role, Capability: "database.schema.CREATE", CurrentAllowed: false, TargetAllowed: false},
 		)
 	}
@@ -356,6 +399,18 @@ func probeCapability(t *testing.T, database *sql.DB, capability, otherTenantID s
 		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
 	case "function.controlled_execute_opening_import_v1.EXECUTE":
 		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_execute_opening_import_v1(NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_append_audit_event_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT public.controlled_append_audit_event_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_update_account_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT public.controlled_update_account_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_ensure_funding_account_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT public.controlled_ensure_funding_account_v1(NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_rollback_provisioned_tenant_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT public.controlled_rollback_provisioned_tenant_v1(NULL,NULL,NULL,NULL)`)
 		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
 	case "database.schema.CREATE":
 		return probeSchemaCreate(t, database)

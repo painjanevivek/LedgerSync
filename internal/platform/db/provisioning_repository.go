@@ -107,7 +107,13 @@ SELECT replayed,conflicted FROM public.controlled_provision_account_v1(
 	if _, err = tx.ExecContext(ctx, `INSERT INTO partner_provisioning_requests(id,tenant_id,actor_subject_id,correlation_id,configuration_fingerprint,status,currency,account_count,sanitized_details,created_at)VALUES($1,$2,$3,$4,$5,'applied',$6,$7,$8,$9)`, requestID, configuration.TenantID, actor, correlation, fingerprint[:], configuration.Currency, len(configuration.Accounts), details, now); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'partner.provisioned','tenant',$7,'succeeded',$4,$5,$6)`, requestID, configuration.TenantID, actor, correlation, details, now, configuration.TenantID); err != nil {
+	if err = appendControlledAudit(ctx, tx, requestID, AuditEvent{
+		TenantID: configuration.TenantID, ActorSubjectID: actor,
+		EventType: "partner.provisioned", TargetType: "tenant", TargetID: configuration.TenantID,
+		Outcome: "succeeded", CorrelationID: correlation,
+		Metadata:   map[string]string{"external_reference": configuration.ExternalReference, "subject_count": strconv.Itoa(len(configuration.Subjects))},
+		OccurredAt: now,
+	}); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -132,7 +138,7 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 	var fingerprint []byte
 	var currency string
 	var accountCount int
-	err = tx.QueryRowContext(ctx, `SELECT configuration_fingerprint,currency,account_count FROM partner_provisioning_requests WHERE tenant_id=$1 AND correlation_id=$2 AND status='applied' FOR UPDATE`, tenantID, correlation).Scan(&fingerprint, &currency, &accountCount)
+	err = tx.QueryRowContext(ctx, `SELECT configuration_fingerprint,currency,account_count FROM partner_provisioning_requests WHERE tenant_id=$1 AND correlation_id=$2 AND status='applied'`, tenantID, correlation).Scan(&fingerprint, &currency, &accountCount)
 	if err != nil {
 		return err
 	}
@@ -182,17 +188,12 @@ SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1)
 			return fmt.Errorf("revoke external credential reference: %w", err)
 		}
 	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM account_credit_permissions WHERE tenant_id=$1`, tenantID); err != nil {
+	var rolledBack bool
+	if err = tx.QueryRowContext(ctx, `SELECT public.controlled_rollback_provisioned_tenant_v1($1,$2,$3,$4)`, tenantID, actor, correlation, now).Scan(&rolledBack); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM account_owners WHERE tenant_id=$1`, tenantID); err != nil {
-		return err
-	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM tenant_subject_roles WHERE tenant_id=$1`, tenantID); err != nil {
-		return err
-	}
-	if _, err = tx.ExecContext(ctx, `UPDATE accounts SET status='closed',closed_at=$2 WHERE tenant_id=$1 AND status<>'closed'`, tenantID, now); err != nil {
-		return err
+	if !rolledBack {
+		return errors.New("controlled provisioning rollback did not complete")
 	}
 	id, err := newUUID()
 	if err != nil {
@@ -202,7 +203,12 @@ SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1)
 	if _, err = tx.ExecContext(ctx, `INSERT INTO partner_provisioning_requests(id,tenant_id,actor_subject_id,correlation_id,configuration_fingerprint,status,currency,account_count,sanitized_details,created_at)VALUES($1,$2,$3,$4,$5,'rolled_back',$6,$7,$8,$9)`, id, tenantID, actor, correlation, fingerprint, currency, accountCount, details, now); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'partner.provisioning_rolled_back','tenant',$7,'succeeded',$4,$5,$6)`, id, tenantID, actor, correlation, details, now, tenantID); err != nil {
+	if err = appendControlledAudit(ctx, tx, id, AuditEvent{
+		TenantID: tenantID, ActorSubjectID: actor,
+		EventType: "partner.provisioning_rolled_back", TargetType: "tenant", TargetID: tenantID,
+		Outcome: "succeeded", CorrelationID: correlation,
+		Metadata: map[string]string{"rollback": "no_financial_activity"}, OccurredAt: now,
+	}); err != nil {
 		return err
 	}
 	return tx.Commit()

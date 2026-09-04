@@ -110,7 +110,7 @@ func (r *AccountCommandRepository) UpdateMetadata(ctx context.Context, command a
 		if err := aggregate.UpdateMetadata(accountdomain.Metadata{DisplayName: command.DisplayName, ExternalReference: command.Reference, Category: command.Category}, command.ExpectedVersion, envelope.OccurredAt); err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_metadata_update", command.AccountID, err, &committedDenial)
 		}
-		if err := updateAccountRow(ctx, tx, aggregate, command.ExpectedVersion); err != nil {
+		if err := updateAccountRow(ctx, tx, aggregate, command.ActorSubjectID, command.ExpectedVersion); err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_metadata_update", command.AccountID, err, &committedDenial)
 		}
 		result = accountCommandResult(aggregate, available, ledger)
@@ -172,7 +172,7 @@ func (r *AccountCommandRepository) ChangeStatus(ctx context.Context, command acc
 		if err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial, map[string]string{"reason": command.Reason})
 		}
-		if err := updateAccountRow(ctx, tx, aggregate, command.ExpectedVersion); err != nil {
+		if err := updateAccountRow(ctx, tx, aggregate, command.ActorSubjectID, command.ExpectedVersion); err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial, map[string]string{"reason": command.Reason})
 		}
 		result = accountCommandResult(aggregate, available, ledger)

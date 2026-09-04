@@ -198,8 +198,11 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 	if err != nil {
 		return err
 	}
-	_, err = r.database.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'transfer.policy_denied','transfer_request','failed',$4,$5,$6)`, id, command.TenantID, command.ActorSubjectID, correlationID, metadata, command.OccurredAt.UTC())
-	return err
+	return appendControlledAuditPayload(ctx, r.database, id, AuditEvent{
+		TenantID: command.TenantID.String(), ActorSubjectID: command.ActorSubjectID,
+		EventType: "transfer.policy_denied", TargetType: "transfer_request", Outcome: "failed",
+		CorrelationID: correlationID, OccurredAt: command.OccurredAt.UTC(),
+	}, metadata)
 }
 
 func newUUID() (string, error) {

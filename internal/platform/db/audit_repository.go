@@ -24,6 +24,10 @@ type AuditEvent struct {
 
 type AuditRepository struct{ database *sql.DB }
 
+type auditExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
 func NewAuditRepository(database *sql.DB) (*AuditRepository, error) {
 	if database == nil {
 		return nil, errors.New("audit database is required")
@@ -35,10 +39,6 @@ func (r *AuditRepository) Record(ctx context.Context, event AuditEvent) error {
 	if r == nil || strings.TrimSpace(event.TenantID) == "" || strings.TrimSpace(event.EventType) == "" || strings.TrimSpace(event.TargetType) == "" || strings.TrimSpace(event.Outcome) == "" || strings.TrimSpace(event.CorrelationID) == "" {
 		return errors.New("audit event has required fields missing")
 	}
-	metadata, err := json.Marshal(sanitizeAuditMetadata(event.Metadata))
-	if err != nil {
-		return fmt.Errorf("marshal audit metadata: %w", err)
-	}
 	when := event.OccurredAt
 	if when.IsZero() {
 		when = time.Now().UTC()
@@ -47,9 +47,24 @@ func (r *AuditRepository) Record(ctx context.Context, event AuditEvent) error {
 	if err != nil {
 		return fmt.Errorf("generate audit event ID: %w", err)
 	}
-	_, err = r.database.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,NULLIF($3,''),$4,$5,NULLIF($6,''),$7,$8,$9,$10)`, id, event.TenantID, event.ActorSubjectID, event.EventType, event.TargetType, event.TargetID, event.Outcome, event.CorrelationID, metadata, when.UTC())
+	event.OccurredAt = when.UTC()
+	return appendControlledAudit(ctx, r.database, id, event)
+}
+
+func appendControlledAudit(ctx context.Context, executor auditExecutor, id string, event AuditEvent) error {
+	metadata, err := json.Marshal(sanitizeAuditMetadata(event.Metadata))
 	if err != nil {
-		return fmt.Errorf("record audit event: %w", err)
+		return fmt.Errorf("marshal audit metadata: %w", err)
+	}
+	return appendControlledAuditPayload(ctx, executor, id, event, metadata)
+}
+
+func appendControlledAuditPayload(ctx context.Context, executor auditExecutor, id string, event AuditEvent, metadata []byte) error {
+	_, err := executor.ExecContext(ctx, `SELECT public.controlled_append_audit_event_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+		id, event.TenantID, nullableString(event.ActorSubjectID), event.EventType, event.TargetType,
+		nullableString(event.TargetID), event.Outcome, event.CorrelationID, metadata, event.OccurredAt.UTC())
+	if err != nil {
+		return fmt.Errorf("append controlled audit event: %w", err)
 	}
 	return nil
 }
