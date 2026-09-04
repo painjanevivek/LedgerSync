@@ -437,7 +437,241 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION controlled_post_funding_v1(
+  p_tenant_id UUID,
+  p_actor_subject_id TEXT,
+  p_funding_event_id UUID,
+  p_idempotency_key TEXT,
+  p_correlation_id UUID,
+  p_occurred_at TIMESTAMPTZ
+)
+RETURNS TABLE(replayed BOOLEAN)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_event RECORD;
+  v_actor_rolling BIGINT := 0;
+  v_tenant_rolling BIGINT := 0;
+  v_approval_requester TEXT;
+  v_approval_approver TEXT;
+  v_journal_id UUID := gen_random_uuid();
+  v_debit_posting_id UUID := gen_random_uuid();
+  v_credit_posting_id UUID := gen_random_uuid();
+  v_outbox_id UUID := gen_random_uuid();
+  v_audit_id UUID := gen_random_uuid();
+  v_debit_account_id UUID;
+  v_credit_account_id UUID;
+  v_system_delta BIGINT;
+  v_destination_delta BIGINT;
+  v_destination_available BIGINT;
+  v_destination_version BIGINT;
+  v_updated INTEGER;
+BEGIN
+  IF p_tenant_id IS NULL OR p_funding_event_id IS NULL OR p_correlation_id IS NULL OR p_occurred_at IS NULL
+     OR p_actor_subject_id IS NULL OR p_actor_subject_id='' OR btrim(p_actor_subject_id)<>p_actor_subject_id
+     OR p_idempotency_key IS NULL OR p_idempotency_key!~'^[!-~]{16,255}$' THEN
+    RAISE EXCEPTION 'controlled funding input is invalid'
+      USING ERRCODE='22023', CONSTRAINT='controlled_funding_input';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.tenant_subject_roles role
+     WHERE role.tenant_id=p_tenant_id AND role.subject_id=p_actor_subject_id AND role.role='finance'
+  ) THEN
+    RAISE EXCEPTION 'controlled funding actor is not authorized'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_actor';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended('funding-post|'||p_tenant_id::text,0));
+
+  SELECT event.requester_subject_id,event.destination_account_id,event.system_account_id,
+         event.currency,event.amount_minor,event.status,
+         COALESCE(event.compensation_of_event_id::text,'') AS compensation_of_event_id,
+         COALESCE(event.post_idempotency_key,'') AS post_idempotency_key,
+         policy.mode,policy.finance_activated,policy.per_command_minor,
+         policy.operator_rolling_24h_minor,policy.tenant_rolling_24h_minor
+    INTO v_event
+    FROM public.funding_events event
+    JOIN public.tenant_funding_policies policy
+      ON policy.tenant_id=event.tenant_id AND policy.currency=event.currency
+   WHERE event.tenant_id=p_tenant_id AND event.id=p_funding_event_id
+   FOR UPDATE OF event;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled funding event was not found'
+      USING ERRCODE='P0002', CONSTRAINT='controlled_funding_not_found';
+  END IF;
+
+  IF v_event.status IN ('posted','compensated') THEN
+    IF v_event.post_idempotency_key<>'' AND v_event.post_idempotency_key<>p_idempotency_key THEN
+      RAISE EXCEPTION 'controlled funding idempotency conflict'
+        USING ERRCODE='23505', CONSTRAINT='controlled_funding_idempotency';
+    END IF;
+    RETURN QUERY SELECT TRUE;
+    RETURN;
+  END IF;
+  IF v_event.status<>'approved'
+     OR (v_event.mode='production_dual_control' AND NOT v_event.finance_activated) THEN
+    RAISE EXCEPTION 'controlled funding command is forbidden'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_forbidden';
+  END IF;
+
+  SELECT approval.requester_subject_id,approval.approver_subject_id
+    INTO v_approval_requester,v_approval_approver
+    FROM public.approval_records approval
+   WHERE approval.tenant_id=p_tenant_id AND approval.target_id=p_funding_event_id
+     AND approval.command_type=CASE WHEN v_event.compensation_of_event_id='' THEN 'funding' ELSE 'funding_compensation' END
+     AND approval.status='approved' AND approval.expires_at>p_occurred_at;
+  IF NOT FOUND OR v_approval_approver IS NULL THEN
+    RAISE EXCEPTION 'controlled funding approval is missing or expired'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_forbidden';
+  END IF;
+
+  IF v_event.compensation_of_event_id='' THEN
+    SELECT COALESCE(sum(velocity.amount_minor) FILTER (WHERE velocity.actor_subject_id=v_event.requester_subject_id),0),
+           COALESCE(sum(velocity.amount_minor),0)
+      INTO v_actor_rolling,v_tenant_rolling
+      FROM public.funding_velocity_events velocity
+     WHERE velocity.tenant_id=p_tenant_id AND velocity.expires_at>p_occurred_at;
+    IF v_event.amount_minor>v_event.per_command_minor
+       OR v_actor_rolling>v_event.operator_rolling_24h_minor-v_event.amount_minor
+       OR v_tenant_rolling>v_event.tenant_rolling_24h_minor-v_event.amount_minor THEN
+      RAISE EXCEPTION 'controlled funding limit exceeded'
+        USING ERRCODE='22023', CONSTRAINT='controlled_funding_limit';
+    END IF;
+  END IF;
+
+  PERFORM 1
+    FROM public.accounts account
+    JOIN public.account_balance_projections balance ON balance.account_id=account.id
+   WHERE account.tenant_id=p_tenant_id
+     AND account.id IN (v_event.destination_account_id,v_event.system_account_id)
+   ORDER BY account.id
+   FOR UPDATE OF account,balance;
+  IF (SELECT count(*) FROM public.accounts account
+       WHERE account.tenant_id=p_tenant_id
+         AND account.id IN (v_event.destination_account_id,v_event.system_account_id))<>2 THEN
+    RAISE EXCEPTION 'controlled funding account boundary denied'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_not_found';
+  END IF;
+
+  v_debit_account_id := v_event.system_account_id;
+  v_credit_account_id := v_event.destination_account_id;
+  v_system_delta := -v_event.amount_minor;
+  v_destination_delta := v_event.amount_minor;
+  IF v_event.compensation_of_event_id<>'' THEN
+    v_debit_account_id := v_event.destination_account_id;
+    v_credit_account_id := v_event.system_account_id;
+    v_system_delta := v_event.amount_minor;
+    v_destination_delta := -v_event.amount_minor;
+  END IF;
+
+  INSERT INTO public.journal_transactions(
+    id,tenant_id,funding_event_id,source_type,source_id,occurred_at
+  ) VALUES(
+    v_journal_id,p_tenant_id,p_funding_event_id,'funding_event',p_funding_event_id,p_occurred_at
+  );
+  INSERT INTO public.ledger_postings(
+    id,journal_transaction_id,tenant_id,account_id,direction,amount_minor,currency,occurred_at
+  ) VALUES
+    (v_debit_posting_id,v_journal_id,p_tenant_id,v_debit_account_id,'debit',v_event.amount_minor,v_event.currency,p_occurred_at),
+    (v_credit_posting_id,v_journal_id,p_tenant_id,v_credit_account_id,'credit',v_event.amount_minor,v_event.currency,p_occurred_at);
+
+  UPDATE public.account_balance_projections balance
+     SET available_minor=balance.available_minor+v_system_delta,
+         ledger_minor=balance.ledger_minor+v_system_delta,
+         balance_version=balance.balance_version+1,updated_at=p_occurred_at
+   WHERE balance.account_id=v_event.system_account_id AND balance.allow_negative;
+  GET DIAGNOSTICS v_updated=ROW_COUNT;
+  IF v_updated<>1 THEN
+    RAISE EXCEPTION 'controlled funding clearing balance conflict'
+      USING ERRCODE='23514', CONSTRAINT='controlled_funding_balance';
+  END IF;
+
+  UPDATE public.account_balance_projections balance
+     SET available_minor=balance.available_minor+v_destination_delta,
+         ledger_minor=balance.ledger_minor+v_destination_delta,
+         balance_version=balance.balance_version+1,updated_at=p_occurred_at
+   WHERE balance.account_id=v_event.destination_account_id
+     AND balance.available_minor+v_destination_delta>=0
+     AND balance.ledger_minor+v_destination_delta>=0
+  RETURNING balance.available_minor,balance.balance_version
+       INTO v_destination_available,v_destination_version;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled funding destination balance conflict'
+      USING ERRCODE='23514', CONSTRAINT='controlled_funding_balance';
+  END IF;
+
+  UPDATE public.funding_events event
+     SET status='posted',journal_transaction_id=v_journal_id,posted_at=p_occurred_at,
+         updated_at=p_occurred_at,post_idempotency_key=p_idempotency_key
+   WHERE event.tenant_id=p_tenant_id AND event.id=p_funding_event_id AND event.status='approved';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled funding state changed'
+      USING ERRCODE='40001', CONSTRAINT='controlled_funding_state';
+  END IF;
+
+  IF v_event.compensation_of_event_id='' THEN
+    INSERT INTO public.funding_velocity_events(
+      funding_event_id,tenant_id,actor_subject_id,amount_minor,occurred_at,expires_at
+    ) VALUES(
+      p_funding_event_id,p_tenant_id,v_event.requester_subject_id,v_event.amount_minor,
+      p_occurred_at,p_occurred_at+INTERVAL '24 hours'
+    );
+  ELSE
+    UPDATE public.funding_events original
+       SET status='compensated',compensation_event_id=p_funding_event_id,
+           compensated_at=p_occurred_at,updated_at=p_occurred_at
+     WHERE original.tenant_id=p_tenant_id
+       AND original.id=v_event.compensation_of_event_id::uuid AND original.status='posted';
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'controlled funding compensation conflict'
+        USING ERRCODE='40001', CONSTRAINT='controlled_funding_state';
+    END IF;
+  END IF;
+
+  INSERT INTO public.audit_events(
+    id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,
+    correlation_id,sanitized_metadata,occurred_at
+  ) VALUES(
+    v_audit_id,p_tenant_id,p_actor_subject_id,
+    CASE WHEN v_event.compensation_of_event_id='' THEN 'funding.posted' ELSE 'funding.compensation.posted' END,
+    'funding_event',p_funding_event_id::text,'succeeded',p_correlation_id,
+    jsonb_build_object(
+      'funding_event_id',p_funding_event_id::text,
+      'terminology','recorded external value evidence',
+      'function','controlled_post_funding_v1',
+      'requester_subject_id',v_approval_requester,
+      'approver_subject_id',v_approval_approver
+    ),p_occurred_at
+  );
+
+  INSERT INTO public.outbox_events(
+    id,tenant_id,funding_event_id,account_id,aggregate_type,aggregate_id,
+    event_type,aggregate_version,payload,occurred_at
+  ) VALUES(
+    v_outbox_id,p_tenant_id,p_funding_event_id,v_event.destination_account_id,
+    'account_balance',v_event.destination_account_id,'account.balance.changed.v1',v_destination_version,
+    jsonb_build_object(
+      'event_id',v_outbox_id::text,'event_type','account.balance.changed.v1',
+      'account_id',v_event.destination_account_id::text,'funding_event_id',p_funding_event_id::text,
+      'currency',v_event.currency,'available_minor',v_destination_available::text,
+      'balance_version',v_destination_version::text,
+      'occurred_at',to_char(p_occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+      'amount_minor',v_destination_delta::text
+    ),p_occurred_at
+  );
+
+  RETURN QUERY SELECT FALSE;
+END;
+$$;
+
 COMMENT ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID,TEXT,TIMESTAMPTZ)
   IS 'Atomic, tenant-validated transfer command capability; returns the immutable idempotency outcome';
 
+COMMENT ON FUNCTION controlled_post_funding_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ)
+  IS 'Atomic, tenant-validated funding or funding-compensation posting capability';
+
 REVOKE ALL ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID,TEXT,TIMESTAMPTZ) FROM PUBLIC;
+REVOKE ALL ON FUNCTION controlled_post_funding_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ) FROM PUBLIC;
