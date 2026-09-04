@@ -32,21 +32,34 @@ type Telemetry struct {
 	enabled bool
 	tracer  trace.Tracer
 
-	requests           metric.Int64Counter
-	boundaryCalls      metric.Int64Counter
-	boundaryDuration   metric.Float64Histogram
-	httpRouteDuration  metric.Float64Histogram
-	transferOutcomes   metric.Int64Counter
-	outboxAge          metric.Float64Histogram
-	ryewViolations     metric.Int64Counter
-	reconciliationRun  metric.Int64Counter
-	recoveryOperations metric.Int64Counter
-	deadWork           metric.Int64Counter
-	retentionRuns      metric.Int64Counter
-	retentionDeleted   metric.Int64Counter
-	redisStreamDepth   metric.Int64Gauge
-	redisConsumerLag   metric.Int64Gauge
-	shutdown           func(context.Context) error
+	requests                     metric.Int64Counter
+	boundaryCalls                metric.Int64Counter
+	boundaryDuration             metric.Float64Histogram
+	httpRouteDuration            metric.Float64Histogram
+	transferOutcomes             metric.Int64Counter
+	outboxAge                    metric.Float64Histogram
+	ryewViolations               metric.Int64Counter
+	reconciliationRun            metric.Int64Counter
+	recoveryOperations           metric.Int64Counter
+	deadWork                     metric.Int64Counter
+	retentionRuns                metric.Int64Counter
+	retentionDeleted             metric.Int64Counter
+	redisStreamDepth             metric.Int64Gauge
+	redisConsumerLag             metric.Int64Gauge
+	webhookKeyResolves           metric.Int64Counter
+	webhookKeyDuration           metric.Float64Histogram
+	webhookKeyLockWait           metric.Float64Histogram
+	webhookKeyEntries            metric.Int64Gauge
+	webhookKeyEvictions          metric.Int64Counter
+	workerHeartbeat              metric.Int64Gauge
+	workerProgressAge            metric.Float64Gauge
+	workerActive                 metric.Int64Gauge
+	workerLastStarted            metric.Int64Gauge
+	workerLastCompleted          metric.Int64Gauge
+	workerLastFailure            metric.Int64Gauge
+	committedMetadataUnavailable metric.Int64Counter
+	committedWriteFailures       metric.Int64Counter
+	shutdown                     func(context.Context) error
 }
 
 func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) {
@@ -132,12 +145,69 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	if err != nil {
 		return nil, err
 	}
+	webhookKeyResolves, err := meter.Int64Counter("ledgersync.webhook_key_cache.resolutions")
+	if err != nil {
+		return nil, err
+	}
+	webhookKeyDuration, err := meter.Float64Histogram("ledgersync.webhook_key_cache.resolve_duration", metric.WithUnit("ms"))
+	if err != nil {
+		return nil, err
+	}
+	webhookKeyLockWait, err := meter.Float64Histogram("ledgersync.webhook_key_cache.lock_wait", metric.WithUnit("ms"))
+	if err != nil {
+		return nil, err
+	}
+	webhookKeyEntries, err := meter.Int64Gauge("ledgersync.webhook_key_cache.entries")
+	if err != nil {
+		return nil, err
+	}
+	webhookKeyEvictions, err := meter.Int64Counter("ledgersync.webhook_key_cache.evictions")
+	if err != nil {
+		return nil, err
+	}
+	workerHeartbeat, err := meter.Int64Gauge("ledgersync.worker.heartbeat_unix", metric.WithUnit("s"))
+	if err != nil {
+		return nil, err
+	}
+	workerProgressAge, err := meter.Float64Gauge("ledgersync.worker.progress_age", metric.WithUnit("s"))
+	if err != nil {
+		return nil, err
+	}
+	workerActive, err := meter.Int64Gauge("ledgersync.worker.active")
+	if err != nil {
+		return nil, err
+	}
+	workerLastStarted, err := meter.Int64Gauge("ledgersync.worker.last_started_unix", metric.WithUnit("s"))
+	if err != nil {
+		return nil, err
+	}
+	workerLastCompleted, err := meter.Int64Gauge("ledgersync.worker.last_completed_unix", metric.WithUnit("s"))
+	if err != nil {
+		return nil, err
+	}
+	workerLastFailure, err := meter.Int64Gauge("ledgersync.worker.last_failure_unix", metric.WithUnit("s"))
+	if err != nil {
+		return nil, err
+	}
+	committedMetadataUnavailable, err := meter.Int64Counter("ledgersync.committed_response.metadata_unavailable")
+	if err != nil {
+		return nil, err
+	}
+	committedWriteFailures, err := meter.Int64Counter("ledgersync.committed_response.write_failures")
+	if err != nil {
+		return nil, err
+	}
 	telemetry.enabled, telemetry.tracer = true, tracerProvider.Tracer(instrumentationName)
 	telemetry.requests, telemetry.boundaryCalls, telemetry.boundaryDuration, telemetry.httpRouteDuration = requests, boundaryCalls, boundaryDuration, httpRouteDuration
 	telemetry.transferOutcomes, telemetry.outboxAge = transferOutcomes, outboxAge
 	telemetry.ryewViolations, telemetry.reconciliationRun = ryewViolations, reconciliationRuns
 	telemetry.recoveryOperations, telemetry.deadWork, telemetry.retentionRuns, telemetry.retentionDeleted = recoveryOperations, deadWork, retentionRuns, retentionDeleted
 	telemetry.redisStreamDepth, telemetry.redisConsumerLag = redisStreamDepth, redisConsumerLag
+	telemetry.webhookKeyResolves, telemetry.webhookKeyDuration, telemetry.webhookKeyLockWait = webhookKeyResolves, webhookKeyDuration, webhookKeyLockWait
+	telemetry.webhookKeyEntries, telemetry.webhookKeyEvictions = webhookKeyEntries, webhookKeyEvictions
+	telemetry.workerHeartbeat, telemetry.workerProgressAge, telemetry.workerActive = workerHeartbeat, workerProgressAge, workerActive
+	telemetry.workerLastStarted, telemetry.workerLastCompleted, telemetry.workerLastFailure = workerLastStarted, workerLastCompleted, workerLastFailure
+	telemetry.committedMetadataUnavailable, telemetry.committedWriteFailures = committedMetadataUnavailable, committedWriteFailures
 	telemetry.shutdown = func(shutdownCtx context.Context) error {
 		return errors.Join(meterProvider.Shutdown(shutdownCtx), tracerProvider.Shutdown(shutdownCtx))
 	}
@@ -227,6 +297,95 @@ func (t *Telemetry) ObserveRedisStream(ctx context.Context, depth, lag int64) {
 		t.redisStreamDepth.Record(ctx, depth)
 		t.redisConsumerLag.Record(ctx, lag)
 	}
+}
+
+func (t *Telemetry) ObserveWebhookKeyCacheResolve(ctx context.Context, outcome string, duration, lockWait time.Duration) {
+	if t == nil || !t.enabled {
+		return
+	}
+	switch outcome {
+	case "hit", "miss", "concurrent_hit", "upstream_error", "cancelled":
+	default:
+		outcome = "unknown"
+	}
+	attributes := metric.WithAttributes(attribute.String("outcome", outcome))
+	t.webhookKeyResolves.Add(ctx, 1, attributes)
+	t.webhookKeyDuration.Record(ctx, float64(duration)/float64(time.Millisecond), attributes)
+	t.webhookKeyLockWait.Record(ctx, float64(lockWait)/float64(time.Millisecond), attributes)
+}
+
+func (t *Telemetry) ObserveWebhookKeyCacheEntries(ctx context.Context, count int) {
+	if t != nil && t.enabled {
+		t.webhookKeyEntries.Record(ctx, int64(count))
+	}
+}
+
+func (t *Telemetry) ObserveWebhookKeyCacheEviction(ctx context.Context, reason string) {
+	if t == nil || !t.enabled {
+		return
+	}
+	if reason != "expired" && reason != "capacity" {
+		reason = "unknown"
+	}
+	t.webhookKeyEvictions.Add(ctx, 1, metric.WithAttributes(attribute.String("reason", reason)))
+}
+
+func (t *Telemetry) ObserveWorkerProgress(ctx context.Context, report WorkerProgressReport) {
+	if t == nil || !t.enabled || !isWorkerQueue(report.Queue) {
+		return
+	}
+	attributes := metric.WithAttributes(attribute.String("queue", report.Queue))
+	t.workerHeartbeat.Record(ctx, report.HeartbeatAt.Unix(), attributes)
+	t.workerProgressAge.Record(ctx, report.ProgressAge.Seconds(), attributes)
+	active := int64(0)
+	if report.Active {
+		active = 1
+	}
+	t.workerActive.Record(ctx, active, attributes)
+	t.workerLastStarted.Record(ctx, unixOrZero(report.LastStartedAt), attributes)
+	t.workerLastCompleted.Record(ctx, unixOrZero(report.LastCompletedAt), attributes)
+	lastFailure := int64(0)
+	if report.FailureAge != nil {
+		lastFailure = report.HeartbeatAt.Add(-*report.FailureAge).Unix()
+	}
+	t.workerLastFailure.Record(ctx, lastFailure, attributes)
+}
+
+func (t *Telemetry) ObserveCommittedResponseMetadataUnavailable(ctx context.Context, commandKind string) {
+	if t != nil && t.enabled {
+		t.committedMetadataUnavailable.Add(ctx, 1, metric.WithAttributes(attribute.String("command_kind", committedCommandKind(commandKind))))
+	}
+}
+
+func (t *Telemetry) ObserveCommittedResponseWriteFailure(ctx context.Context, commandKind string) {
+	if t != nil && t.enabled {
+		t.committedWriteFailures.Add(ctx, 1, metric.WithAttributes(attribute.String("command_kind", committedCommandKind(commandKind))))
+	}
+}
+
+func committedCommandKind(commandKind string) string {
+	switch commandKind {
+	case "transfer", "funding", "correction":
+		return commandKind
+	default:
+		return "unknown"
+	}
+}
+
+func isWorkerQueue(queue string) bool {
+	for _, allowed := range workerQueues {
+		if queue == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+func unixOrZero(value time.Time) int64 {
+	if value.IsZero() {
+		return 0
+	}
+	return value.Unix()
 }
 
 func (t *Telemetry) HTTP(next http.Handler) http.Handler {
