@@ -18,7 +18,6 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
-	transferdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/transfer"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -36,11 +35,6 @@ var (
 	ErrSourceVelocityExceeded   = errors.New("source account rolling transfer limit exceeded")
 	ErrTenantVelocityExceeded   = errors.New("tenant rolling transfer limit exceeded")
 	ErrUnsupportedPilotCurrency = errors.New("transfer currency is outside the configured pilot")
-)
-
-const (
-	transferOperation = "transfers.create.v1"
-	transferStatusSQL = "pending"
 )
 
 // TransferRepository is the PostgreSQL financial command adapter. All writes
@@ -167,68 +161,6 @@ func (r *TransferRepository) observe(ctx context.Context, operation string, star
 	}
 }
 
-func reserveOrReplay(ctx context.Context, tx *sql.Tx, command transfers.Command, fingerprint [sha256.Size]byte) (transfers.Result, bool, error) {
-	var tenantExists bool
-	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenants WHERE id=$1)`, command.TenantID).Scan(&tenantExists); err != nil {
-		return transfers.Result{}, false, fmt.Errorf("verify transfer tenant boundary: %w", err)
-	}
-	if !tenantExists {
-		return transfers.Result{}, false, ErrAccountNotFound
-	}
-
-	const reserve = `
-INSERT INTO idempotency_requests (
-    tenant_id, actor_subject_id, operation, idempotency_key, request_fingerprint, state, expires_at
-) VALUES ($1, $2, $3, $4, $5, 'in_progress', $6)
-ON CONFLICT (tenant_id, actor_subject_id, operation, idempotency_key) DO NOTHING
-RETURNING request_fingerprint, state, response_body`
-
-	var storedFingerprint []byte
-	var state string
-	var body []byte
-	err := tx.QueryRowContext(ctx, reserve,
-		command.TenantID, command.ActorSubjectID, transferOperation, command.IdempotencyKey,
-		fingerprint[:], command.OccurredAt.AddDate(0, 0, 30),
-	).Scan(&storedFingerprint, &state, &body)
-	if err == nil {
-		return transfers.Result{}, false, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return transfers.Result{}, false, fmt.Errorf("reserve idempotency request: %w", err)
-	}
-
-	const getForUpdate = `
-SELECT request_fingerprint, state, response_body
-FROM idempotency_requests
-WHERE tenant_id = $1 AND actor_subject_id = $2 AND operation = $3 AND idempotency_key = $4
-FOR UPDATE`
-	if err := tx.QueryRowContext(ctx, getForUpdate,
-		command.TenantID, command.ActorSubjectID, transferOperation, command.IdempotencyKey,
-	).Scan(&storedFingerprint, &state, &body); err != nil {
-		return transfers.Result{}, false, fmt.Errorf("load idempotency request: %w", err)
-	}
-	if len(storedFingerprint) != sha256.Size {
-		return transfers.Result{}, false, errors.New("stored idempotency fingerprint is malformed")
-	}
-	var existing [sha256.Size]byte
-	copy(existing[:], storedFingerprint)
-	resolution, err := transfers.ResolveExisting(&transfers.ExistingRequest{
-		Fingerprint: existing,
-		State:       transfers.IdempotencyState(state),
-	}, fingerprint)
-	if err != nil {
-		return transfers.Result{}, false, err
-	}
-	if resolution != transfers.ResolutionReplay || len(body) == 0 {
-		return transfers.Result{}, false, transfers.ErrRequestInProgress
-	}
-	var result transfers.Result
-	if err := json.Unmarshal(body, &result); err != nil {
-		return transfers.Result{}, false, fmt.Errorf("decode idempotency outcome: %w", err)
-	}
-	return result, true, nil
-}
-
 type lockedAccount struct {
 	ID             string
 	TenantID       string
@@ -237,113 +169,6 @@ type lockedAccount struct {
 	AvailableMinor int64
 	LedgerMinor    int64
 	BalanceVersion int64
-}
-
-func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, command transfers.Command) (transfers.Result, error) {
-	accounts, err := lockAccounts(ctx, tx, command.TenantID.String(), command.DebitAccountID.String(), command.CreditAccountID.String())
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	source := accounts[command.DebitAccountID.String()]
-	destination := accounts[command.CreditAccountID.String()]
-	if err := validateAccounts(ctx, tx, command, source, destination); err != nil {
-		return transfers.Result{}, err
-	}
-	policyVersion, err := r.validateTransferPolicy(ctx, tx, command)
-	if err != nil {
-		return transfers.Result{}, err
-	}
-
-	now := command.OccurredAt.UTC()
-	transferID, err := newUUID()
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	entry, err := transferdomain.New(transferID, command.TenantID.String(), command.ActorSubjectID, command.DebitAccountID.String(), command.CreditAccountID.String(), command.Amount, now)
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	if err := createTransfer(ctx, tx, entry, policyVersion); err != nil {
-		return transfers.Result{}, err
-	}
-
-	if source.AvailableMinor < command.Amount.Minor() {
-		if err := entry.Reject("insufficient_funds", now); err != nil {
-			return transfers.Result{}, err
-		}
-		if err := markTransferRejected(ctx, tx, entry); err != nil {
-			return transfers.Result{}, err
-		}
-		if err := insertAuditEvent(ctx, tx, command, entry.ID, transfers.AuditTransferRejected, "failed", now); err != nil {
-			return transfers.Result{}, err
-		}
-		return rejectedResult(entry, command.Amount), nil
-	}
-
-	journalID, err := newUUID()
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	if err := entry.Post(journalID, now); err != nil {
-		return transfers.Result{}, err
-	}
-	debitID, err := newUUID()
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	creditID, err := newUUID()
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	debit, err := ledger.NewPosting(debitID, journalID, source.ID, ledger.Debit, command.Amount, now)
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	credit, err := ledger.NewPosting(creditID, journalID, destination.ID, ledger.Credit, command.Amount, now)
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	if err := ledger.ValidateBalanced([]ledger.Posting{debit, credit}); err != nil {
-		return transfers.Result{}, err
-	}
-	if err := createJournal(ctx, tx, journalID, command.TenantID.String(), entry.ID, now); err != nil {
-		return transfers.Result{}, err
-	}
-	if err := createPosting(ctx, tx, command.TenantID.String(), debit); err != nil {
-		return transfers.Result{}, err
-	}
-	if err := createPosting(ctx, tx, command.TenantID.String(), credit); err != nil {
-		return transfers.Result{}, err
-	}
-
-	updatedSource, err := applyBalanceDelta(ctx, tx, source.ID, -command.Amount.Minor(), now)
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	updatedDestination, err := applyBalanceDelta(ctx, tx, destination.ID, command.Amount.Minor(), now)
-	if err != nil {
-		return transfers.Result{}, err
-	}
-	if err := markTransferPosted(ctx, tx, entry); err != nil {
-		return transfers.Result{}, err
-	}
-	if err := recordTransferVelocity(ctx, tx, entry.ID); err != nil {
-		return transfers.Result{}, err
-	}
-	if err := insertAuditEvent(ctx, tx, command, entry.ID, transfers.AuditTransferPosted, "succeeded", now); err != nil {
-		return transfers.Result{}, err
-	}
-	result := postedResult(entry, updatedSource)
-	if err := enqueueBalanceEvent(ctx, tx, command, entry.ID, updatedSource, now); err != nil {
-		return transfers.Result{}, err
-	}
-	if err := enqueueBalanceEvent(ctx, tx, command, entry.ID, updatedDestination, now); err != nil {
-		return transfers.Result{}, err
-	}
-	if err := enqueueTransferWebhookEvent(ctx, tx, command, entry.ID, now); err != nil {
-		return transfers.Result{}, err
-	}
-	return result, nil
 }
 
 func lockAccounts(ctx context.Context, tx *sql.Tx, tenantID, sourceID, destinationID string) (map[string]lockedAccount, error) {
@@ -374,38 +199,6 @@ FOR UPDATE OF a, b`
 		return nil, ErrAccountNotFound
 	}
 	return accounts, nil
-}
-
-func validateAccounts(ctx context.Context, tx *sql.Tx, command transfers.Command, source, destination lockedAccount) error {
-	if source.Status != account.StatusActive || destination.Status != account.StatusActive {
-		return ErrAccountInactive
-	}
-	if source.Currency != command.Amount.Currency().Code || destination.Currency != command.Amount.Currency().Code {
-		return money.ErrCurrencyMismatch
-	}
-	const ownership = `
-SELECT permission
-FROM account_owners
-WHERE tenant_id = $1 AND account_id = $2 AND subject_id = $3`
-	var permission string
-	err := tx.QueryRowContext(ctx, ownership, command.TenantID, source.ID, command.ActorSubjectID).Scan(&permission)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrNotAuthorized
-	}
-	if err != nil {
-		return fmt.Errorf("read debit ownership: %w", err)
-	}
-	if permission != string(account.PermissionDebit) {
-		return ErrNotAuthorized
-	}
-	var destinationAllowed bool
-	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM account_credit_permissions WHERE tenant_id=$1 AND account_id=$2 AND subject_id=$3)`, command.TenantID, destination.ID, command.ActorSubjectID).Scan(&destinationAllowed); err != nil {
-		return fmt.Errorf("read destination authorization: %w", err)
-	}
-	if !destinationAllowed {
-		return ErrDestinationNotAuthorized
-	}
-	return nil
 }
 
 func policyDenialCode(err error) string {
@@ -453,16 +246,6 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 	return err
 }
 
-func createTransfer(ctx context.Context, tx *sql.Tx, entry transferdomain.Transfer, policyVersion int64) error {
-	const statement = `
-INSERT INTO transfers (
-    id, tenant_id, actor_subject_id, debit_account_id, credit_account_id,
-    amount_minor, currency, status, created_at, policy_version
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-	_, err := tx.ExecContext(ctx, statement, entry.ID, entry.TenantID, entry.ActorID, entry.DebitAccountID, entry.CreditAccountID, entry.Amount.Minor(), entry.Amount.Currency().Code, transferStatusSQL, entry.CreatedAt, policyVersion)
-	return wrap("create transfer", err)
-}
-
 func createJournal(ctx context.Context, tx *sql.Tx, journalID, tenantID, transferID string, occurredAt time.Time) error {
 	_, err := tx.ExecContext(ctx, `
 INSERT INTO journal_transactions (id, tenant_id, transfer_id, source_type, source_id, occurred_at)
@@ -499,50 +282,6 @@ RETURNING available_minor, ledger_minor, balance_version, updated_at`
 	return item, nil
 }
 
-func markTransferPosted(ctx context.Context, tx *sql.Tx, entry transferdomain.Transfer) error {
-	result, err := tx.ExecContext(ctx, `
-UPDATE transfers
-SET status = 'posted', journal_transaction_id = $2, completed_at = $3
-WHERE id = $1 AND status = 'pending'`, entry.ID, entry.JournalTransactionID, entry.CompletedAt)
-	if err != nil {
-		return wrap("mark transfer posted", err)
-	}
-	return requireOneRow(result, "mark transfer posted")
-}
-
-func markTransferRejected(ctx context.Context, tx *sql.Tx, entry transferdomain.Transfer) error {
-	result, err := tx.ExecContext(ctx, `
-UPDATE transfers
-SET status = 'rejected', rejection_code = $2, completed_at = $3
-WHERE id = $1 AND status = 'pending'`, entry.ID, entry.RejectionCode, entry.CompletedAt)
-	if err != nil {
-		return wrap("mark transfer rejected", err)
-	}
-	return requireOneRow(result, "mark transfer rejected")
-}
-
-func insertAuditEvent(ctx context.Context, tx *sql.Tx, command transfers.Command, transferID, eventType, outcome string, now time.Time) error {
-	id, err := newUUID()
-	if err != nil {
-		return err
-	}
-	metadata, err := json.Marshal(map[string]string{"transfer_id": transferID})
-	if err != nil {
-		return fmt.Errorf("marshal audit metadata: %w", err)
-	}
-	correlationID := command.CorrelationID
-	if correlationID == "" {
-		correlationID, err = newUUID()
-		if err != nil {
-			return err
-		}
-	}
-	_, err = tx.ExecContext(ctx, `
-INSERT INTO audit_events (id, tenant_id, actor_subject_id, event_type, target_type, target_id, outcome, correlation_id, sanitized_metadata, occurred_at)
-VALUES ($1, $2, $3, $4, 'transfer', $5, $6, $7, $8, $9)`, id, command.TenantID, command.ActorSubjectID, eventType, transferID, outcome, correlationID, metadata, now)
-	return wrap("insert audit event", err)
-}
-
 func enqueueBalanceEvent(ctx context.Context, tx *sql.Tx, command transfers.Command, transferID string, balance lockedAccount, now time.Time) error {
 	id, err := newUUID()
 	if err != nil {
@@ -565,88 +304,6 @@ func enqueueBalanceEvent(ctx context.Context, tx *sql.Tx, command transfers.Comm
 INSERT INTO outbox_events (id, tenant_id, transfer_id, account_id, aggregate_type, aggregate_id, event_type, aggregate_version, payload, occurred_at)
 VALUES ($1, $2, $3, $4, 'account_balance', $4, 'account.balance.changed.v1', $5, $6, $7)`, id, command.TenantID, transferID, balance.ID, balance.BalanceVersion, payload, now)
 	return wrap("enqueue balance event", err)
-}
-
-// enqueueTransferWebhookEvent records a canonical business event and schedules
-// only currently verified subscribers in the same financial transaction. The
-// payload is never regenerated during retry or replay, so a partner can safely
-// deduplicate every at-least-once delivery by event_id.
-func enqueueTransferWebhookEvent(ctx context.Context, tx *sql.Tx, command transfers.Command, transferID string, now time.Time) error {
-	eventID, err := newUUID()
-	if err != nil {
-		return err
-	}
-	payload, err := json.Marshal(map[string]string{
-		"event_id":               eventID,
-		"event_type":             "transfer.posted",
-		"transfer_id":            transferID,
-		"debit_account_id":       command.DebitAccountID.String(),
-		"credit_account_id":      command.CreditAccountID.String(),
-		"amount_minor":           strconv.FormatInt(command.Amount.Minor(), 10),
-		"currency":               command.Amount.Currency().Code,
-		"occurred_at":            now.Format(time.RFC3339Nano),
-		"delivery_semantics":     "at_least_once",
-		"deduplication_event_id": eventID,
-	})
-	if err != nil {
-		return fmt.Errorf("marshal transfer webhook event: %w", err)
-	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO outbox_events(id,tenant_id,transfer_id,aggregate_type,aggregate_id,event_type,aggregate_version,payload,occurred_at)VALUES($1,$2,$3,'transfer',$3,'transfer.posted.v1',1,$4,$5)`, eventID, command.TenantID, transferID, payload, now); err != nil {
-		return wrap("enqueue transfer webhook event", err)
-	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO webhook_delivery_jobs(id,tenant_id,transfer_id,outbox_event_id,webhook_id,event_id,event_type,payload,available_at,created_at,updated_at)
-SELECT gen_random_uuid(),$2,$3,$1,endpoint.id,$1,'transfer.posted',$4,$5,$5,$5
-FROM developer_webhook_endpoints endpoint
-WHERE endpoint.tenant_id=$2 AND endpoint.status='active' AND 'transfer.posted'=ANY(endpoint.subscribed_events)`, eventID, command.TenantID, transferID, payload, now); err != nil {
-		return wrap("schedule transfer webhook delivery", err)
-	}
-	return nil
-}
-
-func storeOutcome(ctx context.Context, tx *sql.Tx, command transfers.Command, result transfers.Result) error {
-	body, err := json.Marshal(result)
-	if err != nil {
-		return fmt.Errorf("marshal idempotency outcome: %w", err)
-	}
-	updated, err := tx.ExecContext(ctx, `
-UPDATE idempotency_requests
-SET state = 'completed', response_status = $5, response_body = $6::jsonb, transfer_id = $7, completed_at = $8
-WHERE tenant_id = $1 AND actor_subject_id = $2 AND operation = $3 AND idempotency_key = $4
-  AND state = 'in_progress'`, command.TenantID, command.ActorSubjectID, transferOperation, command.IdempotencyKey, 201, string(body), result.TransferID, command.OccurredAt)
-	if err != nil {
-		return wrap("store idempotency outcome", err)
-	}
-	return requireOneRow(updated, "store idempotency outcome")
-}
-
-func postedResult(entry transferdomain.Transfer, source lockedAccount) transfers.Result {
-	return transfers.Result{
-		TransferID:             entry.ID,
-		Status:                 string(transferdomain.StatusPosted),
-		Currency:               entry.Amount.Currency().Code,
-		AmountMinor:            entry.Amount.Minor(),
-		OccurredAt:             entry.CompletedAt.UTC().Format(time.RFC3339Nano),
-		MinimumBalanceVersions: map[string]int64{source.ID: source.BalanceVersion},
-		Balances: map[string]transfers.Balance{
-			source.ID: toBalance(source, entry.Amount.Currency().Code, entry.CompletedAt.UTC()),
-		},
-	}
-}
-
-func rejectedResult(entry transferdomain.Transfer, amount money.Money) transfers.Result {
-	return transfers.Result{
-		TransferID:             entry.ID,
-		Status:                 string(transferdomain.StatusRejected),
-		Currency:               amount.Currency().Code,
-		AmountMinor:            amount.Minor(),
-		OccurredAt:             entry.CompletedAt.UTC().Format(time.RFC3339Nano),
-		MinimumBalanceVersions: map[string]int64{},
-		RejectionCode:          entry.RejectionCode,
-	}
-}
-
-func toBalance(account lockedAccount, currency string, occurredAt time.Time) transfers.Balance {
-	return transfers.Balance{AccountID: account.ID, Currency: currency, PostedMinor: account.LedgerMinor, Version: account.BalanceVersion, AsOf: occurredAt.Format(time.RFC3339Nano)}
 }
 
 func newUUID() (string, error) {
