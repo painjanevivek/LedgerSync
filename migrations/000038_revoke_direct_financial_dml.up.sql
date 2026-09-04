@@ -204,6 +204,302 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION controlled_request_funding_v1(
+  p_tenant_id UUID,
+  p_actor_subject_id TEXT,
+  p_destination_account_id UUID,
+  p_amount_minor BIGINT,
+  p_currency TEXT,
+  p_external_reference TEXT,
+  p_evidence_reference TEXT,
+  p_idempotency_key TEXT,
+  p_request_fingerprint BYTEA,
+  p_correlation_id UUID,
+  p_requested_at TIMESTAMPTZ
+)
+RETURNS TABLE(funding_event_id UUID, replayed BOOLEAN)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_existing RECORD;
+  v_policy RECORD;
+  v_system_account_id UUID;
+  v_event_id UUID := gen_random_uuid();
+BEGIN
+  IF p_tenant_id IS NULL OR p_destination_account_id IS NULL OR p_amount_minor<=0
+     OR p_currency IS NULL OR p_currency!~'^[A-Z]{3}$'
+     OR p_actor_subject_id IS NULL OR p_actor_subject_id='' OR btrim(p_actor_subject_id)<>p_actor_subject_id
+     OR p_external_reference IS NULL OR p_external_reference='' OR btrim(p_external_reference)<>p_external_reference
+     OR p_evidence_reference IS NULL OR p_evidence_reference='' OR btrim(p_evidence_reference)<>p_evidence_reference
+     OR p_idempotency_key IS NULL OR length(p_idempotency_key)<16 OR length(p_idempotency_key)>255
+     OR p_request_fingerprint IS NULL OR octet_length(p_request_fingerprint)<>32
+     OR p_correlation_id IS NULL OR p_requested_at IS NULL THEN
+    RAISE EXCEPTION 'controlled funding request input is invalid'
+      USING ERRCODE='22023', CONSTRAINT='controlled_funding_request_input';
+  END IF;
+  IF NOT pg_has_role(session_user,'ledgersync_api','MEMBER')
+     OR NOT EXISTS (SELECT 1 FROM public.tenant_subject_roles role WHERE role.tenant_id=p_tenant_id AND role.subject_id=p_actor_subject_id AND role.role='finance') THEN
+    RAISE EXCEPTION 'controlled funding requester is not authorized'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_request_actor';
+  END IF;
+
+  SELECT event.id,event.request_fingerprint INTO v_existing
+    FROM public.funding_events event
+   WHERE event.tenant_id=p_tenant_id AND event.requester_subject_id=p_actor_subject_id
+     AND event.idempotency_key=p_idempotency_key
+   FOR UPDATE;
+  IF FOUND THEN
+    IF v_existing.request_fingerprint<>p_request_fingerprint THEN
+      RAISE EXCEPTION 'controlled funding idempotency conflict'
+        USING ERRCODE='23505', CONSTRAINT='controlled_funding_request_idempotency';
+    END IF;
+    RETURN QUERY SELECT v_existing.id,TRUE;
+    RETURN;
+  END IF;
+
+  SELECT policy.mode,policy.finance_activated,policy.policy_version,policy.per_command_minor
+    INTO v_policy
+    FROM public.accounts account
+    JOIN public.tenant_funding_policies policy ON policy.tenant_id=account.tenant_id AND policy.currency=account.currency
+   WHERE account.tenant_id=p_tenant_id AND account.id=p_destination_account_id
+     AND account.currency=p_currency AND account.status='active' AND account.account_kind='customer';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled funding destination was not found'
+      USING ERRCODE='P0002', CONSTRAINT='controlled_funding_request_not_found';
+  END IF;
+  IF (v_policy.mode='production_dual_control' AND NOT v_policy.finance_activated) THEN
+    RAISE EXCEPTION 'controlled funding policy is not active'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_request_forbidden';
+  END IF;
+  IF p_amount_minor>v_policy.per_command_minor THEN
+    RAISE EXCEPTION 'controlled funding amount exceeds policy'
+      USING ERRCODE='23514', CONSTRAINT='controlled_funding_request_limit';
+  END IF;
+
+  v_system_account_id := public.controlled_ensure_funding_account_v1(
+    p_tenant_id,p_actor_subject_id,p_currency,p_correlation_id,p_requested_at
+  );
+  INSERT INTO public.funding_events(
+    id,tenant_id,requester_subject_id,destination_account_id,system_account_id,
+    external_reference,evidence_reference,idempotency_key,request_fingerprint,
+    amount_minor,currency,status,demo_policy,policy_version,correlation_id,requested_at,updated_at
+  ) VALUES(
+    v_event_id,p_tenant_id,p_actor_subject_id,p_destination_account_id,v_system_account_id,
+    p_external_reference,p_evidence_reference,p_idempotency_key,p_request_fingerprint,
+    p_amount_minor,p_currency,'requested',FALSE,v_policy.policy_version,p_correlation_id,p_requested_at,p_requested_at
+  );
+  INSERT INTO public.approval_records(
+    id,tenant_id,command_type,target_id,requester_subject_id,status,expires_at,
+    correlation_id,policy_version,created_at
+  ) VALUES(
+    gen_random_uuid(),p_tenant_id,'funding',v_event_id,p_actor_subject_id,'requested',
+    p_requested_at+interval '24 hours',p_correlation_id,v_policy.policy_version,p_requested_at
+  );
+  INSERT INTO public.audit_events(
+    id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,
+    correlation_id,sanitized_metadata,occurred_at
+  ) VALUES(
+    gen_random_uuid(),p_tenant_id,p_actor_subject_id,'funding.requested','funding_event',
+    v_event_id::text,'succeeded',p_correlation_id,
+    jsonb_build_object('funding_event_id',v_event_id::text,'terminology','recorded external value evidence'),p_requested_at
+  );
+  RETURN QUERY SELECT v_event_id,FALSE;
+END;
+$$;
+
+CREATE FUNCTION controlled_request_funding_compensation_v1(
+  p_tenant_id UUID,
+  p_actor_subject_id TEXT,
+  p_original_funding_event_id UUID,
+  p_reason_code TEXT,
+  p_operator_note TEXT,
+  p_idempotency_key TEXT,
+  p_request_fingerprint BYTEA,
+  p_correlation_id UUID,
+  p_requested_at TIMESTAMPTZ
+)
+RETURNS TABLE(funding_event_id UUID, replayed BOOLEAN)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_existing RECORD;
+  v_original RECORD;
+  v_policy RECORD;
+  v_event_id UUID := gen_random_uuid();
+BEGIN
+  IF p_tenant_id IS NULL OR p_original_funding_event_id IS NULL
+     OR p_actor_subject_id IS NULL OR p_actor_subject_id='' OR btrim(p_actor_subject_id)<>p_actor_subject_id
+     OR p_reason_code IS NULL OR p_reason_code='' OR length(p_reason_code)>64
+     OR p_operator_note IS NULL OR p_operator_note='' OR length(p_operator_note)>500
+     OR p_idempotency_key IS NULL OR length(p_idempotency_key)<16 OR length(p_idempotency_key)>255
+     OR p_request_fingerprint IS NULL OR octet_length(p_request_fingerprint)<>32
+     OR p_correlation_id IS NULL OR p_requested_at IS NULL THEN
+    RAISE EXCEPTION 'controlled funding compensation input is invalid'
+      USING ERRCODE='22023', CONSTRAINT='controlled_funding_compensation_input';
+  END IF;
+  IF NOT pg_has_role(session_user,'ledgersync_api','MEMBER')
+     OR NOT EXISTS (SELECT 1 FROM public.tenant_subject_roles role WHERE role.tenant_id=p_tenant_id AND role.subject_id=p_actor_subject_id AND role.role='finance') THEN
+    RAISE EXCEPTION 'controlled funding compensation requester is not authorized'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_compensation_actor';
+  END IF;
+
+  SELECT event.id,event.request_fingerprint INTO v_existing
+    FROM public.funding_events event
+   WHERE event.tenant_id=p_tenant_id AND event.requester_subject_id=p_actor_subject_id
+     AND event.idempotency_key=p_idempotency_key
+   FOR UPDATE;
+  IF FOUND THEN
+    IF v_existing.request_fingerprint<>p_request_fingerprint THEN
+      RAISE EXCEPTION 'controlled funding compensation idempotency conflict'
+        USING ERRCODE='23505', CONSTRAINT='controlled_funding_compensation_idempotency';
+    END IF;
+    RETURN QUERY SELECT v_existing.id,TRUE;
+    RETURN;
+  END IF;
+
+  SELECT event.destination_account_id,event.system_account_id,event.currency,event.amount_minor,
+         event.evidence_reference,event.status,event.compensation_event_id,event.policy_version
+    INTO v_original
+    FROM public.funding_events event
+   WHERE event.tenant_id=p_tenant_id AND event.id=p_original_funding_event_id
+     AND event.compensation_of_event_id IS NULL
+   FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled original funding event was not found'
+      USING ERRCODE='P0002', CONSTRAINT='controlled_funding_compensation_not_found';
+  END IF;
+  IF v_original.status<>'posted' OR v_original.compensation_event_id IS NOT NULL THEN
+    RAISE EXCEPTION 'controlled funding event cannot be compensated'
+      USING ERRCODE='23514', CONSTRAINT='controlled_funding_compensation_conflict';
+  END IF;
+  SELECT policy.mode,policy.finance_activated INTO v_policy
+    FROM public.tenant_funding_policies policy
+   WHERE policy.tenant_id=p_tenant_id AND policy.currency=v_original.currency;
+  IF NOT FOUND OR (v_policy.mode='production_dual_control' AND NOT v_policy.finance_activated) THEN
+    RAISE EXCEPTION 'controlled funding compensation policy is not active'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_compensation_forbidden';
+  END IF;
+
+  INSERT INTO public.funding_events(
+    id,tenant_id,requester_subject_id,destination_account_id,system_account_id,
+    external_reference,evidence_reference,idempotency_key,request_fingerprint,
+    amount_minor,currency,status,demo_policy,policy_version,compensation_of_event_id,
+    compensation_reason_code,compensation_operator_note,correlation_id,requested_at,updated_at
+  ) VALUES(
+    v_event_id,p_tenant_id,p_actor_subject_id,v_original.destination_account_id,v_original.system_account_id,
+    'compensation:'||p_original_funding_event_id::text,v_original.evidence_reference,p_idempotency_key,p_request_fingerprint,
+    v_original.amount_minor,v_original.currency,'requested',FALSE,v_original.policy_version,p_original_funding_event_id,
+    p_reason_code,p_operator_note,p_correlation_id,p_requested_at,p_requested_at
+  );
+  INSERT INTO public.approval_records(
+    id,tenant_id,command_type,target_id,requester_subject_id,status,expires_at,
+    correlation_id,policy_version,created_at
+  ) VALUES(
+    gen_random_uuid(),p_tenant_id,'funding_compensation',v_event_id,p_actor_subject_id,'requested',
+    p_requested_at+interval '24 hours',p_correlation_id,v_original.policy_version,p_requested_at
+  );
+  INSERT INTO public.audit_events(
+    id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,
+    correlation_id,sanitized_metadata,occurred_at
+  ) VALUES(
+    gen_random_uuid(),p_tenant_id,p_actor_subject_id,'funding.compensation.requested','funding_event',
+    v_event_id::text,'succeeded',p_correlation_id,
+    jsonb_build_object('funding_event_id',v_event_id::text,'terminology','recorded external value evidence'),p_requested_at
+  );
+  RETURN QUERY SELECT v_event_id,FALSE;
+END;
+$$;
+
+CREATE FUNCTION controlled_decide_funding_v1(
+  p_tenant_id UUID,
+  p_actor_subject_id TEXT,
+  p_funding_event_id UUID,
+  p_action TEXT,
+  p_reason TEXT,
+  p_correlation_id UUID,
+  p_decided_at TIMESTAMPTZ
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_event RECORD;
+  v_policy RECORD;
+BEGIN
+  IF p_tenant_id IS NULL OR p_funding_event_id IS NULL OR p_action NOT IN ('approve','reject')
+     OR p_actor_subject_id IS NULL OR p_actor_subject_id='' OR btrim(p_actor_subject_id)<>p_actor_subject_id
+     OR p_reason IS NULL OR p_reason='' OR length(p_reason)>500
+     OR p_correlation_id IS NULL OR p_decided_at IS NULL THEN
+    RAISE EXCEPTION 'controlled funding decision input is invalid'
+      USING ERRCODE='22023', CONSTRAINT='controlled_funding_decision_input';
+  END IF;
+  IF NOT pg_has_role(session_user,'ledgersync_api','MEMBER')
+     OR NOT EXISTS (SELECT 1 FROM public.tenant_subject_roles role WHERE role.tenant_id=p_tenant_id AND role.subject_id=p_actor_subject_id AND role.role='finance') THEN
+    RAISE EXCEPTION 'controlled funding decision actor is not authorized'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_decision_actor';
+  END IF;
+  SELECT event.requester_subject_id,event.status,event.compensation_of_event_id,event.policy_version,event.currency
+    INTO v_event FROM public.funding_events event
+   WHERE event.tenant_id=p_tenant_id AND event.id=p_funding_event_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled funding event was not found'
+      USING ERRCODE='P0002', CONSTRAINT='controlled_funding_decision_not_found';
+  END IF;
+  SELECT policy.mode,policy.finance_activated INTO v_policy
+    FROM public.tenant_funding_policies policy
+   WHERE policy.tenant_id=p_tenant_id AND policy.currency=v_event.currency;
+  IF p_action='approve' AND v_event.status='approved' THEN
+    RETURN TRUE;
+  END IF;
+  IF v_event.status<>'requested' THEN
+    RAISE EXCEPTION 'controlled funding event is not awaiting a decision'
+      USING ERRCODE='23514', CONSTRAINT='controlled_funding_decision_conflict';
+  END IF;
+  IF p_action='approve' AND (v_policy.mode='production_dual_control' AND (NOT v_policy.finance_activated OR v_event.requester_subject_id=p_actor_subject_id)) THEN
+    RAISE EXCEPTION 'controlled funding approval violates dual control'
+      USING ERRCODE='42501', CONSTRAINT='controlled_funding_decision_forbidden';
+  END IF;
+
+  IF p_action='approve' THEN
+    UPDATE public.funding_events
+       SET status='approved',approver_subject_id=p_actor_subject_id,decision_reason=p_reason,
+           demo_policy=(v_policy.mode='local_demo_single_operator'),approved_at=p_decided_at,updated_at=p_decided_at
+     WHERE tenant_id=p_tenant_id AND id=p_funding_event_id AND status='requested';
+  ELSE
+    UPDATE public.funding_events
+       SET status='rejected',approver_subject_id=p_actor_subject_id,decision_reason=p_reason,
+           rejected_at=p_decided_at,updated_at=p_decided_at
+     WHERE tenant_id=p_tenant_id AND id=p_funding_event_id AND status='requested';
+  END IF;
+  INSERT INTO public.approval_records(
+    id,tenant_id,command_type,target_id,requester_subject_id,approver_subject_id,
+    status,expires_at,decision_reason,correlation_id,policy_version,created_at,decided_at
+  ) VALUES(
+    gen_random_uuid(),p_tenant_id,CASE WHEN v_event.compensation_of_event_id IS NULL THEN 'funding' ELSE 'funding_compensation' END,
+    p_funding_event_id,v_event.requester_subject_id,p_actor_subject_id,
+    CASE WHEN p_action='approve' THEN 'approved' ELSE 'rejected' END,
+    CASE WHEN p_action='approve' THEN p_decided_at+interval '24 hours' ELSE p_decided_at END,
+    p_reason,p_correlation_id,v_event.policy_version,p_decided_at,p_decided_at
+  );
+  INSERT INTO public.audit_events(
+    id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,
+    correlation_id,sanitized_metadata,occurred_at
+  ) VALUES(
+    gen_random_uuid(),p_tenant_id,p_actor_subject_id,
+    CASE WHEN p_action='approve' THEN 'funding.approved' ELSE 'funding.rejected' END,
+    'funding_event',p_funding_event_id::text,'succeeded',p_correlation_id,
+    jsonb_build_object('funding_event_id',p_funding_event_id::text,'terminology','recorded external value evidence'),p_decided_at
+  );
+  RETURN FALSE;
+END;
+$$;
+
 CREATE FUNCTION controlled_rollback_provisioned_tenant_v1(
   p_tenant_id UUID,
   p_actor_subject_id TEXT,
@@ -255,17 +551,26 @@ COMMENT ON FUNCTION controlled_update_account_v1(UUID,TEXT,UUID,BIGINT,TEXT,TEXT
   IS 'Tenant- and ownership-validated account lifecycle capability; never changes balances';
 COMMENT ON FUNCTION controlled_ensure_funding_account_v1(UUID,TEXT,TEXT,UUID,TIMESTAMPTZ)
   IS 'Finance-authorized zero-opening funding-clearing account capability';
+COMMENT ON FUNCTION controlled_request_funding_v1(UUID,TEXT,UUID,BIGINT,TEXT,TEXT,TEXT,TEXT,BYTEA,UUID,TIMESTAMPTZ)
+  IS 'Finance-authorized, idempotent funding request and approval-evidence capability';
+COMMENT ON FUNCTION controlled_request_funding_compensation_v1(UUID,TEXT,UUID,TEXT,TEXT,TEXT,BYTEA,UUID,TIMESTAMPTZ)
+  IS 'Finance-authorized exact funding-compensation request capability';
+COMMENT ON FUNCTION controlled_decide_funding_v1(UUID,TEXT,UUID,TEXT,TEXT,UUID,TIMESTAMPTZ)
+  IS 'Finance-authorized funding approval or rejection capability with dual control';
 COMMENT ON FUNCTION controlled_rollback_provisioned_tenant_v1(UUID,TEXT,UUID,TIMESTAMPTZ)
   IS 'Provisioning-only rollback capability that refuses tenants with financial history';
 
 REVOKE ALL ON FUNCTION controlled_append_audit_event_v1(UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,UUID,JSONB,TIMESTAMPTZ) FROM PUBLIC;
 REVOKE ALL ON FUNCTION controlled_update_account_v1(UUID,TEXT,UUID,BIGINT,TEXT,TEXT,TEXT,TEXT,TIMESTAMPTZ,BIGINT,TIMESTAMPTZ) FROM PUBLIC;
 REVOKE ALL ON FUNCTION controlled_ensure_funding_account_v1(UUID,TEXT,TEXT,UUID,TIMESTAMPTZ) FROM PUBLIC;
+REVOKE ALL ON FUNCTION controlled_request_funding_v1(UUID,TEXT,UUID,BIGINT,TEXT,TEXT,TEXT,TEXT,BYTEA,UUID,TIMESTAMPTZ) FROM PUBLIC;
+REVOKE ALL ON FUNCTION controlled_request_funding_compensation_v1(UUID,TEXT,UUID,TEXT,TEXT,TEXT,BYTEA,UUID,TIMESTAMPTZ) FROM PUBLIC;
+REVOKE ALL ON FUNCTION controlled_decide_funding_v1(UUID,TEXT,UUID,TEXT,TEXT,UUID,TIMESTAMPTZ) FROM PUBLIC;
 REVOKE ALL ON FUNCTION controlled_rollback_provisioned_tenant_v1(UUID,TEXT,UUID,TIMESTAMPTZ) FROM PUBLIC;
 
 REVOKE INSERT,UPDATE,DELETE ON
   accounts,account_opening_balances,account_balance_projections,
-  transfers,transfer_velocity_events,transfer_velocity_totals,
+  transfers,transfer_velocity_events,transfer_velocity_totals,funding_events,funding_velocity_events,
   journal_transactions,ledger_postings,account_owners,account_credit_permissions,
   audit_events,opening_import_batches,opening_import_rows,
   opening_import_approvals,opening_import_executions
@@ -281,7 +586,7 @@ BEGIN
   ] LOOP
     IF to_regrole(v_role) IS NOT NULL THEN
       EXECUTE format(
-        'REVOKE INSERT,UPDATE,DELETE ON accounts,account_opening_balances,account_balance_projections,transfers,transfer_velocity_events,transfer_velocity_totals,journal_transactions,ledger_postings,account_owners,account_credit_permissions,audit_events,opening_import_batches,opening_import_rows,opening_import_approvals,opening_import_executions FROM %I',
+        'REVOKE INSERT,UPDATE,DELETE ON accounts,account_opening_balances,account_balance_projections,transfers,transfer_velocity_events,transfer_velocity_totals,funding_events,funding_velocity_events,journal_transactions,ledger_postings,account_owners,account_credit_permissions,audit_events,opening_import_batches,opening_import_rows,opening_import_approvals,opening_import_executions FROM %I',
         v_role
       );
       EXECUTE format('REVOKE ALL ON FUNCTION reject_ledger_mutation() FROM %I',v_role);
