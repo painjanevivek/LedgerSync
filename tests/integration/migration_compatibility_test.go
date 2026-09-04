@@ -15,6 +15,7 @@ import (
 	"time"
 
 	accountapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	correctionsapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/corrections"
 	fundingapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
 	reconciliationapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
 	transferapp "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
@@ -28,10 +29,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 33 {
-		t.Fatalf("migration versions=%d, want 33", versions)
+	if versions != 38 {
+		t.Fatalf("migration versions=%d, want 38", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "opening_import_batches", "opening_import_rows", "opening_import_approvals", "opening_import_executions", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -40,7 +41,7 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 			t.Fatalf("required table %s is missing after migration", table)
 		}
 	}
-	for _, index := range []string{"funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx", "reconciliation_mismatches_tenant_transfer_idx", "journal_transactions_tenant_funding_idx", "outbox_events_tenant_account_relation_idx", "outbox_events_tenant_transfer_relation_idx", "transfer_corrections_tenant_compensation_idx", "investigation_saved_views_owner_name_idx", "investigation_saved_views_owner_recent_idx", "investigation_workspaces_owner_recent_idx", "investigation_workspace_references_record_idx"} {
+	for _, index := range []string{"funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "opening_import_batches_tenant_created_idx", "opening_import_rows_account_idx", "outbox_opening_import_account_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx", "reconciliation_mismatches_tenant_transfer_idx", "journal_transactions_tenant_funding_idx", "outbox_events_tenant_account_relation_idx", "outbox_events_tenant_transfer_relation_idx", "transfer_corrections_tenant_compensation_idx", "investigation_saved_views_owner_name_idx", "investigation_saved_views_owner_recent_idx", "investigation_workspaces_owner_recent_idx", "investigation_workspace_references_record_idx"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, index).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -67,7 +68,11 @@ WHERE table_schema = 'public'
     ('accounts', 'account_kind'),
     ('account_balance_projections', 'allow_negative'),
     ('journal_transactions', 'funding_event_id'),
-    ('outbox_events', 'funding_event_id'),
+	    ('outbox_events', 'funding_event_id'),
+	    ('outbox_events', 'opening_import_id'),
+	    ('journal_transactions', 'source_type'),
+	    ('journal_transactions', 'source_id'),
+	    ('ledger_postings', 'tenant_id'),
     ('transfers', 'policy_version'),
     ('transfers', 'compensation_of_transfer_id'),
     ('tenant_transfer_policies', 'policy_version'),
@@ -78,8 +83,78 @@ WHERE table_schema = 'public'
 	  )`).Scan(&columns); err != nil {
 		t.Fatal(err)
 	}
-	if columns != 20 {
-		t.Fatalf("legacy and additive account contract columns=%d, want 20", columns)
+	if columns != 24 {
+		t.Fatalf("legacy and additive account contract columns=%d, want 24", columns)
+	}
+	var compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, controlledFinancialFunctions, semanticTriggers int
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*) FROM pg_constraint
+WHERE conname IN ('journal_transactions_id_tenant_key','ledger_postings_id_tenant_key')
+  AND contype='u' AND convalidated`).Scan(&compositeUniqueKeys); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*) FROM pg_constraint
+WHERE conname IN ('journal_transfer_tenant_fk','journal_funding_tenant_fk','ledger_posting_journal_tenant_fk','ledger_posting_account_tenant_fk')
+  AND contype='f' AND convalidated`).Scan(&validatedCompositeForeignKeys); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*)
+FROM pg_proc procedure
+JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
+WHERE namespace.nspname='public'
+  AND procedure.proname IN ('hydrate_journal_semantic_keys','hydrate_posting_tenant_key')
+  AND NOT procedure.prosecdef
+  AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
+  AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&hardenedHydrators); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*) FROM pg_trigger
+WHERE tgname IN ('journal_transactions_semantic_shape','ledger_postings_semantic_shape','transfers_semantic_shape','funding_events_semantic_shape')
+  AND tgconstraint<>0
+  AND (SELECT condeferrable AND condeferred FROM pg_constraint WHERE oid=tgconstraint)`).Scan(&semanticTriggers); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*)
+FROM pg_proc procedure
+JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
+WHERE namespace.nspname='public'
+  AND procedure.proname IN ('validate_ledger_semantic_shape','enforce_ledger_semantic_shape')
+  AND procedure.prosecdef
+  AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
+  AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&hardenedSemanticFunctions); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.QueryRowContext(context.Background(), `
+SELECT count(*)
+FROM pg_proc procedure
+JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
+JOIN pg_roles owner ON owner.oid=procedure.proowner
+WHERE namespace.nspname='public'
+  AND procedure.proname IN ('controlled_submit_transfer_v1','controlled_post_funding_v1','controlled_post_transfer_correction_v1','controlled_provision_account_v1','controlled_request_opening_import_v1','controlled_approve_opening_import_v1','controlled_execute_opening_import_v1','controlled_append_audit_event_v1','controlled_update_account_v1','controlled_ensure_funding_account_v1','controlled_request_funding_v1','controlled_request_funding_compensation_v1','controlled_decide_funding_v1','controlled_request_transfer_correction_v1','controlled_decide_transfer_correction_v1','controlled_rollback_provisioned_tenant_v1')
+  AND procedure.prosecdef
+  AND owner.rolname='ledgersync_migration_owner'
+  AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
+  AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&controlledFinancialFunctions); err != nil {
+		t.Fatal(err)
+	}
+	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 16 || semanticTriggers != 4 {
+		t.Fatalf("ledger validation controls unique=%d validated_fk=%d hardened_hydrators=%d hardened_semantic_functions=%d controlled_financial_functions=%d semantic_triggers=%d", compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, controlledFinancialFunctions, semanticTriggers)
+	}
+}
+
+func TestDirectFinancialDMLDownMigrationRefusesBroadRegrant(t *testing.T) {
+	_, database := requireTransferService(t, 10_000)
+	tx, err := database.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err = tx.ExecContext(context.Background(), readMigrationFile(t, "000038_revoke_direct_financial_dml.down.sql")); sqlState(err) != "55000" {
+		t.Fatalf("financial DML down migration SQLSTATE=%s error=%v, want 55000", sqlState(err), err)
 	}
 }
 
@@ -97,7 +172,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = admin.Close() }()
+	t.Cleanup(func() { _ = admin.Close() })
 	if _, err := admin.Exec(`CREATE DATABASE ` + databaseName); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +185,7 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = upgradeDatabase.Close() }()
+	t.Cleanup(func() { _ = upgradeDatabase.Close() })
 	_, sourceFile, _, _ := runtime.Caller(0)
 	migrationDirectory := filepath.Join(filepath.Dir(sourceFile), "..", "..", "migrations")
 	phaseSeven := fstest.MapFS{}
@@ -138,6 +213,8 @@ func TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite(t *testi
 		"00000000-0000-0000-0000-000000000804",
 		"00000000-0000-0000-0000-000000000805",
 	}
+	legacyTransferID := "00000000-0000-0000-0000-000000000807"
+	legacyJournalID := "00000000-0000-0000-0000-000000000808"
 	createdAt := time.Date(2026, 8, 18, 8, 0, 0, 0, time.UTC)
 	if _, err := upgradeDatabase.Exec(`INSERT INTO tenants(id,external_reference)VALUES($1,'legacy-upgrade')`, legacyTenant); err != nil {
 		t.Fatal(err)
@@ -157,7 +234,7 @@ INSERT INTO account_balance_projections(account_id,available_minor,ledger_minor,
 	}
 	if _, err := upgradeDatabase.Exec(`
 INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)VALUES
-($1,725,$5),($2,10,$5),($3,20,$5),($4,30,$5)`, legacyAccounts[0], legacyAccounts[1], legacyAccounts[2], legacyAccounts[3], createdAt); err != nil {
+($1,730,$5),($2,5,$5),($3,20,$5),($4,30,$5)`, legacyAccounts[0], legacyAccounts[1], legacyAccounts[2], legacyAccounts[3], createdAt); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role)VALUES($1,'upgrade-operator','operator')`, legacyTenant); err != nil {
@@ -166,8 +243,62 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	if _, err := upgradeDatabase.Exec(`INSERT INTO account_owners(tenant_id,account_id,subject_id,permission)VALUES($1,$2,'upgrade-operator','debit')`, legacyTenant, legacyAccounts[0]); err != nil {
 		t.Fatal(err)
 	}
+	legacyLedger, err := upgradeDatabase.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = legacyLedger.Exec(`
+INSERT INTO transfers(id,tenant_id,actor_subject_id,debit_account_id,credit_account_id,amount_minor,currency,status,journal_transaction_id,created_at,completed_at)
+VALUES($1,$2,'upgrade-operator',$3,$4,5,'INR','posted',$5,$6,$6)`, legacyTransferID, legacyTenant, legacyAccounts[0], legacyAccounts[1], legacyJournalID, createdAt); err != nil {
+		_ = legacyLedger.Rollback()
+		t.Fatal(err)
+	}
+	if _, err = legacyLedger.Exec(`INSERT INTO journal_transactions(id,tenant_id,transfer_id,occurred_at) VALUES($1,$2,$3,$4)`, legacyJournalID, legacyTenant, legacyTransferID, createdAt); err != nil {
+		_ = legacyLedger.Rollback()
+		t.Fatal(err)
+	}
+	if _, err = legacyLedger.Exec(`
+INSERT INTO ledger_postings(id,journal_transaction_id,account_id,direction,amount_minor,currency,occurred_at) VALUES
+('00000000-0000-0000-0000-000000000809',$1,$2,'debit',5,'INR',$4),
+('00000000-0000-0000-0000-000000000810',$1,$3,'credit',5,'INR',$4)`, legacyJournalID, legacyAccounts[0], legacyAccounts[1], createdAt); err != nil {
+		_ = legacyLedger.Rollback()
+		t.Fatal(err)
+	}
+	if err = legacyLedger.Commit(); err != nil {
+		t.Fatalf("commit historical ledger shape: %v", err)
+	}
+	const syntheticJournalCount = 5_000
+	seedProductionLikeHistoricalLedger(t, upgradeDatabase, legacyTenant, legacyAccounts[0], legacyAccounts[1], createdAt, syntheticJournalCount)
+	migrationStarted := time.Now()
 	if err := db.ApplyPending(context.Background(), upgradeDatabase, db.MigrationConfig{Source: os.DirFS(migrationDirectory)}); err != nil {
 		t.Fatal(err)
+	}
+	migrationDuration := time.Since(migrationStarted)
+	t.Logf("expanded %d historical journals and %d postings in %s", syntheticJournalCount+1, syntheticJournalCount*2+2, migrationDuration)
+	if migrationDuration > 30*time.Second {
+		t.Fatalf("production-like ledger expansion exceeded the 30s rehearsal budget: %s", migrationDuration)
+	}
+	var sourceType, sourceID, journalTenant string
+	var tenantAwarePostings int
+	if err := upgradeDatabase.QueryRow(`
+SELECT journal.source_type,journal.source_id::text,journal.tenant_id::text,
+       count(posting.id) FILTER (WHERE posting.tenant_id=journal.tenant_id)
+FROM journal_transactions AS journal
+JOIN ledger_postings AS posting ON posting.journal_transaction_id=journal.id
+WHERE journal.id=$1
+GROUP BY journal.id`, legacyJournalID).Scan(&sourceType, &sourceID, &journalTenant, &tenantAwarePostings); err != nil {
+		t.Fatal(err)
+	}
+	if sourceType != "transfer" || sourceID != legacyTransferID || journalTenant != legacyTenant || tenantAwarePostings != 2 {
+		t.Fatalf("historical semantic backfill type=%q source=%q tenant=%q postings=%d", sourceType, sourceID, journalTenant, tenantAwarePostings)
+	}
+	assertNoLedgerSemanticKeyMismatches(t, upgradeDatabase)
+	var expandedJournals, expandedPostings int
+	if err := upgradeDatabase.QueryRow(`SELECT journal_row_count,posting_row_count FROM ledger_semantic_key_validation`).Scan(&expandedJournals, &expandedPostings); err != nil {
+		t.Fatal(err)
+	}
+	if expandedJournals != syntheticJournalCount+1 || expandedPostings != syntheticJournalCount*2+2 {
+		t.Fatalf("expanded row coverage journals=%d postings=%d", expandedJournals, expandedPostings)
 	}
 	rolesSQL, err := os.ReadFile(filepath.Join(filepath.Dir(sourceFile), "..", "..", "deploy", "postgres", "roles.sql"))
 	if err != nil {
@@ -176,6 +307,14 @@ INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at)
 	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
 		t.Fatalf("apply post-upgrade database roles: %v", err)
 	}
+	verifyDatabaseRoleCapabilities(
+		t,
+		upgradeDatabase,
+		parsed.String(),
+		"supported-upgrade",
+		"00000000-0000-4000-8000-000000000806",
+		legacyTenant,
+	)
 	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
@@ -233,21 +372,7 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		t.Fatal(err)
 	}
 
-	loginRole := fmt.Sprintf("ledgersync_upgrade_api_%d", time.Now().UnixNano())
-	const loginPassword = "phase1_upgrade_test"
-	if _, err := upgradeDatabase.Exec(`CREATE ROLE ` + loginRole + ` LOGIN PASSWORD '` + loginPassword + `'`); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := upgradeDatabase.Exec(`GRANT ledgersync_api TO ` + loginRole); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _, _ = admin.Exec(`DROP ROLE IF EXISTS ` + loginRole) })
-	limitedURL := *parsed
-	limitedURL.User = url.UserPassword(loginRole, loginPassword)
-	limitedDatabase, err := db.OpenPool(context.Background(), db.PoolConfig{DriverName: "pgx", DSN: limitedURL.String()})
-	if err != nil {
-		t.Fatal(err)
-	}
+	limitedDatabase := provisionWorkloadSession(t, upgradeDatabase, parsed.String(), "ledgersync_api").db
 	commandRepository, err := db.NewAccountCommandRepository(limitedDatabase, func() time.Time { return createdAt.Add(time.Hour) })
 	if err != nil {
 		t.Fatal(err)
@@ -264,6 +389,15 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		_ = limitedDatabase.Close()
 		t.Fatalf("account command with migrated API grants: %v", err)
 	}
+	updated, err := commandService.UpdateMetadata(context.Background(), accountapp.UpdateAccountMetadataCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", CorrelationID: "00000000-0000-0000-0000-000000000894",
+		IdempotencyKey: "upgrade-role-account-update", AccountID: created.Result.AccountID, ExpectedVersion: 1,
+		DisplayName: "Upgrade-created account updated", Reference: "upgrade-created-updated", Category: "operating",
+	})
+	if err != nil || updated.Result.Version != "2" {
+		_ = limitedDatabase.Close()
+		t.Fatalf("account update through controlled capability: result=%#v error=%v", updated, err)
+	}
 	reconciliationRepository, err := db.NewReconciliationRepository(limitedDatabase)
 	if err != nil {
 		t.Fatal(err)
@@ -279,7 +413,7 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		_ = limitedDatabase.Close()
 		t.Fatalf("reconciliation command with migrated API grants: result=%#v error=%v", reconciled, err)
 	}
-	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1`, created.Result.AccountID) != 1 {
+	if created.Result.AvailableMinor != "0" || created.Result.LedgerMinor != "0" || countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE id=$1 AND version=2`, created.Result.AccountID) != 1 {
 		t.Fatalf("limited-role account create result=%#v", created.Result)
 	}
 	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'upgrade-operator','finance')`, legacyTenant); err != nil {
@@ -323,6 +457,43 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND account_kind='funding_clearing' AND category='system'`, legacyTenant) != 1 {
 		t.Fatalf("fresh migrated funding journal=%#v error=%v", postedFunding, err)
 	}
+	compensation, err := fundingService.Compensate(context.Background(), fundingapp.CompensationCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
+		ReasonCode: "upgrade_reversal", OperatorNote: "verify controlled upgrade compensation",
+		IdempotencyKey: "migration-funding-compensation-0001", CorrelationID: "00000000-0000-0000-0000-000000000893",
+	})
+	if err != nil || compensation.Event.Status != "requested" {
+		t.Fatalf("controlled funding compensation request=%#v error=%v", compensation, err)
+	}
+	approvedCompensation, err := fundingService.Approve(context.Background(), fundingapp.DecisionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: compensation.Event.FundingEventID,
+		Reason: "verified upgrade compensation", CorrelationID: "00000000-0000-0000-0000-000000000892",
+	})
+	if err != nil || approvedCompensation.Status != "approved" {
+		t.Fatalf("controlled funding compensation approval=%#v error=%v", approvedCompensation, err)
+	}
+	postedCompensation, err := fundingService.Post(context.Background(), fundingapp.ActionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: compensation.Event.FundingEventID,
+		IdempotencyKey: "migration-funding-compensation-post-0001", CorrelationID: "00000000-0000-0000-0000-000000000891",
+	})
+	if err != nil || postedCompensation.Event.Status != "posted" {
+		t.Fatalf("controlled funding compensation post=%#v error=%v", postedCompensation, err)
+	}
+	rejectedRequest, err := fundingService.Request(context.Background(), fundingapp.RequestCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", DestinationAccountID: created.Result.AccountID, Amount: fundingAmount,
+		ExternalReference: "upgrade-funding-rejection", EvidenceReference: "customer-evidence://upgrade/rejection",
+		IdempotencyKey: "upgrade-role-funding-reject-0001", CorrelationID: "00000000-0000-0000-0000-000000000890",
+	})
+	if err != nil {
+		t.Fatalf("controlled funding rejection request: %v", err)
+	}
+	rejectedFunding, err := fundingService.Reject(context.Background(), fundingapp.DecisionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: rejectedRequest.Event.FundingEventID,
+		Reason: "reject upgrade evidence", CorrelationID: "00000000-0000-0000-0000-000000000889",
+	})
+	if err != nil || rejectedFunding.Status != "rejected" {
+		t.Fatalf("controlled funding rejection=%#v error=%v", rejectedFunding, err)
+	}
 	if err := seedTransferFixture(context.Background(), upgradeDatabase, 10_000); err != nil {
 		t.Fatalf("seed limited-role transfer fixture: %v", err)
 	}
@@ -347,6 +518,86 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM journal_transactions WHERE transfer_id=$1`, firstTransfer.Result.TransferID) != 1 ||
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.transfer_id=$1`, firstTransfer.Result.TransferID) != 2 {
 		t.Fatalf("limited-role transfer/replay did not commit exactly one balanced movement: first=%#v replay=%#v", firstTransfer, replayedTransfer)
+	}
+	const correctionApprover = "upgrade-correction-finance"
+	if _, err := upgradeDatabase.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,$2,'finance')`, testTenantID, correctionApprover); err != nil {
+		t.Fatal(err)
+	}
+	correctionRepository, err := db.NewTransferCorrectionRepository(limitedDatabase, func() time.Time { return createdAt.Add(5 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	correctionService, err := correctionsapp.NewService(correctionRepository, func() time.Time { return createdAt.Add(5 * time.Hour) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	correctionRequest, err := correctionService.Request(context.Background(), correctionsapp.RequestCommand{
+		TenantID: testTenantID, ActorSubjectID: testActorID, OriginalTransferID: firstTransfer.Result.TransferID,
+		ReasonCode: "operational_error", OperatorNote: "Verify controlled correction lifecycle after upgrade.",
+		IdempotencyKey: "upgrade-role-correction-request-0001", CorrelationID: "00000000-0000-0000-0000-000000000888",
+		StepUpAuthenticatedAt: createdAt.Add(5 * time.Hour),
+	})
+	if err != nil || correctionRequest.Replayed || correctionRequest.Event.Status != "requested" {
+		t.Fatalf("controlled correction request through API role=%#v error=%v", correctionRequest, err)
+	}
+	approvedCorrection, err := correctionService.Approve(context.Background(), correctionsapp.DecisionCommand{
+		TenantID: testTenantID, ActorSubjectID: correctionApprover, CorrectionID: correctionRequest.Event.CorrectionID,
+		Reason: "Upgrade correction evidence reviewed.", CorrelationID: "00000000-0000-0000-0000-000000000887",
+		StepUpAuthenticatedAt: createdAt.Add(5 * time.Hour),
+	})
+	if err != nil || approvedCorrection.Status != "approved" {
+		t.Fatalf("controlled correction approval through API role=%#v error=%v", approvedCorrection, err)
+	}
+	postedCorrection, err := correctionService.Post(context.Background(), correctionsapp.PostCommand{
+		TenantID: testTenantID, ActorSubjectID: correctionApprover, CorrectionID: correctionRequest.Event.CorrectionID,
+		IdempotencyKey: "upgrade-role-correction-post-0001", CorrelationID: "00000000-0000-0000-0000-000000000886",
+		StepUpAuthenticatedAt: createdAt.Add(5 * time.Hour),
+	})
+	if err != nil || postedCorrection.Replayed || postedCorrection.Event.Status != "posted" ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM transfers WHERE compensation_of_transfer_id=$1 AND status='posted'`, firstTransfer.Result.TransferID) != 1 ||
+		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM approval_records WHERE tenant_id=$1 AND target_id=$2 AND status='approved'`, testTenantID, correctionRequest.Event.CorrectionID) != 1 {
+		t.Fatalf("controlled correction posting through API role=%#v error=%v", postedCorrection, err)
+	}
+	rejectOriginal, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-reject-0001", "2.00"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rejectRequest, err := correctionService.Request(context.Background(), correctionsapp.RequestCommand{
+		TenantID: testTenantID, ActorSubjectID: testActorID, OriginalTransferID: rejectOriginal.Result.TransferID,
+		ReasonCode: "customer_request", OperatorNote: "Verify controlled correction rejection after upgrade.",
+		IdempotencyKey: "upgrade-role-correction-reject-0001", CorrelationID: "00000000-0000-0000-0000-000000000885",
+		StepUpAuthenticatedAt: createdAt.Add(5 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rejectedCorrection, err := correctionService.Reject(context.Background(), correctionsapp.DecisionCommand{
+		TenantID: testTenantID, ActorSubjectID: correctionApprover, CorrectionID: rejectRequest.Event.CorrectionID,
+		Reason: "Correction evidence did not support reversal.", CorrelationID: "00000000-0000-0000-0000-000000000884",
+		StepUpAuthenticatedAt: createdAt.Add(5 * time.Hour),
+	})
+	if err != nil || rejectedCorrection.Status != "rejected" {
+		t.Fatalf("controlled correction rejection through API role=%#v error=%v", rejectedCorrection, err)
+	}
+	cancelOriginal, err := transferService.Submit(context.Background(), transferCommand(t, "upgrade-role-transfer-cancel-0001", "2.00"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancelRequest, err := correctionService.Request(context.Background(), correctionsapp.RequestCommand{
+		TenantID: testTenantID, ActorSubjectID: testActorID, OriginalTransferID: cancelOriginal.Result.TransferID,
+		ReasonCode: "customer_request", OperatorNote: "Verify controlled correction cancellation after upgrade.",
+		IdempotencyKey: "upgrade-role-correction-cancel-0001", CorrelationID: "00000000-0000-0000-0000-000000000883",
+		StepUpAuthenticatedAt: createdAt.Add(5 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancelledCorrection, err := correctionService.Cancel(context.Background(), correctionsapp.CancelCommand{
+		TenantID: testTenantID, ActorSubjectID: testActorID, CorrectionID: cancelRequest.Event.CorrectionID,
+		Reason: "Requester withdrew the correction.", CorrelationID: "00000000-0000-0000-0000-000000000882",
+	})
+	if err != nil || cancelledCorrection.Status != "cancelled" {
+		t.Fatalf("controlled correction cancellation through API role=%#v error=%v", cancelledCorrection, err)
 	}
 	if err := limitedDatabase.Close(); err != nil {
 		t.Fatal(err)

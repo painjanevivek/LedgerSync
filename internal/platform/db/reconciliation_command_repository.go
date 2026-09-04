@@ -246,7 +246,11 @@ func persistReconciliationRequest(ctx context.Context, tx *sql.Tx, command recon
 		return err
 	}
 	metadata, _ := json.Marshal(map[string]string{"operation": reconciliation.RunOperation, "scope": reconciliationScope})
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.requested','reconciliation_run',$4,'allowed',$5,$6,$7)`, id, command.TenantID, command.ActorSubjectID, runID, command.CorrelationID, metadata, command.OccurredAt)
+	err = appendControlledAuditPayload(ctx, tx, id, AuditEvent{
+		TenantID: command.TenantID, ActorSubjectID: command.ActorSubjectID,
+		EventType: "reconciliation.requested", TargetType: "reconciliation_run", TargetID: runID,
+		Outcome: "allowed", CorrelationID: command.CorrelationID, OccurredAt: command.OccurredAt,
+	}, metadata)
 	if err != nil {
 		return fmt.Errorf("persist reconciliation request audit: %w", err)
 	}
@@ -259,7 +263,11 @@ func persistReconciliationDenial(ctx context.Context, tx *sql.Tx, command reconc
 		return err
 	}
 	metadata, _ := json.Marshal(map[string]string{"operation": reconciliation.RunOperation, "denial_code": code, "scope": reconciliationScope})
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.command_denied','reconciliation_run',$4,'denied',$5,$6,$7)`, id, command.TenantID, command.ActorSubjectID, activeRunID, command.CorrelationID, metadata, command.OccurredAt)
+	err = appendControlledAuditPayload(ctx, tx, id, AuditEvent{
+		TenantID: command.TenantID, ActorSubjectID: command.ActorSubjectID,
+		EventType: "reconciliation.command_denied", TargetType: "reconciliation_run", TargetID: activeRunID,
+		Outcome: "denied", CorrelationID: command.CorrelationID, OccurredAt: command.OccurredAt,
+	}, metadata)
 	if err != nil {
 		return fmt.Errorf("persist reconciliation denial audit: %w", err)
 	}

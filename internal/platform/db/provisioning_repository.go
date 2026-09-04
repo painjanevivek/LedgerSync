@@ -81,39 +81,21 @@ func (r *ProvisioningRepository) Apply(ctx context.Context, configuration provis
 		}
 	}
 	for _, account := range configuration.Accounts {
-		opening, _ := strconv.ParseInt(account.OpeningMinor, 10, 64)
-		if opening < 0 {
-			return errors.New("opening balance cannot be negative")
-		}
 		reference := strings.TrimSpace(account.ExternalReference)
 		if reference == "" {
 			reference = "provisioned-" + strings.ToLower(account.ID)
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO accounts(id,tenant_id,currency,status,display_name,category,external_reference)VALUES($1,$2,$3,'active',$4,$5,$6)`, account.ID, configuration.TenantID, configuration.Currency, account.DisplayName, account.Category, reference); err != nil {
-			return err
+		var replayed, conflicted bool
+		if err = tx.QueryRowContext(ctx, `
+SELECT replayed,conflicted FROM public.controlled_provision_account_v1(
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+)`, configuration.TenantID, actor, account.ID, configuration.Currency,
+			account.DisplayName, account.Category, reference, account.ReadSubjects,
+			account.DebitSubjects, account.CreditSubjects, correlation, r.clock().UTC()).Scan(&replayed, &conflicted); err != nil {
+			return fmt.Errorf("provision zero-opening account: %w", err)
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO account_balance_projections(account_id,available_minor,ledger_minor,balance_version)VALUES($1,$2,$2,0)`, account.ID, opening); err != nil {
-			return err
-		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO account_opening_balances(account_id,opening_ledger_minor)VALUES($1,$2)`, account.ID, opening); err != nil {
-			return err
-		}
-		permissions := map[string]string{}
-		for _, id := range account.ReadSubjects {
-			permissions[id] = "read"
-		}
-		for _, id := range account.DebitSubjects {
-			permissions[id] = "debit"
-		}
-		for id, permission := range permissions {
-			if _, err = tx.ExecContext(ctx, `INSERT INTO account_owners(tenant_id,account_id,subject_id,permission)VALUES($1,$2,$3,$4)`, configuration.TenantID, account.ID, id, permission); err != nil {
-				return err
-			}
-		}
-		for _, id := range account.CreditSubjects {
-			if _, err = tx.ExecContext(ctx, `INSERT INTO account_credit_permissions(tenant_id,account_id,subject_id)VALUES($1,$2,$3)`, configuration.TenantID, account.ID, id); err != nil {
-				return err
-			}
+		if replayed || conflicted {
+			return errors.New("account provisioning unexpectedly replayed inside a new configuration")
 		}
 	}
 	requestID, err := newUUID()
@@ -125,7 +107,13 @@ func (r *ProvisioningRepository) Apply(ctx context.Context, configuration provis
 	if _, err = tx.ExecContext(ctx, `INSERT INTO partner_provisioning_requests(id,tenant_id,actor_subject_id,correlation_id,configuration_fingerprint,status,currency,account_count,sanitized_details,created_at)VALUES($1,$2,$3,$4,$5,'applied',$6,$7,$8,$9)`, requestID, configuration.TenantID, actor, correlation, fingerprint[:], configuration.Currency, len(configuration.Accounts), details, now); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'partner.provisioned','tenant',$7,'succeeded',$4,$5,$6)`, requestID, configuration.TenantID, actor, correlation, details, now, configuration.TenantID); err != nil {
+	if err = appendControlledAudit(ctx, tx, requestID, AuditEvent{
+		TenantID: configuration.TenantID, ActorSubjectID: actor,
+		EventType: "partner.provisioned", TargetType: "tenant", TargetID: configuration.TenantID,
+		Outcome: "succeeded", CorrelationID: correlation,
+		Metadata:   map[string]string{"external_reference": configuration.ExternalReference, "subject_count": strconv.Itoa(len(configuration.Subjects))},
+		OccurredAt: now,
+	}); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -150,16 +138,19 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 	var fingerprint []byte
 	var currency string
 	var accountCount int
-	err = tx.QueryRowContext(ctx, `SELECT configuration_fingerprint,currency,account_count FROM partner_provisioning_requests WHERE tenant_id=$1 AND correlation_id=$2 AND status='applied' FOR UPDATE`, tenantID, correlation).Scan(&fingerprint, &currency, &accountCount)
+	err = tx.QueryRowContext(ctx, `SELECT configuration_fingerprint,currency,account_count FROM partner_provisioning_requests WHERE tenant_id=$1 AND correlation_id=$2 AND status='applied'`, tenantID, correlation).Scan(&fingerprint, &currency, &accountCount)
 	if err != nil {
 		return err
 	}
-	var transfers int
-	if err = tx.QueryRowContext(ctx, `SELECT count(*) FROM transfers WHERE tenant_id=$1`, tenantID).Scan(&transfers); err != nil {
+	var financialHistory bool
+	if err = tx.QueryRowContext(ctx, `
+SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1)
+    OR EXISTS(SELECT 1 FROM funding_events WHERE tenant_id=$1 AND status IN ('posted','compensated'))
+    OR EXISTS(SELECT 1 FROM opening_import_executions WHERE tenant_id=$1)`, tenantID).Scan(&financialHistory); err != nil {
 		return err
 	}
-	if transfers > 0 {
-		return errors.New("tenant with transfer history cannot be rolled back")
+	if financialHistory {
+		return errors.New("tenant with financial history cannot be rolled back")
 	}
 	now := r.clock().UTC()
 	credentialRows, err := tx.QueryContext(ctx, `SELECT credential_reference,audience,array_to_json(scopes)::text,expires_at FROM partner_credential_events WHERE tenant_id=$1 AND action='registered' AND NOT EXISTS(SELECT 1 FROM partner_credential_events revoked WHERE revoked.tenant_id=partner_credential_events.tenant_id AND revoked.credential_reference=partner_credential_events.credential_reference AND revoked.action='revoked') FOR UPDATE`, tenantID)
@@ -197,17 +188,12 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 			return fmt.Errorf("revoke external credential reference: %w", err)
 		}
 	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM account_credit_permissions WHERE tenant_id=$1`, tenantID); err != nil {
+	var rolledBack bool
+	if err = tx.QueryRowContext(ctx, `SELECT public.controlled_rollback_provisioned_tenant_v1($1,$2,$3,$4)`, tenantID, actor, correlation, now).Scan(&rolledBack); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM account_owners WHERE tenant_id=$1`, tenantID); err != nil {
-		return err
-	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM tenant_subject_roles WHERE tenant_id=$1`, tenantID); err != nil {
-		return err
-	}
-	if _, err = tx.ExecContext(ctx, `UPDATE accounts SET status='closed',closed_at=$2 WHERE tenant_id=$1 AND status<>'closed'`, tenantID, now); err != nil {
-		return err
+	if !rolledBack {
+		return errors.New("controlled provisioning rollback did not complete")
 	}
 	id, err := newUUID()
 	if err != nil {
@@ -217,7 +203,12 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 	if _, err = tx.ExecContext(ctx, `INSERT INTO partner_provisioning_requests(id,tenant_id,actor_subject_id,correlation_id,configuration_fingerprint,status,currency,account_count,sanitized_details,created_at)VALUES($1,$2,$3,$4,$5,'rolled_back',$6,$7,$8,$9)`, id, tenantID, actor, correlation, fingerprint, currency, accountCount, details, now); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at)VALUES($1,$2,$3,'partner.provisioning_rolled_back','tenant',$7,'succeeded',$4,$5,$6)`, id, tenantID, actor, correlation, details, now, tenantID); err != nil {
+	if err = appendControlledAudit(ctx, tx, id, AuditEvent{
+		TenantID: tenantID, ActorSubjectID: actor,
+		EventType: "partner.provisioning_rolled_back", TargetType: "tenant", TargetID: tenantID,
+		Outcome: "succeeded", CorrelationID: correlation,
+		Metadata: map[string]string{"rollback": "no_financial_activity"}, OccurredAt: now,
+	}); err != nil {
 		return err
 	}
 	return tx.Commit()

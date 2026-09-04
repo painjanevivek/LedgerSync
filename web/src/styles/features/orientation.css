@@ -3,11 +3,22 @@
 /* The operator journey is a ledger trail: ordered, evidence-labelled and resumable. */
 .local-orientation {
   display: grid;
+  min-width: 0;
   width: min(1080px, 100%);
   margin: 0 0 24px;
   border: 1px solid var(--line-strong);
   border-top: 3px solid var(--green);
   background: var(--paper);
+}
+.local-orientation > *,
+.recommended-action > div,
+.orientation-checklist-disclosed details,
+.orientation-step-detail,
+.local-orientation > footer > div,
+.orientation-footer-actions,
+.orientation-definitions dl,
+.orientation-definitions dl > div {
+  min-width: 0;
 }
 .local-orientation > header {
   display: grid;
@@ -194,6 +205,51 @@
 .orientation-confirm:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+.orientation-checklist-disclosed > li {
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+.orientation-checklist-disclosed details > summary {
+  display: grid;
+  grid-template-columns: 30px 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 22px;
+  cursor: pointer;
+}
+.orientation-checklist-disclosed details > summary > span:nth-child(3) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.orientation-checklist-disclosed .orientation-step-detail {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 0 22px 18px 92px;
+}
+.orientation-checklist-disclosed > li.completed summary {
+  background: var(--paper-subtle);
+}
+
+@media (max-width: 640px) {
+  .orientation-checklist-disclosed details > summary {
+    grid-template-columns: 24px 28px minmax(0, 1fr);
+    padding-inline: 14px;
+  }
+  .orientation-checklist-disclosed details > summary .status-badge {
+    grid-column: 3;
+    justify-self: start;
+  }
+  .orientation-checklist-disclosed .orientation-step-detail {
+    padding: 0 14px 16px 66px;
+  }
+  .orientation-checklist-disclosed .orientation-step-actions {
+    grid-column: auto;
+  }
 }
 .orientation-state {
   display: grid;

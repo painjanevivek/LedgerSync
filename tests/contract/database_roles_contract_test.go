@@ -28,11 +28,27 @@ func TestDatabaseRoleContractKeepsSupportReadOnlyAndBreakGlassGrantless(t *testi
 			t.Errorf("API investigation/rate-limit contract omits %s", table)
 		}
 	}
+	for _, marker := range []string{
+		"controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz)",
+		"controlled_post_funding_v1(uuid,text,uuid,text,uuid,timestamptz)",
+		"controlled_post_transfer_correction_v1(uuid,text,uuid,text,uuid,timestamptz,timestamptz)",
+		"controlled_provision_account_v1(uuid,text,uuid,text,text,text,text,text[],text[],text[],uuid,timestamptz)",
+		"controlled_request_opening_import_v1(uuid,text,uuid,text,uuid[],bigint[],bytea,uuid,timestamptz)",
+		"controlled_approve_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz)",
+		"controlled_execute_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz)",
+		"OWNER TO ledgersync_migration_owner",
+		"GRANT EXECUTE ON FUNCTION",
+	} {
+		if !strings.Contains(contract, marker) {
+			t.Errorf("controlled financial function grant is missing %q", marker)
+		}
+	}
 }
 
 func TestLocalComposeUsesSeparateLeastPrivilegeWorkloadLogins(t *testing.T) {
 	root := repositoryRoot(t)
 	compose := readContractFile(t, filepath.Join(root, "deploy", "compose", "docker-compose.yml"))
+	compose = strings.ReplaceAll(compose, "\r\n", "\n")
 	logins := readContractFile(t, filepath.Join(root, "deploy", "postgres", "local-workload-logins.sql"))
 	dockerfile := readContractFile(t, filepath.Join(root, "deploy", "docker", "api.Dockerfile"))
 	runtime := readContractFile(t, filepath.Join(root, "scripts", "local-runtime-common.ps1"))

@@ -80,8 +80,8 @@ WITH posting_totals AS (
     SUM(CASE WHEN p.direction='credit' THEN p.amount_minor::numeric ELSE -p.amount_minor::numeric END) AS posted_delta,
     count(*) AS posting_count
   FROM ledger_postings p
-  JOIN accounts pa ON pa.id=p.account_id
-  WHERE pa.tenant_id=$1
+  JOIN accounts pa ON pa.id=p.account_id AND pa.tenant_id=p.tenant_id
+  WHERE p.tenant_id=$1
   GROUP BY p.account_id
 )
 SELECT a.id::text,a.currency,
@@ -163,7 +163,11 @@ ORDER BY a.id`, tenantID)
 	if err != nil {
 		return reconciliation.Result{}, err
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.completed','reconciliation_run',$4,$5,$6,$7,$8)`, auditID, tenantID, nullableString(actorID), runID, outcome, correlationID, auditDetails, completedAt); err != nil {
+	if err := appendControlledAuditPayload(ctx, tx, auditID, AuditEvent{
+		TenantID: tenantID, ActorSubjectID: actorID, EventType: "reconciliation.completed",
+		TargetType: "reconciliation_run", TargetID: runID, Outcome: outcome,
+		CorrelationID: correlationID, OccurredAt: completedAt,
+	}, auditDetails); err != nil {
 		return reconciliation.Result{}, fmt.Errorf("persist reconciliation audit: %w", err)
 	}
 	return reconciliation.Result{ID: runID, TenantID: tenantID, CorrelationID: correlationID, Scope: reconciliationScope, LedgerWatermark: watermark, ApplicationVersion: applicationVersion, SchemaVersion: schemaVersion, Status: status, CheckedAccountCount: checked, PostingCount: postingCount, MismatchCount: len(mismatches), StartedAt: startedAt, CompletedAt: completedAt}, nil
@@ -226,8 +230,8 @@ func findIncompleteTransfers(ctx context.Context, tx *sql.Tx, tenantID string) (
 SELECT t.id::text,COALESCE(t.journal_transaction_id::text,''),count(p.id),
   COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amount_minor::numeric ELSE -p.amount_minor::numeric END),0)::text
 FROM transfers t
-LEFT JOIN journal_transactions j ON j.id=t.journal_transaction_id
-LEFT JOIN ledger_postings p ON p.journal_transaction_id=j.id
+LEFT JOIN journal_transactions j ON j.id=t.journal_transaction_id AND j.tenant_id=t.tenant_id
+LEFT JOIN ledger_postings p ON p.journal_transaction_id=j.id AND p.tenant_id=j.tenant_id
 WHERE t.tenant_id=$1 AND t.status='posted'
 GROUP BY t.id,t.journal_transaction_id
 HAVING count(p.id)<2 OR COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amount_minor::numeric ELSE -p.amount_minor::numeric END),0)<>0`, tenantID)

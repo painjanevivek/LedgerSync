@@ -8,6 +8,7 @@ import (
 	"time"
 
 	developerplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/developerplatform"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -117,7 +118,11 @@ func (h *DeveloperWebhookHandler) Get(w http.ResponseWriter, r *http.Request) {
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	item, err := h.service.Get(r.Context(), p.TenantID, r.PathValue("webhookId"))
+	webhookID, ok := requireCanonicalIdentifier(w, r, identifier.KindWebhook, r.PathValue("webhookId"))
+	if !ok {
+		return
+	}
+	item, err := h.service.Get(r.Context(), p.TenantID, webhookID)
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
@@ -126,6 +131,10 @@ func (h *DeveloperWebhookHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 func (h *DeveloperWebhookHandler) Rotate(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.authorize(w, r, "webhooks:write", "webhooks:rotate", true)
+	if !ok {
+		return
+	}
+	webhookID, ok := requireCanonicalIdentifier(w, r, identifier.KindWebhook, r.PathValue("webhookId"))
 	if !ok {
 		return
 	}
@@ -139,11 +148,15 @@ func (h *DeveloperWebhookHandler) Rotate(w http.ResponseWriter, r *http.Request)
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	submission, err := h.service.Rotate(r.Context(), developerplatform.RotateWebhookCommand{TenantID: p.TenantID, ActorSubjectID: p.SubjectID, CorrelationID: middleware.CorrelationID(r.Context()), IdempotencyKey: r.Header.Get("Idempotency-Key"), WebhookID: r.PathValue("webhookId"), ExpectedVersion: version, SigningKeyReference: input.SigningKeyReference, SigningKeyID: input.SigningKeyID})
+	submission, err := h.service.Rotate(r.Context(), developerplatform.RotateWebhookCommand{TenantID: p.TenantID, ActorSubjectID: p.SubjectID, CorrelationID: middleware.CorrelationID(r.Context()), IdempotencyKey: r.Header.Get("Idempotency-Key"), WebhookID: webhookID, ExpectedVersion: version, SigningKeyReference: input.SigningKeyReference, SigningKeyID: input.SigningKeyID})
 	h.writeSubmission(w, r, submission, err)
 }
 func (h *DeveloperWebhookHandler) Disable(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.authorize(w, r, "webhooks:write", "webhooks:disable", true)
+	if !ok {
+		return
+	}
+	webhookID, ok := requireCanonicalIdentifier(w, r, identifier.KindWebhook, r.PathValue("webhookId"))
 	if !ok {
 		return
 	}
@@ -157,11 +170,15 @@ func (h *DeveloperWebhookHandler) Disable(w http.ResponseWriter, r *http.Request
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	submission, err := h.service.Disable(r.Context(), developerplatform.DisableWebhookCommand{TenantID: p.TenantID, ActorSubjectID: p.SubjectID, CorrelationID: middleware.CorrelationID(r.Context()), IdempotencyKey: r.Header.Get("Idempotency-Key"), WebhookID: r.PathValue("webhookId"), ExpectedVersion: version, Reason: input.Reason})
+	submission, err := h.service.Disable(r.Context(), developerplatform.DisableWebhookCommand{TenantID: p.TenantID, ActorSubjectID: p.SubjectID, CorrelationID: middleware.CorrelationID(r.Context()), IdempotencyKey: r.Header.Get("Idempotency-Key"), WebhookID: webhookID, ExpectedVersion: version, Reason: input.Reason})
 	h.writeSubmission(w, r, submission, err)
 }
 func (h *DeveloperWebhookHandler) Deliveries(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.authorize(w, r, "webhooks:read", "webhooks:deliveries", false)
+	if !ok {
+		return
+	}
+	webhookID, ok := requireCanonicalIdentifier(w, r, identifier.KindWebhook, r.PathValue("webhookId"))
 	if !ok {
 		return
 	}
@@ -173,7 +190,7 @@ func (h *DeveloperWebhookHandler) Deliveries(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	page, err := h.service.Deliveries(r.Context(), p.TenantID, r.PathValue("webhookId"), developerplatform.DeliveryQuery{Status: r.URL.Query().Get("status"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
+	page, err := h.service.Deliveries(r.Context(), p.TenantID, webhookID, developerplatform.DeliveryQuery{Status: r.URL.Query().Get("status"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
@@ -185,12 +202,17 @@ func (h *DeveloperWebhookHandler) ApproveReplay(w http.ResponseWriter, r *http.R
 	if !ok {
 		return
 	}
+	webhookID, webhookOK := requireCanonicalIdentifier(w, r, identifier.KindWebhook, r.PathValue("webhookId"))
+	attemptID, attemptOK := requireCanonicalIdentifier(w, r, identifier.KindDelivery, r.PathValue("attemptId"))
+	if !webhookOK || !attemptOK {
+		return
+	}
 	var input webhookReplayApprovalRequest
 	if decodeDeveloperCredentialJSON(w, r, &input) != nil {
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	result, err := h.service.ApproveReplay(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), p.SubjectID, input.ReasonCode, middleware.CorrelationID(r.Context()), r.Header.Get("Idempotency-Key"))
+	result, err := h.service.ApproveReplay(r.Context(), p.TenantID, webhookID, attemptID, p.SubjectID, input.ReasonCode, middleware.CorrelationID(r.Context()), r.Header.Get("Idempotency-Key"))
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
@@ -205,6 +227,11 @@ func (h *DeveloperWebhookHandler) Replay(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
+	webhookID, webhookOK := requireCanonicalIdentifier(w, r, identifier.KindWebhook, r.PathValue("webhookId"))
+	attemptID, attemptOK := requireCanonicalIdentifier(w, r, identifier.KindDelivery, r.PathValue("attemptId"))
+	if !webhookOK || !attemptOK {
+		return
+	}
 	if r.URL.RawQuery != "" || r.Body == nil {
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
@@ -214,7 +241,11 @@ func (h *DeveloperWebhookHandler) Replay(w http.ResponseWriter, r *http.Request)
 		httptransport.WriteError(w, r, httptransport.ErrBadRequest)
 		return
 	}
-	result, err := h.service.ReplayDelivery(r.Context(), p.TenantID, r.PathValue("webhookId"), r.PathValue("attemptId"), input.ApprovalID, p.SubjectID, middleware.CorrelationID(r.Context()), r.Header.Get("Idempotency-Key"))
+	approvalID, ok := requireCanonicalIdentifier(w, r, identifier.KindDelivery, input.ApprovalID)
+	if !ok {
+		return
+	}
+	result, err := h.service.ReplayDelivery(r.Context(), p.TenantID, webhookID, attemptID, approvalID, p.SubjectID, middleware.CorrelationID(r.Context()), r.Header.Get("Idempotency-Key"))
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return

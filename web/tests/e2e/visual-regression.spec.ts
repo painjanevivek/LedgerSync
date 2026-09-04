@@ -59,7 +59,7 @@ for (const route of populatedRoutes) {
     await mockOperatorConsole(page);
     await page.goto(route.path);
     await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Search records" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
     await capture(page, route.name);
   });
 }
@@ -248,6 +248,7 @@ test("account lifecycle guard has a Windows local-console baseline", async ({ pa
   await mockOperatorConsole(page);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
   await expect(page.getByText(/Balance details verified/u)).toBeVisible();
+  await page.getByText("Related evidence", { exact: true }).click();
   await expect(page.getByText(/2 explicit relationships/u)).toBeVisible();
   await page.getByRole("button", { name: "Freeze account" }).click();
   await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");

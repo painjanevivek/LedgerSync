@@ -211,8 +211,11 @@ func insertSavedViewAudit(ctx context.Context, tx *sql.Tx, auditID, tenantID, ac
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'investigation_saved_view',$5,'succeeded',$6,$7,$8)`, auditID, tenantID, actorID, eventType, viewID, correlationID, metadata, occurredAt)
-	return err
+	return appendControlledAuditPayload(ctx, tx, auditID, AuditEvent{
+		TenantID: tenantID, ActorSubjectID: actorID, EventType: eventType,
+		TargetType: "investigation_saved_view", TargetID: viewID, Outcome: "succeeded",
+		CorrelationID: correlationID, OccurredAt: occurredAt,
+	}, metadata)
 }
 
 func savedViewTime(value time.Time) time.Time {

@@ -13,6 +13,8 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 )
 
+const unauthorizedBalanceAccountID = "10000000-0000-4000-8000-000000000099"
+
 func TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -23,7 +25,7 @@ func TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache(t *test
 			name: "warm cache",
 			entry: accounts.Balance{
 				TenantID:       "tenant-a",
-				AccountID:      "account-owned-by-another-actor",
+				AccountID:      unauthorizedBalanceAccountID,
 				Currency:       "INR",
 				AvailableMinor: 900_00,
 				LedgerMinor:    900_00,
@@ -43,7 +45,7 @@ func TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache(t *test
 				t.Fatal(err)
 			}
 			handler := NewBalanceHandler(reader, balanceAuthorizationProvider{})
-			request := httptest.NewRequest(http.MethodGet, "/api/accounts/account-owned-by-another-actor/balance", nil)
+			request := httptest.NewRequest(http.MethodGet, "/api/accounts/"+unauthorizedBalanceAccountID+"/balance", nil)
 			request.Header.Set("Authorization", "Bearer valid-least-privileged-token")
 			response := httptest.NewRecorder()
 
