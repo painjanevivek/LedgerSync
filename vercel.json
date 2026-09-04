@@ -1,6 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "node --version",
-  "buildCommand": "node deploy/vercel/reject-root-deployment.mjs"
+  "framework": "go",
+  "buildCommand": "go build -o server ./cmd/api",
+  "crons": [
+    {
+      "path": "/internal/cron/drain",
+      "schedule": "* * * * *"
+    }
+  ]
 }

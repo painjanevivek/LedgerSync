@@ -18,13 +18,15 @@ const rootConfig = await readJSON("vercel.json");
 const webConfig = await readJSON("web/vercel.json");
 const webPackage = await readJSON("web/package.json");
 
-assertEqual(rootConfig.framework, null, "repository-root framework");
-assertEqual(rootConfig.installCommand, "node --version", "repository-root install guard");
+assertEqual(rootConfig.framework, "go", "repository-root framework");
 assertEqual(
   rootConfig.buildCommand,
-  "node deploy/vercel/reject-root-deployment.mjs",
-  "repository-root build guard",
+  "go build -o server ./cmd/api",
+  "repository-root backend build command",
 );
+assertEqual(rootConfig.crons?.length, 1, "backend cron count");
+assertEqual(rootConfig.crons?.[0]?.path, "/internal/cron/drain", "backend cron route");
+assertEqual(rootConfig.crons?.[0]?.schedule, "* * * * *", "backend cron schedule");
 
 assertEqual(webConfig.framework, "nextjs", "frontend framework");
 assertEqual(webConfig.installCommand, "npm ci", "frontend install command");
@@ -36,10 +38,10 @@ assertEqual(
 assertEqual(webPackage.name, "ledgersync-web", "frontend package name");
 assertEqual(webPackage.scripts?.build, "next build", "frontend package build command");
 
-for (const unsupportedKey of ["builds", "functions", "outputDirectory"]) {
+for (const unsupportedKey of ["builds", "outputDirectory"]) {
   if (unsupportedKey in rootConfig || unsupportedKey in webConfig) {
     throw new Error(`unexpected ${unsupportedKey} override in Vercel configuration`);
   }
 }
 
-console.log("Vercel configuration is scoped to the web Next.js application.");
+console.log("Vercel configuration defines separate Go backend and Next.js frontend project roots.");
