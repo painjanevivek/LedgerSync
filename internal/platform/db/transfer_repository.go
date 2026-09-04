@@ -9,14 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	"go.opentelemetry.io/otel/trace"
@@ -160,46 +157,6 @@ func (r *TransferRepository) observe(ctx context.Context, operation string, star
 	}
 }
 
-type lockedAccount struct {
-	ID             string
-	TenantID       string
-	Currency       string
-	Status         account.Status
-	AvailableMinor int64
-	LedgerMinor    int64
-	BalanceVersion int64
-}
-
-func lockAccounts(ctx context.Context, tx *sql.Tx, tenantID, sourceID, destinationID string) (map[string]lockedAccount, error) {
-	const query = `
-SELECT a.id, a.tenant_id, a.currency, a.status, b.available_minor, b.ledger_minor, b.balance_version
-FROM accounts AS a
-JOIN account_balance_projections AS b ON b.account_id = a.id
-WHERE a.tenant_id = $1 AND (a.id = $2 OR a.id = $3)
-ORDER BY a.id
-FOR UPDATE OF a, b`
-	rows, err := tx.QueryContext(ctx, query, tenantID, sourceID, destinationID)
-	if err != nil {
-		return nil, fmt.Errorf("lock account projections: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-	accounts := make(map[string]lockedAccount, 2)
-	for rows.Next() {
-		var item lockedAccount
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.Currency, &item.Status, &item.AvailableMinor, &item.LedgerMinor, &item.BalanceVersion); err != nil {
-			return nil, fmt.Errorf("scan locked account: %w", err)
-		}
-		accounts[item.ID] = item
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate locked accounts: %w", err)
-	}
-	if len(accounts) != 2 {
-		return nil, ErrAccountNotFound
-	}
-	return accounts, nil
-}
-
 func policyDenialCode(err error) string {
 	switch {
 	case errors.Is(err, ErrNotAuthorized):
@@ -243,66 +200,6 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 	}
 	_, err = r.database.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'transfer.policy_denied','transfer_request','failed',$4,$5,$6)`, id, command.TenantID, command.ActorSubjectID, correlationID, metadata, command.OccurredAt.UTC())
 	return err
-}
-
-func createJournal(ctx context.Context, tx *sql.Tx, journalID, tenantID, transferID string, occurredAt time.Time) error {
-	_, err := tx.ExecContext(ctx, `
-INSERT INTO journal_transactions (id, tenant_id, transfer_id, source_type, source_id, occurred_at)
-VALUES ($1, $2, $3, 'transfer', $3, $4)`, journalID, tenantID, transferID, occurredAt)
-	return wrap("create journal", err)
-}
-
-func createPosting(ctx context.Context, tx *sql.Tx, tenantID string, posting ledger.Posting) error {
-	_, err := tx.ExecContext(ctx, `
-INSERT INTO ledger_postings (id, journal_transaction_id, tenant_id, account_id, direction, amount_minor, currency, occurred_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, posting.ID, posting.JournalID, tenantID, posting.AccountID, posting.Direction, posting.Amount.Minor(), posting.Amount.Currency().Code, posting.OccurredAt)
-	return wrap("create ledger posting", err)
-}
-
-func applyBalanceDelta(ctx context.Context, tx *sql.Tx, accountID string, delta int64, now time.Time) (lockedAccount, error) {
-	const statement = `
-UPDATE account_balance_projections
-SET available_minor = available_minor + $2,
-    ledger_minor = ledger_minor + $2,
-    balance_version = balance_version + 1,
-    updated_at = $3
-WHERE account_id = $1
-  AND available_minor + $2 >= 0
-  AND ledger_minor + $2 >= 0
-RETURNING available_minor, ledger_minor, balance_version, updated_at`
-	item := lockedAccount{ID: accountID}
-	err := tx.QueryRowContext(ctx, statement, accountID, delta, now).Scan(&item.AvailableMinor, &item.LedgerMinor, &item.BalanceVersion, new(time.Time))
-	if errors.Is(err, sql.ErrNoRows) {
-		return lockedAccount{}, ErrInsufficientFunds
-	}
-	if err != nil {
-		return lockedAccount{}, fmt.Errorf("apply balance delta: %w", err)
-	}
-	return item, nil
-}
-
-func enqueueBalanceEvent(ctx context.Context, tx *sql.Tx, command transfers.Command, transferID string, balance lockedAccount, now time.Time) error {
-	id, err := newUUID()
-	if err != nil {
-		return err
-	}
-	payload, err := json.Marshal(map[string]any{
-		"event_id":        id,
-		"event_type":      "account.balance.changed.v1",
-		"account_id":      balance.ID,
-		"transfer_id":     transferID,
-		"currency":        command.Amount.Currency().Code,
-		"available_minor": strconv.FormatInt(balance.AvailableMinor, 10),
-		"balance_version": strconv.FormatInt(balance.BalanceVersion, 10),
-		"occurred_at":     now.Format(time.RFC3339Nano),
-	})
-	if err != nil {
-		return fmt.Errorf("marshal outbox event: %w", err)
-	}
-	_, err = tx.ExecContext(ctx, `
-INSERT INTO outbox_events (id, tenant_id, transfer_id, account_id, aggregate_type, aggregate_id, event_type, aggregate_version, payload, occurred_at)
-VALUES ($1, $2, $3, $4, 'account_balance', $4, 'account.balance.changed.v1', $5, $6, $7)`, id, command.TenantID, transferID, balance.ID, balance.BalanceVersion, payload, now)
-	return wrap("enqueue balance event", err)
 }
 
 func newUUID() (string, error) {

@@ -8,7 +8,8 @@
   "source_rolling_24h_minor": "50000000",
   "tenant_rolling_24h_minor": "500000000",
   "subjects": [
-    { "id": "partner-operator", "roles": ["operator", "finance"] }
+    { "id": "partner-operator", "roles": ["operator", "finance"] },
+    { "id": "partner-finance-reviewer", "roles": ["finance"] }
   ],
   "credentials": [
     {
@@ -24,7 +25,7 @@
       "display_name": "Operating reserve",
       "category": "operating",
       "external_reference": "OPS-RESERVE",
-      "opening_minor": "10000000",
+      "opening_minor": "0",
       "read_subjects": ["partner-operator"],
       "debit_subjects": ["partner-operator"],
       "credit_subjects": ["partner-operator"]
