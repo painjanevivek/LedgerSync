@@ -129,6 +129,10 @@ func verifyDatabaseRoleCapabilities(t *testing.T, admin *sql.DB, databaseURL, in
 			"table.accounts.DELETE",
 			"cross_tenant.accounts.SELECT",
 			"function.reject_ledger_mutation.EXECUTE",
+			"function.controlled_submit_transfer_v1.EXECUTE",
+			"function.controlled_post_funding_v1.EXECUTE",
+			"function.controlled_post_transfer_correction_v1.EXECUTE",
+			"function.controlled_provision_account_v1.EXECUTE",
 			"database.schema.CREATE",
 		} {
 			if !probeCapability(t, admin, capability, otherTenantID) {
@@ -203,6 +207,10 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 		expectations = append(expectations,
 			capabilityExpectation{Role: role, Capability: "cross_tenant.accounts.SELECT", CurrentAllowed: strings.Contains(current[role]["accounts"], "S"), TargetAllowed: false},
 			capabilityExpectation{Role: role, Capability: "function.reject_ledger_mutation.EXECUTE", CurrentAllowed: role != "ledgersync_break_glass", TargetAllowed: false},
+			capabilityExpectation{Role: role, Capability: "function.controlled_submit_transfer_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_post_funding_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_post_transfer_correction_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_provision_account_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api" || role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_api" || role == "ledgersync_provisioning"},
 			capabilityExpectation{Role: role, Capability: "database.schema.CREATE", CurrentAllowed: false, TargetAllowed: false},
 		)
 	}
@@ -314,6 +322,18 @@ func probeCapability(t *testing.T, database *sql.DB, capability, otherTenantID s
 	case "function.reject_ledger_mutation.EXECUTE":
 		_, err := database.ExecContext(ctx, `SELECT public.reject_ledger_mutation()`)
 		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"0A000": true})
+	case "function.controlled_submit_transfer_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_submit_transfer_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_post_funding_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_post_funding_v1(NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_post_transfer_correction_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_post_transfer_correction_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_provision_account_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_provision_account_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
 	case "database.schema.CREATE":
 		return probeSchemaCreate(t, database)
 	}

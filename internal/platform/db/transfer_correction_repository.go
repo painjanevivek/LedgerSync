@@ -13,10 +13,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	appcorrections "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/corrections"
-	apptransfers "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 )
 
 const correctionColumns = `
@@ -251,138 +247,43 @@ func (r *TransferCorrectionRepository) Cancel(ctx context.Context, command appco
 
 func (r *TransferCorrectionRepository) Post(ctx context.Context, command appcorrections.PostCommand) (submission appcorrections.Submission, err error) {
 	err = WithSerializableSequence(ctx, r.database, "transfer-correction-post|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
-		if err := authorizeCorrectionApprover(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
-			return err
+		var replayed bool
+		if queryErr := tx.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
+			command.TenantID, command.ActorSubjectID, command.CorrectionID,
+			command.IdempotencyKey, command.CorrelationID, command.OccurredAt,
+			nullableTime(command.StepUpAuthenticatedAt),
+		).Scan(&replayed); queryErr != nil {
+			return classifyControlledCorrectionError(queryErr)
 		}
-		var requester, approver, status, mode, originalID, debitID, creditID, currency, storedPostKey string
-		var amount, version int64
-		var stepUp bool
-		var expires time.Time
-		err := tx.QueryRowContext(ctx, `
-SELECT correction.requester_subject_id,COALESCE(correction.approver_subject_id,''),correction.status,correction.control_mode,
- correction.step_up_required,correction.approval_expires_at,correction.policy_version,original.id::text,
- original.debit_account_id::text,original.credit_account_id::text,original.amount_minor,original.currency,COALESCE(correction.post_idempotency_key,'')
-FROM transfer_corrections correction JOIN transfers original ON original.id=correction.original_transfer_id
-WHERE correction.tenant_id=$1 AND correction.id=$2 FOR UPDATE OF correction,original`, command.TenantID, command.CorrectionID).
-			Scan(&requester, &approver, &status, &mode, &stepUp, &expires, &version, &originalID, &debitID, &creditID, &amount, &currency, &storedPostKey)
-		if errors.Is(err, sql.ErrNoRows) {
-			return appcorrections.ErrNotFound
+		event, readErr := readCorrectionByID(ctx, tx, command.TenantID, command.CorrectionID)
+		if readErr != nil {
+			return readErr
 		}
-		if err != nil {
-			return err
-		}
-		if status == "posted" {
-			if storedPostKey != "" && storedPostKey != command.IdempotencyKey {
-				return appcorrections.ErrConflict
-			}
-			event, err := readCorrectionByID(ctx, tx, command.TenantID, command.CorrectionID)
-			if err == nil {
-				submission = appcorrections.Submission{Event: event, Replayed: true}
-			}
-			return err
-		}
-		if status != "approved" || approver == "" {
-			return appcorrections.ErrConflict
-		}
-		if mode == "production_dual_control" && requester == command.ActorSubjectID {
-			return appcorrections.ErrForbidden
-		}
-		if !command.OccurredAt.Before(expires) {
-			var event appcorrections.Event
-			err = r.expire(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, requester, command.CorrelationID, version, command.OccurredAt, &event)
-			submission = appcorrections.Submission{Event: event}
-			return err
-		}
-		if mode == "production_dual_control" && stepUp && !recentStepUp(command.StepUpAuthenticatedAt, command.OccurredAt) {
-			return appcorrections.ErrStepUpRequired
-		}
-		accounts, err := lockAccounts(ctx, tx, command.TenantID, creditID, debitID)
-		if err != nil {
-			return err
-		}
-		source, destination := accounts[creditID], accounts[debitID]
-		if source.Status == "closed" || destination.Status == "closed" || source.Currency != currency || destination.Currency != currency {
-			return appcorrections.ErrConflict
-		}
-		amountValue, err := money.New(currency, amount)
-		if err != nil {
-			return err
-		}
-		compensationID, err := newUUID()
-		if err != nil {
-			return err
-		}
-		journalID, err := newUUID()
-		if err != nil {
-			return err
-		}
-		_, err = tx.ExecContext(ctx, `
-INSERT INTO transfers(id,tenant_id,actor_subject_id,debit_account_id,credit_account_id,amount_minor,currency,status,
- journal_transaction_id,created_at,completed_at,policy_version,compensation_of_transfer_id)
-VALUES($1,$2,$3,$4,$5,$6,$7,'posted',$8,$9,$9,$10,$11)`, compensationID, command.TenantID, command.ActorSubjectID, creditID, debitID, amount, currency, journalID, command.OccurredAt, version, originalID)
-		if err != nil {
-			return classifyCorrectionInsert(err)
-		}
-		if err = createJournal(ctx, tx, journalID, command.TenantID, compensationID, command.OccurredAt); err != nil {
-			return err
-		}
-		debitPostingID, err := newUUID()
-		if err != nil {
-			return err
-		}
-		creditPostingID, err := newUUID()
-		if err != nil {
-			return err
-		}
-		debitPosting, err := ledger.NewPosting(debitPostingID, journalID, creditID, ledger.Debit, amountValue, command.OccurredAt)
-		if err != nil {
-			return err
-		}
-		creditPosting, err := ledger.NewPosting(creditPostingID, journalID, debitID, ledger.Credit, amountValue, command.OccurredAt)
-		if err != nil {
-			return err
-		}
-		if err = ledger.ValidateBalanced([]ledger.Posting{debitPosting, creditPosting}); err != nil {
-			return err
-		}
-		if err = createPosting(ctx, tx, command.TenantID, debitPosting); err != nil {
-			return err
-		}
-		if err = createPosting(ctx, tx, command.TenantID, creditPosting); err != nil {
-			return err
-		}
-		updatedSource, err := applyBalanceDelta(ctx, tx, creditID, -amount, command.OccurredAt)
-		if err != nil {
-			return appcorrections.ErrConflict
-		}
-		updatedDestination, err := applyBalanceDelta(ctx, tx, debitID, amount, command.OccurredAt)
-		if err != nil {
-			return err
-		}
-		result, err := tx.ExecContext(ctx, `UPDATE transfer_corrections SET status='posted',compensation_transfer_id=$3,posted_at=$4,updated_at=$4,post_idempotency_key=$5 WHERE tenant_id=$1 AND id=$2 AND status='approved'`, command.TenantID, command.CorrectionID, compensationID, command.OccurredAt, command.IdempotencyKey)
-		if err != nil {
-			return err
-		}
-		if err = requireOneRow(result, "post correction"); err != nil {
-			return appcorrections.ErrConflict
-		}
-		transferCommand := apptransfers.Command{TenantID: identifier.UUID(command.TenantID), ActorSubjectID: command.ActorSubjectID, DebitAccountID: identifier.UUID(creditID), CreditAccountID: identifier.UUID(debitID), Amount: amountValue, CorrelationID: command.CorrelationID, OccurredAt: command.OccurredAt}
-		if err = enqueueBalanceEvent(ctx, tx, transferCommand, compensationID, updatedSource, command.OccurredAt); err != nil {
-			return err
-		}
-		if err = enqueueBalanceEvent(ctx, tx, transferCommand, compensationID, updatedDestination, command.OccurredAt); err != nil {
-			return err
-		}
-		if err = insertCorrectionAudit(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, "transfer_correction.posted", "succeeded", command.CorrelationID, command.OccurredAt, map[string]any{"original_transfer_id": originalID, "compensation_transfer_id": compensationID, "step_up_verified": !stepUp || recentStepUp(command.StepUpAuthenticatedAt, command.OccurredAt)}); err != nil {
-			return err
-		}
-		event, err := readCorrectionByID(ctx, tx, command.TenantID, command.CorrectionID)
-		if err == nil {
-			submission = appcorrections.Submission{Event: event}
-		}
-		return err
+		submission = appcorrections.Submission{Event: event, Replayed: replayed}
+		return nil
 	})
 	return submission, err
+}
+
+func classifyControlledCorrectionError(err error) error {
+	var postgresError *pgconn.PgError
+	if !errors.As(err, &postgresError) {
+		return fmt.Errorf("execute controlled correction post: %w", err)
+	}
+	switch postgresError.ConstraintName {
+	case "controlled_correction_actor", "controlled_correction_forbidden":
+		return appcorrections.ErrForbidden
+	case "controlled_correction_not_found":
+		return appcorrections.ErrNotFound
+	case "controlled_correction_idempotency", "controlled_correction_conflict":
+		return appcorrections.ErrConflict
+	case "controlled_correction_step_up":
+		return appcorrections.ErrStepUpRequired
+	case "controlled_correction_input":
+		return appcorrections.ErrInvalidCommand
+	default:
+		return err
+	}
 }
 
 func (r *TransferCorrectionRepository) Get(ctx context.Context, tenantID, actorID, correctionID string) (appcorrections.Event, error) {

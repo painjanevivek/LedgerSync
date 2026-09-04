@@ -14,8 +14,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	appfunding "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger"
-	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 )
 
 type FundingRepository struct {
@@ -218,132 +216,42 @@ func (r *FundingRepository) Reject(ctx context.Context, command appfunding.Decis
 
 func (r *FundingRepository) Post(ctx context.Context, command appfunding.ActionCommand) (submission appfunding.Submission, err error) {
 	err = WithSerializableSequence(ctx, r.database, "funding-post|"+strings.ToLower(command.TenantID), 5, func(tx *sql.Tx) error {
-		if err := authorizeFinanceActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
-			return err
+		var replayed bool
+		if queryErr := tx.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_funding_v1($1,$2,$3,$4,$5,$6)`,
+			command.TenantID, command.ActorSubjectID, command.FundingEventID,
+			command.IdempotencyKey, command.CorrelationID, command.OccurredAt,
+		).Scan(&replayed); queryErr != nil {
+			return classifyControlledFundingError(queryErr)
 		}
-		var requester, destinationID, systemID, currency, status, compensationOf, storedPostKey string
-		var amount int64
-		var policy fundingPolicy
-		err := tx.QueryRowContext(ctx, `
-SELECT event.requester_subject_id,event.destination_account_id::text,event.system_account_id::text,event.currency,event.amount_minor,event.status,
- policy.mode,policy.finance_activated,policy.per_command_minor,policy.operator_rolling_24h_minor,policy.tenant_rolling_24h_minor,
- COALESCE(event.compensation_of_event_id::text,''),COALESCE(event.post_idempotency_key,'')
-FROM funding_events event JOIN tenant_funding_policies policy ON policy.tenant_id=event.tenant_id AND policy.currency=event.currency
-WHERE event.tenant_id=$1 AND event.id=$2 FOR UPDATE OF event`, command.TenantID, command.FundingEventID).Scan(&requester, &destinationID, &systemID, &currency, &amount, &status, &policy.Mode, &policy.FinanceActive, &policy.PerCommand, &policy.OperatorRolling, &policy.TenantRolling, &compensationOf, &storedPostKey)
-		if errors.Is(err, sql.ErrNoRows) {
-			return appfunding.ErrNotFound
+		event, readErr := readFundingEventByID(ctx, tx, command.TenantID, command.FundingEventID)
+		if readErr != nil {
+			return readErr
 		}
-		if err != nil {
-			return err
-		}
-		if status == "posted" || status == "compensated" {
-			if storedPostKey != "" && storedPostKey != command.IdempotencyKey {
-				return appfunding.ErrConflict
-			}
-			event, readErr := readFundingEventByID(ctx, tx, command.TenantID, command.FundingEventID)
-			if readErr != nil {
-				return readErr
-			}
-			submission = appfunding.Submission{Event: event, Replayed: true}
-			return nil
-		}
-		if status != "approved" || (policy.Mode == string(appfunding.PolicyProductionDualControl) && !policy.FinanceActive) {
-			return appfunding.ErrForbidden
-		}
-		var approvalValid bool
-		if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM approval_records WHERE tenant_id=$1 AND target_id=$2 AND command_type=$3 AND status='approved' AND expires_at>$4)`, command.TenantID, command.FundingEventID, fundingCommandType(compensationOf), command.OccurredAt).Scan(&approvalValid); err != nil || !approvalValid {
-			return appfunding.ErrForbidden
-		}
-		if compensationOf == "" {
-			var actorRolling, tenantRolling int64
-			if err = tx.QueryRowContext(ctx, `SELECT COALESCE(sum(amount_minor) FILTER (WHERE actor_subject_id=$2),0),COALESCE(sum(amount_minor),0) FROM funding_velocity_events WHERE tenant_id=$1 AND expires_at>$3`, command.TenantID, requester, command.OccurredAt).Scan(&actorRolling, &tenantRolling); err != nil {
-				return err
-			}
-			if amount > policy.PerCommand || actorRolling > policy.OperatorRolling-amount || tenantRolling > policy.TenantRolling-amount {
-				return appfunding.ErrLimitExceeded
-			}
-		}
-		journalID, _ := newUUID()
-		if _, err = tx.ExecContext(ctx, `INSERT INTO journal_transactions(id,tenant_id,funding_event_id,source_type,source_id,occurred_at) VALUES($1,$2,$3,'funding_event',$3,$4)`, journalID, command.TenantID, command.FundingEventID, command.OccurredAt); err != nil {
-			return err
-		}
-		exact, err := money.New(currency, amount)
-		if err != nil {
-			return err
-		}
-		debitID, _ := newUUID()
-		creditID, _ := newUUID()
-		debitAccountID, creditAccountID := systemID, destinationID
-		if compensationOf != "" {
-			debitAccountID, creditAccountID = destinationID, systemID
-		}
-		debit, err := ledger.NewPosting(debitID, journalID, debitAccountID, ledger.Debit, exact, command.OccurredAt)
-		if err != nil {
-			return err
-		}
-		credit, err := ledger.NewPosting(creditID, journalID, creditAccountID, ledger.Credit, exact, command.OccurredAt)
-		if err != nil {
-			return err
-		}
-		if err = ledger.ValidateBalanced([]ledger.Posting{debit, credit}); err != nil {
-			return err
-		}
-		if err = createPosting(ctx, tx, command.TenantID, debit); err != nil {
-			return err
-		}
-		if err = createPosting(ctx, tx, command.TenantID, credit); err != nil {
-			return err
-		}
-		systemDelta, destinationDelta := -amount, amount
-		if compensationOf != "" {
-			systemDelta, destinationDelta = amount, -amount
-		}
-		result, err := tx.ExecContext(ctx, `UPDATE account_balance_projections SET available_minor=available_minor+$2,ledger_minor=ledger_minor+$2,balance_version=balance_version+1,updated_at=$3 WHERE account_id=$1 AND allow_negative=true`, systemID, systemDelta, command.OccurredAt)
-		if err != nil {
-			return err
-		}
-		if err = requireOneRow(result, "update funding clearing balance"); err != nil {
-			return appfunding.ErrConflict
-		}
-		destination, err := applyBalanceDelta(ctx, tx, destinationID, destinationDelta, command.OccurredAt)
-		if err != nil {
-			return err
-		}
-		if _, err = tx.ExecContext(ctx, `UPDATE funding_events SET status='posted',journal_transaction_id=$3,posted_at=$4,updated_at=$4,post_idempotency_key=$5 WHERE tenant_id=$1 AND id=$2 AND status='approved'`, command.TenantID, command.FundingEventID, journalID, command.OccurredAt, command.IdempotencyKey); err != nil {
-			return err
-		}
-		if compensationOf == "" {
-			if _, err = tx.ExecContext(ctx, `INSERT INTO funding_velocity_events(funding_event_id,tenant_id,actor_subject_id,amount_minor,occurred_at,expires_at) VALUES($1,$2,$3,$4,$5,$5::timestamptz+INTERVAL '24 hours')`, command.FundingEventID, command.TenantID, requester, amount, command.OccurredAt); err != nil {
-				return err
-			}
-		} else {
-			result, err = tx.ExecContext(ctx, `UPDATE funding_events SET status='compensated',compensation_event_id=$3,compensated_at=$4,updated_at=$4 WHERE tenant_id=$1 AND id=$2 AND status='posted'`, command.TenantID, compensationOf, command.FundingEventID, command.OccurredAt)
-			if err != nil {
-				return err
-			}
-			if err = requireOneRow(result, "link funding compensation"); err != nil {
-				return appfunding.ErrConflict
-			}
-		}
-		auditType := "funding.posted"
-		if compensationOf != "" {
-			auditType = "funding.compensation.posted"
-		}
-		if err = insertFundingAudit(ctx, tx, command.TenantID, command.ActorSubjectID, command.FundingEventID, auditType, "succeeded", command.CorrelationID, command.OccurredAt); err != nil {
-			return err
-		}
-		if err = enqueueFundingBalanceEvent(ctx, tx, command, currency, destinationDelta, destination, command.OccurredAt); err != nil {
-			return err
-		}
-		event, err := readFundingEventByID(ctx, tx, command.TenantID, command.FundingEventID)
-		if err != nil {
-			return err
-		}
-		event.BalanceVersion = strconv.FormatInt(destination.BalanceVersion, 10)
-		submission = appfunding.Submission{Event: event}
+		submission = appfunding.Submission{Event: event, Replayed: replayed}
 		return nil
 	})
 	return submission, err
+}
+
+func classifyControlledFundingError(err error) error {
+	var postgresError *pgconn.PgError
+	if !errors.As(err, &postgresError) {
+		return fmt.Errorf("execute controlled funding post: %w", err)
+	}
+	switch postgresError.ConstraintName {
+	case "controlled_funding_actor", "controlled_funding_forbidden":
+		return appfunding.ErrForbidden
+	case "controlled_funding_not_found":
+		return appfunding.ErrNotFound
+	case "controlled_funding_idempotency", "controlled_funding_balance":
+		return appfunding.ErrConflict
+	case "controlled_funding_limit":
+		return appfunding.ErrLimitExceeded
+	case "controlled_funding_input":
+		return appfunding.ErrInvalidCommand
+	default:
+		return err
+	}
 }
 
 func (r *FundingRepository) Compensate(ctx context.Context, command appfunding.CompensationCommand, fingerprint [sha256.Size]byte) (submission appfunding.Submission, err error) {
@@ -641,20 +549,5 @@ func insertFundingAudit(ctx context.Context, tx *sql.Tx, tenantID, actorID, even
 	}
 	metadata, _ := json.Marshal(map[string]string{"funding_event_id": eventID, "terminology": "recorded external value evidence"})
 	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'funding_event',$5,$6,$7,$8,$9)`, id, tenantID, actorID, eventType, eventID, outcome, correlationID, metadata, occurredAt)
-	return err
-}
-
-func enqueueFundingBalanceEvent(ctx context.Context, tx *sql.Tx, command appfunding.ActionCommand, currency string, amount int64, balance lockedAccount, occurredAt time.Time) error {
-	id, err := newUUID()
-	if err != nil {
-		return err
-	}
-	payload, _ := json.Marshal(map[string]string{
-		"event_id": id, "event_type": "account.balance.changed.v1", "account_id": balance.ID,
-		"funding_event_id": command.FundingEventID, "currency": currency,
-		"available_minor": strconv.FormatInt(balance.AvailableMinor, 10), "balance_version": strconv.FormatInt(balance.BalanceVersion, 10),
-		"occurred_at": occurredAt.Format(time.RFC3339Nano), "amount_minor": strconv.FormatInt(amount, 10),
-	})
-	_, err = tx.ExecContext(ctx, `INSERT INTO outbox_events(id,tenant_id,funding_event_id,account_id,aggregate_type,aggregate_id,event_type,aggregate_version,payload,occurred_at) VALUES($1,$2,$3,$4,'account_balance',$4,'account.balance.changed.v1',$5,$6,$7)`, id, command.TenantID, command.FundingEventID, balance.ID, balance.BalanceVersion, payload, occurredAt)
 	return err
 }

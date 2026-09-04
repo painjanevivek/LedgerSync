@@ -10,6 +10,114 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
+const controlledCorrectionFunction = `public.controlled_post_transfer_correction_v1(uuid,text,uuid,text,uuid,timestamptz,timestamptz)`
+
+func TestControlledCorrectionFunctionUsesFixedDefinerBoundary(t *testing.T) {
+	_, database := requireTransferService(t, 10_000)
+	requireWorkloadRoles(t, database)
+
+	var owner, searchPath string
+	var securityDefiner, apiCanExecute, supportCanExecute, ownerCanUpdateCorrection, ownerCanWriteLedger, publicCanExecute bool
+	err := database.QueryRowContext(context.Background(), `
+SELECT owner.rolname,
+       procedure.prosecdef,
+       COALESCE((SELECT setting FROM unnest(procedure.proconfig) setting WHERE setting LIKE 'search_path=%'),''),
+       has_function_privilege('ledgersync_api',$1,'EXECUTE'),
+       has_function_privilege('ledgersync_support_readonly',$1,'EXECUTE'),
+       has_table_privilege('ledgersync_migration_owner','public.transfer_corrections','UPDATE'),
+       has_table_privilege('ledgersync_migration_owner','public.ledger_postings','INSERT'),
+       EXISTS(
+         SELECT 1 FROM aclexplode(procedure.proacl) acl
+         WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
+       )
+FROM pg_proc procedure
+JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
+JOIN pg_roles owner ON owner.oid=procedure.proowner
+WHERE namespace.nspname='public' AND procedure.proname='controlled_post_transfer_correction_v1'`, controlledCorrectionFunction).
+		Scan(&owner, &securityDefiner, &searchPath, &apiCanExecute, &supportCanExecute, &ownerCanUpdateCorrection, &ownerCanWriteLedger, &publicCanExecute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if owner != "ledgersync_migration_owner" || !securityDefiner || searchPath != "search_path=pg_catalog, public" || !apiCanExecute || supportCanExecute || !ownerCanUpdateCorrection || !ownerCanWriteLedger || publicCanExecute {
+		t.Fatalf("unsafe controlled correction metadata owner=%q definer=%t search_path=%q api=%t support=%t owner_correction_update=%t owner_ledger_write=%t public=%t", owner, securityDefiner, searchPath, apiCanExecute, supportCanExecute, ownerCanUpdateCorrection, ownerCanWriteLedger, publicCanExecute)
+	}
+}
+
+func TestControlledCorrectionFunctionExecutesAsAPIAndRejectsSpoofing(t *testing.T) {
+	transferService, database := requireTransferService(t, 10_000)
+	requireWorkloadRoles(t, database)
+	ctx := context.Background()
+	now := time.Date(2026, 8, 18, 11, 0, 0, 0, time.UTC)
+	const approver = "controlled-correction-approver"
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,$2,'finance')`, testTenantID, approver); err != nil {
+		t.Fatal(err)
+	}
+	original, err := transferService.Submit(ctx, transferCommand(t, "controlled-correction-original-0001", "10.00"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	repository, err := db.NewTransferCorrectionRepository(database, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := appcorrections.NewService(repository, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := service.Request(ctx, appcorrections.RequestCommand{
+		TenantID: testTenantID, ActorSubjectID: testActorID, OriginalTransferID: original.Result.TransferID,
+		ReasonCode: "operational_error", OperatorNote: "Controlled function boundary evidence.",
+		IdempotencyKey: "controlled-correction-request-0001", CorrelationID: "00000000-0000-4000-8000-000000008601",
+		StepUpAuthenticatedAt: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = service.Approve(ctx, appcorrections.DecisionCommand{
+		TenantID: testTenantID, ActorSubjectID: approver, CorrectionID: created.Event.CorrectionID,
+		Reason: "Independent evidence review completed.", CorrelationID: "00000000-0000-4000-8000-000000008602",
+		StepUpAuthenticatedAt: now,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	api := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_api")
+	support := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_support_readonly")
+	const postKey = "controlled-correction-post-0001"
+	const correlationID = "00000000-0000-4000-8000-000000008603"
+	var replayed bool
+	if err = api.db.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
+		testTenantID, approver, created.Event.CorrectionID, postKey, correlationID, now, now).Scan(&replayed); err != nil || replayed {
+		t.Fatalf("API controlled correction post replayed=%t error=%v", replayed, err)
+	}
+	if countRows(t, database, `SELECT count(*) FROM transfers WHERE compensation_of_transfer_id=$1 AND status='posted'`, original.Result.TransferID) != 1 ||
+		countRows(t, database, `SELECT count(*) FROM ledger_postings posting JOIN journal_transactions journal ON journal.id=posting.journal_transaction_id JOIN transfers transfer ON transfer.id=journal.transfer_id WHERE transfer.compensation_of_transfer_id=$1`, original.Result.TransferID) != 2 {
+		t.Fatal("controlled correction post did not commit one exact compensation journal")
+	}
+
+	if _, err = api.db.ExecContext(ctx, `SELECT * FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
+		testTenantID, "spoofed-finance-actor", created.Event.CorrectionID, postKey, correlationID, now, now); sqlState(err) != "42501" {
+		t.Fatalf("spoofed actor SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
+	}
+	if _, err = support.db.ExecContext(ctx, `SELECT * FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
+		testTenantID, approver, created.Event.CorrectionID, postKey, correlationID, now, now); sqlState(err) != "42501" {
+		t.Fatalf("support execution SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
+	}
+
+	tx, err := api.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err = tx.Exec(`CREATE TEMP TABLE transfer_corrections(id uuid); SET LOCAL search_path=pg_temp,public`); err != nil {
+		t.Fatal(err)
+	}
+	if err = tx.QueryRow(`SELECT replayed FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
+		testTenantID, approver, created.Event.CorrectionID, postKey, correlationID, now, now).Scan(&replayed); err != nil || !replayed {
+		t.Fatalf("fixed search path replayed=%t error=%v", replayed, err)
+	}
+}
+
 func TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe(t *testing.T) {
 	transferService, database := requireTransferService(t, 10_000)
 	ctx := context.Background()
