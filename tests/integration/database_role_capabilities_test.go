@@ -37,6 +37,8 @@ var (
 		"transfers",
 		"transfer_velocity_events",
 		"transfer_velocity_totals",
+		"funding_events",
+		"funding_velocity_events",
 		"journal_transactions",
 		"ledger_postings",
 		"account_owners",
@@ -54,6 +56,8 @@ var (
 		"transfers":                   "status",
 		"transfer_velocity_events":    "occurred_at",
 		"transfer_velocity_totals":    "total_minor",
+		"funding_events":              "status",
+		"funding_velocity_events":     "occurred_at",
 		"journal_transactions":        "occurred_at",
 		"ledger_postings":             "occurred_at",
 		"account_owners":              "permission",
@@ -191,6 +195,9 @@ func verifyDatabaseRoleCapabilities(t *testing.T, admin *sql.DB, databaseURL, in
 			"function.controlled_append_audit_event_v1.EXECUTE",
 			"function.controlled_update_account_v1.EXECUTE",
 			"function.controlled_ensure_funding_account_v1.EXECUTE",
+			"function.controlled_request_funding_v1.EXECUTE",
+			"function.controlled_request_funding_compensation_v1.EXECUTE",
+			"function.controlled_decide_funding_v1.EXECUTE",
 			"function.controlled_rollback_provisioned_tenant_v1.EXECUTE",
 			"database.schema.CREATE",
 		} {
@@ -213,7 +220,7 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 	current := map[string]map[string]string{
 		"ledgersync_api": {
 			"accounts": "S", "account_opening_balances": "S", "account_balance_projections": "S",
-			"transfers": "S", "transfer_velocity_events": "S", "transfer_velocity_totals": "S",
+			"transfers": "S", "transfer_velocity_events": "S", "transfer_velocity_totals": "S", "funding_events": "S", "funding_velocity_events": "S",
 			"journal_transactions": "S", "ledger_postings": "S", "account_owners": "S", "account_credit_permissions": "S", "audit_events": "S",
 		},
 		"ledgersync_worker": {"transfers": "S"},
@@ -231,7 +238,7 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 	targetReads := map[string]map[string]bool{
 		"ledgersync_api": {
 			"accounts": true, "account_opening_balances": true, "account_balance_projections": true,
-			"transfers": true, "transfer_velocity_events": true, "transfer_velocity_totals": true,
+			"transfers": true, "transfer_velocity_events": true, "transfer_velocity_totals": true, "funding_events": true, "funding_velocity_events": true,
 			"journal_transactions": true, "ledger_postings": true, "account_owners": true, "account_credit_permissions": true, "audit_events": true,
 		},
 		"ledgersync_worker": {"transfers": true},
@@ -275,6 +282,9 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 			capabilityExpectation{Role: role, Capability: "function.controlled_append_audit_event_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api" || role == "ledgersync_worker" || role == "ledgersync_reconciliation" || role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_api" || role == "ledgersync_worker" || role == "ledgersync_reconciliation" || role == "ledgersync_provisioning"},
 			capabilityExpectation{Role: role, Capability: "function.controlled_update_account_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
 			capabilityExpectation{Role: role, Capability: "function.controlled_ensure_funding_account_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_request_funding_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_request_funding_compensation_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
+			capabilityExpectation{Role: role, Capability: "function.controlled_decide_funding_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
 			capabilityExpectation{Role: role, Capability: "function.controlled_rollback_provisioned_tenant_v1.EXECUTE", CurrentAllowed: role == "ledgersync_provisioning", TargetAllowed: role == "ledgersync_provisioning"},
 			capabilityExpectation{Role: role, Capability: "database.schema.CREATE", CurrentAllowed: false, TargetAllowed: false},
 		)
@@ -416,6 +426,15 @@ func probeCapability(t *testing.T, database *sql.DB, capability, otherTenantID s
 		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
 	case "function.controlled_ensure_funding_account_v1.EXECUTE":
 		_, err := database.ExecContext(ctx, `SELECT public.controlled_ensure_funding_account_v1(NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_request_funding_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_request_funding_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_request_funding_compensation_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT * FROM public.controlled_request_funding_compensation_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
+		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
+	case "function.controlled_decide_funding_v1.EXECUTE":
+		_, err := database.ExecContext(ctx, `SELECT public.controlled_decide_funding_v1(NULL,NULL,NULL,NULL,NULL,NULL,NULL)`)
 		return classifyPrivilegeProbe(t, capability, err, map[string]bool{"22023": true})
 	case "function.controlled_rollback_provisioned_tenant_v1.EXECUTE":
 		_, err := database.ExecContext(ctx, `SELECT public.controlled_rollback_provisioned_tenant_v1(NULL,NULL,NULL,NULL)`)

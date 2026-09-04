@@ -133,14 +133,14 @@ FROM pg_proc procedure
 JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
 JOIN pg_roles owner ON owner.oid=procedure.proowner
 WHERE namespace.nspname='public'
-  AND procedure.proname IN ('controlled_submit_transfer_v1','controlled_post_funding_v1','controlled_post_transfer_correction_v1','controlled_provision_account_v1','controlled_request_opening_import_v1','controlled_approve_opening_import_v1','controlled_execute_opening_import_v1','controlled_append_audit_event_v1','controlled_update_account_v1','controlled_ensure_funding_account_v1','controlled_rollback_provisioned_tenant_v1')
+  AND procedure.proname IN ('controlled_submit_transfer_v1','controlled_post_funding_v1','controlled_post_transfer_correction_v1','controlled_provision_account_v1','controlled_request_opening_import_v1','controlled_approve_opening_import_v1','controlled_execute_opening_import_v1','controlled_append_audit_event_v1','controlled_update_account_v1','controlled_ensure_funding_account_v1','controlled_request_funding_v1','controlled_request_funding_compensation_v1','controlled_decide_funding_v1','controlled_rollback_provisioned_tenant_v1')
   AND procedure.prosecdef
   AND owner.rolname='ledgersync_migration_owner'
   AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
   AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&controlledFinancialFunctions); err != nil {
 		t.Fatal(err)
 	}
-	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 11 || semanticTriggers != 4 {
+	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 14 || semanticTriggers != 4 {
 		t.Fatalf("ledger validation controls unique=%d validated_fk=%d hardened_hydrators=%d hardened_semantic_functions=%d controlled_financial_functions=%d semantic_triggers=%d", compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, controlledFinancialFunctions, semanticTriggers)
 	}
 }
@@ -443,6 +443,43 @@ WHERE a.tenant_id=$1 ORDER BY a.id`, legacyTenant)
 	if err != nil || postedFunding.Event.Status != "posted" ||
 		countRowsInDatabase(t, upgradeDatabase, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND account_kind='funding_clearing' AND category='system'`, legacyTenant) != 1 {
 		t.Fatalf("fresh migrated funding journal=%#v error=%v", postedFunding, err)
+	}
+	compensation, err := fundingService.Compensate(context.Background(), fundingapp.CompensationCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: fundingRequest.Event.FundingEventID,
+		ReasonCode: "upgrade_reversal", OperatorNote: "verify controlled upgrade compensation",
+		IdempotencyKey: "migration-funding-compensation-0001", CorrelationID: "00000000-0000-0000-0000-000000000893",
+	})
+	if err != nil || compensation.Event.Status != "requested" {
+		t.Fatalf("controlled funding compensation request=%#v error=%v", compensation, err)
+	}
+	approvedCompensation, err := fundingService.Approve(context.Background(), fundingapp.DecisionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: compensation.Event.FundingEventID,
+		Reason: "verified upgrade compensation", CorrelationID: "00000000-0000-0000-0000-000000000892",
+	})
+	if err != nil || approvedCompensation.Status != "approved" {
+		t.Fatalf("controlled funding compensation approval=%#v error=%v", approvedCompensation, err)
+	}
+	postedCompensation, err := fundingService.Post(context.Background(), fundingapp.ActionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: compensation.Event.FundingEventID,
+		IdempotencyKey: "migration-funding-compensation-post-0001", CorrelationID: "00000000-0000-0000-0000-000000000891",
+	})
+	if err != nil || postedCompensation.Event.Status != "posted" {
+		t.Fatalf("controlled funding compensation post=%#v error=%v", postedCompensation, err)
+	}
+	rejectedRequest, err := fundingService.Request(context.Background(), fundingapp.RequestCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", DestinationAccountID: created.Result.AccountID, Amount: fundingAmount,
+		ExternalReference: "upgrade-funding-rejection", EvidenceReference: "customer-evidence://upgrade/rejection",
+		IdempotencyKey: "upgrade-role-funding-reject-0001", CorrelationID: "00000000-0000-0000-0000-000000000890",
+	})
+	if err != nil {
+		t.Fatalf("controlled funding rejection request: %v", err)
+	}
+	rejectedFunding, err := fundingService.Reject(context.Background(), fundingapp.DecisionCommand{
+		TenantID: legacyTenant, ActorSubjectID: "upgrade-operator", FundingEventID: rejectedRequest.Event.FundingEventID,
+		Reason: "reject upgrade evidence", CorrelationID: "00000000-0000-0000-0000-000000000889",
+	})
+	if err != nil || rejectedFunding.Status != "rejected" {
+		t.Fatalf("controlled funding rejection=%#v error=%v", rejectedFunding, err)
 	}
 	if err := seedTransferFixture(context.Background(), upgradeDatabase, 10_000); err != nil {
 		t.Fatalf("seed limited-role transfer fixture: %v", err)

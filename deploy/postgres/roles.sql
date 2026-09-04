@@ -74,6 +74,21 @@ BEGIN
     EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_ensure_funding_account_v1(uuid,text,text,uuid,timestamptz) FROM PUBLIC';
     EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_ensure_funding_account_v1(uuid,text,text,uuid,timestamptz) TO ledgersync_api';
   END IF;
+  IF to_regprocedure('public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_request_funding_v1(uuid,text,uuid,bigint,text,text,text,text,bytea,uuid,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_request_funding_compensation_v1(uuid,text,uuid,text,text,text,bytea,uuid,timestamptz) TO ledgersync_api';
+  END IF;
+  IF to_regprocedure('public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_decide_funding_v1(uuid,text,uuid,text,text,uuid,timestamptz) TO ledgersync_api';
+  END IF;
   IF to_regprocedure('public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz)') IS NOT NULL THEN
     EXECUTE 'ALTER FUNCTION public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
     EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz) FROM PUBLIC';
@@ -95,7 +110,7 @@ GRANT SELECT ON tenants, tenant_subject_roles, tenant_transfer_policies, account
   TO ledgersync_migration_owner;
 GRANT INSERT ON idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
   transfers, journal_transactions, ledger_postings, audit_events, outbox_events,
-  webhook_delivery_jobs, funding_velocity_events, approval_records, accounts,
+  webhook_delivery_jobs, funding_events, funding_velocity_events, approval_records, accounts,
   account_balance_projections, account_opening_balances, account_owners,
   account_credit_permissions, opening_import_batches, opening_import_rows,
   opening_import_approvals, opening_import_executions TO ledgersync_migration_owner;
@@ -150,8 +165,8 @@ END $$;
 DO $$
 BEGIN
   IF to_regclass('public.funding_events') IS NOT NULL THEN
-    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON funding_events TO ledgersync_api';
-    EXECUTE 'GRANT SELECT,INSERT ON approval_records,funding_velocity_events TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON funding_events,funding_velocity_events TO ledgersync_api';
+    EXECUTE 'GRANT SELECT,INSERT ON approval_records TO ledgersync_api';
     EXECUTE 'GRANT SELECT ON tenant_funding_policies TO ledgersync_api';
   END IF;
   IF to_regclass('public.transfer_corrections') IS NOT NULL THEN
