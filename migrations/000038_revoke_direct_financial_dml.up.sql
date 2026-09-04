@@ -265,6 +265,7 @@ REVOKE ALL ON FUNCTION controlled_rollback_provisioned_tenant_v1(UUID,TEXT,UUID,
 
 REVOKE INSERT,UPDATE,DELETE ON
   accounts,account_opening_balances,account_balance_projections,
+  transfers,transfer_velocity_events,transfer_velocity_totals,
   journal_transactions,ledger_postings,account_owners,account_credit_permissions,
   audit_events,opening_import_batches,opening_import_rows,
   opening_import_approvals,opening_import_executions
@@ -280,7 +281,7 @@ BEGIN
   ] LOOP
     IF to_regrole(v_role) IS NOT NULL THEN
       EXECUTE format(
-        'REVOKE INSERT,UPDATE,DELETE ON accounts,account_opening_balances,account_balance_projections,journal_transactions,ledger_postings,account_owners,account_credit_permissions,audit_events,opening_import_batches,opening_import_rows,opening_import_approvals,opening_import_executions FROM %I',
+        'REVOKE INSERT,UPDATE,DELETE ON accounts,account_opening_balances,account_balance_projections,transfers,transfer_velocity_events,transfer_velocity_totals,journal_transactions,ledger_postings,account_owners,account_credit_permissions,audit_events,opening_import_batches,opening_import_rows,opening_import_approvals,opening_import_executions FROM %I',
         v_role
       );
       EXECUTE format('REVOKE ALL ON FUNCTION reject_ledger_mutation() FROM %I',v_role);

@@ -115,17 +115,14 @@ GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, a
   transfer_velocity_events, transfer_velocity_totals,
   journal_transactions, ledger_postings, delivery_attempts, webhook_delivery_jobs, delivery_replay_actions,
   reconciliation_runs, reconciliation_mismatches, outbox_events, audit_events, schema_migrations TO ledgersync_api;
-GRANT INSERT ON transfers, idempotency_requests,
-  reconciliation_runs, reconciliation_mismatches,
+GRANT INSERT ON idempotency_requests, reconciliation_runs, reconciliation_mismatches,
   outbox_events, api_rate_limit_windows, retention_runs,
-  transfer_velocity_events, transfer_velocity_totals,
   outbox_replay_actions, delivery_replay_actions, developer_credentials, developer_credential_events, developer_command_idempotency,
   developer_webhook_endpoints, developer_webhook_events, developer_webhook_command_idempotency, webhook_delivery_jobs,
   webhook_endpoint_verification_jobs, bff_actor_assertion_replays TO ledgersync_api;
-GRANT UPDATE ON transfers, idempotency_requests,
-  api_rate_limit_windows, transfer_velocity_totals, developer_credentials, developer_command_idempotency,
+GRANT UPDATE ON idempotency_requests, api_rate_limit_windows, developer_credentials, developer_command_idempotency,
   developer_webhook_endpoints, developer_webhook_command_idempotency TO ledgersync_api;
-GRANT DELETE ON transfer_velocity_events, bff_actor_assertion_replays TO ledgersync_api;
+GRANT DELETE ON bff_actor_assertion_replays TO ledgersync_api;
 
 DO $$
 BEGIN

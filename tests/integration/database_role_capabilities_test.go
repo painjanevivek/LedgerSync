@@ -34,6 +34,9 @@ var (
 		"accounts",
 		"account_opening_balances",
 		"account_balance_projections",
+		"transfers",
+		"transfer_velocity_events",
+		"transfer_velocity_totals",
 		"journal_transactions",
 		"ledger_postings",
 		"account_owners",
@@ -48,6 +51,9 @@ var (
 		"accounts":                    "status",
 		"account_opening_balances":    "opening_ledger_minor",
 		"account_balance_projections": "available_minor",
+		"transfers":                   "status",
+		"transfer_velocity_events":    "occurred_at",
+		"transfer_velocity_totals":    "total_minor",
 		"journal_transactions":        "occurred_at",
 		"ledger_postings":             "occurred_at",
 		"account_owners":              "permission",
@@ -207,34 +213,36 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 	current := map[string]map[string]string{
 		"ledgersync_api": {
 			"accounts": "S", "account_opening_balances": "S", "account_balance_projections": "S",
+			"transfers": "S", "transfer_velocity_events": "S", "transfer_velocity_totals": "S",
 			"journal_transactions": "S", "ledger_postings": "S", "account_owners": "S", "account_credit_permissions": "S", "audit_events": "S",
 		},
-		"ledgersync_worker": {},
+		"ledgersync_worker": {"transfers": "S"},
 		"ledgersync_reconciliation": {
 			"accounts": "S", "account_opening_balances": "S", "account_balance_projections": "S",
-			"journal_transactions": "S", "ledger_postings": "S",
+			"transfers": "S", "journal_transactions": "S", "ledger_postings": "S",
 		},
-		"ledgersync_provisioning": {},
+		"ledgersync_provisioning": {"transfers": "S"},
 		"ledgersync_support_readonly": {
 			"accounts": "S", "account_balance_projections": "S", "journal_transactions": "S",
-			"ledger_postings": "S", "account_owners": "S", "audit_events": "S",
+			"transfers": "S", "ledger_postings": "S", "account_owners": "S", "audit_events": "S",
 		},
 		"ledgersync_break_glass": {},
 	}
 	targetReads := map[string]map[string]bool{
 		"ledgersync_api": {
 			"accounts": true, "account_opening_balances": true, "account_balance_projections": true,
+			"transfers": true, "transfer_velocity_events": true, "transfer_velocity_totals": true,
 			"journal_transactions": true, "ledger_postings": true, "account_owners": true, "account_credit_permissions": true, "audit_events": true,
 		},
-		"ledgersync_worker": {},
+		"ledgersync_worker": {"transfers": true},
 		"ledgersync_reconciliation": {
 			"accounts": true, "account_opening_balances": true, "account_balance_projections": true,
-			"journal_transactions": true, "ledger_postings": true,
+			"transfers": true, "journal_transactions": true, "ledger_postings": true,
 		},
-		"ledgersync_provisioning": {},
+		"ledgersync_provisioning": {"transfers": true},
 		"ledgersync_support_readonly": {
 			"accounts": true, "account_balance_projections": true, "journal_transactions": true,
-			"ledger_postings": true, "account_owners": true, "audit_events": true,
+			"transfers": true, "ledger_postings": true, "account_owners": true, "audit_events": true,
 		},
 		"ledgersync_break_glass": {},
 	}
