@@ -34,6 +34,7 @@ const (
 	KindInvestigation  Kind = "investigation"
 	KindSavedView      Kind = "saved_view"
 	KindCredential     Kind = "credential"
+	KindOpeningImport  Kind = "opening_import"
 )
 
 // UUID is canonical lowercase RFC 4122 text. It is comparable and therefore
@@ -97,6 +98,8 @@ func validKind(kind Kind) bool {
 	case KindTenant, KindAccount, KindTransfer, KindFunding, KindCorrection,
 		KindWebhook, KindDelivery, KindEvent, KindReconciliation,
 		KindInvestigation, KindSavedView, KindCredential:
+		return true
+	case KindOpeningImport:
 		return true
 	default:
 		return false

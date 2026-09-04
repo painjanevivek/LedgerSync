@@ -136,12 +136,15 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 	if err != nil {
 		return err
 	}
-	var transfers int
-	if err = tx.QueryRowContext(ctx, `SELECT count(*) FROM transfers WHERE tenant_id=$1`, tenantID).Scan(&transfers); err != nil {
+	var financialHistory bool
+	if err = tx.QueryRowContext(ctx, `
+SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1)
+    OR EXISTS(SELECT 1 FROM funding_events WHERE tenant_id=$1 AND status IN ('posted','compensated'))
+    OR EXISTS(SELECT 1 FROM opening_import_executions WHERE tenant_id=$1)`, tenantID).Scan(&financialHistory); err != nil {
 		return err
 	}
-	if transfers > 0 {
-		return errors.New("tenant with transfer history cannot be rolled back")
+	if financialHistory {
+		return errors.New("tenant with financial history cannot be rolled back")
 	}
 	now := r.clock().UTC()
 	credentialRows, err := tx.QueryContext(ctx, `SELECT credential_reference,audience,array_to_json(scopes)::text,expires_at FROM partner_credential_events WHERE tenant_id=$1 AND action='registered' AND NOT EXISTS(SELECT 1 FROM partner_credential_events revoked WHERE revoked.tenant_id=partner_credential_events.tenant_id AND revoked.credential_reference=partner_credential_events.credential_reference AND revoked.action='revoked') FOR UPDATE`, tenantID)

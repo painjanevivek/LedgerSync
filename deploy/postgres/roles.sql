@@ -36,6 +36,21 @@ BEGIN
     EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_provision_account_v1(uuid,text,uuid,text,text,text,text,text[],text[],text[],uuid,timestamptz) FROM PUBLIC';
     EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_provision_account_v1(uuid,text,uuid,text,text,text,text,text[],text[],text[],uuid,timestamptz) TO ledgersync_api,ledgersync_provisioning';
   END IF;
+  IF to_regprocedure('public.controlled_request_opening_import_v1(uuid,text,uuid,text,uuid[],bigint[],bytea,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_request_opening_import_v1(uuid,text,uuid,text,uuid[],bigint[],bytea,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_request_opening_import_v1(uuid,text,uuid,text,uuid[],bigint[],bytea,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_request_opening_import_v1(uuid,text,uuid,text,uuid[],bigint[],bytea,uuid,timestamptz) TO ledgersync_provisioning';
+  END IF;
+  IF to_regprocedure('public.controlled_approve_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_approve_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_approve_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_approve_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) TO ledgersync_provisioning';
+  END IF;
+  IF to_regprocedure('public.controlled_execute_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_execute_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_execute_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_execute_opening_import_v1(uuid,text,uuid,bytea,uuid,timestamptz) TO ledgersync_provisioning';
+  END IF;
 END $$;
 
 -- SECURITY DEFINER command functions run as the non-login migration owner.
@@ -47,18 +62,20 @@ GRANT SELECT ON tenants, tenant_subject_roles, tenant_transfer_policies, account
   idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
   transfers, journal_transactions, ledger_postings, developer_webhook_endpoints,
   tenant_funding_policies, funding_events, approval_records, funding_velocity_events,
-  transfer_corrections
+  transfer_corrections, opening_import_batches, opening_import_rows,
+  opening_import_approvals, opening_import_executions
   TO ledgersync_migration_owner;
 GRANT INSERT ON idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
   transfers, journal_transactions, ledger_postings, audit_events, outbox_events,
   webhook_delivery_jobs, funding_velocity_events, approval_records, accounts,
   account_balance_projections, account_opening_balances, account_owners,
-  account_credit_permissions TO ledgersync_migration_owner;
+  account_credit_permissions, opening_import_batches, opening_import_rows,
+  opening_import_approvals, opening_import_executions TO ledgersync_migration_owner;
 -- PostgreSQL requires UPDATE privilege for SELECT ... FOR SHARE even when the
 -- controlled function never mutates the policy row.
 GRANT UPDATE ON tenant_transfer_policies, accounts, idempotency_requests,
   transfer_velocity_totals, transfers, account_balance_projections, funding_events,
-  transfer_corrections
+  transfer_corrections, account_opening_balances, opening_import_batches
   TO ledgersync_migration_owner;
 GRANT DELETE ON transfer_velocity_events TO ledgersync_migration_owner;
 
