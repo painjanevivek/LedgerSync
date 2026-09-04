@@ -16,10 +16,10 @@ GRANT USAGE ON SCHEMA public TO ledgersync_migration_owner, ledgersync_api, ledg
 
 DO $$
 BEGIN
-  IF to_regprocedure('public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid)') IS NOT NULL THEN
-    EXECUTE 'ALTER FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) OWNER TO ledgersync_migration_owner';
-    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) FROM PUBLIC';
-    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid) TO ledgersync_api';
+  IF to_regprocedure('public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) TO ledgersync_api';
   END IF;
 END $$;
 
@@ -33,8 +33,11 @@ GRANT SELECT ON tenants, tenant_subject_roles, tenant_transfer_policies, account
 GRANT INSERT ON idempotency_requests, transfer_velocity_events, transfer_velocity_totals,
   transfers, journal_transactions, ledger_postings, audit_events, outbox_events,
   webhook_delivery_jobs TO ledgersync_migration_owner;
-GRANT UPDATE ON idempotency_requests, transfer_velocity_totals, transfers,
-  account_balance_projections TO ledgersync_migration_owner;
+-- PostgreSQL requires UPDATE privilege for SELECT ... FOR SHARE even when the
+-- controlled function never mutates the policy row.
+GRANT UPDATE ON tenant_transfer_policies, accounts, idempotency_requests,
+  transfer_velocity_totals, transfers, account_balance_projections
+  TO ledgersync_migration_owner;
 GRANT DELETE ON transfer_velocity_events TO ledgersync_migration_owner;
 
 GRANT SELECT ON tenants, accounts, account_owners, account_credit_permissions, account_balance_projections, account_opening_balances,
