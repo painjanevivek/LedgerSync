@@ -9,7 +9,15 @@ import (
 	"math/rand/v2"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+// ErrLedgerSemanticViolation is the deliberately low-cardinality diagnostic
+// returned when PostgreSQL rejects a forged or internally inconsistent journal.
+// The original PgError is not retained because SQL detail can contain financial
+// identifiers and values; boundary telemetry can safely count this sentinel.
+var ErrLedgerSemanticViolation = errors.New("ledger semantic invariant rejected")
 
 type PoolConfig struct {
 	DriverName      string
@@ -83,6 +91,9 @@ func withSerializableRetry(ctx context.Context, database transactionBeginner, at
 		case <-time.After(wait):
 		}
 	}
+	if IsLedgerSemanticViolation(lastErr) {
+		return ErrLedgerSemanticViolation
+	}
 	return lastErr
 }
 
@@ -124,6 +135,25 @@ func IsRetryableTransactionError(err error) bool {
 	text := strings.ToLower(err.Error())
 	return strings.Contains(text, "sqlstate 40001") || strings.Contains(text, "sqlstate 40p01") ||
 		strings.Contains(text, "could not serialize access") || strings.Contains(text, "deadlock detected")
+}
+
+// IsLedgerSemanticViolation recognizes only migration-owned semantic controls.
+// Matching exact constraint names prevents unrelated validation failures from
+// being collapsed into the invariant signal.
+func IsLedgerSemanticViolation(err error) bool {
+	if errors.Is(err, ErrLedgerSemanticViolation) {
+		return true
+	}
+	var postgresError *pgconn.PgError
+	if !errors.As(err, &postgresError) || postgresError.Code != "23514" {
+		return false
+	}
+	switch postgresError.ConstraintName {
+	case "ledger_semantic_validation", "journal_source_present_check", "journal_source_matches_command_check":
+		return true
+	default:
+		return false
+	}
 }
 
 func nonZero(value, fallback time.Duration) time.Duration {

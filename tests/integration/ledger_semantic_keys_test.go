@@ -124,6 +124,12 @@ VALUES('00000000-0000-4000-8000-000000000925',$1,$2,$3,'debit',1,'USD',$4)`, val
 	if _, err = historical.ExecContext(ctx, `SET LOCAL session_replication_role='replica'`); err != nil {
 		t.Fatalf("enable historical-shape fixture: %v", err)
 	}
+	// Simulate a row written before migration 000035 validated and enforced the
+	// source identity check. The DDL and fixture remain isolated in this rolled-
+	// back transaction; new writes above still prove the live constraint path.
+	if _, err = historical.ExecContext(ctx, `ALTER TABLE journal_transactions DROP CONSTRAINT journal_source_matches_command_check`); err != nil {
+		t.Fatalf("simulate pre-enforcement schema: %v", err)
+	}
 	if _, err = historical.ExecContext(ctx, `
 INSERT INTO journal_transactions(id,tenant_id,transfer_id,source_type,source_id,occurred_at)
 VALUES('00000000-0000-4000-8000-000000000926',$1,$2,'transfer','00000000-0000-4000-8000-000000000927',$3)`, otherTenantID, transferID, time.Now().UTC()); err != nil {
@@ -146,12 +152,16 @@ func TestLedgerSemanticKeyDownMigrationRefusesUnrepresentableEvidence(t *testing
 		t.Fatal(err)
 	}
 	downSQL := readLedgerSemanticDownMigration(t)
+	validationDownSQL := readMigrationFile(t, "000035_ledger_semantic_validation.down.sql")
 
 	unsafe, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = unsafe.Rollback() }()
+	if _, err = unsafe.ExecContext(ctx, `ALTER TABLE journal_transactions DROP CONSTRAINT journal_source_matches_command_check`); err != nil {
+		t.Fatal(err)
+	}
 	if _, err = unsafe.ExecContext(ctx, `
 INSERT INTO transfers(id,tenant_id,actor_subject_id,debit_account_id,credit_account_id,amount_minor,currency,status,created_at,policy_version)
 VALUES('00000000-0000-4000-8000-000000000931',$1,$2,$3,$4,1,'USD','pending',$5,1)`, testTenantID, testActorID, testSourceID, testDestinationID, time.Now().UTC()); err != nil {
@@ -172,6 +182,19 @@ VALUES('00000000-0000-4000-8000-000000000932',$1,'00000000-0000-4000-8000-000000
 		t.Fatal(err)
 	}
 	defer func() { _ = safe.Rollback() }()
+	if _, err = safe.ExecContext(ctx, `SET LOCAL ledgersync.semantic_validation_rollback_reason='incident commander and ledger owner approved test rollback'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = safe.ExecContext(ctx, validationDownSQL); err != nil {
+		t.Fatalf("approved semantic-validation down migration: %v", err)
+	}
+	var rollbackMarkers int
+	if err = safe.QueryRowContext(ctx, `SELECT count(*) FROM ledger_semantic_control_events WHERE action='semantic_validation_disabled'`).Scan(&rollbackMarkers); err != nil {
+		t.Fatal(err)
+	}
+	if rollbackMarkers != 1 {
+		t.Fatalf("semantic-validation down migration markers=%d, want 1", rollbackMarkers)
+	}
 	if _, err = safe.ExecContext(ctx, downSQL); err != nil {
 		t.Fatalf("representable down migration: %v", err)
 	}
@@ -254,12 +277,16 @@ FROM ledger_semantic_key_validation`).Scan(
 }
 
 func readLedgerSemanticDownMigration(t *testing.T) string {
+	return readMigrationFile(t, "000034_ledger_semantic_keys_expand.down.sql")
+}
+
+func readMigrationFile(t *testing.T, name string) string {
 	t.Helper()
 	_, sourceFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("locate ledger semantic migration")
 	}
-	content, err := os.ReadFile(filepath.Join(filepath.Dir(sourceFile), "..", "..", "migrations", "000034_ledger_semantic_keys_expand.down.sql"))
+	content, err := os.ReadFile(filepath.Join(filepath.Dir(sourceFile), "..", "..", "migrations", name))
 	if err != nil {
 		t.Fatal(err)
 	}
