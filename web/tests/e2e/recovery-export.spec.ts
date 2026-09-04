@@ -14,6 +14,7 @@ test("Recovery separates current truth, backup, restore, retention, and copy-onl
   await expect(page.getByText("0 mismatches · normal environment unchanged",{exact:true})).toBeVisible();
   await expect(page.getByText("Restore and reset are intentionally absent",{exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Restore active database"})).toHaveCount(0);
+  await page.getByText("Safe host commands", { exact:true }).click();
   await page.getByRole("button",{name:"Copy Run isolated restore drill command"}).click();
   expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(".\\scripts\\local-restore-drill.ps1");
   await expectAccessible(page);
@@ -33,7 +34,7 @@ test("Recovery shows truthful empty and partial evidence without inventing readi
 
 test("transfer export review discloses exact filters and uses one native bounded download",async({page})=>{
   await mockOperatorConsole(page); await page.goto("/transfers");
-  await page.getByLabel("Search transfers").fill("11111111"); await page.getByLabel("Status").selectOption("posted"); await page.getByRole("button",{name:"Apply filters"}).click();
+  await page.getByLabel("Search transfers").fill("11111111"); await page.getByText("Advanced filters",{exact:true}).click(); await page.getByLabel("Status").selectOption("posted"); await page.getByRole("button",{name:"Apply filters"}).click();
   await expect(page).toHaveURL(/q=11111111.*status=posted/);
   const trigger=page.getByRole("button",{name:"Export transfer details"}); await trigger.click();
   const dialog=page.getByRole("dialog",{name:"Review transfer history export"}); await expect(dialog).toBeVisible();
@@ -48,6 +49,7 @@ test("transfer export review discloses exact filters and uses one native bounded
 
 test("account and reconciliation exports retain their exact contextual scope",async({page})=>{
   await mockOperatorConsole(page); await page.goto(`/accounts/${destinationAccount.account_id}`);
+  await page.getByText("Transactions and export", { exact:true }).click();
   await page.getByRole("button",{name:"Export ledger history"}).click();
   await expect(page.getByRole("dialog",{name:"Review account ledger history export"}).getByText(`One authorized account · ${destinationAccount.account_id}`,{exact:true})).toBeVisible();
   await page.keyboard.press("Escape");
