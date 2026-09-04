@@ -38,7 +38,7 @@ func NewTransferCorrectionRepository(database *sql.DB, clock func() time.Time) (
 }
 
 func (r *TransferCorrectionRepository) Request(ctx context.Context, command appcorrections.RequestCommand, fingerprint [sha256.Size]byte) (submission appcorrections.Submission, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction|"+strings.ToLower(command.TenantID)+"|"+command.OriginalTransferID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction|"+strings.ToLower(command.TenantID)+"|"+command.OriginalTransferID, 5, func(tx *sql.Tx) error {
 		var id string
 		var replayed bool
 		if err := tx.QueryRowContext(ctx, `SELECT correction_id::text,replayed FROM public.controlled_request_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
@@ -58,7 +58,7 @@ func (r *TransferCorrectionRepository) Request(ctx context.Context, command appc
 }
 
 func (r *TransferCorrectionRepository) Approve(ctx context.Context, command appcorrections.DecisionCommand) (event appcorrections.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		if err := executeControlledCorrectionDecision(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, "approve", command.Reason, command.CorrelationID, command.StepUpAuthenticatedAt, command.DecidedAt); err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func (r *TransferCorrectionRepository) Approve(ctx context.Context, command appc
 }
 
 func (r *TransferCorrectionRepository) Reject(ctx context.Context, command appcorrections.DecisionCommand) (event appcorrections.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		if err := executeControlledCorrectionDecision(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, "reject", command.Reason, command.CorrelationID, command.StepUpAuthenticatedAt, command.DecidedAt); err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func (r *TransferCorrectionRepository) Reject(ctx context.Context, command appco
 }
 
 func (r *TransferCorrectionRepository) Cancel(ctx context.Context, command appcorrections.CancelCommand) (event appcorrections.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		if err := executeControlledCorrectionDecision(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, "cancel", command.Reason, command.CorrelationID, time.Time{}, command.CancelledAt); err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (r *TransferCorrectionRepository) Cancel(ctx context.Context, command appco
 }
 
 func (r *TransferCorrectionRepository) Post(ctx context.Context, command appcorrections.PostCommand) (submission appcorrections.Submission, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-post|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-post|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		var replayed bool
 		if queryErr := tx.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
 			command.TenantID, command.ActorSubjectID, command.CorrectionID,

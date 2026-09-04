@@ -73,7 +73,7 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 		}
 	}
 	sequenceTenant := command.TenantID.String()
-	err = WithSerializableSequence(ctx, r.database, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, sequenceTenant, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
 		var response []byte
 		var replayed bool
 		queryErr := tx.QueryRowContext(ctx, `

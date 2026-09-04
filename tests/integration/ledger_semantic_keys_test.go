@@ -153,6 +153,7 @@ func TestLedgerSemanticKeyDownMigrationRefusesUnrepresentableEvidence(t *testing
 	}
 	downSQL := readLedgerSemanticDownMigration(t)
 	validationDownSQL := readMigrationFile(t, "000035_ledger_semantic_validation.down.sql")
+	tenantRLSDownSQL := readMigrationFile(t, "000039_tenant_rls_expand.down.sql")
 
 	unsafe, err := database.BeginTx(ctx, nil)
 	if err != nil {
@@ -194,6 +195,9 @@ VALUES('00000000-0000-4000-8000-000000000932',$1,'00000000-0000-4000-8000-000000
 	}
 	if rollbackMarkers != 1 {
 		t.Fatalf("semantic-validation down migration markers=%d, want 1", rollbackMarkers)
+	}
+	if _, err = safe.ExecContext(ctx, tenantRLSDownSQL); err != nil {
+		t.Fatalf("tenant RLS expand down migration: %v", err)
 	}
 	if _, err = safe.ExecContext(ctx, downSQL); err != nil {
 		t.Fatalf("representable down migration: %v", err)

@@ -43,7 +43,7 @@ CASE WHEN status IN ('posted','compensated') THEN COALESCE((SELECT balance_versi
 
 func (r *FundingRepository) Request(ctx context.Context, command appfunding.RequestCommand, fingerprint [sha256.Size]byte) (submission appfunding.Submission, err error) {
 	sequence := "funding-request|" + strings.ToLower(command.TenantID) + "|" + command.ActorSubjectID
-	err = WithSerializableSequence(ctx, r.database, sequence, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, sequence, 5, func(tx *sql.Tx) error {
 		var eventID string
 		var replayed bool
 		if err := tx.QueryRowContext(ctx, `SELECT funding_event_id::text,replayed FROM public.controlled_request_funding_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
@@ -63,7 +63,7 @@ func (r *FundingRepository) Request(ctx context.Context, command appfunding.Requ
 }
 
 func (r *FundingRepository) Approve(ctx context.Context, command appfunding.DecisionCommand, demo bool) (event appfunding.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "funding-decision|"+strings.ToLower(command.TenantID)+"|"+command.FundingEventID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "funding-decision|"+strings.ToLower(command.TenantID)+"|"+command.FundingEventID, 5, func(tx *sql.Tx) error {
 		_ = demo
 		if _, err := tx.ExecContext(ctx, `SELECT public.controlled_decide_funding_v1($1,$2,$3,'approve',$4,$5,$6)`, command.TenantID, command.ActorSubjectID, command.FundingEventID, command.Reason, command.CorrelationID, command.DecidedAt); err != nil {
 			return classifyControlledFundingLifecycleError(err)
@@ -76,7 +76,7 @@ func (r *FundingRepository) Approve(ctx context.Context, command appfunding.Deci
 }
 
 func (r *FundingRepository) Reject(ctx context.Context, command appfunding.DecisionCommand) (event appfunding.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "funding-decision|"+strings.ToLower(command.TenantID)+"|"+command.FundingEventID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "funding-decision|"+strings.ToLower(command.TenantID)+"|"+command.FundingEventID, 5, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `SELECT public.controlled_decide_funding_v1($1,$2,$3,'reject',$4,$5,$6)`, command.TenantID, command.ActorSubjectID, command.FundingEventID, command.Reason, command.CorrelationID, command.DecidedAt); err != nil {
 			return classifyControlledFundingLifecycleError(err)
 		}
@@ -88,7 +88,7 @@ func (r *FundingRepository) Reject(ctx context.Context, command appfunding.Decis
 }
 
 func (r *FundingRepository) Post(ctx context.Context, command appfunding.ActionCommand) (submission appfunding.Submission, err error) {
-	err = WithSerializableSequence(ctx, r.database, "funding-post|"+strings.ToLower(command.TenantID), 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "funding-post|"+strings.ToLower(command.TenantID), 5, func(tx *sql.Tx) error {
 		var replayed bool
 		if queryErr := tx.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_funding_v1($1,$2,$3,$4,$5,$6)`,
 			command.TenantID, command.ActorSubjectID, command.FundingEventID,
@@ -151,7 +151,7 @@ func classifyControlledFundingLifecycleError(err error) error {
 
 func (r *FundingRepository) Compensate(ctx context.Context, command appfunding.CompensationCommand, fingerprint [sha256.Size]byte) (submission appfunding.Submission, err error) {
 	sequence := "funding-compensate|" + strings.ToLower(command.TenantID) + "|" + command.FundingEventID
-	err = WithSerializableSequence(ctx, r.database, sequence, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, sequence, 5, func(tx *sql.Tx) error {
 		var eventID string
 		var replayed bool
 		if err := tx.QueryRowContext(ctx, `SELECT funding_event_id::text,replayed FROM public.controlled_request_funding_compensation_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)`,

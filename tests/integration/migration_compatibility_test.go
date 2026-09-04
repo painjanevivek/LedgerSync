@@ -29,8 +29,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 38 {
-		t.Fatalf("migration versions=%d, want 38", versions)
+	if versions != 39 {
+		t.Fatalf("migration versions=%d, want 39", versions)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "opening_import_batches", "opening_import_rows", "opening_import_approvals", "opening_import_executions", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
