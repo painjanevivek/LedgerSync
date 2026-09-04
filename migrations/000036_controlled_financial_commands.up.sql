@@ -437,6 +437,266 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION controlled_post_transfer_correction_v1(
+  p_tenant_id UUID,
+  p_actor_subject_id TEXT,
+  p_correction_id UUID,
+  p_idempotency_key TEXT,
+  p_correlation_id UUID,
+  p_occurred_at TIMESTAMPTZ,
+  p_step_up_authenticated_at TIMESTAMPTZ
+)
+RETURNS TABLE(replayed BOOLEAN)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_correction RECORD;
+  v_account_count INTEGER;
+  v_source RECORD;
+  v_destination RECORD;
+  v_compensation_id UUID := gen_random_uuid();
+  v_journal_id UUID := gen_random_uuid();
+  v_debit_posting_id UUID := gen_random_uuid();
+  v_credit_posting_id UUID := gen_random_uuid();
+  v_source_event_id UUID := gen_random_uuid();
+  v_destination_event_id UUID := gen_random_uuid();
+  v_audit_id UUID := gen_random_uuid();
+  v_approval_id UUID := gen_random_uuid();
+  v_source_available BIGINT;
+  v_source_version BIGINT;
+  v_destination_available BIGINT;
+  v_destination_version BIGINT;
+BEGIN
+  IF p_tenant_id IS NULL OR p_correction_id IS NULL OR p_correlation_id IS NULL OR p_occurred_at IS NULL
+     OR p_actor_subject_id IS NULL OR p_actor_subject_id='' OR btrim(p_actor_subject_id)<>p_actor_subject_id
+     OR p_idempotency_key IS NULL OR p_idempotency_key!~'^[!-~]{16,255}$' THEN
+    RAISE EXCEPTION 'controlled correction input is invalid'
+      USING ERRCODE='22023', CONSTRAINT='controlled_correction_input';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.tenant_subject_roles role
+     WHERE role.tenant_id=p_tenant_id AND role.subject_id=p_actor_subject_id AND role.role='finance'
+  ) THEN
+    RAISE EXCEPTION 'controlled correction actor is not authorized'
+      USING ERRCODE='42501', CONSTRAINT='controlled_correction_actor';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended('transfer-correction-post|'||p_tenant_id::text||'|'||p_correction_id::text,0));
+
+  SELECT correction.requester_subject_id,correction.approver_subject_id,correction.status,
+         correction.control_mode,correction.step_up_required,correction.approval_expires_at,
+         correction.policy_version,COALESCE(correction.post_idempotency_key,'') AS post_idempotency_key,
+         original.id AS original_transfer_id,original.debit_account_id,original.credit_account_id,
+         original.amount_minor,original.currency,original.status AS original_status
+    INTO v_correction
+    FROM public.transfer_corrections correction
+    JOIN public.transfers original ON original.id=correction.original_transfer_id
+   WHERE correction.tenant_id=p_tenant_id AND correction.id=p_correction_id
+   FOR UPDATE OF correction,original;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled correction was not found'
+      USING ERRCODE='P0002', CONSTRAINT='controlled_correction_not_found';
+  END IF;
+
+  IF v_correction.status='posted' THEN
+    IF v_correction.post_idempotency_key<>'' AND v_correction.post_idempotency_key<>p_idempotency_key THEN
+      RAISE EXCEPTION 'controlled correction idempotency conflict'
+        USING ERRCODE='23505', CONSTRAINT='controlled_correction_idempotency';
+    END IF;
+    RETURN QUERY SELECT TRUE;
+    RETURN;
+  END IF;
+  IF v_correction.status<>'approved' OR v_correction.approver_subject_id IS NULL
+     OR v_correction.original_status<>'posted' THEN
+    RAISE EXCEPTION 'controlled correction state conflicts with posting'
+      USING ERRCODE='55000', CONSTRAINT='controlled_correction_conflict';
+  END IF;
+  IF v_correction.control_mode='production_dual_control'
+     AND (v_correction.requester_subject_id=p_actor_subject_id
+       OR v_correction.requester_subject_id=v_correction.approver_subject_id) THEN
+    RAISE EXCEPTION 'controlled correction requires an independent actor'
+      USING ERRCODE='42501', CONSTRAINT='controlled_correction_forbidden';
+  END IF;
+
+  IF p_occurred_at>=v_correction.approval_expires_at THEN
+    UPDATE public.transfer_corrections correction
+       SET status='expired',decision_reason='approval_window_expired',
+           cancelled_at=p_occurred_at,updated_at=p_occurred_at
+     WHERE correction.tenant_id=p_tenant_id AND correction.id=p_correction_id
+       AND correction.status IN ('requested','approved');
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'controlled correction expiry conflict'
+        USING ERRCODE='55000', CONSTRAINT='controlled_correction_conflict';
+    END IF;
+    INSERT INTO public.approval_records(
+      id,tenant_id,command_type,target_id,requester_subject_id,approver_subject_id,
+      status,expires_at,decision_reason,correlation_id,policy_version,created_at,decided_at
+    ) VALUES(
+      v_approval_id,p_tenant_id,'transfer_compensation',p_correction_id,
+      v_correction.requester_subject_id,NULL,'expired',p_occurred_at,
+      'approval_window_expired',p_correlation_id,v_correction.policy_version,p_occurred_at,p_occurred_at
+    );
+    INSERT INTO public.audit_events(
+      id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,
+      correlation_id,sanitized_metadata,occurred_at
+    ) VALUES(
+      v_audit_id,p_tenant_id,p_actor_subject_id,'transfer_correction.expired',
+      'transfer_correction',p_correction_id::text,'failed',p_correlation_id,
+      jsonb_build_object(
+        'function','controlled_post_transfer_correction_v1',
+        'requester_subject_id',v_correction.requester_subject_id,
+        'approver_subject_id',v_correction.approver_subject_id
+      ),p_occurred_at
+    );
+    RETURN QUERY SELECT FALSE;
+    RETURN;
+  END IF;
+
+  IF v_correction.control_mode='production_dual_control' AND v_correction.step_up_required
+     AND (p_step_up_authenticated_at IS NULL
+       OR p_step_up_authenticated_at>p_occurred_at+INTERVAL '1 minute'
+       OR p_occurred_at-p_step_up_authenticated_at>INTERVAL '10 minutes') THEN
+    RAISE EXCEPTION 'controlled correction step-up is required'
+      USING ERRCODE='42501', CONSTRAINT='controlled_correction_step_up';
+  END IF;
+
+  PERFORM 1
+    FROM public.accounts account
+    JOIN public.account_balance_projections balance ON balance.account_id=account.id
+   WHERE account.tenant_id=p_tenant_id
+     AND account.id IN (v_correction.credit_account_id,v_correction.debit_account_id)
+   ORDER BY account.id
+   FOR UPDATE OF account,balance;
+  SELECT count(*) INTO v_account_count
+    FROM public.accounts account
+    JOIN public.account_balance_projections balance ON balance.account_id=account.id
+   WHERE account.tenant_id=p_tenant_id
+     AND account.id IN (v_correction.credit_account_id,v_correction.debit_account_id);
+  IF v_account_count<>2 THEN
+    RAISE EXCEPTION 'controlled correction account boundary denied'
+      USING ERRCODE='42501', CONSTRAINT='controlled_correction_not_found';
+  END IF;
+
+  SELECT account.status,account.currency
+    INTO STRICT v_source
+    FROM public.accounts account
+   WHERE account.tenant_id=p_tenant_id AND account.id=v_correction.credit_account_id;
+  SELECT account.status,account.currency
+    INTO STRICT v_destination
+    FROM public.accounts account
+   WHERE account.tenant_id=p_tenant_id AND account.id=v_correction.debit_account_id;
+  IF v_source.status='closed' OR v_destination.status='closed'
+     OR v_source.currency<>v_correction.currency OR v_destination.currency<>v_correction.currency THEN
+    RAISE EXCEPTION 'controlled correction account state conflicts with posting'
+      USING ERRCODE='55000', CONSTRAINT='controlled_correction_conflict';
+  END IF;
+
+  INSERT INTO public.transfers(
+    id,tenant_id,actor_subject_id,debit_account_id,credit_account_id,amount_minor,currency,status,
+    journal_transaction_id,created_at,completed_at,policy_version,compensation_of_transfer_id
+  ) VALUES(
+    v_compensation_id,p_tenant_id,p_actor_subject_id,v_correction.credit_account_id,
+    v_correction.debit_account_id,v_correction.amount_minor,v_correction.currency,'posted',
+    v_journal_id,p_occurred_at,p_occurred_at,v_correction.policy_version,v_correction.original_transfer_id
+  );
+  INSERT INTO public.journal_transactions(
+    id,tenant_id,transfer_id,source_type,source_id,occurred_at
+  ) VALUES(
+    v_journal_id,p_tenant_id,v_compensation_id,'transfer',v_compensation_id,p_occurred_at
+  );
+  INSERT INTO public.ledger_postings(
+    id,journal_transaction_id,tenant_id,account_id,direction,amount_minor,currency,occurred_at
+  ) VALUES
+    (v_debit_posting_id,v_journal_id,p_tenant_id,v_correction.credit_account_id,'debit',v_correction.amount_minor,v_correction.currency,p_occurred_at),
+    (v_credit_posting_id,v_journal_id,p_tenant_id,v_correction.debit_account_id,'credit',v_correction.amount_minor,v_correction.currency,p_occurred_at);
+
+  UPDATE public.account_balance_projections balance
+     SET available_minor=balance.available_minor-v_correction.amount_minor,
+         ledger_minor=balance.ledger_minor-v_correction.amount_minor,
+         balance_version=balance.balance_version+1,updated_at=p_occurred_at
+   WHERE balance.account_id=v_correction.credit_account_id
+     AND balance.available_minor>=v_correction.amount_minor
+     AND balance.ledger_minor>=v_correction.amount_minor
+  RETURNING balance.available_minor,balance.balance_version
+       INTO v_source_available,v_source_version;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled correction source balance conflict'
+      USING ERRCODE='23514', CONSTRAINT='controlled_correction_conflict';
+  END IF;
+  UPDATE public.account_balance_projections balance
+     SET available_minor=balance.available_minor+v_correction.amount_minor,
+         ledger_minor=balance.ledger_minor+v_correction.amount_minor,
+         balance_version=balance.balance_version+1,updated_at=p_occurred_at
+   WHERE balance.account_id=v_correction.debit_account_id
+  RETURNING balance.available_minor,balance.balance_version
+       INTO v_destination_available,v_destination_version;
+
+  UPDATE public.transfer_corrections correction
+     SET status='posted',compensation_transfer_id=v_compensation_id,
+         posted_at=p_occurred_at,updated_at=p_occurred_at,post_idempotency_key=p_idempotency_key
+   WHERE correction.tenant_id=p_tenant_id AND correction.id=p_correction_id
+     AND correction.status='approved';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'controlled correction state changed'
+      USING ERRCODE='40001', CONSTRAINT='controlled_correction_state';
+  END IF;
+
+  INSERT INTO public.outbox_events(
+    id,tenant_id,transfer_id,account_id,aggregate_type,aggregate_id,
+    event_type,aggregate_version,payload,occurred_at
+  ) VALUES
+    (
+      v_source_event_id,p_tenant_id,v_compensation_id,v_correction.credit_account_id,
+      'account_balance',v_correction.credit_account_id,'account.balance.changed.v1',v_source_version,
+      jsonb_build_object(
+        'event_id',v_source_event_id::text,'event_type','account.balance.changed.v1',
+        'account_id',v_correction.credit_account_id::text,'transfer_id',v_compensation_id::text,
+        'currency',v_correction.currency,'available_minor',v_source_available::text,
+        'balance_version',v_source_version::text,
+        'occurred_at',to_char(p_occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+        'amount_minor',v_correction.amount_minor::text
+      ),p_occurred_at
+    ),
+    (
+      v_destination_event_id,p_tenant_id,v_compensation_id,v_correction.debit_account_id,
+      'account_balance',v_correction.debit_account_id,'account.balance.changed.v1',v_destination_version,
+      jsonb_build_object(
+        'event_id',v_destination_event_id::text,'event_type','account.balance.changed.v1',
+        'account_id',v_correction.debit_account_id::text,'transfer_id',v_compensation_id::text,
+        'currency',v_correction.currency,'available_minor',v_destination_available::text,
+        'balance_version',v_destination_version::text,
+        'occurred_at',to_char(p_occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+        'amount_minor',v_correction.amount_minor::text
+      ),p_occurred_at
+    );
+
+  INSERT INTO public.audit_events(
+    id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,
+    correlation_id,sanitized_metadata,occurred_at
+  ) VALUES(
+    v_audit_id,p_tenant_id,p_actor_subject_id,'transfer_correction.posted',
+    'transfer_correction',p_correction_id::text,'succeeded',p_correlation_id,
+    jsonb_build_object(
+      'function','controlled_post_transfer_correction_v1',
+      'original_transfer_id',v_correction.original_transfer_id::text,
+      'compensation_transfer_id',v_compensation_id::text,
+      'requester_subject_id',v_correction.requester_subject_id,
+      'approver_subject_id',v_correction.approver_subject_id,
+      'step_up_verified',NOT v_correction.step_up_required OR (
+        p_step_up_authenticated_at IS NOT NULL
+        AND p_step_up_authenticated_at<=p_occurred_at+INTERVAL '1 minute'
+        AND p_occurred_at-p_step_up_authenticated_at<=INTERVAL '10 minutes'
+      )
+    ),p_occurred_at
+  );
+
+  RETURN QUERY SELECT FALSE;
+END;
+$$;
+
 CREATE FUNCTION controlled_post_funding_v1(
   p_tenant_id UUID,
   p_actor_subject_id TEXT,
@@ -673,5 +933,9 @@ COMMENT ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEX
 COMMENT ON FUNCTION controlled_post_funding_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ)
   IS 'Atomic, tenant-validated funding or funding-compensation posting capability';
 
+COMMENT ON FUNCTION controlled_post_transfer_correction_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ,TIMESTAMPTZ)
+  IS 'Atomic, tenant-validated exact transfer-compensation posting capability';
+
 REVOKE ALL ON FUNCTION controlled_submit_transfer_v1(UUID,TEXT,UUID,UUID,BIGINT,TEXT,TEXT,BYTEA,UUID,TEXT,TIMESTAMPTZ) FROM PUBLIC;
 REVOKE ALL ON FUNCTION controlled_post_funding_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ) FROM PUBLIC;
+REVOKE ALL ON FUNCTION controlled_post_transfer_correction_v1(UUID,TEXT,UUID,TEXT,UUID,TIMESTAMPTZ,TIMESTAMPTZ) FROM PUBLIC;
