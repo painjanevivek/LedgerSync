@@ -13,11 +13,13 @@ test("investigation workspaces reopen historical context beside current evidence
   await expect(current).toContainText("posted");
   await expect(current).toContainText("retrying");
 
+  await page.getByText("Captured historical context", { exact: true }).click();
   const historical = page.getByRole("region", { name: "Historical investigation context" });
   await expect(historical).toContainText("does not claim those records still have the same status");
   await expect(historical).toContainText(investigationWorkspace.historical_context.query_context.value);
   await expect(historical).toContainText("created");
 
+  await page.getByText("Export evidence bundle", { exact: true }).click();
   await page.getByRole("button", { name: "Review evidence bundle" }).click();
   const bundleReview = page.getByRole("dialog", { name: "Review investigation bundle" });
   await expect(bundleReview).toContainText("2 identifier rows");
@@ -28,6 +30,7 @@ test("investigation workspaces reopen historical context beside current evidence
   await expect(page.getByRole("heading", { name: "Bundle download started" })).toBeVisible();
   expect((await download).suggestedFilename()).toBe(`ledgersync-investigation-${investigationWorkspace.investigation_id}-20260819T120500Z-v1.zip`);
 
+  await page.getByText("Ownership, handoff, and lifecycle", { exact: true }).click();
   await page.getByRole("button", { name: "Close investigation" }).click();
   await expect(page.getByRole("button", { name: "Reopen investigation" })).toBeVisible();
   await page.getByRole("button", { name: "Reopen investigation" }).click();

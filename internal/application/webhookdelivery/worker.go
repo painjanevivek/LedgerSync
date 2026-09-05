@@ -54,6 +54,7 @@ type Config struct {
 	BatchSize   int
 	ClaimLease  time.Duration
 	MaxAttempts int
+	OnItem      func(string)
 }
 
 type Worker struct {
@@ -64,6 +65,7 @@ type Worker struct {
 	batchSize   int
 	claimLease  time.Duration
 	maxAttempts int
+	onItem      func(string)
 }
 
 func NewWorker(store Store, sender Sender, clock func() time.Time, cfg Config) (*Worker, error) {
@@ -82,7 +84,7 @@ func NewWorker(store Store, sender Sender, clock func() time.Time, cfg Config) (
 	if cfg.MaxAttempts <= 0 {
 		cfg.MaxAttempts = 8
 	}
-	return &Worker{store: store, sender: sender, clock: clock, workerID: cfg.WorkerID, batchSize: cfg.BatchSize, claimLease: cfg.ClaimLease, maxAttempts: cfg.MaxAttempts}, nil
+	return &Worker{store: store, sender: sender, clock: clock, workerID: cfg.WorkerID, batchSize: cfg.BatchSize, claimLease: cfg.ClaimLease, maxAttempts: cfg.MaxAttempts, onItem: cfg.OnItem}, nil
 }
 
 // RunOnce processes every currently leased job. A returned error means durable
@@ -95,6 +97,9 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	for _, job := range jobs {
+		if w.onItem != nil {
+			w.onItem(job.ID)
+		}
 		now := w.clock().UTC()
 		completion := Completion{JobID: job.ID, WorkerID: w.workerID, AttemptNumber: job.AttemptNumber, CompletedAt: now}
 		if strings.TrimSpace(job.EndpointURL) == "" || strings.TrimSpace(job.SigningKeyReference) == "" || strings.TrimSpace(job.SigningKeyID) == "" {

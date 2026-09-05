@@ -8,18 +8,20 @@ import (
 	appcorrections "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/corrections"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
+	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers"
 )
 
 type correctionRouteConfig struct {
-	Database               *sql.DB
-	Identity               identity.Provider
-	Authenticator          *identity.RequestAuthenticator
-	RateLimiter            handlers.RateLimiter
-	AuditRecorder          handlers.AuditRecorder
-	ReadRatePerMinute      int
-	WriteRatePerMinute     int
-	CapacityLimitPerSecond int
+	Database                  *sql.DB
+	Identity                  identity.Provider
+	Authenticator             *identity.RequestAuthenticator
+	RateLimiter               handlers.RateLimiter
+	AuditRecorder             handlers.AuditRecorder
+	CommittedResponseObserver httptransport.CommittedResponseObserver
+	ReadRatePerMinute         int
+	WriteRatePerMinute        int
+	CapacityLimitPerSecond    int
 }
 
 func registerCorrectionRoutes(router *http.ServeMux, config correctionRouteConfig) error {
@@ -37,7 +39,8 @@ func registerCorrectionRoutes(router *http.ServeMux, config correctionRouteConfi
 	handler := handlers.NewCorrectionHandler(service, config.Identity).
 		WithRequestAuthenticator(config.Authenticator).
 		WithRateLimiter(config.RateLimiter, config.ReadRatePerMinute, config.WriteRatePerMinute, config.CapacityLimitPerSecond).
-		WithAuditRecorder(config.AuditRecorder)
+		WithAuditRecorder(config.AuditRecorder).
+		WithCommittedResponseObserver(config.CommittedResponseObserver)
 
 	router.HandleFunc("POST /api/transfers/{transferID}/corrections", handler.Request)
 	router.HandleFunc("GET /api/transfer-corrections", handler.List)

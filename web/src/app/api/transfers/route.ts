@@ -1,12 +1,13 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { createSession, sessionCookie, sessionCookieName, readSession } from "@/lib/session";
+import { sessionCookieName, readSession, updateOpaqueSessionConsistency } from "@/lib/session";
 import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { toPrivateTransferRequest, type CreateTransferInput } from "@/lib/api/transfers";
 import { privateAPIContext, proxyPrivateGET } from "@/lib/private-api";
 import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
 import { parseTransferSearchParams, transferBFFQueryRules } from "@/lib/page-query/transfers";
+import { parseConsistencyRequirements } from "@/lib/committed-response";
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
@@ -50,7 +51,18 @@ export async function POST(request: NextRequest) {
     return jsonError(isPrivateAPITimeout(error) ? "transfer_outcome_unknown" : "temporary_unavailable", isPrivateAPITimeout(error) ? 504 : 503);
   }
 
-  const payload = await upstream.text();
+  let payload: string;
+  try {
+    payload = await upstream.text();
+  } catch {
+    if (!upstream.ok) return jsonError("temporary_unavailable", 503);
+    payload = JSON.stringify({
+      outcome: "committed",
+      metadata_status: "unavailable",
+      recovery_method: "POST",
+      reuse_idempotency_key: true,
+    });
+  }
   const response = new NextResponse(payload, {
     status: upstream.status,
     headers: {
@@ -64,17 +76,23 @@ export async function POST(request: NextRequest) {
   if (requestID) response.headers.set("X-Request-ID", requestID);
   const retryAfter = upstream.headers.get("retry-after");
   if (retryAfter) response.headers.set("Retry-After", retryAfter);
+  const upstreamMetadataStatus = upstream.headers.get("x-ledgersync-metadata-status");
+  if (upstreamMetadataStatus && ["complete", "partial", "unavailable"].includes(upstreamMetadataStatus)) {
+    response.headers.set("X-LedgerSync-Metadata-Status", upstreamMetadataStatus);
+  }
   const serializedRequirements = upstream.headers.get("x-ledgersync-consistency-requirements");
   if (serializedRequirements && upstream.ok) {
+    const requirements = parseConsistencyRequirements(serializedRequirements);
+    const sessionHandle = request.headers.get("x-ledgersync-session-handle");
+    let metadataStored = false;
     try {
-      const requirements = JSON.parse(serializedRequirements) as Record<string, string>;
-      if (Object.entries(requirements).length <= 10 && Object.entries(requirements).every(([accountId, token]) => accountId.length > 0 && typeof token === "string" && token.length <= 2048)) {
-        response.cookies.set(sessionCookie(createSession({ ...session, consistencyRequirements: { ...session.consistencyRequirements, ...requirements } })));
-      }
+      metadataStored = Boolean(requirements && sessionHandle && await updateOpaqueSessionConsistency(sessionHandle, requirements));
     } catch {
-      // A malformed private requirement must not be exposed to the browser or
-      // treated as a successful consistency guarantee.
-      return jsonError("temporary_unavailable", 503);
+      metadataStored = false;
+    }
+    if (!metadataStored) {
+      response.headers.delete("X-LedgerSync-Consistency-Requirements");
+      response.headers.set("X-LedgerSync-Metadata-Status", "unavailable");
     }
   }
   return response;

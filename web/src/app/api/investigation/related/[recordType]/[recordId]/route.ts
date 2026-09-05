@@ -2,15 +2,15 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseRelatedEvidenceBody, readBoundedRelatedEvidenceBody, relationshipSourceTypes } from "@/lib/api/related-evidence";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 import { authorizeInvestigationRelationships, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const relationshipRateLimit = new InMemoryRateLimitStore();
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
+const relationshipRateLimit = createRateLimitStore();
 const sourceTypes = new Set<string>(relationshipSourceTypes);
 
 export async function GET(request: NextRequest, context: { params: Promise<{ recordType: string; recordId: string }> }) {
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ rec
   if (isInvestigationSearchDenial(authorization)) return authorization;
   if ([...request.nextUrl.searchParams.keys()].length > 0) return jsonError("validation_failed", 400);
   const { recordType, recordId: rawRecordId } = await context.params;
-  const recordId = rawRecordId.toLowerCase();
-  if (!sourceTypes.has(recordType) || !uuid.test(recordId)) return jsonError("validation_failed", 400);
+  const recordId = canonicalUUID(rawRecordId);
+  if (!sourceTypes.has(recordType) || !recordId) return jsonError("validation_failed", 400);
   try {
     const connection = await privateAPIContext(authorization.session, request.headers.get("x-request-id") ?? undefined);
     const upstream = await fetch(`${connection.apiURL}/api/investigation/related/${encodeURIComponent(recordType)}/${encodeURIComponent(recordId)}`, { headers: connection.headers, cache: "no-store", signal: AbortSignal.timeout(privateReadTimeoutMilliseconds) });

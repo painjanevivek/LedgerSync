@@ -40,6 +40,7 @@ type Config struct {
 	BatchSize   int64
 	PendingIdle time.Duration
 	Block       time.Duration
+	OnItem      func(string)
 }
 
 type BalanceProjector struct {
@@ -84,6 +85,9 @@ func (p *BalanceProjector) RunOnce(ctx context.Context) (int, error) {
 		}
 	}
 	for _, message := range messages {
+		if p.config.OnItem != nil {
+			p.config.OnItem(message.ID)
+		}
 		// Other aggregate event types share the durable outbox and Redis stream,
 		// but this consumer group owns only the disposable balance cache. Acking
 		// an unrelated event advances this group without preventing a dedicated

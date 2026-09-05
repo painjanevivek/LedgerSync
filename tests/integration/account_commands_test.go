@@ -17,6 +17,7 @@ import (
 	appfunding "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
 	accountdomain "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
@@ -412,8 +413,8 @@ func TestAccountClosureBlocksObligationsAndPreservesSettledHistory(t *testing.T)
 		t.Fatal(err)
 	}
 	for _, command := range []transfers.Command{
-		{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: testSourceID, CreditAccountID: settled.Result.AccountID, Amount: amount, IdempotencyKey: "closed-history-transfer-01", CorrelationID: "00000000-0000-0000-0000-000000000099"},
-		{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: settled.Result.AccountID, CreditAccountID: testSourceID, Amount: amount, IdempotencyKey: "closed-history-transfer-02", CorrelationID: "00000000-0000-0000-0000-000000000099"},
+		{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: testSourceID, CreditAccountID: identifier.UUID(settled.Result.AccountID), Amount: amount, IdempotencyKey: "closed-history-transfer-01", CorrelationID: "00000000-0000-0000-0000-000000000099"},
+		{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: identifier.UUID(settled.Result.AccountID), CreditAccountID: testSourceID, Amount: amount, IdempotencyKey: "closed-history-transfer-02", CorrelationID: "00000000-0000-0000-0000-000000000099"},
 	} {
 		if _, err = transferService.Submit(ctx, command); err != nil {
 			t.Fatal(err)
@@ -490,7 +491,7 @@ func TestConcurrentCloseAndTransferSerializeOnAccountProjectionLocks(t *testing.
 		t.Fatal(err)
 	}
 	amount, _ := money.New("INR", 1)
-	transfer := transfers.Command{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: testSourceID, CreditAccountID: created.Result.AccountID, Amount: amount, IdempotencyKey: "account-race-xfer1", CorrelationID: "00000000-0000-0000-0000-000000000099"}
+	transfer := transfers.Command{TenantID: testTenantID, ActorSubjectID: testActorID, DebitAccountID: testSourceID, CreditAccountID: identifier.UUID(created.Result.AccountID), Amount: amount, IdempotencyKey: "account-race-xfer1", CorrelationID: "00000000-0000-0000-0000-000000000099"}
 	closeCommand := accounts.ChangeAccountStatusCommand{TenantID: testTenantID, ActorSubjectID: testActorID, CorrelationID: "00000000-0000-0000-0000-000000000099", IdempotencyKey: "account-race-close", AccountID: created.Result.AccountID, ExpectedVersion: 1, TargetStatus: accountdomain.StatusClosed, Reason: "Concurrent close safety test"}
 
 	start := make(chan struct{})

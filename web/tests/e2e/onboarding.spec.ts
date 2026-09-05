@@ -17,19 +17,19 @@ test("signed-out visitors receive a deliberate login layer", async ({ page }) =>
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: "Your ledger starts empty." }),
+    page.getByRole("heading", { name: "Your money workflows. One clear step at a time." }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "Open workspace" }).first()).toHaveAttribute(
     "href",
-    /\/api\/auth\/sign-in/,
+    "/sign-in",
   );
-  await expect(page.getByText(/sample balances/i)).toBeVisible();
+  await expect(page.getByText("Illustrative example · No money moves.")).toBeVisible();
 });
 
 test("a new local user sees an actionable zero-data dashboard and guide", async ({
   page,
 }) => {
-  await mockOperatorConsole(page);
+  await mockOperatorConsole(page, { experienceMode: "simple" });
   await page.route("**/api/me/accounts?*", (route) =>
     json(route, { accounts: [], next_cursor: "" }),
   );
@@ -42,19 +42,21 @@ test("a new local user sees an actionable zero-data dashboard and guide", async 
 
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Start with four simple steps" }),
+    page.getByRole("heading", { name: "Your money at a glance" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Create your first account" }),
+    page.getByRole("heading", { name: "Start with your first account" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Create an account" }),
   ).toHaveAttribute("href", "/accounts/new");
-  await expect(page.getByRole("link", { name: /Add a funding record/ })).toHaveAttribute("href", "/funding");
-  await expect(page.getByRole("link", { name: /Make a transfer/ })).toHaveAttribute("href", "/transfers");
 
-  await page.getByRole("link", { name: "Guide", exact: true }).click();
+  await page.getByRole("link", { name: "Open the guide", exact: true }).click();
   await expect(page).toHaveURL(/\/guide$/);
   await expect(
     page.getByRole("heading", { name: "Use LedgerSync step by step" }),
   ).toBeVisible();
+  await page.getByText("Reference: the six-step operating path", { exact: true }).click();
   await expect(page.getByText("Create an account", { exact: true })).toBeVisible();
   await expect(page.getByText("Check your records", { exact: true })).toBeVisible();
 });

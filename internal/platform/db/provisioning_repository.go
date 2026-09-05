@@ -81,39 +81,21 @@ func (r *ProvisioningRepository) Apply(ctx context.Context, configuration provis
 		}
 	}
 	for _, account := range configuration.Accounts {
-		opening, _ := strconv.ParseInt(account.OpeningMinor, 10, 64)
-		if opening < 0 {
-			return errors.New("opening balance cannot be negative")
-		}
 		reference := strings.TrimSpace(account.ExternalReference)
 		if reference == "" {
 			reference = "provisioned-" + strings.ToLower(account.ID)
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO accounts(id,tenant_id,currency,status,display_name,category,external_reference)VALUES($1,$2,$3,'active',$4,$5,$6)`, account.ID, configuration.TenantID, configuration.Currency, account.DisplayName, account.Category, reference); err != nil {
-			return err
+		var replayed, conflicted bool
+		if err = tx.QueryRowContext(ctx, `
+SELECT replayed,conflicted FROM public.controlled_provision_account_v1(
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+)`, configuration.TenantID, actor, account.ID, configuration.Currency,
+			account.DisplayName, account.Category, reference, account.ReadSubjects,
+			account.DebitSubjects, account.CreditSubjects, correlation, r.clock().UTC()).Scan(&replayed, &conflicted); err != nil {
+			return fmt.Errorf("provision zero-opening account: %w", err)
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO account_balance_projections(account_id,available_minor,ledger_minor,balance_version)VALUES($1,$2,$2,0)`, account.ID, opening); err != nil {
-			return err
-		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO account_opening_balances(account_id,opening_ledger_minor)VALUES($1,$2)`, account.ID, opening); err != nil {
-			return err
-		}
-		permissions := map[string]string{}
-		for _, id := range account.ReadSubjects {
-			permissions[id] = "read"
-		}
-		for _, id := range account.DebitSubjects {
-			permissions[id] = "debit"
-		}
-		for id, permission := range permissions {
-			if _, err = tx.ExecContext(ctx, `INSERT INTO account_owners(tenant_id,account_id,subject_id,permission)VALUES($1,$2,$3,$4)`, configuration.TenantID, account.ID, id, permission); err != nil {
-				return err
-			}
-		}
-		for _, id := range account.CreditSubjects {
-			if _, err = tx.ExecContext(ctx, `INSERT INTO account_credit_permissions(tenant_id,account_id,subject_id)VALUES($1,$2,$3)`, configuration.TenantID, account.ID, id); err != nil {
-				return err
-			}
+		if replayed || conflicted {
+			return errors.New("account provisioning unexpectedly replayed inside a new configuration")
 		}
 	}
 	requestID, err := newUUID()

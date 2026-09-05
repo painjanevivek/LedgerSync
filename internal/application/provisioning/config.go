@@ -134,8 +134,8 @@ func (c Config) Validate(pilotCurrency string) ([sha256.Size]byte, error) {
 		}
 		accounts[account.ID] = true
 		opening, err := strconv.ParseInt(account.OpeningMinor, 10, 64)
-		if err != nil || opening < 0 || strconv.FormatInt(opening, 10) != account.OpeningMinor {
-			return empty, errors.New("opening balances must be non-negative canonical integer strings")
+		if err != nil || opening != 0 || strconv.FormatInt(opening, 10) != account.OpeningMinor {
+			return empty, errors.New("normal provisioning requires an exact zero opening balance; use an approved opening import for non-zero value")
 		}
 		permissions := append(append(append([]string{}, account.ReadSubjects...), account.DebitSubjects...), account.CreditSubjects...)
 		for _, id := range permissions {

@@ -1,20 +1,21 @@
 import { expect, test } from "@playwright/test";
 
-import { fundingEvent, mockOperatorConsole, sourceAccount, transfer, run } from "./fixtures";
+import { fundingEvent, mockOperatorConsole, sourceAccount, transfer } from "./fixtures";
 
-const viewports=[{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:1280,height:800},{width:1440,height:900},{width:1920,height:1080},{width:2560,height:1440}];
+const viewports=[{width:320,height:640},{width:360,height:800},{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:1280,height:800},{width:1440,height:900},{width:1920,height:1080},{width:2560,height:1440}];
 
 for(const viewport of viewports){
   test(`core evidence journeys reflow at ${viewport.width}x${viewport.height}`,async({page})=>{
-    await page.setViewportSize(viewport); await page.context().grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page); await page.goto("/");
-    await expect(page.getByRole("heading",{name:"Overview"})).toBeVisible();
+    await page.setViewportSize(viewport); await page.context().grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page, { experienceMode: "simple" }); await page.goto("/");
+    await expect(page.getByRole("heading",{name:"Your money at a glance"})).toBeVisible();
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);expect(overflow).toBe(false);
-    if(viewport.width<761){await page.getByRole("button",{name:/menu/i}).click();}
-    await page.getByRole("link",{name:"Accounts"}).click();
+    if(viewport.width<1280){await page.getByRole("button",{name:/menu/i}).click();}
+    await page.getByRole("link",{name:"Accounts", exact:true}).click();
     await expect(page.locator("strong").filter({hasText:"Operating Reserve"}).first()).toBeVisible();
     await page.goto(`/accounts/${sourceAccount.account_id}`); await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible();
-    await page.goto(`/transfers/${transfer.transfer_id}`); await expect(page.getByText("Money is posted; delivery is retrying")).toBeVisible();
-    await page.goto(`/reconciliation/${run.run_id}`); await expect(page.getByText(run.run_id,{exact:true}).first()).toBeVisible();
+    await page.goto(`/transfers/${transfer.transfer_id}`); await expect(page.getByRole("heading", { name: "Transfer completed" })).toBeVisible();
+    await page.goto("/tasks"); await expect(page.getByRole("heading", { name: /items need attention/ })).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)).toBe(false);
   });
 }
 
@@ -100,7 +101,7 @@ test("shared field labels show the server-backed required or optional state", as
   await expect(page.getByLabel("External reference")).toHaveAttribute("required", "");
   await expect(page.getByLabel("Category")).toHaveAttribute("required", "");
 
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   await expect(page.locator(".transfer-form .field-requirement.required")).toHaveCount(3);
   await expect(page.getByLabel("From account")).toHaveAttribute("required", "");
   await expect(page.getByLabel("To account")).toHaveAttribute("required", "");

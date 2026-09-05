@@ -1,28 +1,39 @@
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light;
-  --ink: #0b1e3c;
-  --ink-soft: #253652;
-  --muted: #52627d;
-  --faint: #5f6c84;
-  --canvas: #f7f8fa;
+  --ink: #1b2d45;
+  --ink-soft: #33415c;
+  --muted: #52627a;
+  --faint: #5f6d82;
+  --canvas: #f8fafc;
+  --guidance: #eef4ff;
   --paper: #ffffff;
   --paper-subtle: #f2f5f1;
-  --line: #d8dfda;
-  --line-strong: #89968e;
-  --rail: #071a36;
-  --rail-deep: #0a2a50;
+  --line: #d9e0ea;
+  --line-strong: #8a98ae;
+  --rail: #17233c;
+  --rail-deep: #223353;
   --rail-text: #f3f7f4;
   --rail-muted: #c2cee0;
-  --green: #087443;
-  --green-dark: #065f38;
+  --green: #167766;
+  --green-dark: #115f52;
   --green-soft: #eaf8f0;
-  --blue: #155ec5;
-  --amber: #81500e;
+  --blue: #315bdd;
+  --blue-accent: #315bdd;
+  --amber: #98520a;
+  --amber-accent: #b66a12;
   --amber-soft: #fbf2df;
-  --red: #8d392f;
+  --red: #b33a46;
   --red-soft: #f7e9e7;
-  --focus: #b27100;
-  --blue-hover: #0f4d9f;
+  --focus: #3768d9;
+  --blue-hover: #2854b8;
   --brand-accent: #8ce0c1;
   --surface-success: #f5fbf8;
   --line-success: #b8d7c7;
@@ -89,19 +100,20 @@
   --operator-grid-gap: var(--space-6);
 
   --type-display: 32px;
-  --type-h1: 24px;
-  --type-h2: 18px;
-  --type-h3: 15px;
+  --type-h1: 34px;
+  --type-h2: 24px;
+  --type-h3: 20px;
   --type-body-lg: 16px;
-  --type-body: 14px;
-  --type-label: 12px;
+  --type-body: 16px;
+  --type-label: 14px;
   --type-meta: 12px;
 
-  --radius-control: 3px;
-  --radius-surface: 6px;
+  --radius-control: 8px;
+  --radius-surface: 12px;
   --radius-pill: 999px;
   --radius: var(--radius-control);
-  --shadow-surface: 0 1px 2px rgb(11 30 60 / 4%);
+  --shadow-surface: none;
+  --shadow-popover: 0 8px 24px rgb(27 45 69 / 12%);
   --shadow-drawer: 12px 0 30px rgb(0 0 0 / 24%);
   --target-compact: 44px;
   --target-comfortable: 48px;
@@ -110,7 +122,7 @@
   --z-backdrop: 25;
   --z-drawer: 30;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-display: var(--font-sans);
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-family: var(--font-sans);
 }

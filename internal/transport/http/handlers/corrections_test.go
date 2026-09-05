@@ -15,6 +15,8 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
+const correctionTestTransferID = "20000000-0000-4000-8000-000000000001"
+
 type correctionHandlerRepository struct {
 	request      appcorrections.RequestCommand
 	requestCalls int
@@ -62,8 +64,8 @@ func TestCorrectionRequestUsesVerifiedStepUpAndWriteScope(t *testing.T) {
 		Scopes: map[string]struct{}{"corrections:write": {}},
 	}}
 	handler := NewCorrectionHandler(service, provider)
-	request := httptest.NewRequest(http.MethodPost, "/api/transfers/transfer-1/corrections", strings.NewReader(`{"reason_code":"operational_error","operator_note":"Exact reversal evidence reviewed."}`))
-	request.SetPathValue("transferID", "transfer-1")
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/"+correctionTestTransferID+"/corrections", strings.NewReader(`{"reason_code":"operational_error","operator_note":"Exact reversal evidence reviewed."}`))
+	request.SetPathValue("transferID", correctionTestTransferID)
 	request.Header.Set("Authorization", "Bearer verified")
 	request.Header.Set("Idempotency-Key", "correction-request-0001")
 	response := httptest.NewRecorder()
@@ -74,8 +76,8 @@ func TestCorrectionRequestUsesVerifiedStepUpAndWriteScope(t *testing.T) {
 
 	provider.principal.Scopes = map[string]struct{}{"corrections:read": {}}
 	denied := NewCorrectionHandler(service, provider)
-	deniedRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/transfer-1/corrections", strings.NewReader(`{}`))
-	deniedRequest.SetPathValue("transferID", "transfer-1")
+	deniedRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/"+correctionTestTransferID+"/corrections", strings.NewReader(`{}`))
+	deniedRequest.SetPathValue("transferID", correctionTestTransferID)
 	deniedResponse := httptest.NewRecorder()
 	denied.Request(deniedResponse, deniedRequest)
 	if deniedResponse.Code != http.StatusForbidden || repository.requestCalls != 1 {
@@ -90,6 +92,24 @@ func TestCorrectionStepUpFailureIsActionable(t *testing.T) {
 	writePublicCorrectionError(recorder, request, httptransportError)
 	if recorder.Code != http.StatusPreconditionRequired || !strings.Contains(recorder.Body.String(), "step_up_required") {
 		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestCorrectionEmptyListUsesContractArray(t *testing.T) {
+	service, err := appcorrections.NewService(&correctionHandlerRepository{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := correctionPrincipalProvider{principal: identity.Principal{
+		SubjectID: "operator-1", TenantID: "tenant-1",
+		Scopes: map[string]struct{}{"corrections:read": {}},
+	}}
+	request := httptest.NewRequest(http.MethodGet, "/api/transfer-corrections?limit=25", nil)
+	request.Header.Set("Authorization", "Bearer verified")
+	response := httptest.NewRecorder()
+	NewCorrectionHandler(service, provider).List(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"events":[]`) {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 
