@@ -8,6 +8,12 @@ import {
   type ReactNode,
 } from "react";
 
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+import {
+  readDisclosurePreference,
+  writeDisclosurePreference,
+} from "@/ui/disclosure/disclosure-preference";
+
 export type DisclosurePriority = "primary" | "secondary" | "advanced";
 
 export type DisclosureContract = Readonly<{
@@ -28,12 +34,6 @@ type Props = DisclosureContract &
     rememberKey?: string;
   }>;
 
-function storedPreference(key: string | undefined): boolean | undefined {
-  if (!key || typeof window === "undefined") return undefined;
-  const value = window.localStorage.getItem(`ledgersync:disclosure:${key}`);
-  return value === "open" ? true : value === "closed" ? false : undefined;
-}
-
 export function DisclosureSection({
   id,
   title,
@@ -47,6 +47,7 @@ export function DisclosureSection({
   lazy = false,
   rememberKey,
 }: Props) {
+  const { session } = useConsoleSession();
   const summaryId = useId();
   const details = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(defaultOpen);
@@ -58,14 +59,19 @@ export function DisclosureSection({
         details.current.open = true;
       }
     };
-    const remembered = storedPreference(rememberKey);
+    const remembered = readDisclosurePreference(
+      window.localStorage,
+      session?.tenant_id ?? "",
+      session?.subject_id ?? "",
+      rememberKey,
+    );
     if (!attention && remembered !== undefined && details.current) {
       details.current.open = remembered;
     }
     revealTarget();
     window.addEventListener("hashchange", revealTarget);
     return () => window.removeEventListener("hashchange", revealTarget);
-  }, [attention, fragment, rememberKey]);
+  }, [attention, fragment, rememberKey, session?.subject_id, session?.tenant_id]);
 
   return (
     <details
@@ -83,12 +89,13 @@ export function DisclosureSection({
       onToggle={(event) => {
         const nextOpen = event.currentTarget.open;
         setOpen(nextOpen);
-        if (rememberKey) {
-          window.localStorage.setItem(
-            `ledgersync:disclosure:${rememberKey}`,
-            nextOpen ? "open" : "closed",
-          );
-        }
+        writeDisclosurePreference(
+          window.localStorage,
+          session?.tenant_id ?? "",
+          session?.subject_id ?? "",
+          rememberKey,
+          nextOpen,
+        );
       }}
     >
       <summary aria-describedby={summary ? summaryId : undefined}>

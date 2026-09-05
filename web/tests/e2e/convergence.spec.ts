@@ -68,9 +68,9 @@ test("failed account picker is unavailable rather than an unfunded-account busin
   await mockOperatorConsole(page);
   await page.unroute("**/api/me/accounts?*");
   await page.route("**/api/me/accounts?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
-  await page.goto("/transfers");
-  await expect(page.getByText("Account picker unavailable", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Retry account picker only" })).toBeVisible();
+  await page.goto("/transfers/new");
+  await expect(page.getByText("Accounts could not be checked", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry account check" })).toBeVisible();
   await expect(page.getByText("No funded source account", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Review transfer" })).toHaveCount(0);
 });
@@ -105,10 +105,10 @@ test("compact navigation is modal, traps focus, and excludes the background", as
   await page.getByRole("button", { name: /menu/i }).click();
   const drawer = page.getByRole("dialog", { name: "LedgerSync workspace" });
   await expect(drawer).toBeVisible();
-  await expect(page.locator("main")).toHaveAttribute("inert", "");
+  await expect(page.locator(".workspace-column")).toHaveAttribute("inert", "");
   await expect(drawer.getByRole("button", { name: "Close navigation" })).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(drawer.getByRole("button", { name: "Sign out" })).toBeFocused();
+  await expect(drawer.getByText("Expert tools", { exact: true })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(drawer.getByRole("button", { name: "Close navigation" })).toBeFocused();
 });
@@ -122,10 +122,10 @@ test("canonical type, touch targets, and reduced motion hold at tablet width", a
   const metrics = await page.evaluate(() => {
     const px = (selector: string) => getComputedStyle(document.querySelector(selector)!).fontSize;
     const targetHeights = [...document.querySelectorAll<HTMLElement>("button:not([disabled]), a.button")].filter((element) => element.getClientRects().length > 0).map((element) => element.getBoundingClientRect().height);
-    const duration = getComputedStyle(document.querySelector(".side-nav")!).transitionDuration;
-    return { h1: px(".page-header h1"), h2: px("h2"), row: px(".data-table td"), label: px(".data-table th"), minimumTarget: Math.min(...targetHeights), duration, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    const duration = getComputedStyle(document.querySelector(".guided-topbar")!).transitionDuration;
+    return { h1: px(".page-header h1"), h2: px("main h2"), row: px(".data-table td"), label: px(".data-table th"), minimumTarget: Math.min(...targetHeights), duration, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
-  expect(metrics).toMatchObject({ h1: "32px", h2: "18px", row: "14px", label: "12px", overflow: false });
+  expect(metrics).toMatchObject({ h1: "34px", h2: "24px", row: "16px", label: "14px", overflow: false });
   expect(metrics.minimumTarget).toBeGreaterThanOrEqual(44);
   expect(metrics.duration === "0s" || metrics.duration === "1e-05s" || metrics.duration === "0.00001s").toBe(true);
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 import type {
   Account,
@@ -10,10 +11,8 @@ import type {
 } from "@/features/accounts/types";
 import { CopyControl } from "@/ui/controls/CopyControl.client";
 import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
-import { DataTableRegion } from "@/ui/display/DataTableRegion";
 import { EvidenceFreshness } from "@/ui/display/Evidence";
 import { PageHeader } from "@/ui/display/PageHeader";
-import { RecordLink } from "@/ui/display/RecordLink";
 import { StatePanel } from "@/ui/display/StatePanel";
 import { StatusBadge } from "@/ui/display/StatusBadge";
 import { FormField } from "@/ui/forms/FormField.client";
@@ -31,7 +30,16 @@ import { ActiveFilterSummary } from "@/ui/disclosure/ActiveFilterSummary";
 import { AdvancedFilterPanel } from "@/ui/disclosure/AdvancedFilterPanel";
 import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
 import { EvidenceDisclosure } from "@/ui/disclosure/EvidenceDisclosure";
-import { PrerequisitePanel } from "@/ui/disclosure/PrerequisitePanel";
+import { ActionAvailability } from "@/ui/controls/ActionAvailability";
+import { transferIntentStorageKey } from "./transferIntent";
+import { useExperienceMode } from "@/features/console/ExperienceModeBoundary";
+import { transferStatusPresentation } from "@/features/console/presentation";
+import { RecordIdentity } from "@/ui/presentation/RecordIdentity";
+import { StatusSummary } from "@/ui/presentation/StatusSummary";
+import { TechnicalDetails } from "@/ui/presentation/TechnicalDetails";
+import { TransferList } from "@/features/transfers/TransferList";
+
+export { TransferList } from "@/features/transfers/TransferList";
 
 function financialTone(status: string) {
   return status === "posted"
@@ -40,127 +48,8 @@ function financialTone(status: string) {
       ? ("danger" as const)
       : ("warning" as const);
 }
-
-export function TransferList({
-  transfers,
-  nextHref,
-  exportAction,
-  returnTo = "/transfers",
-  variant = "paged",
-}: Readonly<{
-  transfers: TransferSummary[];
-  nextHref?: string;
-  exportAction?: React.ReactNode;
-  returnTo?: string;
-  variant?: "paged" | "recent";
-}>) {
-  if (!transfers.length)
-    return (
-      <StatePanel
-        title="No transfers found"
-        message="No transfer records match this authorized scope and filter."
-      />
-    );
-  return (
-    <section className="ledger-section">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">
-            {variant === "recent"
-              ? "Recent immutable activity"
-              : "Immutable history"}
-          </p>
-          <h2>
-            {variant === "recent"
-              ? "Latest transfer records"
-              : "Transfer records"}
-          </h2>
-          <p>
-            {variant === "recent"
-              ? "The latest five loaded records are shown; this is not the end of transfer history."
-              : `${transfers.length} record${transfers.length === 1 ? "" : "s"} on this page. A total is not calculated or implied. Financial and downstream delivery outcomes remain separate.`}
-          </p>
-        </div>
-        {variant === "recent" ? (
-          <RecordLink href="/transfers" label="View all transfers" />
-        ) : (
-          exportAction
-        )}
-      </div>
-      <DataTableRegion label="Transfer comparison">
-        <table className="data-table transfer-table">
-          <thead>
-            <tr>
-              <th>Transfer</th>
-              <th>Route</th>
-              <th>Exact amount</th>
-              <th>Financial status</th>
-              <th>Delivery</th>
-              <th>Completed UTC</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transfers.map((item) => (
-              <tr key={item.transfer_id}>
-                <td>
-                  <CopyControl value={item.transfer_id} />
-                </td>
-                <td>
-                  <Link
-                    href={`/accounts/${item.source_account_id}`}
-                    aria-label={`Source account ${item.source_account_id}`}
-                  >
-                    {item.source_account_id.slice(0, 8)}…
-                  </Link>
-                  <span aria-hidden="true"> → </span>
-                  <Link
-                    href={`/accounts/${item.destination_account_id}`}
-                    aria-label={`Destination account ${item.destination_account_id}`}
-                  >
-                    {item.destination_account_id.slice(0, 8)}…
-                  </Link>
-                </td>
-                <td className="number-cell">
-                  <Money currency={item.currency} minorUnits={item.amount_minor} />
-                </td>
-                <td>
-                  <StatusBadge tone={financialTone(item.financial_status)}>
-                    {item.financial_status}
-                  </StatusBadge>
-                </td>
-                <td>
-                  <StatusBadge
-                    tone={
-                      item.delivery_status === "retrying" ||
-                      item.delivery_status === "dead"
-                        ? "warning"
-                        : "neutral"
-                    }
-                  >
-                    {item.delivery_status}
-                  </StatusBadge>
-                </td>
-                <td><Timestamp value={item.completed_at} /></td>
-                <td>
-                  <RecordLink
-                    href={`/transfers/${item.transfer_id}?return_to=${encodeURIComponent(returnTo)}`}
-                    label="Open record"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </DataTableRegion>
-      {variant === "paged" && (
-        <div className="pagination"><span>{nextHref ? "More matching transfer records are available" : "End of this filtered transfer history"}</span>{nextHref ? <Link className="button secondary" href={nextHref}>Next page</Link> : <button className="button secondary" type="button" disabled>Next page</button>}</div>
-      )}
-    </section>
-  );
-}
-
 export function TransfersView({
+  creating = false,
   accounts,
   accountsLoading,
   accountsError,
@@ -193,6 +82,7 @@ export function TransfersView({
   onRefresh,
   onRefreshExplainability,
 }: Readonly<{
+  creating?: boolean;
   accounts: Account[];
   accountsLoading: boolean;
   accountsError: string | null;
@@ -225,14 +115,37 @@ export function TransfersView({
   onRefresh: () => Promise<void>;
   onRefreshExplainability: () => void;
 }>) {
+  const { mode } = useExperienceMode();
+  const router = useRouter();
   const [query, setQuery] = useState(initialFilters.query);
   const [accountId, setAccountId] = useState(initialFilters.accountId);
   const [status, setStatus] = useState<TransferFilters["status"]>(initialFilters.status);
   const [fromDate, setFromDate] = useState(initialFilters.from.slice(0, 10));
   const [toDate, setToDate] = useState(initialFilters.to.slice(0, 10));
-  const eligibleAccounts = accounts.filter((account) => account.status === "active" && account.currency === "INR");
+  const subscribe = useCallback((notify: () => void) => { window.addEventListener("ledgersync-transfer-intent", notify); return () => window.removeEventListener("ledgersync-transfer-intent", notify); }, []);
+  const snapshot = useCallback(() => { try { return sessionStorage.getItem(transferIntentStorageKey(tenantId)); } catch { return "storage-unavailable"; } }, [tenantId]);
+  const retainedRequest = useSyncExternalStore(subscribe, snapshot, () => null);
+  if (creating || preferredDestinationId) return <TransferForm accounts={accounts} accountsLoading={accountsLoading} accountsError={accountsError} accountsVerifiedAt={accountsVerifiedAt} tenantId={tenantId} csrfToken={csrfToken} disabled={!online || !canWrite} disabledReason={!online ? "Reconnect before submitting or retrying a request." : writeUnavailableReason ?? (!canWrite ? "Your role does not allow transfers." : undefined)} preferredDestinationId={preferredDestinationId} returnTo={returnTo ?? transferURL(initialFilters)} onRetryAccounts={onRefreshAccounts} onPosted={onRefresh} />;
   if (detail) {
     const detailHref = `/transfers/${encodeURIComponent(detail.transfer_id)}?return_to=${encodeURIComponent(returnTo ?? "/transfers")}`;
+    if (mode === "simple") {
+      const presentation = transferStatusPresentation(detail.financial_status);
+      return <>
+        <PageHeader eyebrow="Transfers" title="Transfer result" description="See whether the money moved and what to do next." />
+        <StatusSummary status={presentation} action={<Link className="button secondary" href={returnTo ?? "/transfers"}>Back to transfers</Link>} />
+        <section className="simple-transfer-result">
+          <p>Exact amount</p><strong><Money currency={detail.currency} minorUnits={detail.amount_minor} /></strong>
+          <div className="simple-transfer-route"><span>From an authorized account</span><span aria-hidden="true">→</span><span>To an authorized account</span></div>
+          {presentation.attention && <p className="financial-warning">{presentation.explanation}</p>}
+          <TechnicalDetails summary="View transfer details" attention={presentation.attention}>
+            <RecordIdentity label="Transfer reference" value={detail.transfer_id} />
+            <dl className="evidence-list"><div><dt>Source account</dt><dd><CopyControl value={detail.source_account_id} /></dd></div><div><dt>Destination account</dt><dd><CopyControl value={detail.destination_account_id} /></dd></div><div><dt>Delivery</dt><dd>{detail.delivery_status.replaceAll("_", " ")}</dd></div><div><dt>Created</dt><dd><Timestamp value={detail.created_at} /></dd></div></dl>
+            <EvidenceDisclosure id="simple-transfer-postings" title="Show posting evidence" summary={`${detail.postings.length} immutable posting${detail.postings.length === 1 ? "" : "s"}`}><div className="ledger-list">{detail.postings.map((posting) => <article className="ledger-row" key={posting.posting_id}><span>{posting.direction}</span><Money currency={posting.currency} minorUnits={posting.amount_minor} /><CopyControl value={posting.posting_id} /></article>)}</div></EvidenceDisclosure>
+          </TechnicalDetails>
+        </section>
+        <TransferCorrectionPanel transfer={detail} csrfToken={csrfToken} online={online} canRead={canReadCorrections} canWrite={canWriteCorrections} />
+      </>;
+    }
     return (
       <>
         <PageHeader
@@ -421,41 +334,11 @@ export function TransfersView({
         title="Transfers"
           description="Move an exact amount between your accounts, then check the result."
       />
-      <div className="two-column-layout">
-        {eligibleAccounts.length >= 2 || accountsLoading || accountsError ? <TransferForm
-          accounts={accounts}
-          accountsLoading={accountsLoading}
-          accountsError={accountsError}
-          accountsVerifiedAt={accountsVerifiedAt}
-          tenantId={tenantId}
-          csrfToken={csrfToken}
-          disabled={!online || !canWrite}
-          disabledReason={
-            !online
-              ? "Transfer posting is disabled while offline. Reconnect before submitting or retrying a request."
-              : (writeUnavailableReason ??
-                (!canWrite
-                  ? "Read-only role: transfer posting is not permitted."
-                  : undefined))
-          }
-          preferredDestinationId={preferredDestinationId}
-          returnTo={returnTo}
-          onRetryAccounts={onRefreshAccounts}
-          onPosted={onRefresh}
-        /> : <PrerequisitePanel title={eligibleAccounts.length === 0 ? "Create two active INR accounts" : "Create one more active INR account"} message="A transfer needs an eligible source and a different eligible destination. LedgerSync will not open a transfer intent until both are available." action={canWrite?<Link className="button primary" href="/accounts/new?return_to=%2Ftransfers">Create account</Link>:undefined} />}
-        <aside className="guardrail-panel">
-          <DisclosureSection id="transfer-trust-rules" title="Why this transfer is safe" summary="Review authorization, exact-money, retry, and atomic-commit protections.">
-            <ol>
-              <li>Only authorized active accounts are selectable.</li>
-              <li>Amounts use exact integer minor units.</li>
-              <li>Retries retain the same idempotency key.</li>
-              <li>Ledger, balance, audit, and outbox commit together.</li>
-            </ol>
-            {!canWrite && <p className="permission-note">{writeUnavailableReason ?? "Read-only role: transfer posting is not permitted."}</p>}
-          </DisclosureSection>
-        </aside>
-      </div>
-      <ActiveFilterSummary filters={exportFilters} clearHref="/transfers" />
+      {retainedRequest && <StatePanel kind="unknown" title="An earlier transfer needs checking" message="Local retry information remains in this browser. Do not create another transfer until the original request is resolved." action={<Link className="button primary" href={`/transfers/new?return_to=${encodeURIComponent(historyReturn)}`}>Review original request</Link>} />}
+      {!retainedRequest && <ActionAvailability availability={!online ? { state: "offline", reason: "Reconnect before preparing a transfer." } : !canWrite ? { state: "capability_missing", reason: writeUnavailableReason ?? "Your role does not allow transfers." } : { state: "available" }}><button type="button" className="button primary" onClick={() => router.push(`/transfers/new?return_to=${encodeURIComponent(historyReturn)}`)}>Make a transfer</button></ActionAvailability>}
+      {mode === "simple" && <form className="surface list-filter-bar" aria-label="Transfer filters" onSubmit={event => { event.preventDefault(); onApplyFilters({ ...initialFilters, status, cursor: undefined }); }}><FormField label="Show transfers" requirement="optional"><select value={status} onChange={event => setStatus(event.target.value as TransferFilters["status"])}><option value="">All results</option><option value="posted">Completed</option><option value="pending">Still being confirmed</option><option value="rejected">Not completed</option></select></FormField><ActionAvailability availability={!online ? { state: "offline", reason: "Reconnect to update the list." } : loading ? { state: "busy", reason: "Wait for the current list to load." } : { state: "available" }}><button className="button secondary" type="submit">Apply filter</button></ActionAvailability></form>}
+      {mode === "expert" && <ActiveFilterSummary filters={exportFilters} clearHref="/transfers" />}
+      {mode === "expert" && <>
       <form
         className="surface list-filter-bar transfer-filters"
         aria-label="Transfer filters"
@@ -513,11 +396,12 @@ export function TransfersView({
           Refresh history
         </button>
       </form>
-      <SavedViewCapture domain="transfers" filters={{ q: initialFilters.query || undefined, accountId: initialFilters.accountId || undefined, status: initialFilters.status || undefined, from: initialFilters.from || undefined, to: initialFilters.to || undefined }} />
-      <p className="filter-scope-note">
+      </>}
+      {mode === "expert" && <SavedViewCapture domain="transfers" filters={{ q: initialFilters.query || undefined, accountId: initialFilters.accountId || undefined, status: initialFilters.status || undefined, from: initialFilters.from || undefined, to: initialFilters.to || undefined }} />}
+      {mode === "expert" && <p className="filter-scope-note">
         Filters apply server-side to the bounded authorized history and remain
         active across pagination and export.
-      </p>
+      </p>}
       {error && (
         <StatePanel
           kind="error"

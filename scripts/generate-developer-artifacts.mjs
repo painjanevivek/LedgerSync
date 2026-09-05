@@ -17,8 +17,10 @@ function generatedHeader() {
 
 function normalizeOperations(document) {
   const methods = new Set(["get", "post", "put", "patch", "delete"]);
-  return Object.entries(document.paths ?? {}).flatMap(([path, item]) => Object.entries(item)
-    .filter(([method, operation]) => methods.has(method) && operation?.operationId)
+  return Object.entries(document.paths ?? {})
+    .filter(([, item]) => item?.["x-internal"] !== true)
+    .flatMap(([path, item]) => Object.entries(item)
+    .filter(([method, operation]) => methods.has(method) && operation?.operationId && operation["x-internal"] !== true)
     .map(([method, operation]) => ({
       id: operation.operationId,
       method: method.toUpperCase(),

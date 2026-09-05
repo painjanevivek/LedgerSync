@@ -29,3 +29,13 @@ export function formatMinorUnits(currency: string, minorUnits: string): string {
   const fractional = padded.slice(-exponent);
   return `${code} ${whole}.${fractional}`;
 }
+
+/** Locale grouping without converting any financial value through a floating-point number. */
+export function formatCurrencyMinorUnits(currency: string, minorUnits: string, locale = currency === "INR" ? "en-IN" : "en-US"): string {
+  const canonical = formatMinorUnits(currency, minorUnits);
+  if (canonical === "Unavailable") return canonical;
+  const code = currency.trim().toUpperCase();
+  const [whole, fraction] = canonical.slice(code.length + 1).split(".");
+  const formatter = new Intl.NumberFormat(locale, { style: "currency", currency: code, currencyDisplay: code === "USD" ? "code" : "symbol", minimumFractionDigits: exponents[code], maximumFractionDigits: exponents[code] });
+  return formatter.formatToParts(BigInt(whole)).map(part => part.type === "fraction" ? fraction : part.value).join("");
+}

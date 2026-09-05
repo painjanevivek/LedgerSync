@@ -23,7 +23,11 @@ async function capture(page: Page, name: string, viewport = desktop, mask: Locat
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   });
-  await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+  await expect.poll(() => page.evaluate(() => {
+    // Focus restoration after a responsive rerender may scroll once more.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    return { x: window.scrollX, y: window.scrollY };
+  })).toEqual({ x: 0, y: 0 });
   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
     animations: "disabled",
     caret: "hide",
@@ -53,6 +57,19 @@ const populatedRoutes = [
   { name: "recovery-evidence", path: "/recovery", heading: "Recovery" },
   { name: "investigation-search-populated", path: `/search?q=${sourceAccount.account_id}`, heading: "Search records" },
 ] as const;
+
+for (const route of [
+  { name: "simple-home", path: "/", heading: "Your money at a glance" },
+  { name: "simple-tasks", path: "/tasks", heading: /items need attention/ },
+] as const) {
+  test(`${route.name} has reviewed desktop and compact baselines`, async ({ page }) => {
+    await mockOperatorConsole(page, { experienceMode: "simple" });
+    await page.goto(route.path);
+    await expect(page.getByRole("heading", { name: route.heading })).toBeVisible();
+    await capture(page, route.name, desktop);
+    await capture(page, `${route.name}-compact`, compact);
+  });
+}
 
 for (const route of populatedRoutes) {
   test(`${route.name} has a reviewed desktop baseline`, async ({ page }) => {
@@ -168,11 +185,11 @@ test("unknown transfer outcome keeps the exact intent and safe retry action", as
   await mockOperatorConsole(page);
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route("**/api/transfers", (route) => route.request().method() === "POST" ? json(route, { error: { code: "transfer_outcome_unknown" } }, 504) : route.fallback());
-  await page.goto("/transfers");
-  await expect(page.getByRole("heading", { name: "Internal transfer" })).toBeVisible();
+  await page.goto("/transfers/new");
+  await expect(page.getByRole("heading", { name: "Make a transfer." })).toBeVisible();
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await page.getByRole("button", { name: "Confirm transfer", exact: true }).click();
   await expect(page.getByText("Result not yet confirmed")).toBeVisible();
   await capture(page, "transfer-unknown-outcome", compact);
 });
@@ -189,17 +206,17 @@ test("reconciliation mismatch is visually stop-ship", async ({ page }) => {
 test("missing session renders the login layer with no financial evidence", async ({ page }) => {
   await page.route("**/api/session", (route) => json(route, { error: { code: "unauthorized" } }, 401));
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Your ledger starts empty." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your money workflows. One clear step at a time." })).toBeVisible();
   await capture(page, "shell-permission-denied", tablet);
 });
 
 test("read-only transfer role explains why posting is disabled", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "transfers:read"], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   await expect(
-    page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),
-  ).toHaveText("Read-only role: transfer posting is not permitted.");
+    page.locator("#transfer-disabled-reason"),
+  ).toHaveText("Your role does not allow transfers.");
   await capture(page, "transfers-read-only-capability", desktop);
 });
 
@@ -236,9 +253,8 @@ test("account create review has a Windows local-console baseline", async ({ page
   await page.getByLabel("Display name").fill("Settlement evidence");
   await page.getByLabel("External reference").fill("SETTLEMENT-INR");
   await page.getByLabel("Category").selectOption("operating");
-  await page.getByRole("button", { name: "Continue to financial boundary" }).click();
-  await page.getByRole("button", { name: "Continue to review" }).click();
-  await expect(page.getByRole("heading", { name: "Review exact account command" })).toBeVisible();
+  await page.getByRole("button", { name: "Review account" }).click();
+  await expect(page.getByRole("heading", { name: "Check your account details" })).toBeVisible();
   await capture(page, "account-create-review", desktop);
   await capture(page, "account-create-review-compact", compact);
 });

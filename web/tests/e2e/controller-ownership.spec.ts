@@ -56,7 +56,7 @@ test("guide controller has no financial or operational evidence graph", async ({
   await expect(page.getByRole("heading", { name: "Use LedgerSync step by step" })).toBeVisible();
 
   await expect.poll(() => paths).toContain("/api/local/orientation");
-  expect(paths).toEqual(["/api/session", "/api/local/orientation"]);
+  expect(paths).toEqual(["/api/session", "/api/preferences", "/api/local/orientation"]);
   expect(paths.some((path) => path.startsWith("/api/me/accounts"))).toBe(false);
   expect(paths.some((path) => path.startsWith("/api/transfers"))).toBe(false);
   expect(paths.some((path) => path.startsWith("/api/reconciliation"))).toBe(false);

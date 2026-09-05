@@ -38,7 +38,7 @@
   border: 1px solid var(--line-strong);
   color: var(--ink-soft);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 800;
 }
 .recovery-chain h3 {
@@ -59,7 +59,7 @@
 }
 .recovery-chain dt {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -72,7 +72,7 @@
   gap: 8px;
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .recovery-status-pair {
   display: flex;
@@ -90,7 +90,7 @@
 .recovery-retention > div > p:not(.eyebrow) {
   margin: 8px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .recovery-retention dl {
@@ -114,12 +114,12 @@
 }
 .recovery-retention dt {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
 }
 .recovery-retention dd {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 750;
   overflow-wrap: anywhere;
 }
@@ -157,7 +157,7 @@
   min-height: 50px;
   margin: 7px 0 14px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.5;
 }
 .recovery-command-list .copy-control {
@@ -190,6 +190,6 @@
 .recovery-destructive-boundary p:not(.eyebrow) {
   margin: 8px 0 0;
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }

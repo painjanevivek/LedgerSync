@@ -3,12 +3,12 @@ import { NextRequest } from "next/server";
 
 import { sanitizeWebhookEndpointPage } from "@/lib/api/operations";
 import { authorizeOperationsRead, isOperationsReadDenial, proxyOperationsGET, strictOperationsQuery } from "@/lib/operations-read";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { parseWebhookBFFSearchParams } from "@/lib/page-query/operations";
 import { jsonError } from "@/lib/security";
 
-const webhookEndpointRateLimit = new InMemoryRateLimitStore();
+const webhookEndpointRateLimit = createRateLimitStore();
 const webhookEndpointFilters = ["status", "eventType", "cursor", "limit"] as const;
 
 export async function GET(request: NextRequest) {

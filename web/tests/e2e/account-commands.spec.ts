@@ -23,9 +23,8 @@ async function advanceToReview(page: import("@playwright/test").Page) {
   await page.getByLabel("Display name").fill(createdAccount.display_name);
   await page.getByLabel("External reference").fill(enteredExternalReference);
   await page.getByLabel("Category").selectOption(createdAccount.category);
-  await page.getByRole("button", { name: "Continue to financial boundary" }).click();
-  await expect(page.getByText("INR 0.00 · exact")).toBeVisible();
-  await page.getByRole("button", { name: "Continue to review" }).click();
+  await page.getByRole("button", { name: "Review account" }).click();
+  await expect(page.getByText("Account begins").locator("..")).toBeVisible();
 }
 
 test("create account preserves directory context and proves the zero-INR boundary", async ({ page }) => {
@@ -47,6 +46,7 @@ test("create account preserves directory context and proves the zero-INR boundar
   await expect(page.getByRole("heading", { name: "Account created" })).toBeFocused();
   expect(requestBody).toEqual({ display_name: createdAccount.display_name, external_reference: createdAccount.external_reference, category: createdAccount.category, currency: "INR" });
   expect(idempotencyKey.length).toBeGreaterThanOrEqual(16);
+  await page.getByText("View account details", { exact: true }).click();
   await expect(page.getByText("Request reference").locator("..")) .toContainText("request-ref-1");
   await expect(page.getByRole("link", { name: "Fund account" })).toHaveAttribute("href", new RegExp(`destination=${createdAccount.account_id}`));
 });
@@ -64,8 +64,8 @@ test("unknown create result survives reload and retries the exact body and key",
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   await expect(page.getByText("Editing is locked while this exact outcome is unresolved.")).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("button", { name: "Retry same account command" })).toBeVisible();
-  await page.getByRole("button", { name: "Retry same account command" }).click();
+  await expect(page.getByRole("button", { name: "Retry this same account request safely" })).toBeVisible();
+  await page.getByRole("button", { name: "Retry this same account request safely" }).click();
   expect(submissions).toHaveLength(2);
   expect(submissions[1]).toEqual(submissions[0]);
 });
@@ -137,8 +137,7 @@ test("account create states remain accessible and retain draft through compact a
   await page.emulateMedia({ forcedColors: "none", reducedMotion: "reduce" });
   await page.setViewportSize({ width: 640, height: 800 });
   await expect(page.getByLabel("Display name")).toHaveValue(createdAccount.display_name);
-  await page.getByRole("button", { name: "Continue to financial boundary" }).click();
-  await page.getByRole("button", { name: "Continue to review" }).click();
+  await page.getByRole("button", { name: "Review account" }).click();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Account created" })).toBeFocused();
@@ -174,8 +173,9 @@ test("fund destination applies after async accounts load but never replaces reta
   await expect(page.getByLabel("To account")).toHaveValue(sourceAccount.account_id);
   await page.evaluate(({ tenantId, source, destination }) => sessionStorage.setItem(`ledgersync.transfer.intent.${tenantId}`, JSON.stringify({ version: 1, idempotencyKey: "12345678-1234-4234-8234-123456789012", sourceAccountId: source, destinationAccountId: destination, currency: "INR", amountMinor: "500" })), { tenantId: "tenant-1", source: sourceAccount.account_id, destination: destinationAccount.account_id });
   await page.goto(`/transfers?destination=${sourceAccount.account_id}`);
-  await expect(page.getByRole("heading", { name: "Confirm exact transfer" })).toBeVisible();
-  await expect(page.getByText(destinationAccount.account_id, { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Result not yet confirmed" })).toBeVisible();
+  await page.getByText("View account and balance details", { exact: true }).click();
+  await expect(page.locator(".record-identity-full").filter({ hasText: destinationAccount.account_id })).toBeVisible();
 });
 
 test("funding fails closed when no different authorized INR source has positive exact minor units", async ({ page }) => {
@@ -188,7 +188,7 @@ test("funding fails closed when no different authorized INR source has positive 
   await expect(page.getByRole("link", { name: "Fund account" })).toHaveCount(0);
   await expect(page.getByText("No different active, authorized INR source has a positive available balance.")).toBeVisible();
   await page.goto(`/transfers?destination=${sourceAccount.account_id}`);
-  await expect(page.getByText("No funded source account")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "You need two eligible accounts" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Review transfer" })).toHaveCount(0);
 });
 

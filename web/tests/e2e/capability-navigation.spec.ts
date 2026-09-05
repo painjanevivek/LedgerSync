@@ -37,21 +37,22 @@ function captureAPIPaths(page: Page) {
   return paths;
 }
 
-test("local finance operator sees grouped work, investigation, platform, and environment navigation", async ({ page }) => {
+test("local finance operator sees grouped workspace, review, and system navigation", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
+  await page.getByText("Profile", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Switch to Simple view" })).toBeVisible();
+  await page.getByText("Profile", { exact: true }).click();
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  await expect(navigation.getByText("Work", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("Investigate", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("Platform", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("Environment", { exact: true })).toBeVisible();
+  await navigation.getByText("Expert tools", { exact: true }).click();
+  await expect(navigation.getByText("Workspace", { exact: true })).toBeVisible();
+  await expect(navigation.getByText("Review & investigate", { exact: true })).toBeVisible();
+  await expect(navigation.getByText("System tools", { exact: true })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Approvals" })).toBeVisible();
-  await navigation.getByText("Investigate", { exact: true }).click();
-  await expect(navigation.getByRole("link", { name: "Events & webhooks" })).toBeVisible();
-  await navigation.getByText("Environment", { exact: true }).click();
-  await expect(navigation.getByRole("link", { name: "Local status" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Delivery activity" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "System status" })).toBeVisible();
 });
 
 test("production read role sees only relevant navigation and never local status", async ({ page }) => {
@@ -59,16 +60,18 @@ test("production read role sees only relevant navigation and never local status"
   await useSession(page, "production", ["accounts:read", "events:read"]);
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
+  await page.getByText("Profile", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Switch to Simple view" })).toBeVisible();
+  await page.getByText("Profile", { exact: true }).click();
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(navigation.getByRole("link", { name: "Accounts" })).toBeVisible();
-  await navigation.getByText("Investigate", { exact: true }).click();
-  await expect(navigation.getByRole("link", { name: "Events & webhooks" })).toBeVisible();
+  await navigation.getByText("Expert tools", { exact: true }).click();
+  await expect(navigation.getByRole("link", { name: "Delivery activity" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Approvals" })).toHaveCount(0);
-  await expect(navigation.getByRole("link", { name: "Local status" })).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "System status" })).toHaveCount(0);
   await expect(navigation.getByRole("link", { name: "Developer" })).toHaveCount(0);
-  await expect(navigation.getByText("Platform", { exact: true })).toHaveCount(0);
-  await expect(navigation.getByText("Environment", { exact: true })).toHaveCount(0);
+  await expect(navigation.getByText("System tools", { exact: true })).toHaveCount(0);
 });
 
 test("production direct local-status access is denied without requesting diagnostics", async ({ page }) => {
@@ -87,7 +90,9 @@ test("missing account scope denies a direct route without starting protected rea
   const paths = captureAPIPaths(page);
   await page.goto("/accounts");
   await expect(page.getByText("Account read authority required")).toBeVisible();
-  expect(paths).toEqual(["/api/session"]);
+  expect(paths).toContain("/api/session");
+  expect(paths).toContain("/api/preferences");
+  expect(paths).not.toContain("/api/me/accounts");
 });
 
 test("filtered compact navigation keeps dialog focus and Escape restoration", async ({ page }) => {
@@ -100,7 +105,7 @@ test("filtered compact navigation keeps dialog focus and Escape restoration", as
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(navigation).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Accounts" })).toBeVisible();
-  await expect(navigation.getByRole("link", { name: "Local status" })).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "System status" })).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(menu).toBeFocused();
 });

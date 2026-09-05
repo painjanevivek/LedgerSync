@@ -9,6 +9,7 @@ import { StatusBadge } from "@/ui/display/StatusBadge";
 import { Timestamp } from "@/ui/display/Timestamp";
 import { canOpenOrientationStep, type ConsoleCapabilities } from "@/features/console/capabilities";
 import type { LocalOrientation, OperatorPreferenceStepID, OrientationStep } from "@/lib/api/orientation";
+import { ActionAvailability, type ActionAvailabilityStatus } from "@/ui/controls/ActionAvailability";
 
 type StepCopy = Readonly<{ title: string; description: string; href?: string; confirmation?: string }>;
 
@@ -103,6 +104,15 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
   const hasIncompleteStep = evidence?.steps.some((step) => !complete(step)) ?? false;
   const nextStep = evidence?.steps.find((step) => !complete(step) && canOpenOrientationStep(capabilities, step.id));
   const writable = online && canWrite && !preferenceSaving;
+  const clearManualAvailability: ActionAvailabilityStatus = !online
+    ? { state: "offline", reason: "Reconnect to clear saved manual confirmations." }
+    : !canWrite
+      ? { state: "capability_missing", reason: "The local:write scope is required to clear manual confirmations." }
+      : preferenceSaving
+        ? { state: "busy", reason: "A setup preference change is already being saved." }
+        : completedStepIDs.length === 0
+          ? { state: "prerequisite", reason: "No manual confirmations are currently saved. Stored ledger evidence is never cleared here." }
+          : { state: "available" };
 
   async function setDismissed(dismissed: boolean) {
     await onUpdatePreferences({ dismissed, completedStepIDs });
@@ -142,6 +152,6 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
       </>}
     {(preferenceError || !writable) && <div id="orientation-preference-help" className="orientation-preference-state" role={preferenceError ? "alert" : undefined}><Info weight="fill" aria-hidden="true"/><p>{preferenceError ?? (!online ? "Reconnect to update setup preferences." : !canWrite ? "The local:write scope is required to update setup preferences." : "Saving setup preferences…")}</p></div>}
     <details className="orientation-definitions"><summary>Plain-language ledger terms</summary><dl><div><dt>Idempotency</dt><dd>Retrying the same intent with the same key returns one durable outcome, not a second movement.</dd></div><div><dt>Double entry</dt><dd>Every posted journal has equal debit and credit postings in the same currency.</dd></div><div><dt>Projection</dt><dd>A derived balance view; PostgreSQL ledger records remain authoritative.</dd></div><div><dt>Reconciliation</dt><dd>A stored comparison between ledger postings and balance truth at a known watermark.</dd></div><div><dt>Response unknown</dt><dd>The response was lost, so the outcome must be checked or retried with the same key.</dd></div></dl></details>
-    <footer><div><strong>Stop or restart without losing persisted progress</strong><p>Safe stop preserves PostgreSQL preferences. Restarting manual progress never deletes ledger, audit, or recovery evidence.</p></div><div className="orientation-footer-actions"><button className="button secondary" type="button" disabled={!writable || completedStepIDs.length === 0} onClick={() => void onUpdatePreferences({ dismissed: false, completedStepIDs: [] })}>Restart manual progress</button><CopyControl value="powershell -File .\scripts\stop-local.ps1" label="Copy safe stop command" /></div></footer>
+    <footer><div><strong>Stop safely or clear manual confirmations</strong><p>Safe stop preserves PostgreSQL preferences. Clearing confirmations never deletes ledger, audit, or recovery evidence.</p></div><div className="orientation-footer-actions"><ActionAvailability availability={clearManualAvailability}><button className="button secondary" type="button" onClick={() => void onUpdatePreferences({ dismissed: false, completedStepIDs: [] })}>Clear manual confirmations</button></ActionAvailability><CopyControl value="powershell -File .\scripts\stop-local.ps1" label="Copy safe stop command" /></div></footer>
   </section>;
 }

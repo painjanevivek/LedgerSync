@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { completeAuthorization, transactionCookieName } from "@/lib/oidc";
-import { createSession, sessionCookie } from "@/lib/session";
+import { completeAuthorization, expiredTransactionCookie, transactionCookieName } from "@/lib/oidc";
+import { createOpaqueSession, sessionCookie } from "@/lib/session";
 import { jsonError } from "@/lib/security";
 
 export async function GET(request: NextRequest) {
@@ -18,10 +18,13 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(new URL(returnTo, request.url));
     response.cookies.set(
       sessionCookie(
-        createSession({ ...identity, csrfToken: crypto.randomUUID() }),
+        await createOpaqueSession(
+          { ...identity, csrfToken: crypto.randomUUID() },
+          request.headers.get("x-ledgersync-session-handle") ?? undefined,
+        ),
       ),
     );
-    response.cookies.delete(transactionCookieName);
+    response.cookies.set(expiredTransactionCookie());
     return response;
   } catch {
     return jsonError("authentication_failed", 401);

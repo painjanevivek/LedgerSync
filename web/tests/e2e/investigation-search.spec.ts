@@ -22,8 +22,11 @@ async function useSession(page: Page, scopes: string[]) {
 test("keyboard navigation opens exact search and typed locators lead to canonical detail", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/accounts");
+  await page.getByText("Profile", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Switch to Simple view" })).toBeVisible();
+  await page.getByText("Profile", { exact: true }).click();
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  await navigation.getByText("Investigate", { exact: true }).click();
+  await navigation.getByText("Expert tools", { exact: true }).click();
   const searchLink = navigation.getByRole("link", { name: "Search records" });
   await searchLink.focus();
   await expect(searchLink).toBeFocused();

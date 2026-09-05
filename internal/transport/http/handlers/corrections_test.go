@@ -95,6 +95,24 @@ func TestCorrectionStepUpFailureIsActionable(t *testing.T) {
 	}
 }
 
+func TestCorrectionEmptyListUsesContractArray(t *testing.T) {
+	service, err := appcorrections.NewService(&correctionHandlerRepository{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := correctionPrincipalProvider{principal: identity.Principal{
+		SubjectID: "operator-1", TenantID: "tenant-1",
+		Scopes: map[string]struct{}{"corrections:read": {}},
+	}}
+	request := httptest.NewRequest(http.MethodGet, "/api/transfer-corrections?limit=25", nil)
+	request.Header.Set("Authorization", "Bearer verified")
+	response := httptest.NewRecorder()
+	NewCorrectionHandler(service, provider).List(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"events":[]`) {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func writePublicCorrectionError(writer http.ResponseWriter, request *http.Request, err error) {
 	// Keep this test at the real public serialization boundary.
 	httptransport.WriteError(writer, request, err)
