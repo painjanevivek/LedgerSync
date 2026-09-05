@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 
 import { mockOperatorConsole } from "./fixtures";
 
-test("an unauthenticated visitor sees the login layer and no invented financial data", async ({ page }) => {
+test("an unauthenticated visitor sees the public introduction and no invented financial data", async ({ page }) => {
   await page.route("**/api/session", (route) => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: { code: "unauthorized" } }) }));
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Your ledger starts empty." })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your money workflows/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open workspace", exact: true }).first()).toBeVisible();
   await expect(page.getByText("12,458,974.21")).toHaveCount(0);
 });
 
@@ -25,13 +25,14 @@ test("an authorized operator retries a lost response with the same idempotency k
 
   await page.goto("/");
   await page.getByRole("link", { name: "Transfers", exact: true }).click();
+  await page.getByRole("button", { name: "Make a transfer" }).click();
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
   await expect(page.getByText("Result not yet confirmed")).toBeVisible();
-  await page.getByRole("button", { name: "Retry same transfer" }).click();
-  await expect(page.getByText("Transfer posted", { exact: true })).toBeVisible();
-  expect(keys).toHaveLength(2);
+  await page.getByRole("button", { name: "Retry this same request safely" }).click();
+  await expect(page.getByText("Transfer completed", { exact: true })).toBeVisible();
+  await expect.poll(() => keys.length).toBe(2);
   expect(keys[0]).toBeTruthy();
   expect(keys[1]).toBe(keys[0]);
 });
@@ -44,11 +45,11 @@ test("rapid repeated activation dispatches only one transfer request", async ({ 
     await new Promise((resolve) => setTimeout(resolve, 150));
     return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ transfer_id: "transfer-single-flight", status: "posted", currency: "INR", amount_minor: "1250", occurred_at: "2026-08-19T12:00:01Z", minimum_balance_versions: {}, balances: {} }) });
   });
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
-  await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeVisible();
+  await page.getByRole("button", { name: "Confirm transfer" }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+  await expect(page.getByRole("heading", { name: "Transfer completed" })).toBeVisible();
   expect(calls).toBe(1);
 });
 
@@ -63,20 +64,20 @@ test("an unknown transfer survives reload with its exact intent and only the sam
     return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ transfer_id: "transfer-restored", status: "posted", currency: "INR", amount_minor: "1250", occurred_at: "2026-08-19T12:00:01Z", minimum_balance_versions: {}, balances: {} }) });
   });
 
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
   await expect(page.getByText("Result not yet confirmed")).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Confirm exact transfer" })).toBeVisible();
-  await expect(page.getByText("INR 12.50")).toBeVisible();
-  await expect(page.getByText("Editing is locked until this exact outcome is confirmed.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Result not yet confirmed" })).toBeVisible();
+  await expect(page.locator('[data-currency="INR"][data-minor-units="1250"]')).toBeVisible();
+  await expect(page.getByText("Editing is locked until this original request is resolved.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Back to edit" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Retry same transfer" }).click();
-  await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeVisible();
-  expect(keys).toHaveLength(2);
+  await page.getByRole("button", { name: "Retry this same request safely" }).click();
+  await expect(page.getByRole("heading", { name: "Transfer completed" })).toBeVisible();
+  await expect.poll(() => keys.length).toBe(2);
   expect(keys[0]).toBeTruthy();
   expect(keys[1]).toBe(keys[0]);
 });
@@ -89,15 +90,15 @@ test("a final rejection clears its key before a genuinely new intent", async ({ 
     return route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: { code: "insufficient_funds" } }) });
   });
 
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   await page.getByLabel("Amount").fill("999.00");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
   await page.getByRole("button", { name: "Back to edit" }).click();
   await page.getByLabel("Amount").fill("998.00");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
-  expect(keys).toHaveLength(2);
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
+  await expect.poll(() => keys.length).toBe(2);
   expect(keys[0]).toBeTruthy();
   expect(keys[1]).toBeTruthy();
   expect(keys[1]).not.toBe(keys[0]);
@@ -136,16 +137,18 @@ test("a posted confirmation exposes journal, UTC, and committed balance-version 
     timeline: [],
   }) }));
 
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
-  await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeVisible();
-  await expect(page.getByText(journalId)).toBeVisible();
-  await expect(page.getByText("INR 1237.50")).toBeVisible();
-  await expect(page.getByText("version 9")).toBeVisible();
-  await expect(page.getByText("INR 262.50")).toBeVisible();
-  await expect(page.getByText("version 5")).toBeVisible();
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
+  await expect(page.getByRole("heading", { name: "Transfer completed" })).toBeVisible();
+  await page.getByText("View transfer details", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Copy journal reference" })).toBeVisible();
+  await expect(page.locator(".record-identity-full").filter({ hasText: journalId })).toBeVisible();
+  await expect(page.locator('[data-currency="INR"][data-minor-units="123750"]')).toBeVisible();
+  await expect(page.getByText(/Version 9/)).toBeVisible();
+  await expect(page.locator('[data-currency="INR"][data-minor-units="26250"]')).toBeVisible();
+  await expect(page.getByText(/Version 5/)).toBeVisible();
   await expect(page.getByText("19 Aug 2026, 12:00:01 UTC").first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
@@ -155,7 +158,7 @@ test("a malformed exact-money amount is rejected before it reaches the API", asy
   let calls = 0;
   await page.route("**/api/transfers", async (route) => { calls += 1; await route.fulfill({ status: 500, body: "{}" }); });
 
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   const amount = page.getByLabel("Amount");
   await amount.fill("1.999");
   await page.getByRole("button", { name: "Review transfer" }).click();
@@ -169,9 +172,9 @@ test("a malformed exact-money amount is rejected before it reaches the API", asy
 test("an insufficient-funds outcome clearly states that no movement occurred", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/transfers", (route) => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: { code: "insufficient_funds" } }) }));
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   await page.getByLabel("Amount").fill("999.00");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
   await expect(page.getByText("Transfer rejected — insufficient posted balance. No money moved.")).toBeVisible();
 });

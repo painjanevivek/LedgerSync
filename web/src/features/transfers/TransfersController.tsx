@@ -18,9 +18,10 @@ type Props = Readonly<{
   returnTo?: string;
   filters?: TransferFilters;
   invalidQuery?: boolean;
+  creating?: boolean;
 }>;
 
-export function TransfersController({ transferId, preferredDestinationId, returnTo, filters = emptyTransferFilters, invalidQuery = false }: Props) {
+export function TransfersController({ transferId, preferredDestinationId, returnTo, filters = emptyTransferFilters, invalidQuery = false, creating = false }: Props) {
   const router = useRouter();
   const { session, online, hasScope } = useConsoleSession();
   const accounts = useAccountWorkspace(undefined, emptyAccountFilters);
@@ -37,7 +38,7 @@ export function TransfersController({ transferId, preferredDestinationId, return
     const timer = window.setTimeout(() => {
       void Promise.all([
         hasScope("accounts:read") ? loadAccounts(emptyAccountFilters, 100) : Promise.resolve(),
-        transferId ? loadDetail(transferId) : loadList(),
+        transferId ? loadDetail(transferId) : creating ? Promise.resolve() : loadList(),
         transferId && canExplain ? loadExplainability(transferId) : Promise.resolve(),
       ]).finally(() => {
         if (active) setInitialEvidenceSettled(true);
@@ -47,7 +48,7 @@ export function TransfersController({ transferId, preferredDestinationId, return
       active = false;
       window.clearTimeout(timer);
     };
-  }, [hasScope, invalidQuery, loadAccounts, loadDetail, loadExplainability, loadList, online, session, transferId]);
+  }, [creating, hasScope, invalidQuery, loadAccounts, loadDetail, loadExplainability, loadList, online, session, transferId]);
 
   return (
     <ConsoleRouteFrame section="transfers" loadingLabel="Transfers" pending={hasScope("transfers:read") && !initialEvidenceSettled}>
@@ -57,6 +58,7 @@ export function TransfersController({ transferId, preferredDestinationId, return
         <><PageHeader eyebrow="Ledger / Transfers" title="Transfers" description="Move an exact amount between your accounts, then check the result."/><StatePanel kind="error" title="Invalid transfer investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, malformed, or reversed filter. No protected transfer or account-picker request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/transfers")}>Clear invalid filters</button>}/></>
       ) : session && (
         <TransfersView
+          creating={creating}
           key={transferId ?? transferURL(filters)}
           accounts={accounts.accounts}
           accountsLoading={accounts.directoryLoading}

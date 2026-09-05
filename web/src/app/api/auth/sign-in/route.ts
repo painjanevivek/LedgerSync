@@ -7,7 +7,7 @@ import {
 } from "@/lib/local-access";
 import { beginAuthorization, safeReturnTo, transactionCookie } from "@/lib/oidc";
 import { jsonError } from "@/lib/security";
-import { createSession, sessionCookie } from "@/lib/session";
+import { createOpaqueSession, sessionCookie } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
       );
       const response = NextResponse.redirect(createLocalReturnURL(returnTo));
       response.cookies.set(
-        sessionCookie(createSession(createLocalSession(localAccess))),
+        sessionCookie(await createOpaqueSession(
+          createLocalSession(localAccess),
+          request.headers.get("x-ledgersync-session-handle") ?? undefined,
+        )),
       );
       return response;
     }

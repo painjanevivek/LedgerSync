@@ -65,7 +65,7 @@
 }
 .reconciliation-boundary-proof span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -73,7 +73,7 @@
 .reconciliation-boundary-proof strong {
   overflow-wrap: anywhere;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.5;
 }
 .reconciliation-boundary-proof > p {

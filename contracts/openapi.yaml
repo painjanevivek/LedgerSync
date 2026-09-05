@@ -1113,6 +1113,86 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /internal/bff/sessions:
+    post:
+      operationId: createBFFSession
+      x-internal: true
+      x-required-scope: bff:actor
+      security: [{ bearerAuth: [] }]
+      summary: Create or rotate one opaque, revocable browser session.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BFFSessionCreateRequest' } } } }
+      responses:
+        '201': { description: Opaque session handle., content: { application/json: { schema: { $ref: '#/components/schemas/BFFSessionToken' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /internal/bff/sessions/resolve:
+    post:
+      operationId: resolveBFFSession
+      x-internal: true
+      x-required-scope: bff:actor
+      security: [{ bearerAuth: [] }]
+      summary: Resolve an unexpired opaque browser session for the BFF.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BFFSessionToken' } } } }
+      responses:
+        '200': { description: Bounded session claims., content: { application/json: { schema: { $ref: '#/components/schemas/BFFSessionClaims' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /internal/bff/sessions/revoke:
+    post:
+      operationId: revokeBFFSession
+      x-internal: true
+      x-required-scope: bff:actor
+      security: [{ bearerAuth: [] }]
+      summary: Revoke one opaque browser session idempotently.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BFFSessionToken' } } } }
+      responses:
+        '204': { description: Session is no longer usable. }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /internal/bff/sessions/consistency:
+    patch:
+      operationId: updateBFFSessionConsistency
+      x-internal: true
+      x-required-scope: bff:actor
+      security: [{ bearerAuth: [] }]
+      summary: Replace the bounded consistency requirements for one session.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/BFFSessionConsistencyRequest' } } } }
+      responses:
+        '204': { description: Consistency requirements updated. }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /ui/preferences:
+    get:
+      operationId: getOperatorUIPreferences
+      x-internal: true
+      x-required-scope: preferences:read
+      summary: Read tenant-and-operator-scoped presentation preferences.
+      responses:
+        '200': { description: Current preference or safe Simple-view default., content: { application/json: { schema: { $ref: '#/components/schemas/OperatorUIPreference' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    patch:
+      operationId: updateOperatorUIPreferences
+      x-internal: true
+      x-required-scope: preferences:write
+      summary: Update presentation mode using optimistic version control.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/OperatorUIPreferenceUpdate' } } } }
+      responses:
+        '200': { description: Updated preference., content: { application/json: { schema: { $ref: '#/components/schemas/OperatorUIPreference' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '500': { $ref: '#/components/responses/InternalError' }
   /openapi.yaml:
     get:
       operationId: downloadOpenAPI
@@ -1124,7 +1204,7 @@ paths:
           description: Canonical LedgerSync private API contract.
           headers:
             Content-Disposition: { schema: { type: string }, example: 'attachment; filename="ledgersync-openapi-3.3.0.yaml"' }
-          content: { application/yaml: { schema: { type: string, maxLength: 131072 } } }
+          content: { application/yaml: { schema: { type: string, maxLength: 196608 } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
@@ -1158,6 +1238,61 @@ components:
     ExactMinor: { type: string, pattern: '^-?(0|[1-9][0-9]*)$' }
     ExactVersion: { type: string, pattern: '^(0|[1-9][0-9]*)$' }
     Currency: { type: string, pattern: '^[A-Z]{3}$', example: INR }
+    OpaqueSessionToken: { type: string, minLength: 43, maxLength: 43, pattern: '^[A-Za-z0-9_-]{43}$' }
+    SessionStringList: { type: array, maxItems: 32, uniqueItems: true, items: { type: string, minLength: 1, maxLength: 64 } }
+    BFFSessionToken:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties: { token: { $ref: '#/components/schemas/OpaqueSessionToken' } }
+    BFFSessionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [subject_id, tenant_id, csrf_token, expires_at, roles, scopes]
+      properties:
+        subject_id: { type: string, minLength: 1, maxLength: 256 }
+        tenant_id: { type: string, format: uuid }
+        csrf_token: { type: string, minLength: 16, maxLength: 128 }
+        expires_at: { type: integer, format: int64, description: 'Unix milliseconds, bounded by the server to 31 minutes.' }
+        authenticated_at: { type: integer, format: int64 }
+        roles: { $ref: '#/components/schemas/SessionStringList' }
+        scopes: { $ref: '#/components/schemas/SessionStringList' }
+        rotate_token: { $ref: '#/components/schemas/OpaqueSessionToken' }
+    BFFSessionClaims:
+      type: object
+      additionalProperties: false
+      required: [subject_id, tenant_id, csrf_token, expires_at, roles, scopes]
+      properties:
+        subject_id: { type: string, minLength: 1, maxLength: 256 }
+        tenant_id: { type: string, format: uuid }
+        csrf_token: { type: string, minLength: 16, maxLength: 128 }
+        expires_at: { type: integer, format: int64 }
+        authenticated_at: { type: integer, format: int64 }
+        roles: { $ref: '#/components/schemas/SessionStringList' }
+        scopes: { $ref: '#/components/schemas/SessionStringList' }
+        consistency_requirements: { type: object, maxProperties: 10, additionalProperties: { type: string, minLength: 1, maxLength: 2048 } }
+    BFFSessionConsistencyRequest:
+      type: object
+      additionalProperties: false
+      required: [token, consistency_requirements]
+      properties:
+        token: { $ref: '#/components/schemas/OpaqueSessionToken' }
+        consistency_requirements: { type: object, minProperties: 1, maxProperties: 10, additionalProperties: { type: string, minLength: 1, maxLength: 2048 } }
+    OperatorUIPreference:
+      type: object
+      additionalProperties: false
+      required: [experience_mode, version]
+      properties:
+        experience_mode: { type: string, enum: [simple, expert] }
+        version: { $ref: '#/components/schemas/ExactVersion' }
+        updated_at: { type: string, format: date-time }
+    OperatorUIPreferenceUpdate:
+      type: object
+      additionalProperties: false
+      required: [experience_mode, expected_version]
+      properties:
+        experience_mode: { type: string, enum: [simple, expert] }
+        expected_version: { $ref: '#/components/schemas/ExactVersion' }
     DeveloperCredentialScope:
       type: string
       enum: [accounts:read, accounts:write, events:read, funding:read, funding:write, reconciliation:read, reconciliation:write, transactions:read, transfers:read, transfers:write, webhooks:read, webhooks:write, webhooks:replay]

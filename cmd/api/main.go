@@ -16,11 +16,13 @@ import (
 	appfunding "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/bootstrap"
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/redisconn"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/startup"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers"
@@ -80,7 +82,11 @@ func main() {
 				os.Exit(1)
 			}
 			redisClient, err := startup.Open(startupContext, "redis", startupConfig, func(ctx context.Context) (*redis.Client, error) {
-				client := redis.NewClient(&redis.Options{Addr: configuration.RedisAddress})
+				options, optionsErr := redisconn.Options(configuration.RedisAddress)
+				if optionsErr != nil {
+					return nil, optionsErr
+				}
+				client := redis.NewClient(options)
 				if pingErr := client.Ping(ctx).Err(); pingErr != nil {
 					_ = client.Close()
 					return nil, pingErr
@@ -260,6 +266,14 @@ func main() {
 				slog.Error("account command route initialization failed", "error", err)
 				os.Exit(1)
 			}
+			if err := registerSessionRoutes(router, database, provider); err != nil {
+				slog.Error("BFF session route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerUIPreferenceRoutes(router, database, provider, authenticator); err != nil {
+				slog.Error("UI preference route initialization failed", "error", err)
+				os.Exit(1)
+			}
 			if err := registerReconciliationCommandRoutes(router, reconciliationCommandRouteConfig{
 				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
 				RateLimitPerMinute: configuration.WriteRateLimitPerMinute, CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
@@ -349,10 +363,19 @@ func main() {
 			router.HandleFunc("POST /api/funding-events/{fundingEventId}/post", fundingHandler.Post)
 			router.HandleFunc("POST /api/funding-events/{fundingEventId}/compensations", fundingHandler.Compensate)
 			router.HandleFunc("GET /api/funding-events/{fundingEventId}/reconciliation", fundingHandler.Reconcile)
+			if cronSecret := configuration.CronSecret; cronSecret != "" {
+				workerRunner, runnerErr := bootstrap.NewWorkerRunner(startupContext, configuration, database, redisClient, telemetry)
+				if runnerErr != nil {
+					slog.Error("cron worker initialization failed", "error", runnerErr)
+					os.Exit(1)
+				}
+				router.Handle("GET /internal/cron/drain", handlers.NewCronDrainHandler(cronSecret, workerRunner, 50*time.Second))
+			}
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
-	handler := middleware.Correlation(middleware.Contract(configuration.Environment, telemetry.HTTP(router)))
+	identifierAwareRouter := httptransport.WithIdentifierObserver(router, telemetry)
+	handler := middleware.Correlation(middleware.Contract(configuration.Environment, telemetry.HTTP(identifierAwareRouter)))
 	server := &http.Server{
 		Addr: configuration.HTTPAddress, Handler: handler,
 		ReadHeaderTimeout: configuration.HTTPReadHeaderTimeout,

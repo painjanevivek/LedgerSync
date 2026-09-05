@@ -1,6 +1,7 @@
-import { OverviewController } from "@/features/overview/OverviewController";
+import { HomeEntry } from "@/features/landing/HomeEntry";
+import { LandingPage } from "@/features/landing/LandingPage";
 
 export default async function Home({ searchParams }: Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>) {
   const query = await searchParams;
-  return <OverviewController showOrientation={query.guide === "1"} />;
+  return <HomeEntry landing={<LandingPage />} showOrientation={query.guide === "1"} />;
 }

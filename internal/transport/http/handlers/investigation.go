@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -86,7 +87,11 @@ func (h *InvestigationHandler) Search(writer http.ResponseWriter, request *http.
 	}
 	kind := "approved_reference"
 	if canonicalInvestigationUUID.MatchString(strings.ToLower(query)) {
-		query = strings.ToLower(query)
+		canonical, ok := requireCanonicalIdentifier(writer, request, identifier.KindInvestigation, query)
+		if !ok {
+			return
+		}
+		query = canonical
 		kind = "immutable_id"
 	} else if !boundedExactInvestigationReference.MatchString(query) {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
@@ -123,9 +128,9 @@ func (h *InvestigationHandler) Related(writer http.ResponseWriter, request *http
 		return
 	}
 	sourceType := strings.TrimSpace(request.PathValue("recordType"))
-	sourceID := strings.ToLower(strings.TrimSpace(request.PathValue("recordId")))
-	if !canonicalInvestigationUUID.MatchString(sourceID) || !relationshipSourceType(sourceType) {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	sourceID, idOK := canonicalIdentifier(request, investigationIdentifierKind(sourceType), request.PathValue("recordId"))
+	if !idOK || !relationshipSourceType(sourceType) {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
 	repository, configured := h.repository.(investigation.RelationshipRepository)
@@ -151,6 +156,25 @@ func relationshipSourceType(value string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func investigationIdentifierKind(recordType string) identifier.Kind {
+	switch recordType {
+	case "account":
+		return identifier.KindAccount
+	case "transfer":
+		return identifier.KindTransfer
+	case "funding":
+		return identifier.KindFunding
+	case "event":
+		return identifier.KindEvent
+	case "reconciliation_run", "reconciliation_mismatch":
+		return identifier.KindReconciliation
+	case "correction":
+		return identifier.KindCorrection
+	default:
+		return identifier.KindInvestigation
 	}
 }
 
@@ -235,13 +259,20 @@ func (h *InvestigationHandler) Transfers(writer http.ResponseWriter, request *ht
 	}
 	filter := investigation.TransferFilter{
 		Cursor:    strings.TrimSpace(request.URL.Query().Get("cursor")),
-		AccountID: strings.ToLower(strings.TrimSpace(request.URL.Query().Get("accountId"))),
+		AccountID: request.URL.Query().Get("accountId"),
 		Status:    strings.TrimSpace(request.URL.Query().Get("status")),
 		Query:     strings.TrimSpace(request.URL.Query().Get("q")),
 		Limit:     limit,
 	}
-	if filter.AccountID != "" && !canonicalInvestigationUUID.MatchString(filter.AccountID) ||
-		filter.Status != "" && filter.Status != "pending" && filter.Status != "posted" && filter.Status != "rejected" ||
+	if filter.AccountID != "" {
+		canonicalAccountID, valid := canonicalIdentifier(request, identifier.KindAccount, filter.AccountID)
+		if !valid {
+			httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+			return
+		}
+		filter.AccountID = canonicalAccountID
+	}
+	if filter.Status != "" && filter.Status != "pending" && filter.Status != "posted" && filter.Status != "rejected" ||
 		filter.Query != "" && !boundedTransferIDQuery.MatchString(filter.Query) {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
@@ -272,9 +303,8 @@ func (h *InvestigationHandler) Transfer(writer http.ResponseWriter, request *htt
 	if !ok {
 		return
 	}
-	id := strings.TrimSpace(request.PathValue("transferID"))
-	if id == "" {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	id, ok := requireCanonicalIdentifier(writer, request, identifier.KindTransfer, request.PathValue("transferID"))
+	if !ok {
 		return
 	}
 	item, err := h.repository.GetTransfer(request.Context(), principal.TenantID, id)
@@ -310,7 +340,11 @@ func (h *InvestigationHandler) ReconciliationRun(writer http.ResponseWriter, req
 	if !ok {
 		return
 	}
-	item, err := h.repository.GetReconciliationRun(request.Context(), principal.TenantID, strings.TrimSpace(request.PathValue("runID")))
+	runID, ok := requireCanonicalIdentifier(writer, request, identifier.KindReconciliation, request.PathValue("runID"))
+	if !ok {
+		return
+	}
+	item, err := h.repository.GetReconciliationRun(request.Context(), principal.TenantID, runID)
 	if errors.Is(err, db.ErrInvestigationNotFound) {
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return

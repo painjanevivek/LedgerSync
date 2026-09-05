@@ -39,7 +39,7 @@
   align-items: center;
   gap: 6px;
   color: var(--blue);
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 750;
   text-decoration: none;
   white-space: nowrap;

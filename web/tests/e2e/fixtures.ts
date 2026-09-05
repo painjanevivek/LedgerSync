@@ -121,12 +121,26 @@ function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds = 0 }: { sessionDelayMilliseconds?: number } = {}) {
+export async function mockOperatorConsole(
+  page: Page,
+  {
+    sessionDelayMilliseconds = 0,
+    experienceMode = "expert",
+  }: { sessionDelayMilliseconds?: number; experienceMode?: "simple" | "expert" } = {},
+) {
   let savedViews: Array<Record<string, unknown>> = [{ ...savedInvestigationView }];
   let workspace: Record<string, unknown> | null = structuredClone(investigationWorkspace) as unknown as Record<string, unknown>;
+  let currentExperienceMode = experienceMode;
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
     return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
+  });
+  await page.route("**/api/preferences", async (route) => {
+    if (route.request().method() === "PATCH") {
+      const input = route.request().postDataJSON() as { experience_mode?: "simple" | "expert" };
+      if (input.experience_mode === "simple" || input.experience_mode === "expert") currentExperienceMode = input.experience_mode;
+    }
+    return json(route, { experience_mode: currentExperienceMode, version: "1" });
   });
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route(/\/api\/accounts\/[^/?]+(?:\?.*)?$/, (route) => {

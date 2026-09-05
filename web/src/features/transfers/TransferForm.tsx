@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Account } from "@/features/accounts/types";
 import { hasPositiveMinorUnits } from "@/features/accounts/accountCommandIntent";
-import { CopyControl } from "@/ui/controls/CopyControl.client";
+
 import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
 import { EvidenceFreshness } from "@/ui/display/Evidence";
 import { StatePanel } from "@/ui/display/StatePanel";
@@ -15,8 +15,16 @@ import type { PreparedTransfer } from "@/features/transfers/transferIntent";
 import { useTransferSubmission } from "@/features/transfers/useTransferSubmission";
 import { decimalFromMinorUnits } from "@/lib/api/transfers";
 import { minorUnitsFromDecimal } from "@/lib/money";
-import { Money } from "@/ui/display/Money";
-import { Timestamp } from "@/ui/display/Timestamp";
+
+
+import { ActionAvailability, type ActionAvailabilityStatus } from "@/ui/controls/ActionAvailability";
+
+import { CommandFrame } from "@/ui/presentation/CommandFrame";
+import { TransferReview } from "./TransferReview";
+import { TransferResult } from "./TransferResult";
+import { expectedTransferBalances, refreshTransferReview, reviewAccountChanged } from "./transferReviewModel";
+import { TechnicalDetails } from "@/ui/presentation/TechnicalDetails";
+import { RecordIdentity } from "@/ui/presentation/RecordIdentity";
 
 type Props = Readonly<{
   accounts: Account[];
@@ -47,9 +55,29 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
   const preferredConsumed = useRef(false);
   const [prepared, setPrepared] = useState<PreparedTransfer | null>(null);
   const [validation, setValidation] = useState<string | null>(null);
-  const { outcome, pending, setOutcome, storedIntent, submit: postPrepared } = useTransferSubmission(tenantId, csrfToken, onPosted);
+  const { outcome, pending, setOutcome, storedIntent, storageBlocked, submit: postPrepared } = useTransferSubmission(tenantId, csrfToken, onPosted);
   const reviewHeading = useRef<HTMLHeadingElement>(null);
   const outcomeHeading = useRef<HTMLHeadingElement>(null);
+  const [checking, setChecking] = useState(false);
+  const preflight = useRef<AbortController | null>(null);
+  useEffect(() => () => preflight.current?.abort(), []);
+  const busy = pending || checking;
+  const dirty = Boolean(amount || prepared);
+  useEffect(() => {
+    if (!dirty || storedIntent || outcome?.kind === "success") return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    const guardLink = (event: MouseEvent) => {
+      const anchor = (event.target as Element).closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!anchor || anchor.target === "_blank" || anchor.origin !== location.origin || anchor.href === location.href || event.defaultPrevented) return;
+      if (!window.confirm("Leave this transfer? Your edited, unsubmitted details will be discarded.")) { event.preventDefault(); event.stopPropagation(); }
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", guardLink, true);
+    return () => { window.removeEventListener("beforeunload", warn); document.removeEventListener("click", guardLink, true); };
+  }, [dirty, storedIntent, outcome?.kind]);
+  function frame(content: ReactNode, stage: "details" | "review" | "result") {
+    return <CommandFrame title={stage === "details" ? "Make a transfer." : stage === "review" ? "Check before you transfer." : "Your transfer result."} description={stage === "details" ? "Move money between your accounts in three clear steps." : stage === "review" ? "Review the amount and accounts. Nothing moves until you confirm." : "See what happened and your safe next step."} stage={stage} returnTo={returnTo ?? "/transfers"} returnLabel={returnTo?.startsWith("/accounts") ? "Back to account" : "Back to transfers"} help={<ul><li>Check the source and destination accounts.</li><li>Keep enough money in your source account.</li><li>An uncertain result must be resolved before making another request.</li></ul>}>{storageBlocked && <StatePanel kind="error" title="Transfer retry information is unavailable" message="No new request can be submitted. Allow browser storage, then reload. Existing request information has not been overwritten." />}{content}</CommandFrame>;
+  }
 
   const sourceAccount = fundedSources.find((account) => account.account_id === source) ?? fundedSources[0];
   const effectiveSource = sourceAccount?.account_id ?? "";
@@ -77,6 +105,13 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
     : accountsLoading
       ? "New transfer preparation is disabled while the authorized account picker is loading."
       : disabledReason;
+  const preparationAvailability: ActionAvailabilityStatus = accountsLoading
+    ? { state: "busy", reason: "Wait while your available accounts are checked." }
+    : accountsError
+      ? { state: "temporary_unavailable", reason: prerequisiteReason ?? "The account picker is unavailable." }
+      : disabled
+        ? { state: disabledReason?.toLowerCase().includes("offline") ? "offline" : "capability_missing", reason: prerequisiteReason ?? "You cannot prepare a transfer right now." }
+        : { state: "available" };
 
   useEffect(() => {
     if (preferredConsumed.current || userChangedRoute.current || storedIntent || !preferredDestination) return;
@@ -109,122 +144,109 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
       return;
     }
     try {
-      setPrepared({
+      const next = {
         source: sourceAccount,
         destination: destinationAccount,
         amountMinor: minorUnitsFromDecimal(sourceAccount.currency, amount),
-      });
+      };
+      expectedTransferBalances(next);
+      setPrepared(next);
     } catch (error) {
       setValidation(error instanceof Error ? error.message : "Check the exact amount.");
     }
   }
 
   async function submit() {
-    if (!effectivePrepared || pending) return;
+    if (!effectivePrepared || busy || preflight.current || disabled || storageBlocked) return;
+    let confirmed = effectivePrepared;
+    if (!storedIntent) {
+      const controller = new AbortController();
+      preflight.current = controller;
+      setChecking(true);
+      setValidation(null);
+      try {
+        confirmed = await refreshTransferReview(effectivePrepared, controller.signal);
+        if (controller.signal.aborted) return;
+        if (reviewAccountChanged(effectivePrepared.source, confirmed.source) || reviewAccountChanged(effectivePrepared.destination, confirmed.destination)) {
+          setPrepared(confirmed);
+          setValidation("Account details changed. Review the updated balances and confirm again. No transfer was submitted.");
+          return;
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) setValidation(error instanceof Error ? error.message : "We couldn’t recheck the accounts. No transfer was submitted.");
+        return;
+      } finally { preflight.current = null; setChecking(false); }
+    }
     if (!prepared) {
-      setPrepared(effectivePrepared);
-      setSource(effectivePrepared.source.account_id);
-      setDestination(effectivePrepared.destination.account_id);
-      setAmount(decimalFromMinorUnits(effectivePrepared.source.currency, effectivePrepared.amountMinor));
+      setPrepared(confirmed);
+      setSource(confirmed.source.account_id);
+      setDestination(confirmed.destination.account_id);
+      setAmount(decimalFromMinorUnits(confirmed.source.currency, confirmed.amountMinor));
     }
-    if (await postPrepared(effectivePrepared)) {
-      setPrepared(null);
-      setAmount("");
-    }
+    if (await postPrepared(confirmed)) { setPrepared(null); setAmount(""); }
   }
 
   if (outcome?.kind === "success") {
-    return <section className="surface transfer-outcome" aria-labelledby="transfer-outcome-heading">
-      <p className="eyebrow">Final financial outcome</p>
-      <h2 ref={outcomeHeading} tabIndex={-1} id="transfer-outcome-heading">Transfer posted</h2>
-      <StatePanel title="Money moved exactly once" message={outcome.message} />
-      <dl className="evidence-list">
-        <div><dt>Transfer ID</dt><dd><Link href={`/transfers/${outcome.transferId}`}>{outcome.transferId}</Link></dd></div>
-        <div><dt>Journal transaction</dt><dd>{outcome.journalTransactionId ? <CopyControl value={outcome.journalTransactionId} /> : <Link href={`/transfers/${outcome.transferId}`}>Open immutable record</Link>}</dd></div>
-        <div><dt>Exact amount</dt><dd><Money currency={outcome.currency!} minorUnits={outcome.amountMinor!} /></dd></div>
-        <div><dt>Posted UTC</dt><dd>{outcome.occurredAt ? <Timestamp value={outcome.occurredAt} /> : "Open the immutable record for its timestamp"}</dd></div>
-        <div><dt>Source</dt><dd><Link href={`/accounts/${outcome.source}`}>{outcome.source}</Link></dd></div>
-        <div><dt>Destination</dt><dd><Link href={`/accounts/${outcome.destination}`}>{outcome.destination}</Link></dd></div>
-      </dl>
-      <section className="committed-balance-evidence" aria-labelledby="committed-balances-heading">
-        <p className="eyebrow" id="committed-balances-heading">Committed balance details</p>
-        {outcome.balances?.length ? <div className="review-grid">{outcome.balances.map((balance) => <div key={balance.account_id}>
-          <dt><Link href={`/accounts/${balance.account_id}`}>{balance.account_id === outcome.source ? "Source" : "Destination"} account</Link></dt>
-          <dd><Money currency={balance.currency} minorUnits={balance.posted_minor} /><code>version {balance.version}</code><small><Timestamp value={balance.as_of} /></small></dd>
-        </div>)}</div> : <p className="muted">Open the source and destination account records for current balance details.</p>}
-      </section>
-      <button className="button secondary" type="button" onClick={() => setOutcome(null)}>Prepare another transfer</button>
-      {returnTo && <Link className="text-link" href={returnTo}>Return to account</Link>}
-    </section>;
+    return frame(<TransferResult outcome={outcome} headingRef={outcomeHeading} canStartAnother={!storageBlocked && !storedIntent} onAnother={() => setOutcome(null)} />, "result");
   }
 
   if (storedIntent && !restorableIntent) {
-    return <StatePanel
+    return frame(<StatePanel
       kind="denied"
       title="Unconfirmed transfer cannot be restored"
       message="The original accounts are no longer both available in the authorized active scope. LedgerSync will not alter or recreate this intent with a different key. Inspect transfer history before taking further action."
-    />;
+    />, "result");
   }
 
   if (effectivePrepared) {
     const outcomeUnknown = outcome?.kind === "unknown";
-    const submissionDisabled = Boolean(disabled || (!outcomeUnknown && pickerUnavailable));
-    return <section className="surface transfer-review" aria-labelledby="transfer-review-heading">
-      <p className="eyebrow">Review before posting</p>
-      <h2 ref={reviewHeading} tabIndex={-1} id="transfer-review-heading">Confirm exact transfer</h2>
-      <p>Verify source, destination, and exact amount together. Confirmation binds a retry-safe key to this complete intent.</p>
-      <dl className="review-grid">
-        <div><dt>From</dt><dd>{accountLabel(effectivePrepared.source)}<code>{effectivePrepared.source.account_id}</code></dd></div>
-        <div><dt>To</dt><dd>{accountLabel(effectivePrepared.destination)}<code>{effectivePrepared.destination.account_id}</code></dd></div>
-        <div><dt>Exact amount</dt><dd><Money currency={effectivePrepared.source.currency} minorUnits={effectivePrepared.amountMinor} /></dd></div>
-      </dl>
-      {outcome && <StatePanel
-        kind={outcomeUnknown ? "unknown" : "error"}
-        announce={outcomeUnknown ? "polite" : undefined}
-        title={outcomeUnknown ? "Result not yet confirmed" : "Transfer not posted"}
-        message={outcome.message}
-      />}
-      {accountsError && <StatePanel kind="error" title="Account picker unavailable" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
-      <div className="action-row">
-        {outcomeUnknown
-          ? <p className="intent-lock-note">Editing is locked until this exact outcome is confirmed.</p>
-          : <button className="button secondary" type="button" disabled={pending} onClick={() => { setPrepared(null); setOutcome(null); }}>Back to edit</button>}
-        <button className="button primary" type="button" aria-describedby={submissionDisabled ? "transfer-disabled-reason" : undefined} disabled={pending || submissionDisabled} onClick={() => void submit()}>
-          {pending ? "Posting transfer…" : outcomeUnknown ? "Retry same transfer" : "Confirm and post"}
-        </button>
+    const submissionDisabled = Boolean(disabled || storageBlocked || (!outcomeUnknown && pickerUnavailable));
+    const availability: ActionAvailabilityStatus = busy
+      ? { state: "busy", reason: checking ? "Checking the latest account details." : "Wait while this transfer request finishes." }
+      : storageBlocked ? { state: "temporary_unavailable", reason: "Browser retry information must be available before submitting." }
+      : submissionDisabled ? preparationAvailability : { state: "available" };
+    return frame(<section className="transfer-review" aria-labelledby="transfer-review-heading">
+      <h2 ref={reviewHeading} tabIndex={-1} id="transfer-review-heading" className={outcome ? undefined : "sr-only"}>{outcomeUnknown ? "Result not yet confirmed" : "Review transfer"}</h2>
+      {outcome && <StatePanel announce="assertive" kind={outcomeUnknown ? "unknown" : "error"} title={outcomeUnknown ? "Do not create another transfer" : "Transfer not completed"} message={outcome.message} />}
+      <TransferReview transfer={effectivePrepared} unresolved={outcomeUnknown} />
+      {validation && <p className="field-error" role="alert">{validation}</p>}
+      {outcome?.requestReference && <TechnicalDetails summary="View request details"><RecordIdentity label="Request reference" value={outcome.requestReference} /></TechnicalDetails>}
+      {accountsError && <StatePanel kind="error" title="Account check unavailable" message="We couldn’t refresh the accounts. Previously checked information may be out of date." action={<FocusedRetry label="Retry account check" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
+      <div className="command-actions">
+        {outcomeUnknown ? <p className="intent-lock-note">Editing is locked until this original request is resolved.</p> : <ActionAvailability availability={busy ? { state: "busy", reason: "Wait for the current account check or request." } : { state: "available" }}><button className="button secondary" type="button" onClick={() => { setPrepared(null); setOutcome(null); setValidation(null); }}>Back to edit</button></ActionAvailability>}
+        <ActionAvailability availability={availability}><button className="button primary" type="button" onClick={() => void submit()}>{checking ? "Checking accounts…" : pending ? "Submitting transfer…" : outcomeUnknown ? "Retry this same request safely" : "Confirm transfer"}</button></ActionAvailability>
       </div>
-      {submissionDisabled && <p id="transfer-disabled-reason" className="permission-note">{prerequisiteReason ?? "Transfer posting is unavailable until connectivity and authorization are verified."}</p>}
-    </section>;
+    </section>, outcome ? "result" : "review");
   }
 
   if (accountsLoading && accounts.length === 0) {
-    return <StatePanel title="Loading authorized account picker" message="Source and destination controls remain disabled until the account request succeeds. No empty account scope is inferred." />;
+    return frame(<StatePanel title="Checking your accounts" message="Wait while we check which accounts are available for this transfer." />, "details");
   }
 
   if (accountsError && accounts.length === 0) {
-    return <StatePanel kind="error" title="Account picker unavailable" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />;
+    return frame(<StatePanel kind="error" title="Accounts could not be checked" message="No transfer has been submitted. Try checking the accounts again." action={<FocusedRetry label="Retry account check" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />, "details");
   }
 
   if (preferredFundingBlocked || transferable.length < 2 || fundedSources.length === 0 || destinations.length === 0) {
-    return <StatePanel kind="denied" title="No funded source account" message="A different active, authorized account in the same currency must have a positive exact available balance before a new transfer can be prepared." />;
+    return frame(<StatePanel kind="denied" title="You need two eligible accounts" message="Choose different active accounts in the same currency, with enough available money in the source account." action={<Link className="button secondary" href="/accounts">View accounts</Link>} />, "details");
   }
 
-  return <section className="surface transfer-form" aria-labelledby="transfer-heading">
+  return frame(<section className="transfer-form" aria-labelledby="transfer-heading">
     <div>
-      <p className="eyebrow">Prepare</p>
-      <h2 id="transfer-heading">Internal transfer</h2>
-      <p className="muted">Exact, same-currency movement between authorized ledger accounts.</p>
+
+      <h2 id="transfer-heading">Transfer details</h2>
+      <p className="muted">Choose where the money will move. You’ll review before confirming.</p>
     </div>
     {accountsVerifiedAt && <EvidenceFreshness state={accountsError ? "historical" : accountsLoading ? "refreshing" : "current"} verifiedAt={accountsVerifiedAt} label="Account picker" reason={accountsError ?? undefined} />}
     {accountsError && <StatePanel kind="error" title="Account picker not refreshed" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
     <form onSubmit={prepare} noValidate>
       <FormField label="From account" requirement="required" hint="Money will leave this account."><select value={effectiveSource} onChange={(event) => { userChangedRoute.current = true; setSource(event.target.value); }} disabled={disabled || pickerUnavailable} required>{fundedSources.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></FormField>
       <FormField label="To account" requirement="required" hint="Money will go to this account."><select value={effectiveDestination} onChange={(event) => { userChangedRoute.current = true; setDestination(event.target.value); }} disabled={disabled || pickerUnavailable} required>{destinations.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></FormField>
-      <FormField label="Amount" requirement="required" hint="Enter INR, for example 1250.00. LedgerSync keeps the amount exact."><input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" autoComplete="off" placeholder="1250.00" aria-describedby="transfer-error transfer-disabled-reason" aria-invalid={Boolean(validation)} disabled={disabled || pickerUnavailable} required /></FormField>
+      <FormField label="Amount" requirement="required" hint={`Enter ${sourceAccount?.currency ?? "the account currency"}, for example 1250.00.`}><input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" autoComplete="off" placeholder="1250.00" aria-describedby="transfer-error transfer-disabled-reason" aria-invalid={Boolean(validation)} disabled={disabled || pickerUnavailable} required /></FormField>
       {preferredDestination && !storedIntent && <p className="destination-preselection" role="status">Destination preselected from account <code>{preferredDestination.account_id}</code>. Review the source and exact amount before posting.</p>}
       {validation && <p id="transfer-error" className="field-error" role="alert">{validation}</p>}
-      <button className="button primary" disabled={disabled || pickerUnavailable} aria-describedby={disabled || pickerUnavailable ? "transfer-disabled-reason" : undefined} type="submit">Review transfer</button>
+      <ActionAvailability availability={storageBlocked ? { state: "temporary_unavailable", reason: "Allow browser storage before preparing a request." } : preparationAvailability}><button className="button primary" type="submit">Review transfer</button></ActionAvailability>
       {(disabled || pickerUnavailable) && <p id="transfer-disabled-reason" className="permission-note">{prerequisiteReason ?? "Transfer preparation is disabled until connectivity and authorization are verified."}</p>}
     </form>
-  </section>;
+  </section>, "details");
 }

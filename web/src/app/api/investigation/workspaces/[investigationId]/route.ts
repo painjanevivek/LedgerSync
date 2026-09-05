@@ -2,22 +2,22 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { readBoundedWorkspaceBody, sanitizeWorkspace } from "@/lib/api/investigation-workspaces";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 import { authorizeInvestigationWorkspaces, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const rateLimit = new InMemoryRateLimitStore();
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
+const rateLimit = createRateLimitStore();
 
 export async function GET(request: NextRequest, { params }: Readonly<{ params: Promise<{ investigationId: string }> }>) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   const authorization = await authorizeInvestigationWorkspaces(request, session, rateLimit, false);
   if (isInvestigationSearchDenial(authorization)) return authorization;
-  const investigationId = (await params).investigationId.toLowerCase();
-  if (!uuid.test(investigationId) || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
+  const investigationId = canonicalUUID((await params).investigationId);
+  if (!investigationId || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
   try {
     const connection = await privateAPIContext(authorization.session, request.headers.get("x-request-id") ?? undefined);
     const upstream = await fetch(`${connection.apiURL}/api/investigation/workspaces/${investigationId}`, { headers: connection.headers, cache: "no-store", signal: AbortSignal.timeout(privateReadTimeoutMilliseconds) });

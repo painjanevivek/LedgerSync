@@ -20,35 +20,24 @@ function cssFiles(directory: string): string[] {
   });
 }
 
-test("global styles remain an import-only ownership manifest", () => {
+test("global styles remain a layered import-only ownership manifest", () => {
   const globalsPath = resolve(webRoot, "src/app/globals.css");
   const globals = readFileSync(globalsPath, "utf8");
   const meaningfulLines = globals.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean);
 
   assert.ok(meaningfulLines.length > 0);
-  for (const line of meaningfulLines) {
-    assert.match(line, /^@import\s+["'][^"']+["'];$/u);
-    const [, importPath] = line.match(/^@import\s+["']([^"']+)["'];$/u) ?? [];
+  assert.equal(meaningfulLines[0], "@layer tokens, reset, foundations, primitives, patterns, features, utilities, overrides;");
+  for (const line of meaningfulLines.slice(1)) {
+    assert.match(line, /^@import\s+["'][^"']+["']\s+layer\([a-z-]+\);$/u);
+    const [, importPath] = line.match(/^@import\s+["']([^"']+)["']/u) ?? [];
     assert.ok(importPath && existsSync(resolve(dirname(globalsPath), importPath)), `Missing stylesheet: ${importPath}`);
   }
 });
 
-test("root stylesheet imports preserve the intentional cascade order", () => {
+test("root loads one explicit cascade manifest", () => {
   const layout = read("src/app/layout.tsx");
-  const expectedImports = [
-    'import "../styles/tokens.css";',
-    'import "../styles/foundations/reset.css";',
-    'import "./globals.css";',
-    'import "../styles/features/approvals.css";',
-    'import "../styles/layout/responsive-shell.css";',
-  ];
-  let previousIndex = -1;
-
-  for (const expectedImport of expectedImports) {
-    const index = layout.indexOf(expectedImport);
-    assert.ok(index > previousIndex, `${expectedImport} must follow the preceding stylesheet import`);
-    previousIndex = index;
-  }
+  assert.match(layout, /import "\.\/globals\.css";/u);
+  assert.equal((layout.match(/import ["'][^"']+\.css["'];/gu) ?? []).length, 1);
 });
 
 test("non-token styles use semantic color variables", () => {
@@ -63,8 +52,11 @@ test("non-token styles use semantic color variables", () => {
 test("responsive shell owns canonical compact behavior and accessibility fallbacks", () => {
   const responsive = read("src/styles/layout/responsive-shell.css");
 
-  assert.equal(COMPACT_NAVIGATION_MAX_WIDTH_PX, 760);
-  assert.equal(COMPACT_NAVIGATION_MEDIA_QUERY, "(max-width: 760px)");
+  assert.equal(COMPACT_NAVIGATION_MAX_WIDTH_PX, 1279);
+  assert.equal(COMPACT_NAVIGATION_MEDIA_QUERY, "(max-width: 1279px)");
+  const guided = read("src/styles/layout/guided-workspace.css");
+  assert.equal((guided.match(/@media \(max-width: 1279px\)/gu) ?? []).length, 1);
+  assert.match(guided, /\.guided-desktop-nav\s*\{\s*display: none/);
   assert.equal((responsive.match(/@media \(max-width: 760px\)/gu) ?? []).length, 1);
   assert.equal((responsive.match(/@media \(max-width: 520px\)/gu) ?? []).length, 1);
   assert.match(responsive, /@media \(prefers-reduced-motion: reduce\)/u);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isValidReconciliationIdempotencyKey } from "@/lib/api/reconciliation";
-import type { RateLimitStore } from "@/lib/rate-limit";
+import { rateLimitResponse, type RateLimitStore } from "@/lib/rate-limit";
 import { hasValidCSRF, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
 import { isPrivateAPITimeout } from "@/lib/upstream-outcome";
@@ -26,11 +26,8 @@ export async function authorizeReconciliationMutation(
   const mediaType = request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
   if (mediaType !== "application/json") return jsonError("unsupported_media_type", 415);
   const decision = await rateLimit.consume(`reconciliation:${session.tenantId}:${session.subjectId}`, 6, 60);
-  if (!decision.allowed) {
-    const response = jsonError("rate_limited", 429);
-    response.headers.set("Retry-After", String(decision.retryAfterSeconds));
-    return response;
-  }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return { idempotencyKey };
 }
 
@@ -73,4 +70,3 @@ export function reconciliationDispatchError(error: unknown): Readonly<{ code: st
     ? { code: "reconciliation_outcome_unknown", status: 504 }
     : { code: "temporary_unavailable", status: 503 };
 }
-

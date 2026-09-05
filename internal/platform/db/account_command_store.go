@@ -31,31 +31,30 @@ SELECT EXISTS (
 	return nil
 }
 
-func insertAccountAggregate(ctx context.Context, tx *sql.Tx, aggregate accountdomain.Account) error {
-	var insertedID string
-	err := tx.QueryRowContext(ctx, `
-INSERT INTO accounts (id,tenant_id,currency,status,display_name,category,external_reference,version,created_at,updated_at)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)
-ON CONFLICT DO NOTHING
-RETURNING id`, aggregate.ID, aggregate.TenantID, aggregate.Currency.Code, aggregate.Status, aggregate.DisplayName, aggregate.Category, aggregate.ExternalReference, aggregate.Version, aggregate.CreatedAt).Scan(&insertedID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return accounts.ErrAccountConflict
-	}
-	if err != nil {
-		return fmt.Errorf("insert account: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO account_balance_projections(account_id,available_minor,ledger_minor,balance_version,updated_at) VALUES ($1,0,0,0,$2)`, aggregate.ID, aggregate.CreatedAt); err != nil {
-		return fmt.Errorf("initialize zero account projection: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO account_opening_balances(account_id,opening_ledger_minor,created_at) VALUES ($1,0,$2)`, aggregate.ID, aggregate.CreatedAt); err != nil {
-		return fmt.Errorf("initialize zero account opening baseline: %w", err)
-	}
+func insertAccountAggregate(ctx context.Context, tx *sql.Tx, envelope commandEnvelope, aggregate accountdomain.Account) error {
 	owner := aggregate.Owners[0]
-	if _, err := tx.ExecContext(ctx, `INSERT INTO account_owners(tenant_id,account_id,subject_id,permission,created_at) VALUES ($1,$2,$3,$4,$5)`, aggregate.TenantID, aggregate.ID, owner.SubjectID, owner.Permission, aggregate.CreatedAt); err != nil {
-		return fmt.Errorf("create account owner: %w", err)
+	var replayed, conflicted bool
+	err := tx.QueryRowContext(ctx, `
+SELECT replayed,conflicted FROM public.controlled_provision_account_v1(
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+)`, aggregate.TenantID, envelope.ActorID, aggregate.ID, aggregate.Currency.Code,
+		aggregate.DisplayName, aggregate.Category, aggregate.ExternalReference,
+		[]string{}, []string{owner.SubjectID}, []string{owner.SubjectID},
+		envelope.CorrelationID, aggregate.CreatedAt).Scan(&replayed, &conflicted)
+	if err != nil {
+		var postgresError *pgconn.PgError
+		if errors.As(err, &postgresError) {
+			switch postgresError.ConstraintName {
+			case "controlled_account_actor", "controlled_account_not_found", "controlled_account_subject":
+				return accounts.ErrAccountNotFound
+			case "controlled_account_conflict":
+				return accounts.ErrAccountConflict
+			}
+		}
+		return fmt.Errorf("execute controlled account provisioning: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO account_credit_permissions(tenant_id,account_id,subject_id,created_at) VALUES ($1,$2,$3,$4)`, aggregate.TenantID, aggregate.ID, owner.SubjectID, aggregate.CreatedAt); err != nil {
-		return fmt.Errorf("create account credit permission: %w", err)
+	if replayed || conflicted {
+		return accounts.ErrAccountConflict
 	}
 	return nil
 }

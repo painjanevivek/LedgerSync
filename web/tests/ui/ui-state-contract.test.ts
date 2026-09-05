@@ -69,6 +69,7 @@ test("modal and compact-navigation focus returns are explicit", () => {
   const create = readFileSync(new URL("../../src/features/accounts/AccountCreateFlow.tsx", import.meta.url), "utf8");
   const shell = readFileSync(new URL("../../src/features/console/ConsoleShell.tsx", import.meta.url), "utf8");
   assert.match(lifecycle, /dialogTrigger\.current\?\.focus\(\)/);
-  assert.match(create, /abandonTrigger\.current\?\.focus\(\)/);
+  assert.doesNotMatch(create, /Abandon local recovery|abandonTrigger/);
+  assert.match(create, /stageHeading\.current\?\.focus\(\)/);
   assert.match(shell, /menuButton\.current\?\.focus\(\)/);
 });

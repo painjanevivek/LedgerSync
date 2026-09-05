@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { sessionCookie, sessionCookieName, readSession } from "@/lib/session";
+import { sessionCookieName, readSession, updateOpaqueSessionConsistency } from "@/lib/session";
 import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { toPrivateTransferRequest, type CreateTransferInput } from "@/lib/api/transfers";
 import { privateAPIContext, proxyPrivateGET } from "@/lib/private-api";
 import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
 import { parseTransferSearchParams, transferBFFQueryRules } from "@/lib/page-query/transfers";
-import { applyConsistencySessionMetadata } from "@/lib/committed-response";
+import { parseConsistencyRequirements } from "@/lib/committed-response";
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
@@ -82,12 +82,15 @@ export async function POST(request: NextRequest) {
   }
   const serializedRequirements = upstream.headers.get("x-ledgersync-consistency-requirements");
   if (serializedRequirements && upstream.ok) {
-    const metadataStatus = applyConsistencySessionMetadata(
-      serializedRequirements,
-      session,
-      (signedSession) => response.cookies.set(sessionCookie(signedSession)),
-    );
-    if (metadataStatus === "unavailable") {
+    const requirements = parseConsistencyRequirements(serializedRequirements);
+    const sessionHandle = request.headers.get("x-ledgersync-session-handle");
+    let metadataStored = false;
+    try {
+      metadataStored = Boolean(requirements && sessionHandle && await updateOpaqueSessionConsistency(sessionHandle, requirements));
+    } catch {
+      metadataStored = false;
+    }
+    if (!metadataStored) {
       response.headers.delete("X-LedgerSync-Consistency-Requirements");
       response.headers.set("X-LedgerSync-Metadata-Status", "unavailable");
     }

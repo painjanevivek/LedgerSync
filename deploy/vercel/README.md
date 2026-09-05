@@ -1,46 +1,54 @@
 # LedgerSync on Vercel
 
-LedgerSync must be represented by two separate Vercel projects. Do not import the
-repository-root `.env.example` into either project because it is the combined
-local Docker-stack template.
+LedgerSync deploys from one repository as two independent Vercel projects. The
+frontend project builds only `web`; the backend project builds the root Go API
+and invokes its bounded background drain once per minute.
 
-## Frontend project: `ledgersync-frontend`
+## 1. Frontend project: `ledgersync-frontend`
 
-- Connect this repository.
-- Set **Root Directory** to `web`.
+- Connect this repository and set **Root Directory** to `web`.
 - Select the **Next.js** framework preset.
-- Leave the install, build, and output settings unmodified. [`web/vercel.json`](../../web/vercel.json)
-  pins `npm ci`, validates the project root, and runs the Next.js production build.
-- Use [`web/.env.example`](../../web/.env.example) only as a variable-name
-  checklist; enter real values in Vercel's Environment Variables settings.
-- Give Production and Preview different origins, redirect URIs, secrets, and key
-  material. Do not expose any secret with a `NEXT_PUBLIC_` prefix.
+- Clear dashboard install/build/output overrides so `web/vercel.json` owns them.
+- Add the variables listed in `web/.env.example` separately for Preview and
+  Production. Never expose a secret with a `NEXT_PUBLIC_` prefix.
+- Provision an isolated Upstash Redis integration for each environment. The BFF
+  uses its REST credentials for atomic, cross-instance rate limiting and fails
+  closed with `503` if the shared limiter is unavailable.
+- Give Preview and Production distinct `LEDGERSYNC_RATE_LIMIT_NAMESPACE` values,
+  even when provider isolation already exists, to prevent accidental key overlap.
+- Set `LEDGERSYNC_PRIVATE_API_URL` to the backend project's stable URL.
+- Configure the private API OAuth client variables. The BFF exchanges them for
+  short-lived workload access tokens and caches each token only until shortly
+  before expiry.
 
-The current `500 INTERNAL_FUNCTION_INVOCATION_FAILED` deployment cannot be fixed
-by environment variables alone. It was built from the repository root, so Vercel
-started the long-running Go API as a function. Correct the Root Directory before
-redeploying the frontend. Vercel stores Root Directory in the project settings;
-it is not a supported `vercel.json` property.
+The frontend build guard fails if Vercel accidentally runs it outside `web`.
 
-The repository-root [`vercel.json`](../../vercel.json) deliberately fails a
-misconfigured root deployment before it can install or build the Go service. A
-correctly rooted frontend deployment reads `web/vercel.json` instead.
+## 2. Backend project: `ledgersync-backend`
 
-## Backend project: `ledgersync-backend`
+- Connect the same repository and keep **Root Directory** at the repository root.
+- Select the **Go** framework preset.
+- Clear dashboard build/output overrides so the root `vercel.json` is authoritative.
+- Add only the variables in `deploy/vercel/backend.env.example`.
+- Use provider-issued pooled PostgreSQL and `rediss://` Redis URLs. The runtime
+  accepts both managed Redis URLs and the local `host:port` form.
+- Create a high-entropy `CRON_SECRET` in Vercel. Vercel sends it as a Bearer
+  credential to `GET /internal/cron/drain`; the endpoint rejects missing or incorrect
+  credentials using a constant-time comparison.
+- Do not set `PORT` or `LEDGERSYNC_HTTP_ADDR`. Vercel injects `PORT`, and the Go
+  server gives it precedence automatically.
 
-The existing Go API and worker are container-style, long-running processes. A
-second Vercel project should be created only after adapters exist for request-based
-Functions and scheduled/durable worker execution. The intended backend variable
-ownership is documented in [`backend.env.example`](backend.env.example).
+The root build produces `server` from `cmd/api`. The existing Go router remains
+the HTTP entrypoint. The scheduled drain reuses the same durable outbox,
+webhook, verification, and balance-projection workers, runs bounded batches for
+at most 50 seconds, and exits before the next minute's invocation.
 
-The frontend's production BFF also rejects a static private API token and expects
-a renewed file-based credential. That sidecar/file mechanism is unavailable in a
-standard Vercel Function. Before connecting the two production projects, implement
-a Vercel-compatible workload identity or managed short-lived credential provider.
+Minute-level cron requires a paid Vercel plan. If near-real-time 200 ms worker
+latency is required, deploy `cmd/outbox-worker` as a continuously running
+container instead and remove the root `crons` entry.
 
-## Values shared across the two projects
+## 3. Shared contracts
 
-Only the BFF assertion contract is deliberately shared:
+Only these BFF assertion values are deliberately shared between projects:
 
 - `LEDGERSYNC_BFF_ASSERTION_SECRET`
 - `LEDGERSYNC_BFF_ASSERTION_KEY_ID`
@@ -48,37 +56,54 @@ Only the BFF assertion contract is deliberately shared:
 - `LEDGERSYNC_BFF_ASSERTION_AUDIENCE`
 - the two `PREVIOUS_*` values temporarily used during key rotation
 
-The frontend signs assertions and the backend verifies them, so both sides must
-use matching values. All database, Redis, webhook, backend session, browser
-session, and OIDC client-secret values stay only in their owning project.
+The frontend signs actor assertions and the backend verifies them. The OAuth
+workload client must also be registered in the backend's
+`LEDGERSYNC_OIDC_CLIENT_TENANT_MAP` and receive the backend resource audience.
+Database, Redis, webhook, browser-session, and OIDC client secrets stay only in
+their owning project.
 
-## Safe update sequence
+## 4. Data and release sequence
 
-1. Correct the frontend project's Root Directory to `web`.
-2. Leave Framework Preset as Next.js and clear any dashboard overrides for the
-   install, build, and output settings so `web/vercel.json` remains authoritative.
-3. Delete the combined variables that do not appear in `web/.env.example`.
-4. Enter frontend Production values, then separate Preview values.
-5. Redeploy and verify the public page and authentication callback.
-6. Implement and test the Vercel backend adapters and credential strategy.
-7. Create the backend project, add only backend variables, and deploy it.
-8. Set the frontend private API URL to the backend domain, align BFF keys, and run
-   authenticated end-to-end verification.
+1. Provision isolated Preview and Production PostgreSQL, backend Redis, and
+   frontend Upstash rate-limit resources.
+2. Run `cmd/migrate` against the target database from a controlled release job.
+   Never run migrations in a Vercel build or application cold start.
+3. Deploy the backend Preview project and verify `/healthz` and `/readyz`.
+4. Invoke `/internal/cron/drain` manually with its Preview cron credential and confirm
+   outbox work drains without exposing the credential in logs.
+5. Deploy the frontend Preview project, configure its OAuth workload client and
+   backend URL, then exercise authenticated reads and an idempotent test transfer.
+6. Repeat with Production-scoped resources and promote the exact verified builds.
+
+Preview must never point to the Production database, Redis instance, backend, or
+identity credentials.
+
+## 5. Known storage boundary
+
+Recovery evidence currently uses `LEDGERSYNC_RECOVERY_EVIDENCE_ROOT`. Vercel's
+local filesystem is not durable storage. Routes that create or depend on durable
+recovery evidence must remain disabled operationally until that evidence is moved
+to encrypted object storage or PostgreSQL. Do not represent `/tmp` as durable
+recovery evidence.
 
 ## Local validation
 
-Run the configuration check from the repository root:
+From the repository root:
 
 ```sh
 node deploy/vercel/validate-config.mjs
+go test ./...
+go build -o server ./cmd/api
 ```
 
-Run the same root guard and production build used by Vercel from `web`:
+From `web`:
 
 ```sh
-node scripts/verify-vercel-root.mjs
+npm ci
+npm run lint
+npm test
 npm run build
 ```
 
-The build may use disposable placeholder values for required server-only settings.
-Do not copy production secrets into the repository or pass them on a command line.
+The builds may use disposable placeholder values where server-only settings are
+validated at build time. Never add production secrets to files or command lines.

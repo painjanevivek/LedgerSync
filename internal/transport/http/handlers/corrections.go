@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	appcorrections "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/corrections"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
@@ -67,6 +68,10 @@ func (h *CorrectionHandler) Request(writer http.ResponseWriter, request *http.Re
 	if !ok {
 		return
 	}
+	originalTransferID, ok := requireCanonicalIdentifier(writer, request, identifier.KindTransfer, request.PathValue("transferID"))
+	if !ok {
+		return
+	}
 	var input correctionRequest
 	if decodeCorrectionJSON(writer, request, &input) != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
@@ -74,7 +79,7 @@ func (h *CorrectionHandler) Request(writer http.ResponseWriter, request *http.Re
 	}
 	submission, err := h.service.Request(request.Context(), appcorrections.RequestCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID,
-		OriginalTransferID: request.PathValue("transferID"), ReasonCode: input.ReasonCode, OperatorNote: input.OperatorNote,
+		OriginalTransferID: originalTransferID, ReasonCode: input.ReasonCode, OperatorNote: input.OperatorNote,
 		IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()),
 		StepUpAuthenticatedAt: principal.AuthenticatedAt,
 	})
@@ -106,6 +111,11 @@ func (h *CorrectionHandler) List(writer http.ResponseWriter, request *http.Reque
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
+	// The public contract requires an array, including a verified empty page.
+	// Normalize only after successful authorization and repository completion.
+	if page.Events == nil {
+		page.Events = []appcorrections.Event{}
+	}
 	writeCorrectionJSON(writer, http.StatusOK, page)
 }
 
@@ -114,7 +124,11 @@ func (h *CorrectionHandler) Get(writer http.ResponseWriter, request *http.Reques
 	if !ok {
 		return
 	}
-	event, err := h.service.Get(request.Context(), principal.TenantID, principal.SubjectID, request.PathValue("correctionId"))
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
+	if !ok {
+		return
+	}
+	event, err := h.service.Get(request.Context(), principal.TenantID, principal.SubjectID, correctionID)
 	if err != nil {
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
@@ -139,13 +153,17 @@ func (h *CorrectionHandler) decide(writer http.ResponseWriter, request *http.Req
 	if !ok {
 		return
 	}
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
+	if !ok {
+		return
+	}
 	var input correctionDecisionRequest
 	if decodeCorrectionJSON(writer, request, &input) != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
 	command := appcorrections.DecisionCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: request.PathValue("correctionId"),
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: correctionID,
 		Reason: input.Reason, CorrelationID: middleware.CorrelationID(request.Context()), StepUpAuthenticatedAt: principal.AuthenticatedAt,
 	}
 	var event appcorrections.Event
@@ -167,13 +185,17 @@ func (h *CorrectionHandler) Cancel(writer http.ResponseWriter, request *http.Req
 	if !ok {
 		return
 	}
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
+	if !ok {
+		return
+	}
 	var input correctionDecisionRequest
 	if decodeCorrectionJSON(writer, request, &input) != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
 	event, err := h.service.Cancel(request.Context(), appcorrections.CancelCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: request.PathValue("correctionId"),
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: correctionID,
 		Reason: input.Reason, CorrelationID: middleware.CorrelationID(request.Context()),
 	})
 	if err != nil {
@@ -188,8 +210,12 @@ func (h *CorrectionHandler) Post(writer http.ResponseWriter, request *http.Reque
 	if !ok {
 		return
 	}
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
+	if !ok {
+		return
+	}
 	submission, err := h.service.Post(request.Context(), appcorrections.PostCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: request.PathValue("correctionId"),
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: correctionID,
 		IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()), StepUpAuthenticatedAt: principal.AuthenticatedAt,
 	})
 	if err != nil {

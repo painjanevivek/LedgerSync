@@ -15,7 +15,7 @@
   flex: 1;
   gap: 6px;
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 750;
 }
 .filter-bar input,
@@ -29,7 +29,7 @@
 .filter-bar > span {
   padding-bottom: 12px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-label);
 }
 .filter-scope-note {
   width: min(1080px, 100%);

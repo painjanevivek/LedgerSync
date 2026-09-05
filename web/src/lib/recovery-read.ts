@@ -1,3 +1,3 @@
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 
-export const recoveryReadRateLimit = new InMemoryRateLimitStore();
+export const recoveryReadRateLimit = createRateLimitStore();

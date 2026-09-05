@@ -20,8 +20,13 @@ test("local guide persists confirmation, dismissal, and reopening in server-owne
   await expect(page.getByRole("heading",{name:"Follow one INR ledger record from system health to recovery"})).toBeVisible();
   await expect(page.getByText("PostgreSQL ledger",{exact:true})).toBeVisible();
   await expect(page.getByText("Ready to inspect",{exact:true}).first()).toBeVisible();
+  const clearManualConfirmations=page.getByRole("button",{name:"Clear manual confirmations"});
+  await expect(clearManualConfirmations).toBeDisabled();
+  await expect(page.getByText("No manual confirmations are currently saved. Stored ledger evidence is never cleared here.",{exact:true})).toBeVisible();
+  await expect(clearManualConfirmations).toHaveAttribute("aria-describedby",/.+/);
   await page.getByRole("button",{name:"I checked current health"}).first().click();
   await expect(page.getByText("Operator confirmed",{exact:true})).toBeVisible();
+  await expect(clearManualConfirmations).toBeEnabled();
   await page.getByRole("button",{name:"Copy safe stop command"}).click();
   expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe("powershell -File .\\scripts\\stop-local.ps1");
   await page.getByRole("button",{name:"Dismiss setup guide"}).click();
@@ -54,12 +59,15 @@ test("orientation reports empty and unavailable durable evidence without browser
   await mockOperatorConsole(page);
   const partial={...orientationEvidence,evidence_state:"partial",steps:orientationEvidence.steps.map((step,index)=>index===2?{id:"inspect_accounts",state:"missing",evidence_type:"account_record",reason_code:"no_authorized_account"}:index===11?{id:"create_backup",state:"unavailable",evidence_type:"recovery_backup",reason_code:"recovery_evidence_unavailable"}:step)};
   await page.route("**/api/local/orientation",route=>json(route,partial)); await page.goto("/?guide=1");
-  await expect(page.getByText("Not yet evidenced",{exact:true})).toHaveCount(3);
-  await expect(page.getByText("Unavailable",{exact:true})).toHaveCount(1);
-  const fundingStep=page.getByRole("listitem").filter({hasText:"Fund through an approved ledger event"});
+  const orientation=page.locator(".local-orientation");
+  await expect(orientation.getByText("Not yet evidenced",{exact:true})).toHaveCount(3);
+  const recoveryStep=orientation.getByRole("listitem").filter({hasText:"Create and verify a backup"});
+  await expect(recoveryStep.locator(".status-label")).toHaveText("Unavailable");
+  const fundingStep=orientation.getByRole("listitem").filter({hasText:"Fund through an approved ledger event"});
   await expect(fundingStep.getByText("Stored evidence",{exact:true})).toBeVisible();
+  await fundingStep.getByText("Fund through an approved ledger event",{exact:true}).click();
   await expect(fundingStep.getByRole("link",{name:"Open evidence"})).toHaveAttribute("href",`/funding/${orientationEvidence.steps[4].evidence_id}`);
-  await expect(page.getByText("Stored evidence",{exact:true})).toHaveCount(4);
+  await expect(orientation.getByText("Stored evidence",{exact:true})).toHaveCount(4);
 });
 
 test("workspace and local guide fill the browser canvas on phone, tablet, and desktop",async({page})=>{
@@ -81,6 +89,11 @@ test("workspace and local guide fill the browser canvas on phone, tablet, and de
         shellRight:Math.round(shell.right),
         shellHeight:Math.round(shell.height),
         mainRight:Math.round(main.right),
+        undersizedText:[...document.querySelectorAll<HTMLElement>(".app-shell *")].filter((element)=>{
+          if (!element.checkVisibility({visibilityProperty:true})) return false;
+          const hasDirectText=[...element.childNodes].some((node)=>node.nodeType===Node.TEXT_NODE&&Boolean(node.textContent?.trim()));
+          return hasDirectText&&Number.parseFloat(getComputedStyle(element).fontSize)<12;
+        }).map((element)=>`${element.tagName.toLowerCase()}.${element.className}:${getComputedStyle(element).fontSize}`).slice(0,20),
       };
     });
     expect(geometry.scrollWidth).toBe(geometry.viewportWidth);
@@ -88,12 +101,14 @@ test("workspace and local guide fill the browser canvas on phone, tablet, and de
     expect(geometry.shellRight).toBe(geometry.viewportWidth);
     expect(geometry.mainRight).toBe(geometry.viewportWidth);
     expect(geometry.shellHeight).toBeGreaterThanOrEqual(geometry.viewportHeight);
+    expect(geometry.undersizedText).toEqual([]);
   }
 });
 
 test("transfer detail renders seven linked stored-evidence stages and preserves filtered return context",async({page})=>{
   await mockOperatorConsole(page); await page.goto(`/transfers?q=3333&status=posted`);
   await page.getByRole("link",{name:"Open record"}).click();
+  await page.getByText("Evidence timeline and delivery",{exact:true}).click();
   await expect(page.getByRole("heading",{name:"Stored evidence chain"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Request and idempotency outcome"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Reconciliation coverage"})).toBeVisible();
@@ -108,10 +123,12 @@ test("partial, out-of-order, denied, and compact timeline states remain explicit
   await mockOperatorConsole(page); await page.setViewportSize({width:320,height:760});
   const partial={...transferExplainability,evidence_state:"partial",stages:transferExplainability.stages.map((stage,index)=>index===5?{...stage,state:"missing",evidence:[],reason_code:"no_delivery_attempts"}:index===4?{...stage,evidence:stage.evidence.map((item)=>({...item,occurred_at:"2026-08-19T10:00:00Z"}))}:stage)};
   await page.route("**/api/transfers/*/explainability",route=>json(route,partial)); await page.goto(`/transfers/${transfer.transfer_id}`);
+  await page.getByText("Evidence timeline and delivery",{exact:true}).click();
   await expect(page.getByText("Stored timestamps are out of sequence",{exact:true})).toBeVisible();
   await expect(page.getByText("No downstream delivery attempt is stored.",{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)).toBe(false);
   await expectAccessible(page);
   await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["transfers:read"],environment:"local"})); await page.reload();
+  await page.getByText("Evidence timeline and delivery",{exact:true}).click();
   await expect(page.getByText("Stored evidence timeline not authorized",{exact:true})).toBeVisible();
 });
