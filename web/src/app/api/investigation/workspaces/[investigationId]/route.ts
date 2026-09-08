@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { readBoundedWorkspaceBody, sanitizeWorkspace } from "@/lib/api/investigation-workspaces";
 import { authorizeInvestigationWorkspaces, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const rateLimit = new InMemoryRateLimitStore();
+const rateLimit = createRateLimitStore();
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 
 export async function GET(request: NextRequest, { params }: Readonly<{ params: Promise<{ investigationId: string }> }>) {

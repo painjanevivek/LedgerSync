@@ -21,14 +21,15 @@ var ErrInvalidCommand = errors.New("invalid transfer command")
 // Command is the authenticated, canonical financial intent. Amount has
 // already been parsed from decimal text without using floating point.
 type Command struct {
-	TenantID        string
-	ActorSubjectID  string
-	DebitAccountID  string
-	CreditAccountID string
-	Amount          money.Money
-	IdempotencyKey  string
-	CorrelationID   string
-	OccurredAt      time.Time
+	TenantID         string
+	ActorSubjectID   string
+	DebitAccountID   string
+	CreditAccountID  string
+	Amount           money.Money
+	IdempotencyKey   string
+	RequestReference string
+	CorrelationID    string
+	OccurredAt       time.Time
 }
 
 // Balance is the committed projection returned with a posted transfer. It is
@@ -212,6 +213,7 @@ func normalize(command Command) Command {
 	command.DebitAccountID = strings.TrimSpace(command.DebitAccountID)
 	command.CreditAccountID = strings.TrimSpace(command.CreditAccountID)
 	command.IdempotencyKey = strings.TrimSpace(command.IdempotencyKey)
+	command.RequestReference = strings.ToLower(strings.TrimSpace(command.RequestReference))
 	command.CorrelationID = strings.TrimSpace(command.CorrelationID)
 	return command
 }
@@ -225,6 +227,9 @@ func validateCommand(command Command) error {
 	}
 	if err := ValidateKey(command.IdempotencyKey); err != nil {
 		return err
+	}
+	if command.RequestReference != "" && !CanonicalRequestReference(command.RequestReference) {
+		return fmt.Errorf("%w: request reference must be a canonical UUID", ErrInvalidCommand)
 	}
 	return nil
 }

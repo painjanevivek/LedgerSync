@@ -28,7 +28,7 @@
 .operations-verdict p:not(.eyebrow) {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .operations-verdict.degraded {
@@ -87,7 +87,7 @@
 .truth-copy p:not(.eyebrow) {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .truth-lane dl {
@@ -106,7 +106,7 @@
 .truth-lane dt,
 .operations-environment dt {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -115,7 +115,7 @@
 .operations-environment dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.45;
 }
 .truth-lane > .record-link {
@@ -150,7 +150,7 @@
   cursor: pointer;
   padding: 13px 0;
   color: var(--blue);
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 800;
 }
 .operations-environment pre {
@@ -159,7 +159,7 @@
   border-left: 3px solid var(--green);
   padding: 14px;
   background: var(--paper-subtle);
-  font: 10px/1.7 var(--font-mono);
+  font: var(--type-label)/1.7 var(--font-mono);
 }
 .safe-next-action {
   display: grid;
@@ -172,7 +172,7 @@
 .safe-next-action p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.5;
 }
 .capability-guidance-list {
@@ -202,13 +202,13 @@
 }
 .capability-guidance p strong {
   color: var(--ink-soft);
-  font-size: 9px;
+  font-size: var(--type-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .capability-guidance p span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .financial-separation-note {
@@ -229,7 +229,7 @@
 .financial-separation-note p {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .event-filter-document {
@@ -261,7 +261,7 @@
   display: grid;
   gap: 7px;
   color: var(--ink-soft);
-  font-size: 10px;
+  font-size: var(--type-label);
   font-weight: 800;
 }
 .event-filter-document input,
@@ -273,7 +273,7 @@
   padding: 9px 10px;
   background: var(--white);
   color: var(--ink);
-  font: 11px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
 }
 .event-filter-actions {
   display: flex;
@@ -347,7 +347,7 @@
 .delivery-impact-statement p {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .related-evidence {
@@ -405,7 +405,7 @@
 .event-timeline time {
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--type-label);
 }
 .event-detail-document .ledger-section {
   margin-top: 0;

@@ -28,10 +28,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 33 {
-		t.Fatalf("migration versions=%d, want 33", versions)
+	if versions != 35 {
+		t.Fatalf("migration versions=%d, want 35", versions)
 	}
-	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "investigation_live_rooms", "investigation_live_room_findings", "investigation_live_room_operations", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -40,7 +40,7 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 			t.Fatalf("required table %s is missing after migration", table)
 		}
 	}
-	for _, index := range []string{"funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx", "reconciliation_mismatches_tenant_transfer_idx", "journal_transactions_tenant_funding_idx", "outbox_events_tenant_account_relation_idx", "outbox_events_tenant_transfer_relation_idx", "transfer_corrections_tenant_compensation_idx", "investigation_saved_views_owner_name_idx", "investigation_saved_views_owner_recent_idx", "investigation_workspaces_owner_recent_idx", "investigation_workspace_references_record_idx"} {
+	for _, index := range []string{"funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx", "reconciliation_mismatches_tenant_transfer_idx", "journal_transactions_tenant_funding_idx", "outbox_events_tenant_account_relation_idx", "outbox_events_tenant_transfer_relation_idx", "transfer_corrections_tenant_compensation_idx", "investigation_saved_views_owner_name_idx", "investigation_saved_views_owner_recent_idx", "investigation_workspaces_owner_recent_idx", "investigation_workspace_references_record_idx", "idempotency_requests_tenant_request_reference_idx", "investigation_live_rooms_active_workspace_idx", "investigation_live_rooms_active_request_idx"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, index).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -74,12 +74,13 @@ WHERE table_schema = 'public'
 	    ('tenant_transfer_policies', 'control_mode'),
 	    ('tenant_transfer_policies', 'requires_step_up'),
 	    ('tenant_transfer_policies', 'approval_ttl_minutes'),
-	    ('reconciliation_mismatches', 'transfer_id')
+	    ('reconciliation_mismatches', 'transfer_id'),
+	    ('idempotency_requests', 'request_reference')
 	  )`).Scan(&columns); err != nil {
 		t.Fatal(err)
 	}
-	if columns != 20 {
-		t.Fatalf("legacy and additive account contract columns=%d, want 20", columns)
+	if columns != 21 {
+		t.Fatalf("legacy and additive account contract columns=%d, want 21", columns)
 	}
 }
 

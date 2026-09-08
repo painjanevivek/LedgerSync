@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseSavedViewRenameInput, readBoundedSavedViewBody, sanitizeSavedView } from "@/lib/api/saved-investigation-views";
 import { authorizeInvestigationSavedViews, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError, readBoundedJSON } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const savedViewMutationRateLimit = new InMemoryRateLimitStore();
+const savedViewMutationRateLimit = createRateLimitStore();
 const maximumRequestBytes = 4 << 10;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const versionTag = /^"[1-9][0-9]{0,18}"$/u;

@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseRelatedEvidenceBody, readBoundedRelatedEvidenceBody, relationshipSourceTypes } from "@/lib/api/related-evidence";
 import { authorizeInvestigationRelationships, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const relationshipRateLimit = new InMemoryRateLimitStore();
+const relationshipRateLimit = createRateLimitStore();
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const sourceTypes = new Set<string>(relationshipSourceTypes);
 

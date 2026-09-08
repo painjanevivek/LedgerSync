@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createLocalSession } from "../../src/lib/local-access";
 import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF, hasValidHost, readPublicOrigin } from "../../src/lib/security";
-import { createSession, readSession, sessionCookie, type Session } from "../../src/lib/session";
+import { createSession, maxSessionCookieValueBytes, readSession, sessionCookie, type Session } from "../../src/lib/session";
 import { readTransaction, transactionCookie } from "../../src/lib/oidc";
 import { proxy } from "../../src/proxy";
 
@@ -46,9 +46,9 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
 
 test("signed sessions preserve the complete bounded operator scope set", () => {
   const localSession = createLocalSession({ enabled: true, environment: "development", subjectId: "operator-a", tenantId: "tenant-a" });
-  assert.equal(localSession.scopes?.length, 27);
+  assert.equal(localSession.scopes?.length, 28);
   assert.deepEqual(readSession(createSession(localSession))?.scopes, localSession.scopes);
-  assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 33 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
+  assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 41 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
 });
 
 test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts", () => {
@@ -92,6 +92,27 @@ test("insecure cookies are explicit-local only and cannot weaken production", ()
     if (previousSecure === undefined) delete process.env.LEDGERSYNC_COOKIE_SECURE; else process.env.LEDGERSYNC_COOKIE_SECURE = previousSecure;
     if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
   }
+});
+
+test("session cookies stay within budget and retain the newest valid consistency requirements", () => {
+  const requirements = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`account-${index}`, `token-${index}-${"x".repeat(700)}`]));
+  const encoded = createSession({ ...session, consistencyRequirements: requirements });
+  const decoded = readSession(encoded);
+  assert.ok(encoded.length <= maxSessionCookieValueBytes);
+  assert.ok(decoded);
+  assert.ok(Object.keys(decoded.consistencyRequirements ?? {}).length <= 10);
+  assert.equal(decoded.consistencyRequirements?.["account-11"], requirements["account-11"]);
+  assert.equal(decoded.consistencyRequirements?.["account-0"], undefined);
+});
+
+test("session creation drops unusable consistency evidence and rejects oversized identity claims", () => {
+  const encoded = createSession({ ...session, consistencyRequirements: { account: "x".repeat(3_000) } });
+  assert.equal(readSession(encoded)?.consistencyRequirements, undefined);
+  assert.throws(
+    () => createSession({ ...session, subjectId: "operator".repeat(600) }),
+    /exceed the cookie budget/,
+  );
+  assert.equal(readSession(`x${encoded.padStart(maxSessionCookieValueBytes, "x")}`), null);
 });
 
 test("security headers deny unsafe browser behavior and enable HSTS only for production HTTPS deployments", () => {

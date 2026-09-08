@@ -67,7 +67,7 @@
 .evidence-hero p:not(.eyebrow) {
   margin: 0;
   color: var(--evidence-success-copy);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .evidence-hero.unavailable {
   border-color: var(--evidence-warning-border);
@@ -84,7 +84,7 @@
   border: 1px solid currentColor;
   padding: 6px 9px;
   color: var(--green-dark);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -108,7 +108,7 @@
 }
 .metric-document span {
   color: var(--muted);
-  font-size: 8px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -121,7 +121,7 @@
 }
 .metric-document small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
 }
 .control-list {
   display: grid;
@@ -148,10 +148,10 @@
   gap: 4px;
 }
 .control-list strong {
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .control-list small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   line-height: 1.4;
 }

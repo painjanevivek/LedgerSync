@@ -4,6 +4,13 @@
   display: grid;
   gap: 34px;
   width: min(1080px, 100%);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.developer-workspace > * {
+  min-width: 0;
+  max-width: 100%;
 }
 .developer-boundary {
   display: grid;
@@ -33,7 +40,7 @@
 .developer-boundary p:not(.eyebrow) {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .developer-boundary dl {
@@ -52,7 +59,7 @@
 }
 .developer-boundary dt {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -60,12 +67,18 @@
 .developer-boundary dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .developer-section {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   scroll-margin-top: 124px;
+}
+
+.developer-section > * {
+  min-width: 0;
+  max-width: 100%;
 }
 .developer-reference-nav {
   display: grid;
@@ -100,7 +113,7 @@
   padding: 8px 11px;
   background: var(--paper-subtle);
   color: var(--blue);
-  font-size: 10px;
+  font-size: var(--type-label);
   font-weight: 800;
   text-decoration: none;
 }
@@ -129,7 +142,7 @@
   padding: 8px 12px;
   background: var(--paper-subtle);
   color: var(--blue);
-  font: 800 10px var(--font-sans);
+  font: 800 var(--type-label) var(--font-sans);
   text-decoration: none;
   cursor: pointer;
 }
@@ -154,6 +167,16 @@
   .developer-operation-filters { grid-template-columns: 1fr; }
   .developer-task-entry a,
   .developer-task-entry button { flex: 1 1 calc(50% - 8px); }
+  .endpoint-group-picker .button {
+    flex: 1 1 100%;
+    max-width: 100%;
+    white-space: normal;
+  }
+  .endpoint-group-picker .button span,
+  .endpoint-group-picker .button small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }
 .developer-rule-grid {
   display: grid;
@@ -174,7 +197,7 @@
 .developer-rule-grid article > span,
 .webhook-verification-flow article > span {
   color: var(--green-dark);
-  font: 850 9px var(--font-mono);
+  font: 850 var(--type-label) var(--font-mono);
   letter-spacing: 0.08em;
 }
 .developer-rule-grid h3,
@@ -190,7 +213,7 @@
 .developer-scope-boundary p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.6;
 }
 .developer-replay-table {
@@ -232,7 +255,7 @@
 }
 .developer-recipe-list summary small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.5;
 }
 .developer-recipe-list .developer-code {
@@ -260,12 +283,12 @@
 }
 .developer-journey li > span {
   color: var(--faint);
-  font: 850 9px var(--font-mono);
+  font: 850 var(--type-label) var(--font-mono);
 }
 .developer-journey strong {
   display: block;
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: var(--type-label);
 }
 .developer-scope-boundary {
   display: grid;
@@ -338,7 +361,7 @@
 }
 .auth-order {
   color: var(--faint);
-  font: 800 10px var(--font-mono);
+  font: 800 var(--type-label) var(--font-mono);
 }
 .authentication-ledger h3 {
   margin: 0 0 7px;
@@ -348,7 +371,7 @@
 .authentication-ledger p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.6;
 }
 .authentication-ledger .auth-rule {
@@ -381,7 +404,7 @@
 }
 .endpoint-catalogue summary small {
   color: var(--muted);
-  font: 9px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
 }
 .endpoint-catalogue details > div {
   border-top: 1px solid var(--line);
@@ -403,12 +426,12 @@
 }
 .endpoint-row > code {
   overflow-wrap: anywhere;
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .endpoint-row > span:not(.method-label),
 .endpoint-row > small {
   color: var(--muted);
-  font: 9px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
 }
 .method-label {
   display: inline-flex;
@@ -417,7 +440,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid currentColor;
-  font: 850 9px var(--font-mono);
+  font: 850 var(--type-label) var(--font-mono);
   letter-spacing: 0.05em;
 }
 .method-label.get {
@@ -453,7 +476,7 @@
 }
 .request-proof-sheet > header code {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
 }
 .request-proof-line {
   display: grid;
@@ -466,7 +489,7 @@
 }
 .request-proof-line > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 850;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -477,7 +500,7 @@
 }
 .request-proof-line small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.5;
 }
 .request-proof-line.exact-money,
@@ -508,7 +531,7 @@
 }
 .developer-code > div > span {
   color: var(--rail-muted);
-  font: 800 9px var(--font-sans);
+  font: 800 var(--type-label) var(--font-sans);
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -518,7 +541,7 @@
   overflow: auto;
   padding: 18px;
   color: var(--rail-text);
-  font: 10px/1.65 var(--font-mono);
+  font: var(--type-label)/1.65 var(--font-mono);
   tab-size: 2;
 }
 .code-copy-button {
@@ -530,7 +553,7 @@
   padding: 8px 11px;
   background: transparent;
   color: var(--rail-text);
-  font-size: 10px;
+  font-size: var(--type-label);
   font-weight: 800;
 }
 .code-copy-button svg {
@@ -553,7 +576,7 @@
 .safe-retry-rule p {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .developer-capability-index {
@@ -575,13 +598,13 @@
 }
 .developer-capability-index span {
   color: var(--green-dark);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 850;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 .developer-capability-index strong {
-  font-size: 11px;
+  font-size: var(--type-label);
 }
 .developer-capability-index a {
   display: inline-flex;
@@ -589,7 +612,7 @@
   align-items: center;
   gap: 7px;
   color: var(--blue);
-  font-size: 10px;
+  font-size: var(--type-label);
   font-weight: 800;
   text-decoration: none;
 }
@@ -622,7 +645,7 @@
 .developer-correlation p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .correlation-header {
@@ -633,7 +656,7 @@
 }
 .correlation-header span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -649,7 +672,7 @@
   border: 1px solid var(--line);
   padding: 7px 9px;
   background: var(--paper-subtle);
-  font-size: 9px;
+  font-size: var(--type-label);
 }
 .developer-correlation > p {
   display: flex;
@@ -688,7 +711,7 @@
 .openapi-download p:not(.eyebrow) {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 

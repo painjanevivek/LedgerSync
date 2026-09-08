@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { isLocalSession, readLocalAccessConfiguration } from "@/lib/local-access";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { jsonError } from "@/lib/security";
+import { liveInvestigationEnabled } from "@/lib/live-investigation-boundary";
 
 /**
  * Exposes the minimum browser-safe session context required by the same-origin
@@ -28,5 +29,6 @@ export async function GET() {
     environment: local ? "local" : "production",
     operator_label: local ? "Local operator" : "Authorized operator",
     tenant_label: local ? "My Ledger Workspace" : "Ledger tenant",
+    features: { live_investigation: liveInvestigationEnabled() },
   }, { headers: { "Cache-Control": "no-store" } });
 }

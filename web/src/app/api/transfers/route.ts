@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
   if (!hasValidCSRF(request, session)) return jsonError("csrf_failed", 403);
   const idempotencyKey = request.headers.get("idempotency-key")?.trim();
   if (!idempotencyKey) return jsonError("idempotency_key_required", 400);
+  const requestReference = request.headers.get("x-ledgersync-request-reference")?.trim().toLowerCase();
+  if (!requestReference || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(requestReference)) return jsonError("validation_failed", 400);
   let body: ReturnType<typeof toPrivateTransferRequest>;
   try {
     body = toPrivateTransferRequest(await readBoundedJSON<CreateTransferInput>(request));
@@ -38,6 +40,7 @@ export async function POST(request: NextRequest) {
         ...connection.headers,
         "Content-Type": "application/json",
         "Idempotency-Key": idempotencyKey,
+        "X-LedgerSync-Request-Reference": requestReference,
       },
       body: JSON.stringify(body),
       cache: "no-store",
@@ -47,7 +50,9 @@ export async function POST(request: NextRequest) {
     // Once a transfer request leaves the BFF, a timeout is an unknown outcome,
     // never a confirmed failure. Clients must retry the identical payload with
     // the same idempotency key to learn the committed result safely.
-    return jsonError(isPrivateAPITimeout(error) ? "transfer_outcome_unknown" : "temporary_unavailable", isPrivateAPITimeout(error) ? 504 : 503);
+    const response = jsonError(isPrivateAPITimeout(error) ? "transfer_outcome_unknown" : "temporary_unavailable", isPrivateAPITimeout(error) ? 504 : 503);
+    response.headers.set("X-LedgerSync-Request-Reference", requestReference);
+    return response;
   }
 
   const payload = await upstream.text();
@@ -62,6 +67,7 @@ export async function POST(request: NextRequest) {
   if (replay) response.headers.set("Idempotent-Replay", replay);
   const requestID = upstream.headers.get("x-request-id");
   if (requestID) response.headers.set("X-Request-ID", requestID);
+  response.headers.set("X-LedgerSync-Request-Reference", upstream.headers.get("x-ledgersync-request-reference") ?? requestReference);
   const retryAfter = upstream.headers.get("retry-after");
   if (retryAfter) response.headers.set("Retry-After", retryAfter);
   const serializedRequirements = upstream.headers.get("x-ledgersync-consistency-requirements");

@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseInvestigationSearchBody, readBoundedInvestigationSearchBody } from "@/lib/api/investigation-search";
 import { authorizeInvestigationSearch, isInvestigationSearchDenial, parseInvestigationSearchQuery } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const searchRateLimit = new InMemoryRateLimitStore();
+const searchRateLimit = createRateLimitStore();
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);

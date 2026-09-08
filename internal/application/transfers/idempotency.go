@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
@@ -17,6 +18,12 @@ var (
 )
 
 const transferOperation = "transfers.create.v1"
+
+var canonicalRequestReference = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+
+func CanonicalRequestReference(value string) bool {
+	return canonicalRequestReference.MatchString(strings.ToLower(strings.TrimSpace(value)))
+}
 
 type IdempotencyRequest struct {
 	TenantID        string

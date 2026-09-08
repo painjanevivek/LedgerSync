@@ -101,9 +101,12 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       return false;
     }
 
-    const intent = persisted ?? createStoredTransferIntent(crypto.randomUUID(), prepared);
+    const requestReference = persisted?.requestReference ?? crypto.randomUUID();
+    const intent: StoredTransferIntent = persisted
+      ? { ...persisted, version: 2, requestReference }
+      : createStoredTransferIntent(crypto.randomUUID(), requestReference, prepared);
     const localReference = crypto.randomUUID();
-    if (!persisted) saveIntent(intent);
+    if (!persisted || !persisted.requestReference) saveIntent(intent);
     setPending(true);
     setOutcome(null);
 
@@ -116,6 +119,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
           "Content-Type": "application/json",
           "X-CSRF-Token": csrfToken,
           "Idempotency-Key": intent.idempotencyKey,
+          "X-LedgerSync-Request-Reference": requestReference,
           "X-Request-ID": localReference,
         },
         body: JSON.stringify({
@@ -126,7 +130,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       });
       payload = await response.json().catch(() => ({})) as (TransferResult & TransferErrorPayload) | TransferErrorPayload;
     } catch {
-      setOutcome(unknownOutcome(localReference));
+      setOutcome(unknownOutcome(requestReference));
       setPending(false);
       inFlight.current = false;
       return false;
@@ -145,7 +149,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
         destination: intent.destinationAccountId,
         occurredAt: payload.occurred_at,
         balances,
-        requestReference: response.headers.get("X-Request-ID") ?? localReference,
+        requestReference: response.headers.get("X-LedgerSync-Request-Reference") ?? requestReference,
       };
       setOutcome(baseOutcome);
       setPending(false);
@@ -166,7 +170,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     }
 
     const code = "error" in payload ? payload.error?.code : undefined;
-    const responseReference = response.headers.get("X-Request-ID") ?? localReference;
+    const responseReference = response.headers.get("X-LedgerSync-Request-Reference") ?? requestReference;
     if (isDefinitiveRejection(response.status, code)) {
       clearIntent();
       if (code === "insufficient_funds") {
@@ -186,6 +190,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
 
   const visibleOutcome = outcome ?? (storedIntent ? {
     kind: "unknown" as const,
+    requestReference: storedIntent.requestReference,
     message: "An unconfirmed transfer was restored after navigation or reload. Editing is locked; retry this exact intent with its original key.",
   } : null);
 

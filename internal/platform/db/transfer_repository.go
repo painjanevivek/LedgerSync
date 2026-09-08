@@ -132,8 +132,8 @@ func reserveOrReplay(ctx context.Context, tx *sql.Tx, command transfers.Command,
 
 	const reserve = `
 INSERT INTO idempotency_requests (
-    tenant_id, actor_subject_id, operation, idempotency_key, request_fingerprint, state, expires_at
-) VALUES ($1, $2, $3, $4, $5, 'in_progress', $6)
+    tenant_id, actor_subject_id, operation, idempotency_key, request_fingerprint, state, expires_at, request_reference
+) VALUES ($1, $2, $3, $4, $5, 'in_progress', $6, NULLIF($7,'')::uuid)
 ON CONFLICT (tenant_id, actor_subject_id, operation, idempotency_key) DO NOTHING
 RETURNING request_fingerprint, state, response_body`
 
@@ -142,7 +142,7 @@ RETURNING request_fingerprint, state, response_body`
 	var body []byte
 	err := tx.QueryRowContext(ctx, reserve,
 		command.TenantID, command.ActorSubjectID, transferOperation, command.IdempotencyKey,
-		fingerprint[:], command.OccurredAt.AddDate(0, 0, 30),
+		fingerprint[:], command.OccurredAt.AddDate(0, 0, 30), command.RequestReference,
 	).Scan(&storedFingerprint, &state, &body)
 	if err == nil {
 		return transfers.Result{}, false, nil
@@ -152,13 +152,14 @@ RETURNING request_fingerprint, state, response_body`
 	}
 
 	const getForUpdate = `
-SELECT request_fingerprint, state, response_body
+SELECT request_fingerprint, state, response_body, COALESCE(request_reference::text,'')
 FROM idempotency_requests
 WHERE tenant_id = $1 AND actor_subject_id = $2 AND operation = $3 AND idempotency_key = $4
 FOR UPDATE`
+	var storedRequestReference string
 	if err := tx.QueryRowContext(ctx, getForUpdate,
 		command.TenantID, command.ActorSubjectID, transferOperation, command.IdempotencyKey,
-	).Scan(&storedFingerprint, &state, &body); err != nil {
+	).Scan(&storedFingerprint, &state, &body, &storedRequestReference); err != nil {
 		return transfers.Result{}, false, fmt.Errorf("load idempotency request: %w", err)
 	}
 	if len(storedFingerprint) != sha256.Size {
@@ -172,6 +173,14 @@ FOR UPDATE`
 	}, fingerprint)
 	if err != nil {
 		return transfers.Result{}, false, err
+	}
+	if storedRequestReference != "" && command.RequestReference != "" && storedRequestReference != command.RequestReference {
+		return transfers.Result{}, false, transfers.ErrIdempotencyConflict
+	}
+	if storedRequestReference == "" && command.RequestReference != "" {
+		if _, err := tx.ExecContext(ctx, `UPDATE idempotency_requests SET request_reference=$5 WHERE tenant_id=$1 AND actor_subject_id=$2 AND operation=$3 AND idempotency_key=$4 AND request_reference IS NULL`, command.TenantID, command.ActorSubjectID, transferOperation, command.IdempotencyKey, command.RequestReference); err != nil {
+			return transfers.Result{}, false, fmt.Errorf("attach request reference to retained intent: %w", err)
+		}
 	}
 	if resolution != transfers.ResolutionReplay || len(body) == 0 {
 		return transfers.Result{}, false, transfers.ErrRequestInProgress

@@ -29,6 +29,13 @@ type InvestigationHandler struct {
 	savedViewWriteLimit int
 	workspaceWriteLimit int
 	audit               AuditRecorder
+	liveEnabled         bool
+	liveSignals         investigation.LiveSignalStore
+}
+
+func (h *InvestigationHandler) WithLiveCollaboration(enabled bool, signals investigation.LiveSignalStore) *InvestigationHandler {
+	h.liveEnabled, h.liveSignals = enabled, signals
+	return h
 }
 
 func NewInvestigationHandler(repository investigation.Repository, provider identity.Provider) *InvestigationHandler {
@@ -147,7 +154,7 @@ func (h *InvestigationHandler) Related(writer http.ResponseWriter, request *http
 
 func relationshipSourceType(value string) bool {
 	switch value {
-	case "account", "transfer", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction":
+	case "account", "transfer", "transfer_request", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction":
 		return true
 	default:
 		return false

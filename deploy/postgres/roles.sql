@@ -55,6 +55,11 @@ BEGIN
     EXECUTE 'GRANT SELECT,INSERT ON investigation_workspace_references TO ledgersync_api';
     EXECUTE 'GRANT SELECT ON investigation_workspaces,investigation_workspace_references TO ledgersync_support_readonly';
   END IF;
+  IF to_regclass('public.investigation_live_rooms') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON investigation_live_rooms TO ledgersync_api';
+    EXECUTE 'GRANT SELECT,INSERT ON investigation_live_room_findings,investigation_live_room_operations TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON investigation_live_rooms,investigation_live_room_findings TO ledgersync_support_readonly';
+  END IF;
 END $$;
 
 DO $$

@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseSavedViewCreateInput, readBoundedSavedViewBody, sanitizeSavedView, sanitizeSavedViewPage } from "@/lib/api/saved-investigation-views";
 import { authorizeInvestigationSavedViews, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError, readBoundedJSON } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const savedViewRateLimit = new InMemoryRateLimitStore();
+const savedViewRateLimit = createRateLimitStore();
 const maximumRequestBytes = 8 << 10;
 
 function responseHeaders(upstream: Response) {

@@ -20,6 +20,7 @@ import (
 	cacheplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
+	eventplatform "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/events"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/redisconn"
@@ -142,7 +143,7 @@ func main() {
 			repository.WithPilotCurrency(configuration.PilotCurrency)
 			var provider identity.Provider
 			if configuration.Environment == "development" {
-				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", identity.BFFActorScope}}
+				provider = identity.DevelopmentProvider{SubjectID: configuration.DevelopmentSubjectID, TenantID: configuration.DevelopmentTenantID, Credential: configuration.DevelopmentAPIToken, Roles: []string{"tenant:operator"}, Scopes: []string{"accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "investigation:collaborate", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read", "explainability:read", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", identity.BFFActorScope}}
 			} else {
 				provider, err = identity.NewOIDCProvider(context.Background(), identity.OIDCProviderConfig{
 					IssuerURL:        configuration.OIDCIssuerURL,
@@ -209,6 +210,14 @@ func main() {
 				os.Exit(1)
 			}
 			investigationHandler := handlers.NewInvestigationHandler(investigationRepository, provider)
+			if configuration.LiveInvestigationEnabled {
+				liveSignals, signalErr := eventplatform.NewLiveInvestigationSignals(redisClient, configuration.LiveInvestigationNamespace)
+				if signalErr != nil {
+					slog.Error("live investigation signalling initialization failed", "error", signalErr)
+					os.Exit(1)
+				}
+				investigationHandler.WithLiveCollaboration(true, liveSignals)
+			}
 			rateLimiter, err := db.NewRateLimitRepository(database, nil)
 			if err != nil {
 				slog.Error("rate limiter initialization failed", "error", err)
@@ -342,6 +351,17 @@ func main() {
 			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/handoff", investigationHandler.HandoffWorkspace)
 			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/close", investigationHandler.CloseWorkspace)
 			router.HandleFunc("POST /api/investigation/workspaces/{investigationId}/reopen", investigationHandler.ReopenWorkspace)
+			router.HandleFunc("GET /private/transfer-requests/{requestReference}/status", investigationHandler.TransferRequestStatus)
+			router.HandleFunc("POST /private/investigation/live-rooms", investigationHandler.StartLiveRoom)
+			router.HandleFunc("POST /private/investigation/live-rooms/join", investigationHandler.JoinLiveRoom)
+			router.HandleFunc("GET /private/investigation/live-rooms/{roomId}", investigationHandler.LiveRoom)
+			router.HandleFunc("POST /private/investigation/live-rooms/{roomId}/invite", investigationHandler.IssueLiveRoomInvite)
+			router.HandleFunc("POST /private/investigation/live-rooms/{roomId}/leave", investigationHandler.LeaveLiveRoom)
+			router.HandleFunc("POST /private/investigation/live-rooms/{roomId}/end", investigationHandler.EndLiveRoom)
+			router.HandleFunc("POST /private/investigation/live-rooms/{roomId}/finding", investigationHandler.RecordLiveRoomFinding)
+			router.HandleFunc("GET /private/investigation/live-rooms/{roomId}/signals", investigationHandler.LiveRoomSignals)
+			router.HandleFunc("POST /private/investigation/live-rooms/{roomId}/signals", investigationHandler.LiveRoomSignals)
+			router.HandleFunc("POST /private/investigation/live-rooms/{roomId}/presence", investigationHandler.LiveRoomPresence)
 			router.HandleFunc("GET /api/reconciliation/runs", investigationHandler.ReconciliationRuns)
 			router.HandleFunc("GET /api/reconciliation/runs/{runID}", investigationHandler.ReconciliationRun)
 			router.HandleFunc("POST /api/funding-requests", fundingHandler.Request)

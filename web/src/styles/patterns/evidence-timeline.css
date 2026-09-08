@@ -22,7 +22,7 @@
   max-width: 720px;
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .transfer-evidence-chain > ol {
@@ -64,7 +64,7 @@
   border: 1px solid currentColor;
   border-radius: 50%;
   background: var(--canvas);
-  font: 800 9px var(--font-mono);
+  font: 800 var(--type-label) var(--font-mono);
 }
 .evidence-stage-marker > svg {
   width: 15px;
@@ -102,7 +102,7 @@
 .evidence-stage header p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .stage-evidence-list {
   display: grid;
@@ -124,12 +124,12 @@
   gap: 3px;
 }
 .stage-evidence-list strong {
-  font-size: 10px;
+  font-size: var(--type-label);
   text-transform: capitalize;
 }
 .stage-evidence-list time {
   color: var(--muted);
-  font: 8px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
 }
 .stage-evidence-list .copy-control {
   width: 100%;
@@ -152,7 +152,7 @@
   border-top: 1px solid var(--line);
   padding-top: 12px;
   color: var(--amber);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .stage-gap svg {
   flex: 0 0 auto;
@@ -166,5 +166,5 @@
   border-top: 1px solid var(--line);
   padding: 13px 0;
   color: var(--muted);
-  font: 8px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -53,6 +54,9 @@ type Config struct {
 	WebhookSigningKeys         map[string][]byte
 	AWSRegion                  string
 	CronSecret                 string
+	LiveInvestigationEnabled   bool
+	LiveInvestigationNamespace string
+	LiveInvestigationTURNURL   string
 }
 
 func Load() (Config, error) {
@@ -144,6 +148,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	liveInvestigationEnabled, err := parseBool("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", false)
+	if err != nil {
+		return Config{}, err
+	}
 	config := Config{
 		Environment:                environment,
 		HTTPAddress:                httpAddress,
@@ -185,6 +193,20 @@ func Load() (Config, error) {
 		WebhookSigningKeys:         webhookSigningKeys,
 		AWSRegion:                  strings.TrimSpace(os.Getenv("AWS_REGION")),
 		CronSecret:                 strings.TrimSpace(os.Getenv("CRON_SECRET")),
+		LiveInvestigationEnabled:   liveInvestigationEnabled,
+		LiveInvestigationNamespace: valueOrDefault("LEDGERSYNC_LIVE_INVESTIGATION_NAMESPACE", "ledgersync:investigation-live:v1"),
+		LiveInvestigationTURNURL:   strings.TrimSpace(os.Getenv("LEDGERSYNC_LIVE_INVESTIGATION_TURN_CREDENTIALS_URL")),
+	}
+	if config.LiveInvestigationEnabled {
+		if config.RedisAddress == "" || strings.TrimSpace(config.LiveInvestigationNamespace) == "" {
+			return Config{}, fmt.Errorf("live investigation requires Redis and an explicit namespace")
+		}
+		if config.Environment != "development" {
+			turnURL, parseErr := url.Parse(config.LiveInvestigationTURNURL)
+			if parseErr != nil || turnURL.Scheme != "https" || turnURL.Host == "" {
+				return Config{}, fmt.Errorf("live investigation requires an approved HTTPS ephemeral TURN credential provider outside development")
+			}
+		}
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
 		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/resource audience/client mapping, and 32-byte BFF assertion secret are required outside development")

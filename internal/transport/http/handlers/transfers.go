@@ -121,13 +121,14 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		return
 	}
 	submission, err := h.service.Submit(request.Context(), transfers.Command{
-		TenantID:        principal.TenantID,
-		ActorSubjectID:  principal.SubjectID,
-		DebitAccountID:  input.SourceAccountID,
-		CreditAccountID: input.DestinationAccountID,
-		Amount:          amount,
-		IdempotencyKey:  request.Header.Get("Idempotency-Key"),
-		CorrelationID:   middleware.CorrelationID(request.Context()),
+		TenantID:         principal.TenantID,
+		ActorSubjectID:   principal.SubjectID,
+		DebitAccountID:   input.SourceAccountID,
+		CreditAccountID:  input.DestinationAccountID,
+		Amount:           amount,
+		IdempotencyKey:   request.Header.Get("Idempotency-Key"),
+		RequestReference: request.Header.Get("X-LedgerSync-Request-Reference"),
+		CorrelationID:    middleware.CorrelationID(request.Context()),
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicTransferError(err))
@@ -135,6 +136,9 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	}
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Cache-Control", "no-store")
+	if reference := strings.ToLower(strings.TrimSpace(request.Header.Get("X-LedgerSync-Request-Reference"))); reference != "" {
+		writer.Header().Set("X-LedgerSync-Request-Reference", reference)
+	}
 	if submission.Replayed {
 		writer.Header().Set("Idempotent-Replay", "true")
 	}

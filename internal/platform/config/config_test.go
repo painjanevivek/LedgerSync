@@ -133,3 +133,23 @@ func TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot(t *testing.T) {
 		t.Fatalf("absolute recovery root=%q error=%v", configuration.RecoveryEvidenceRoot, err)
 	}
 }
+
+func TestLiveInvestigationIsDisabledByDefaultAndRequiresRedisWhenEnabled(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("PORT", "")
+	t.Setenv("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", "")
+	t.Setenv("LEDGERSYNC_REDIS_ADDR", "")
+	configuration, err := Load()
+	if err != nil || configuration.LiveInvestigationEnabled {
+		t.Fatalf("default live investigation enabled=%v error=%v", configuration.LiveInvestigationEnabled, err)
+	}
+	t.Setenv("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", "true")
+	if _, err := Load(); err == nil {
+		t.Fatal("live investigation accepted missing Redis")
+	}
+	t.Setenv("LEDGERSYNC_REDIS_ADDR", "redis:6379")
+	configuration, err = Load()
+	if err != nil || !configuration.LiveInvestigationEnabled || configuration.LiveInvestigationNamespace == "" {
+		t.Fatalf("development live investigation config=%#v error=%v", configuration, err)
+	}
+}

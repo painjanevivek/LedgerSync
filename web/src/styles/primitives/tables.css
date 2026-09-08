@@ -6,7 +6,7 @@
 }
 .ledger-identity strong {
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 740;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -14,7 +14,7 @@
 .ledger-identity span {
   overflow: hidden;
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -25,7 +25,7 @@
 .ledger-amount {
   justify-self: end;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--type-label);
   font-variant-numeric: tabular-nums;
 }
 .status-label {
@@ -36,7 +36,7 @@
   border: 1px solid currentColor;
   border-radius: var(--radius-pill);
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: var(--type-label);
   font-weight: 820;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -124,7 +124,7 @@
   min-width: 220px;
 }
 .data-table td:first-child strong {
-  font-size: 11px;
+  font-size: var(--type-label);
 }
 .data-table code {
   color: var(--muted);

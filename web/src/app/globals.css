@@ -14,6 +14,7 @@
 @import "../styles/primitives/evidence.css";
 @import "../styles/primitives/tables.css";
 @import "../styles/features/transfers.css";
+@import "../styles/features/live-investigation.css";
 @import "../styles/primitives/forms.css";
 @import "../styles/patterns/detail-document.css";
 @import "../styles/layout/console-footer.css";

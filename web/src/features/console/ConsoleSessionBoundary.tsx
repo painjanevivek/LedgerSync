@@ -41,6 +41,7 @@ function isConsoleSession(value: unknown): value is ConsoleSession {
     candidate.csrf_token.length > 0 &&
     Array.isArray(candidate.scopes) &&
     candidate.scopes.every((scope) => typeof scope === "string") &&
+    (candidate.features === undefined || typeof candidate.features.live_investigation === "boolean") &&
     (candidate.environment === undefined ||
       candidate.environment === "local" ||
       candidate.environment === "production")

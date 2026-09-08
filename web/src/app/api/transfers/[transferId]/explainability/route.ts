@@ -3,11 +3,11 @@ import { NextRequest } from "next/server";
 
 import { sanitizeTransferExplainability } from "@/lib/api/orientation";
 import { authorizeOperationsRead, isOperationsReadDenial, proxyOperationsGET, strictOperationsQuery } from "@/lib/operations-read";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 
-const explainabilityRateLimit = new InMemoryRateLimitStore();
+const explainabilityRateLimit = createRateLimitStore();
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const requiredScopes = ["transfers:read", "events:read", "reconciliation:read"] as const;
 

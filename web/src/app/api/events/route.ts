@@ -3,12 +3,12 @@ import { NextRequest } from "next/server";
 
 import { sanitizeEventPage } from "@/lib/api/operations";
 import { authorizeOperationsRead, isOperationsReadDenial, proxyOperationsGET, strictOperationsQuery } from "@/lib/operations-read";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { parseEventBFFSearchParams } from "@/lib/page-query/operations";
 import { jsonError } from "@/lib/security";
 
-const eventsRateLimit = new InMemoryRateLimitStore();
+const eventsRateLimit = createRateLimitStore();
 const eventFilters = ["eventType", "state", "endpointId", "relatedId", "correlationId", "from", "to", "cursor", "limit"] as const;
 
 export async function GET(request: NextRequest) {

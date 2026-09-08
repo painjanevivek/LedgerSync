@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 import { proxyPrivateGET } from "@/lib/private-api";
 import { reconciliationMutationMaximumBytes, parseReconciliationRunRequest } from "@/lib/api/reconciliation";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { proxyReconciliationMutation } from "@/lib/reconciliation-mutation";
 import { authorizeReconciliationMutation, isReconciliationMutationDenial } from "@/lib/reconciliation-mutation-boundary";
 import { reconciliationBFFQueryRules } from "@/lib/page-query/reconciliation";
@@ -11,7 +11,7 @@ import { readSession, sessionCookieName } from "@/lib/session";
 import { jsonError, readBoundedJSON } from "@/lib/security";
 import { parseStrictListSearchParams } from "@/lib/strict-list-query";
 
-const reconciliationRateLimit = new InMemoryRateLimitStore();
+const reconciliationRateLimit = createRateLimitStore();
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
