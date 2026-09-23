@@ -29,7 +29,7 @@
   margin: var(--space-3) 0 0;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .investigation-results {
@@ -87,7 +87,7 @@
 }
 .investigation-result-facts dt {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   font-weight: 780;
   letter-spacing: .06em;
   text-transform: uppercase;

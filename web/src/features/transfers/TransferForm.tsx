@@ -13,6 +13,8 @@ import { FormField } from "@/ui/forms/FormField.client";
 import { accountLabel } from "@/features/console/format";
 import type { PreparedTransfer } from "@/features/transfers/transferIntent";
 import { useTransferSubmission } from "@/features/transfers/useTransferSubmission";
+import { LiveInvestigationRoom } from "@/features/investigation/LiveInvestigationRoom";
+import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { decimalFromMinorUnits } from "@/lib/api/transfers";
 import { minorUnitsFromDecimal } from "@/lib/money";
 import { Money } from "@/ui/display/Money";
@@ -34,6 +36,7 @@ type Props = Readonly<{
 }>;
 
 export function TransferForm({ accounts, accountsLoading, accountsError, accountsVerifiedAt, tenantId, csrfToken, disabled, disabledReason, preferredDestinationId, returnTo, onRetryAccounts, onPosted }: Props) {
+  const { session } = useConsoleSession();
   const transferable = useMemo(() => accounts.filter((account) => account.status === "active"), [accounts]);
   const fundedSources = useMemo(() => transferable.filter((account) => hasPositiveMinorUnits(account.available_minor)), [transferable]);
   const preferredDestination = useMemo(() => transferable.find((account) => account.account_id === preferredDestinationId), [preferredDestinationId, transferable]);
@@ -183,6 +186,11 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
         announce={outcomeUnknown ? "polite" : undefined}
         title={outcomeUnknown ? "Result not yet confirmed" : "Transfer not posted"}
         message={outcome.message}
+      />}
+      {outcomeUnknown && outcome.requestReference && session?.features?.live_investigation === true && session.scopes.includes("investigation:collaborate") && <LiveInvestigationRoom
+        csrfToken={csrfToken}
+        requestReference={outcome.requestReference}
+        intent={{ sourceAccountId: effectivePrepared.source.account_id, destinationAccountId: effectivePrepared.destination.account_id, currency: effectivePrepared.source.currency, amountMinor: effectivePrepared.amountMinor }}
       />}
       {accountsError && <StatePanel kind="error" title="Account picker unavailable" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
       <div className="action-row">

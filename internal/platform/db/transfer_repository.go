@@ -90,6 +90,12 @@ FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 		if unmarshalErr := json.Unmarshal(response, &result); unmarshalErr != nil {
 			return fmt.Errorf("decode controlled transfer outcome: %w", unmarshalErr)
 		}
+		if command.RequestReference != "" {
+			if _, updateErr := tx.ExecContext(ctx, `SELECT public.controlled_attach_transfer_request_reference_v1($1,$2,$3,$4,$5)`,
+				command.TenantID, command.ActorSubjectID, command.IdempotencyKey, fingerprint[:], command.RequestReference); updateErr != nil {
+				return classifyControlledTransferError(updateErr)
+			}
+		}
 		submission = transfers.Submission{Result: result, Replayed: replayed}
 		return nil
 	})
@@ -133,7 +139,7 @@ func classifyControlledTransferError(err error) error {
 		return ErrSourceVelocityExceeded
 	case "controlled_transfer_tenant_velocity":
 		return ErrTenantVelocityExceeded
-	case "controlled_transfer_idempotency":
+	case "controlled_transfer_idempotency", "controlled_transfer_request_reference":
 		return transfers.ErrIdempotencyConflict
 	case "controlled_transfer_in_progress":
 		return transfers.ErrRequestInProgress

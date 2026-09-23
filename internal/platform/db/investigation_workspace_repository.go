@@ -25,6 +25,7 @@ FROM investigation_workspaces workspace
 WHERE tenant_id=$1 AND owner_subject_id=$2 AND (
  (root_record_type='account' AND $3 AND EXISTS(SELECT 1 FROM accounts record JOIN account_owners owner ON owner.tenant_id=record.tenant_id AND owner.account_id=record.id WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id AND owner.subject_id=$2 AND owner.permission IN ('read','debit') AND record.account_kind='customer')) OR
  (root_record_type='transfer' AND $4 AND EXISTS(SELECT 1 FROM transfers record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
+	(root_record_type='transfer_request' AND $4 AND EXISTS(SELECT 1 FROM idempotency_requests request WHERE request.tenant_id=workspace.tenant_id AND request.actor_subject_id=$2 AND request.request_reference=workspace.root_record_id)) OR
  (root_record_type='funding' AND $5 AND EXISTS(SELECT 1 FROM funding_events record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
  (root_record_type='event' AND $6 AND EXISTS(SELECT 1 FROM outbox_events record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
  (root_record_type='reconciliation_run' AND $7 AND EXISTS(SELECT 1 FROM reconciliation_runs record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
@@ -248,6 +249,14 @@ func (r *InvestigationRepository) readWorkspaceHistory(ctx context.Context, tena
 
 func (r *InvestigationRepository) workspaceCurrentEvidence(ctx context.Context, tenantID, actorID, rootType, rootID string, access investigation.SearchAccess) (investigation.WorkspaceCurrentEvidence, error) {
 	generatedAt := time.Now().UTC()
+	if rootType == "transfer_request" {
+		status, err := r.TransferRequestStatus(ctx, tenantID, actorID, rootID)
+		if err != nil {
+			return investigation.WorkspaceCurrentEvidence{}, err
+		}
+		root := &investigation.SearchResult{RecordType: rootType, RecordID: rootID, SafeLabel: "Transfer request", Status: status.Status, OccurredAt: status.CheckedAt}
+		return investigation.WorkspaceCurrentEvidence{Root: root, Relationships: []investigation.Relationship{}, GeneratedAt: generatedAt, Available: true}, nil
+	}
 	search, err := r.Search(ctx, tenantID, actorID, investigation.SearchFilter{Query: rootID, QueryKind: "immutable_id", Limit: 20, Access: access})
 	if err != nil {
 		return investigation.WorkspaceCurrentEvidence{}, err
@@ -319,6 +328,13 @@ func (r *InvestigationRepository) mutateWorkspace(ctx context.Context, tenantID,
 			requiredStatus = "closed"
 		}
 		if currentStatus != requiredStatus {
+			return investigation.ErrWorkspaceState
+		}
+		var liveRoomActive bool
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM investigation_live_rooms WHERE tenant_id=$1 AND investigation_id=$2 AND status='active' AND expires_at>$3)`, tenantID, workspaceID, when).Scan(&liveRoomActive); err != nil {
+			return err
+		}
+		if liveRoomActive {
 			return investigation.ErrWorkspaceState
 		}
 		if eventType == "investigation.workspace_handed_off" {

@@ -16,6 +16,11 @@ GRANT USAGE ON SCHEMA public TO ledgersync_migration_owner, ledgersync_api, ledg
 
 DO $$
 BEGIN
+  IF to_regprocedure('public.controlled_attach_transfer_request_reference_v1(uuid,text,text,bytea,uuid)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.controlled_attach_transfer_request_reference_v1(uuid,text,text,bytea,uuid) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_attach_transfer_request_reference_v1(uuid,text,text,bytea,uuid) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_attach_transfer_request_reference_v1(uuid,text,text,bytea,uuid) TO ledgersync_api';
+  END IF;
   IF to_regprocedure('public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz)') IS NOT NULL THEN
     EXECUTE 'ALTER FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) OWNER TO ledgersync_migration_owner';
     EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_submit_transfer_v1(uuid,text,uuid,uuid,bigint,text,text,bytea,uuid,text,timestamptz) FROM PUBLIC';
@@ -102,6 +107,11 @@ BEGIN
     EXECUTE 'GRANT SELECT,INSERT,UPDATE ON investigation_workspaces TO ledgersync_api';
     EXECUTE 'GRANT SELECT,INSERT ON investigation_workspace_references TO ledgersync_api';
     EXECUTE 'GRANT SELECT ON investigation_workspaces,investigation_workspace_references TO ledgersync_support_readonly';
+  END IF;
+  IF to_regclass('public.investigation_live_rooms') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON investigation_live_rooms TO ledgersync_api';
+    EXECUTE 'GRANT SELECT,INSERT ON investigation_live_room_findings,investigation_live_room_operations TO ledgersync_api';
+    EXECUTE 'GRANT SELECT ON investigation_live_rooms,investigation_live_room_findings TO ledgersync_support_readonly';
   END IF;
 END $$;
 

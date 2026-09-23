@@ -57,6 +57,8 @@ func relationshipSourceAllowed(sourceType string, access investigation.Relations
 		return access.Accounts
 	case "transfer":
 		return access.Transfers
+	case "transfer_request":
+		return access.Transfers
 	case "funding":
 		return access.Funding
 	case "event":
@@ -96,6 +98,7 @@ func relationshipSourceAuthorization(sourceType, tenantID, actorID, sourceID str
 	}
 	queries := map[string]string{
 		"transfer":                `SELECT EXISTS(SELECT 1 FROM transfers WHERE tenant_id=$1 AND id=$2)`,
+		"transfer_request":        `SELECT EXISTS(SELECT 1 FROM idempotency_requests WHERE tenant_id=$1 AND actor_subject_id=$3 AND request_reference=$2::uuid)`,
 		"funding":                 `SELECT EXISTS(SELECT 1 FROM funding_events WHERE tenant_id=$1 AND id=$2)`,
 		"event":                   `SELECT EXISTS(SELECT 1 FROM outbox_events WHERE tenant_id=$1 AND id=$2)`,
 		"reconciliation_run":      `SELECT EXISTS(SELECT 1 FROM reconciliation_runs WHERE tenant_id=$1 AND id=$2)`,
@@ -106,6 +109,9 @@ func relationshipSourceAuthorization(sourceType, tenantID, actorID, sourceID str
 	if !ok {
 		return "", nil, false
 	}
+	if sourceType == "transfer_request" {
+		return query, []any{tenantID, sourceID, actorID}, true
+	}
 	return query, []any{tenantID, sourceID}, true
 }
 
@@ -114,6 +120,7 @@ func relationshipQuery(filter investigation.RelationshipFilter, tenantID, actorI
 	queries := map[string]string{
 		"account":                 accountRelationshipsSQL,
 		"transfer":                transferRelationshipsSQL,
+		"transfer_request":        transferRequestRelationshipsSQL,
 		"funding":                 fundingRelationshipsSQL,
 		"event":                   eventRelationshipsSQL,
 		"reconciliation_run":      reconciliationRunRelationshipsSQL,
@@ -122,6 +129,13 @@ func relationshipQuery(filter investigation.RelationshipFilter, tenantID, actorI
 	}
 	return queries[filter.SourceType], args
 }
+
+const transferRequestRelationshipsSQL = `WITH ` + relationshipParameters + `, ` + relationshipColumns + ` AS (
+ SELECT 'request_transfer','transfer',t.id::text,'Transfer',t.status,COALESCE(t.completed_at,t.created_at)
+ FROM idempotency_requests request
+ JOIN transfers t ON t.tenant_id=request.tenant_id AND t.id=CASE WHEN request.response_body->>'transfer_id' ~ '^[0-9a-f-]{36}$' THEN (request.response_body->>'transfer_id')::uuid END
+ WHERE $5 AND request.tenant_id=$1 AND request.actor_subject_id=$2 AND request.request_reference=$3
+)` + relationshipSelectTail
 
 const relationshipSelectTail = `
 SELECT relationship_type,target_type,target_id,safe_label,status,occurred_at FROM relationships

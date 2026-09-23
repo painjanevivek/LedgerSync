@@ -3,12 +3,12 @@ import { NextRequest } from "next/server";
 
 import { sanitizeTransferExplainability } from "@/lib/api/orientation";
 import { authorizeOperationsRead, isOperationsReadDenial, proxyOperationsGET, strictOperationsQuery } from "@/lib/operations-read";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { canonicalUUID } from "@/lib/canonical-uuid";
 
-const explainabilityRateLimit = new InMemoryRateLimitStore();
+const explainabilityRateLimit = createRateLimitStore();
 const requiredScopes = ["transfers:read", "events:read", "reconciliation:read"] as const;
 
 export async function GET(request: NextRequest, context: { params: Promise<{ transferId: string }> }) {

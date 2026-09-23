@@ -5,12 +5,12 @@ import { parseRelatedEvidenceBody, readBoundedRelatedEvidenceBody, relationshipS
 import { canonicalUUID } from "@/lib/canonical-uuid";
 import { authorizeInvestigationRelationships, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const relationshipRateLimit = new InMemoryRateLimitStore();
+const relationshipRateLimit = createRateLimitStore();
 const sourceTypes = new Set<string>(relationshipSourceTypes);
 
 export async function GET(request: NextRequest, context: { params: Promise<{ recordType: string; recordId: string }> }) {

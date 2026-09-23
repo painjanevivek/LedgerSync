@@ -37,6 +37,9 @@ assertEqual(
 );
 assertEqual(webPackage.name, "ledgersync-web", "frontend package name");
 assertEqual(webPackage.scripts?.build, "next build", "frontend package build command");
+if (!webPackage.dependencies?.["@upstash/redis"]) {
+  throw new Error("frontend must include the shared Upstash Redis rate-limit client");
+}
 
 for (const unsupportedKey of ["builds", "outputDirectory"]) {
   if (unsupportedKey in rootConfig || unsupportedKey in webConfig) {

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SanitizedOperationsResponse } from "@/lib/api/operations";
 import { sanitizeOperationsBody } from "@/lib/api/operations";
 import { canonicalizeUUIDPathSegments } from "@/lib/canonical-uuid";
-import type { RateLimitStore } from "@/lib/rate-limit";
+import { rateLimitResponse, type RateLimitStore } from "@/lib/rate-limit";
 import { hasValidHost, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstream-outcome";
@@ -22,11 +22,8 @@ export async function authorizeOperationsRead(request: NextRequest, session: Ses
   if (!session.scopes?.includes(scope)) return jsonError("forbidden", 403);
   if (!hasValidHost(request)) return jsonError("invalid_request", 400);
   const decision = await rateLimit.consume(`operations:${scope}:${session.tenantId}:${session.subjectId}`, 60, 60);
-  if (!decision.allowed) {
-    const response = jsonError("rate_limited", 429);
-    response.headers.set("Retry-After", String(decision.retryAfterSeconds));
-    return response;
-  }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return { session };
 }
 

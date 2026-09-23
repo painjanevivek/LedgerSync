@@ -4,11 +4,11 @@ import { NextRequest } from "next/server";
 import { sanitizeLocalDiagnostics } from "@/lib/api/operations";
 import { isLocalSession, readLocalAccessConfiguration } from "@/lib/local-access";
 import { authorizeOperationsRead, isOperationsReadDenial, proxyOperationsGET, strictOperationsQuery } from "@/lib/operations-read";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError, readPublicOrigin } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 
-const diagnosticsRateLimit = new InMemoryRateLimitStore();
+const diagnosticsRateLimit = createRateLimitStore();
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);

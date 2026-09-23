@@ -5,12 +5,12 @@ import { parseWorkspaceHandoffInput, parseWorkspaceStatusInput, readBoundedWorks
 import { canonicalUUID } from "@/lib/canonical-uuid";
 import { authorizeInvestigationWorkspaces, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError, readBoundedJSON } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
 
-const rateLimit = new InMemoryRateLimitStore();
+const rateLimit = createRateLimitStore();
 const maximumRequestBytes = 4 << 10;
 const actions = new Set(["handoff", "close", "reopen"]);
 

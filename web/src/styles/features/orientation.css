@@ -42,7 +42,7 @@
   max-width: 760px;
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.55;
 }
 .orientation-dismiss {
@@ -76,12 +76,12 @@
 }
 .orientation-boundary strong {
   color: var(--muted);
-  font-size: 8px;
+  font-size: var(--type-label);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .orientation-boundary span {
-  font: 10px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
 }
 .recommended-action {
   display: grid;
@@ -103,7 +103,7 @@
   max-width: 700px;
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .recommended-blocked {
   display: flex;
@@ -113,7 +113,7 @@
   border: 1px solid var(--amber);
   padding: 0 14px;
   color: var(--amber);
-  font: 9px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -146,7 +146,7 @@
 }
 .orientation-step-number {
   color: var(--muted);
-  font: 9px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
   letter-spacing: 0.08em;
 }
 .orientation-check {
@@ -184,11 +184,11 @@
 .orientation-checklist li p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .orientation-checklist li small {
   color: var(--muted);
-  font: 8px/1.5 var(--font-mono);
+  font: var(--type-label)/1.5 var(--font-mono);
 }
 .orientation-step-actions {
   display: flex !important;
@@ -197,6 +197,11 @@
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+.orientation-step-actions .record-link {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .orientation-confirm {
   min-height: 36px;
@@ -245,6 +250,7 @@
     justify-self: start;
   }
   .orientation-checklist-disclosed .orientation-step-detail {
+    min-width: 0;
     padding: 0 14px 16px 66px;
   }
   .orientation-checklist-disclosed .orientation-step-actions {
@@ -272,7 +278,7 @@
 }
 .orientation-state span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .orientation-preference-state {
   display: grid;
@@ -289,7 +295,7 @@
 }
 .orientation-preference-state p {
   margin: 0;
-  font-size: 9px;
+  font-size: var(--type-label);
 }
 .orientation-definitions {
   border-top: 1px solid var(--line);
@@ -300,7 +306,7 @@
   min-height: 44px;
   padding: 14px 0;
   cursor: pointer;
-  font: 9px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -319,12 +325,12 @@
   border-right: 0;
 }
 .orientation-definitions dt {
-  font: 9px var(--font-mono);
+  font: var(--type-label) var(--font-mono);
 }
 .orientation-definitions dd {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
   line-height: 1.5;
 }
 .local-orientation > footer {
@@ -339,7 +345,7 @@
 .local-orientation > footer p {
   margin: 4px 0 0;
   color: var(--rail-muted);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .local-orientation > footer .copy-control {
   color: var(--rail-text);
@@ -382,7 +388,7 @@
 .orientation-compact p:not(.eyebrow) {
   margin: 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--type-label);
 }
 .orientation-compact > .permission-note {
   grid-column: 2/-1;
