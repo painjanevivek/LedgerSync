@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import type { RateLimitStore } from "@/lib/rate-limit";
+import { rateLimitResponse, type RateLimitStore } from "@/lib/rate-limit";
 import { hasValidCSRF, hasValidHost, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
 
@@ -33,11 +33,8 @@ export async function authorizeInvestigationSavedViews(request: NextRequest, ses
   if (!hasValidHost(request)) return jsonError("invalid_request", 400);
   const boundary = write ? "saved-views-write" : "saved-views-read";
   const decision = await limiter.consume(`investigation:${boundary}:${session.tenantId}:${session.subjectId}`, write ? 15 : 30, 60);
-  if (!decision.allowed) {
-    const response = jsonError("rate_limited", 429);
-    response.headers.set("Retry-After", String(decision.retryAfterSeconds));
-    return response;
-  }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return { session };
 }
 
@@ -54,11 +51,8 @@ export async function authorizeInvestigationWorkspaces(request: NextRequest, ses
   if (!hasValidHost(request)) return jsonError("invalid_request", 400);
   const boundary = write ? "workspaces-write" : "workspaces-read";
   const decision = await limiter.consume(`investigation:${boundary}:${session.tenantId}:${session.subjectId}`, write ? 12 : 30, 60);
-  if (!decision.allowed) {
-    const response = jsonError("rate_limited", 429);
-    response.headers.set("Retry-After", String(decision.retryAfterSeconds));
-    return response;
-  }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return { session };
 }
 
@@ -69,7 +63,8 @@ export async function authorizeInvestigationEvidenceBundle(request: NextRequest,
   if (!hasValidCSRF(request, session)) return jsonError("csrf_failed", 403);
   if (!hasValidHost(request)) return jsonError("invalid_request", 400);
   const decision = await limiter.consume(`investigation:evidence-bundle:${session.tenantId}:${session.subjectId}`, 10, 60);
-  if (!decision.allowed) { const response = jsonError("rate_limited", 429); response.headers.set("Retry-After", String(decision.retryAfterSeconds)); return response; }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return { session };
 }
 
@@ -83,11 +78,8 @@ async function authorizeInvestigationRead(request: NextRequest, session: Session
   if (!session.roles?.some((role) => operatorRoles.has(role)) || !session.scopes?.includes("investigation:read") || !session.scopes.some((scope) => searchableScopes.has(scope))) return jsonError("forbidden", 403);
   if (!hasValidHost(request)) return jsonError("invalid_request", 400);
   const decision = await limiter.consume(`investigation:${boundary}:${session.tenantId}:${session.subjectId}`, 30, 60);
-  if (!decision.allowed) {
-    const response = jsonError("rate_limited", 429);
-    response.headers.set("Retry-After", String(decision.retryAfterSeconds));
-    return response;
-  }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return { session };
 }
 

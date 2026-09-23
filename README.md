@@ -411,7 +411,7 @@ flowchart LR
 | Reconciliation mismatch count | unmatched ledger/projection accounts | release blocking when > 0 |
 | Authorization denial rate | denied / protected requests | investigate abuse or broken integrations |
 
-Runbooks: [audit events](docs/runbooks/audit-events.md) · [secret rotation](docs/runbooks/secrets-rotation.md) · [exact money ADR](docs/adr/0001-exact-minor-unit-money.md) · [immutable ledger ADR](docs/adr/0002-immutable-double-entry-ledger.md) · [outbox ADR](docs/adr/0003-transactional-outbox.md) · [RYEW ADR](docs/adr/0004-version-based-ryew.md).
+Runbooks: [audit events](docs/runbooks/audit-events.md) · [secret rotation](docs/runbooks/secrets-rotation.md) · [live investigation rooms](docs/runbooks/live-investigation-rooms.md) · [exact money ADR](docs/adr/0001-exact-minor-unit-money.md) · [immutable ledger ADR](docs/adr/0002-immutable-double-entry-ledger.md) · [outbox ADR](docs/adr/0003-transactional-outbox.md) · [RYEW ADR](docs/adr/0004-version-based-ryew.md) · [WebRTC investigation ADR](docs/adr/0007-text-only-webrtc-investigation-rooms.md).
 
 The local recovery path is executable, not aspirational:
 

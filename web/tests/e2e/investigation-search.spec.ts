@@ -22,7 +22,9 @@ async function useSession(page: Page, scopes: string[]) {
 test("keyboard navigation opens exact search and typed locators lead to canonical detail", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/accounts");
-  const searchLink = page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Search records" });
+  const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+  await navigation.getByText("Investigate", { exact: true }).click();
+  const searchLink = navigation.getByRole("link", { name: "Search records" });
   await searchLink.focus();
   await expect(searchLink).toBeFocused();
   await searchLink.press("Enter");

@@ -55,6 +55,7 @@ test("a new local user sees an actionable zero-data dashboard and guide", async 
   await expect(
     page.getByRole("heading", { name: "Use LedgerSync step by step" }),
   ).toBeVisible();
+  await page.getByText("Reference: the six-step operating path", { exact: true }).click();
   await expect(page.getByText("Create an account", { exact: true })).toBeVisible();
   await expect(page.getByText("Check your records", { exact: true })).toBeVisible();
 });

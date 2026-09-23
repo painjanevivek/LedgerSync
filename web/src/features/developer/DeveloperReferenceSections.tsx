@@ -1,9 +1,13 @@
+"use client";
+
 import { ArrowRight, CheckCircle, ShieldCheck, WarningCircle } from "@phosphor-icons/react";
+import { useState } from "react";
 
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
 import { DeveloperCopyCode } from "@/features/developer/DeveloperCopyCode";
 import { buildTransferRecipes } from "@/features/developer/developer-recipes";
 import type { DeveloperExample, DeveloperMetadata } from "@/lib/api/developer";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
 
 const referenceLinks = [
   ["authentication-heading", "Authentication"],
@@ -42,23 +46,24 @@ export function ExactMoneyAndRetryGuide({ metadata }: Readonly<{ metadata: Devel
         <article><span>02</span><h3>Minor-unit output stays text</h3><p>A response such as <code>&quot;12550&quot;</code> means 125.50 INR. Store and calculate it with an integer/decimal library, not JavaScript <code>number</code>.</p></article>
         <article><span>03</span><h3>Unknown is not failed</h3><p>If a timeout happens after send, the command may have committed. Retry the identical normalized body with the identical idempotency key.</p></article>
       </div>
-      <DataTableRegion label="Mutation replay protection matrix">
+      <DisclosureSection id="developer-replay-matrix" title="Full mutation replay matrix" summary={`${mutationFamilies.length} mutation families`} lazy><DataTableRegion label="Mutation replay protection matrix">
         <table className="data-table developer-error-table developer-replay-table">
           <thead><tr><th scope="col">Family</th><th scope="col">Mutation</th><th scope="col">Replay rule</th></tr></thead>
           <tbody>{mutationFamilies.map((group) => <tr key={group.family}><td>{group.family}</td><td><ul className="developer-operation-list">{group.operations.map((operation) => <li key={operation.operation_id}><strong><code>{operation.operation_id}</code></strong></li>)}</ul></td><td>Persist a new key with the complete intent before send. Same key + same intent replays; same key + changed intent conflicts; an unknown response keeps the original key.</td></tr>)}</tbody>
         </table>
-      </DataTableRegion>
+      </DataTableRegion></DisclosureSection>
     </section>
   );
 }
 
 export function IntegrationRecipeSection({ example }: Readonly<{ example: DeveloperExample }>) {
   const recipes = buildTransferRecipes(example);
+  const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
   return (
     <section className="developer-section" aria-labelledby="integration-recipes-heading">
       <div className="section-heading"><div><p className="eyebrow">Generated from the canonical transfer example</p><h2 id="integration-recipes-heading">Integration recipes</h2></div><span>curl · TypeScript · Go · Postman</span></div>
       <p className="developer-section-intro">Choose the language your server uses. These are static examples, not an HTTP runner, and no credential is read, accepted, or stored by this screen.</p>
-      <div className="developer-recipe-list">{recipes.map((recipe, index) => <details key={recipe.id} open={index === 0}><summary><span>{recipe.label}</span><small>{recipe.summary}</small></summary><DeveloperCopyCode value={recipe.code} label={`${recipe.label} transfer recipe`} /></details>)}</div>
+      <div className="developer-recipe-list">{recipes.map((recipe) => <details key={recipe.id} open={selectedRecipe === recipe.id} onToggle={(event) => setSelectedRecipe(event.currentTarget.open ? recipe.id : (current) => current === recipe.id ? null : current)}><summary><span>{recipe.label}</span><small>{recipe.summary}</small></summary>{selectedRecipe === recipe.id ? <DeveloperCopyCode value={recipe.code} label={`${recipe.label} transfer recipe`} /> : null}</details>)}</div>
     </section>
   );
 }

@@ -3,10 +3,10 @@ import { NextRequest } from "next/server";
 
 import { proxyDeveloperOpenAPI } from "@/lib/developer-read";
 import { authorizeOperationsRead, isOperationsReadDenial, strictOperationsQuery } from "@/lib/operations-read";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { readSession, sessionCookieName } from "@/lib/session";
 
-const developerOpenAPIRateLimit = new InMemoryRateLimitStore();
+const developerOpenAPIRateLimit = createRateLimitStore();
 
 export async function GET(request: NextRequest) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);

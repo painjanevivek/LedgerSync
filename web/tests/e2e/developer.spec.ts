@@ -18,12 +18,15 @@ test("developer sees the local boundary, distinct auth lanes, and versioned endp
   const reference=page.getByRole("navigation",{name:"Developer reference sections"});
   await expect(reference.getByRole("link",{name:"Accounts"})).toHaveAttribute("href","#schema-accounts");
   await expect(reference.getByRole("link",{name:"Webhooks"})).toHaveAttribute("href","#schema-webhooks");
-  const createAccountRow=page.locator(".endpoint-row").filter({hasText:"createAccount"});
-  await expect(createAccountRow.getByText("POST",{exact:true})).toBeVisible();
-  await expect(createAccountRow.getByText("/api/accounts",{exact:true})).toBeVisible();
-  const developerGroup=page.locator(".endpoint-catalogue details").filter({hasText:"Developer contracts"});
-  await developerGroup.locator("summary").click();
-  await expect(developerGroup.getByText("developer:read",{exact:true}).first()).toBeVisible();
+  await page.getByRole("button",{name:/Accounts.*operations/}).click();
+  const createAccount=page.getByText("POST /accounts",{exact:true});
+  await expect(createAccount).toBeVisible();
+  await createAccount.click();
+  await expect(page.getByText("accounts:write",{exact:true}).first()).toBeVisible();
+  await page.getByRole("button",{name:/Developer contracts.*operations/}).click();
+  const developerOperation=page.locator(".endpoint-catalogue summary").first();
+  await developerOperation.click();
+  await expect(page.getByText("developer:read",{exact:true}).first()).toBeVisible();
   await expectAccessible(page);
 });
 
@@ -31,6 +34,7 @@ test("developer explains every mutation replay rule and the complete partner jou
   await mockOperatorConsole(page);
   await page.goto("/developer");
   await expect(page.getByRole("heading",{name:"Exact money and replay protection"})).toBeVisible();
+  await page.getByText("Full mutation replay matrix",{exact:true}).click();
   const replay=page.getByRole("region",{name:"Mutation replay protection matrix"});
   for(const operation of developerMetadata.endpoint_groups.flatMap((group)=>group.operations).filter((operation)=>operation.method!=="GET")){
     await expect(replay.getByText(operation.operation_id,{exact:true})).toBeVisible();

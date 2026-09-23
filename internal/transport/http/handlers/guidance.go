@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/guidance"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 )
@@ -114,7 +114,11 @@ func (h *GuidanceHandler) ExplainTransfer(writer http.ResponseWriter, request *h
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), explainabilityDeadline)
 	defer cancel()
-	timeline, err := h.service.ExplainTransfer(ctx, principal.TenantID, principal.SubjectID, strings.TrimSpace(request.PathValue("transferID")))
+	transferID, ok := requireCanonicalIdentifier(writer, request, identifier.KindTransfer, request.PathValue("transferID"))
+	if !ok {
+		return
+	}
+	timeline, err := h.service.ExplainTransfer(ctx, principal.TenantID, principal.SubjectID, transferID)
 	if errors.Is(err, guidance.ErrTransferNotFound) {
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return

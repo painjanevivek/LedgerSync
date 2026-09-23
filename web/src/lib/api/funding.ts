@@ -1,3 +1,5 @@
+import { canonicalUUID } from "@/lib/canonical-uuid";
+
 export type FundingStatus = "requested" | "approved" | "posted" | "rejected" | "compensated";
 
 export type FundingFilters = Readonly<{
@@ -54,7 +56,7 @@ export type CreateFundingInput = Readonly<{
 }>;
 
 export function toPrivateFundingRequest(input: CreateFundingInput) {
-  const destinationAccountId = input.destinationAccountId.trim();
+  const destinationAccountId = canonicalUUID(input.destinationAccountId);
   const amountMinor = input.amountMinor.trim();
   const currency = input.currency.trim().toUpperCase();
   const externalReference = input.externalReference.trim();
@@ -85,7 +87,7 @@ export function toPrivateFundingCompensation(value: unknown) {
 }
 
 export function isFundingEventID(value: string): boolean {
-  return value.length >= 1 && value.length <= 128 && /^[A-Za-z0-9-]+$/.test(value);
+  return canonicalUUID(value) !== undefined;
 }
 
 export function isFundingIdempotencyKey(value: string | null): value is string {

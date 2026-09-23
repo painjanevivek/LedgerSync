@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
 	apprecovery "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/recovery"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -31,8 +31,6 @@ const (
 	recoveryDeadline  = 5 * time.Second
 	delayedCSVBytes   = 32 * 1024
 )
-
-var canonicalExportUUID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 type RecoveryExportHandler struct {
 	manifests     *apprecovery.ManifestService
@@ -124,8 +122,8 @@ func (h *RecoveryExportHandler) AccountLedgerCSV(writer http.ResponseWriter, req
 		return
 	}
 	rows, valid := boundedIntegerQuery(request, "limit", defaultExportRows, maxExportRows)
-	accountID := strings.TrimSpace(request.PathValue("accountID"))
-	if !valid || !canonicalExportUUID.MatchString(accountID) {
+	accountID, identifierOK := canonicalIdentifier(request, identifier.KindAccount, request.PathValue("accountID"))
+	if !valid || !identifierOK {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
@@ -262,8 +260,11 @@ func (h *RecoveryExportHandler) recordExportAuditDetached(parent context.Context
 func transferExportQuery(request *http.Request) (investigation.TransferFilter, int, bool) {
 	query := request.URL.Query()
 	rows, ok := boundedIntegerQuery(request, "limit", defaultExportRows, maxExportRows)
-	filter := investigation.TransferFilter{AccountID: strings.TrimSpace(query.Get("accountId")), Status: strings.TrimSpace(query.Get("status")), Query: strings.TrimSpace(query.Get("q"))}
-	if !ok || (filter.AccountID != "" && !canonicalExportUUID.MatchString(filter.AccountID)) || (filter.Status != "" && filter.Status != "pending" && filter.Status != "posted" && filter.Status != "rejected") || !boundedQueryText(filter.Query, 256) {
+	filter := investigation.TransferFilter{AccountID: query.Get("accountId"), Status: strings.TrimSpace(query.Get("status")), Query: strings.TrimSpace(query.Get("q"))}
+	if filter.AccountID != "" {
+		filter.AccountID, ok = canonicalIdentifier(request, identifier.KindAccount, filter.AccountID)
+	}
+	if !ok || (filter.Status != "" && filter.Status != "pending" && filter.Status != "posted" && filter.Status != "rejected") || !boundedQueryText(filter.Query, 256) {
 		return filter, 0, false
 	}
 	filter.From, filter.To, ok = timeRange(query.Get("from"), query.Get("to"))
@@ -273,8 +274,11 @@ func transferExportQuery(request *http.Request) (investigation.TransferFilter, i
 func reconciliationExportQuery(request *http.Request) (appexports.ReconciliationFilter, int, bool) {
 	query := request.URL.Query()
 	rows, ok := boundedIntegerQuery(request, "limit", defaultExportRows, maxExportRows)
-	filter := appexports.ReconciliationFilter{RunID: strings.TrimSpace(query.Get("runId")), Status: strings.TrimSpace(query.Get("status"))}
-	if !ok || (filter.RunID != "" && !canonicalExportUUID.MatchString(filter.RunID)) || (filter.Status != "" && filter.Status != "matched" && filter.Status != "mismatch" && filter.Status != "failed") {
+	filter := appexports.ReconciliationFilter{RunID: query.Get("runId"), Status: strings.TrimSpace(query.Get("status"))}
+	if filter.RunID != "" {
+		filter.RunID, ok = canonicalIdentifier(request, identifier.KindReconciliation, filter.RunID)
+	}
+	if !ok || (filter.Status != "" && filter.Status != "matched" && filter.Status != "mismatch" && filter.Status != "failed") {
 		return filter, 0, false
 	}
 	filter.From, filter.To, ok = timeRange(query.Get("from"), query.Get("to"))

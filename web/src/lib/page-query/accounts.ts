@@ -1,4 +1,5 @@
 import { parseStrictListQuery, parseStrictListSearchParams, type StrictListQueryInput } from "@/lib/strict-list-query";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 
 export type AccountStatusFilter = "" | "active" | "frozen" | "closed";
 export type AccountCategoryFilter = "" | "operating" | "customer_funds" | "payroll" | "payables" | "expenses" | "reserve";
@@ -15,7 +16,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const controlCharacters = /[\u0000-\u001f\u007f-\u009f]/u;
 
 export function isAccountId(value: string) {
-  return uuid.test(value);
+  return canonicalUUID(value) !== undefined;
 }
 
 function isSafeAccountSearch(value: string) {

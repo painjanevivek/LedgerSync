@@ -7,6 +7,7 @@ import (
 
 func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("PORT", "")
 	t.Setenv("LEDGERSYNC_DEVELOPMENT_SUBJECT_ID", "")
 	t.Setenv("LEDGERSYNC_DEVELOPMENT_TENANT_ID", "")
 	configuration, err := Load()
@@ -21,6 +22,34 @@ func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	}
 	if configuration.PilotCurrency != "INR" || configuration.ReadRateLimitPerMinute != 6_000 || configuration.WriteRateLimitPerMinute != 1_800 || configuration.WriteCapacityPerSecond != 30 {
 		t.Fatalf("pilot controls are incomplete: %#v", configuration)
+	}
+}
+
+func TestLoadUsesVercelPortWhenProvided(t *testing.T) {
+	t.Setenv("PORT", "3000")
+	t.Setenv("LEDGERSYNC_HTTP_ADDR", ":8080")
+	configuration, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if configuration.HTTPAddress != ":3000" {
+		t.Fatalf("expected Vercel PORT to win, got %q", configuration.HTTPAddress)
+	}
+}
+
+func TestLoadRejectsInvalidVercelPort(t *testing.T) {
+	t.Setenv("PORT", "not-a-port")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected an invalid Vercel PORT to fail")
+	}
+}
+
+func TestLoadRejectsWeakCronSecret(t *testing.T) {
+	t.Setenv("PORT", "")
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("CRON_SECRET", "weak")
+	if _, err := Load(); err == nil {
+		t.Fatal("expected a weak cron credential to fail")
 	}
 }
 
@@ -93,6 +122,7 @@ func TestLoadRequiresExplicitPilotCurrencyOutsideDevelopment(t *testing.T) {
 
 func TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot(t *testing.T) {
 	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("PORT", "")
 	t.Setenv("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "data/local-backups")
 	if _, err := Load(); err == nil {
 		t.Fatal("relative recovery evidence root was accepted")
@@ -101,5 +131,25 @@ func TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot(t *testing.T) {
 	configuration, err := Load()
 	if err != nil || configuration.RecoveryEvidenceRoot != "/run/ledgersync/recovery" {
 		t.Fatalf("absolute recovery root=%q error=%v", configuration.RecoveryEvidenceRoot, err)
+	}
+}
+
+func TestLiveInvestigationIsDisabledByDefaultAndRequiresRedisWhenEnabled(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("PORT", "")
+	t.Setenv("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", "")
+	t.Setenv("LEDGERSYNC_REDIS_ADDR", "")
+	configuration, err := Load()
+	if err != nil || configuration.LiveInvestigationEnabled {
+		t.Fatalf("default live investigation enabled=%v error=%v", configuration.LiveInvestigationEnabled, err)
+	}
+	t.Setenv("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", "true")
+	if _, err := Load(); err == nil {
+		t.Fatal("live investigation accepted missing Redis")
+	}
+	t.Setenv("LEDGERSYNC_REDIS_ADDR", "redis:6379")
+	configuration, err = Load()
+	if err != nil || !configuration.LiveInvestigationEnabled || configuration.LiveInvestigationNamespace == "" {
+		t.Fatalf("development live investigation config=%#v error=%v", configuration, err)
 	}
 }

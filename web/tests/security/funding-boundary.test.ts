@@ -5,6 +5,8 @@ import test from "node:test";
 import { NextRequest } from "next/server";
 
 import { isFundingEventID, isFundingIdempotencyKey, toPrivateFundingCompensation, toPrivateFundingDecision, toPrivateFundingRequest } from "../../src/lib/api/funding";
+import { toPrivateTransferRequest } from "../../src/lib/api/transfers";
+import { canonicalUUID } from "../../src/lib/canonical-uuid";
 import { authorizeFundingMutation, isFundingDenial } from "../../src/lib/funding-boundary";
 import type { Session } from "../../src/lib/session";
 
@@ -18,14 +20,41 @@ function request(method = "POST", overrides: Record<string, string> = {}) {
 test.beforeEach(() => { process.env.LEDGERSYNC_PUBLIC_ORIGIN = origin; });
 
 test("funding commands accept only exact string money and declared evidence fields", () => {
-  const input = { destinationAccountId: "account-1", amountMinor: "125050", currency: "inr", externalReference: "wire-001", evidenceReference: "case://wire-001" };
-  assert.deepEqual(toPrivateFundingRequest(input), { destination_account_id: "account-1", amount_minor: "125050", currency: "INR", external_reference: "wire-001", evidence_reference: "case://wire-001" });
+  const input = { destinationAccountId: "A0B1C2D3-E4F5-4678-9ABC-DEF012345678", amountMinor: "125050", currency: "inr", externalReference: "wire-001", evidenceReference: "case://wire-001" };
+  assert.deepEqual(toPrivateFundingRequest(input), { destination_account_id: "a0b1c2d3-e4f5-4678-9abc-def012345678", amount_minor: "125050", currency: "INR", external_reference: "wire-001", evidence_reference: "case://wire-001" });
   assert.throws(() => toPrivateFundingRequest({ ...input, amountMinor: "1250.50" }));
   assert.throws(() => toPrivateFundingRequest({ ...input, amountMinor: "0125050" }));
   assert.throws(() => toPrivateFundingRequest({ ...input, amountMinor: 125050 as never }));
   assert.deepEqual(toPrivateFundingDecision({ reason: " verified evidence " }), { reason: "verified evidence" });
   assert.throws(() => toPrivateFundingDecision({ reason: "" }));
   assert.deepEqual(toPrivateFundingCompensation({ reasonCode: "external_reversal", operatorNote: " case verified " }), { reason_code: "external_reversal", operator_note: "case verified" });
+});
+
+test("UUID boundaries canonicalize case and reject ambiguous text", () => {
+  assert.equal(canonicalUUID("A0B1C2D3-E4F5-4678-9ABC-DEF012345678"), "a0b1c2d3-e4f5-4678-9abc-def012345678");
+  for (const value of [
+    " a0b1c2d3-e4f5-4678-9abc-def012345678",
+    "{a0b1c2d3-e4f5-4678-9abc-def012345678}",
+    "a0b1c2d3e4f546789abcdef012345678",
+    "00000000-0000-0000-0000-000000000000",
+    "not-a-uuid",
+  ]) assert.equal(canonicalUUID(value), undefined);
+
+  assert.deepEqual(toPrivateTransferRequest({
+    sourceAccountId: "A0B1C2D3-E4F5-4678-9ABC-DEF012345678",
+    destinationAccountId: "B0B1C2D3-E4F5-4678-9ABC-DEF012345678",
+    amount: { currency: "usd", minorUnits: "100" },
+  }), {
+    source_account_id: "a0b1c2d3-e4f5-4678-9abc-def012345678",
+    destination_account_id: "b0b1c2d3-e4f5-4678-9abc-def012345678",
+    amount: "1.00",
+    currency: "USD",
+  });
+  assert.throws(() => toPrivateTransferRequest({
+    sourceAccountId: "A0B1C2D3-E4F5-4678-9ABC-DEF012345678",
+    destinationAccountId: "a0b1c2d3-e4f5-4678-9abc-def012345678",
+    amount: { currency: "USD", minorUnits: "100" },
+  }));
 });
 
 test("funding mutation boundary requires method, scope, same-origin CSRF, JSON, and retry identity", () => {

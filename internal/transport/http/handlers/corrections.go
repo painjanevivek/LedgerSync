@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	appcorrections "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/corrections"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
@@ -17,14 +19,15 @@ import (
 const maxCorrectionBodyBytes = 64 * 1024
 
 type CorrectionHandler struct {
-	service       *appcorrections.Service
-	identity      identity.Provider
-	authenticator *identity.RequestAuthenticator
-	rateLimiter   RateLimiter
-	readRate      int
-	writeRate     int
-	capacityLimit int
-	audit         AuditRecorder
+	service           *appcorrections.Service
+	identity          identity.Provider
+	authenticator     *identity.RequestAuthenticator
+	rateLimiter       RateLimiter
+	readRate          int
+	writeRate         int
+	capacityLimit     int
+	audit             AuditRecorder
+	committedObserver httptransport.CommittedResponseObserver
 }
 
 func NewCorrectionHandler(service *appcorrections.Service, provider identity.Provider) *CorrectionHandler {
@@ -46,6 +49,11 @@ func (h *CorrectionHandler) WithAuditRecorder(audit AuditRecorder) *CorrectionHa
 	return h
 }
 
+func (h *CorrectionHandler) WithCommittedResponseObserver(observer httptransport.CommittedResponseObserver) *CorrectionHandler {
+	h.committedObserver = observer
+	return h
+}
+
 type correctionRequest struct {
 	ReasonCode   string `json:"reason_code"`
 	OperatorNote string `json:"operator_note"`
@@ -60,6 +68,10 @@ func (h *CorrectionHandler) Request(writer http.ResponseWriter, request *http.Re
 	if !ok {
 		return
 	}
+	originalTransferID, ok := requireCanonicalIdentifier(writer, request, identifier.KindTransfer, request.PathValue("transferID"))
+	if !ok {
+		return
+	}
 	var input correctionRequest
 	if decodeCorrectionJSON(writer, request, &input) != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
@@ -67,7 +79,7 @@ func (h *CorrectionHandler) Request(writer http.ResponseWriter, request *http.Re
 	}
 	submission, err := h.service.Request(request.Context(), appcorrections.RequestCommand{
 		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID,
-		OriginalTransferID: request.PathValue("transferID"), ReasonCode: input.ReasonCode, OperatorNote: input.OperatorNote,
+		OriginalTransferID: originalTransferID, ReasonCode: input.ReasonCode, OperatorNote: input.OperatorNote,
 		IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()),
 		StepUpAuthenticatedAt: principal.AuthenticatedAt,
 	})
@@ -75,7 +87,7 @@ func (h *CorrectionHandler) Request(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionSubmission(writer, submission, http.StatusCreated)
+	writeCorrectionSubmission(request.Context(), writer, submission, http.StatusCreated, h.committedObserver)
 }
 
 func (h *CorrectionHandler) List(writer http.ResponseWriter, request *http.Request) {
@@ -107,7 +119,11 @@ func (h *CorrectionHandler) Get(writer http.ResponseWriter, request *http.Reques
 	if !ok {
 		return
 	}
-	event, err := h.service.Get(request.Context(), principal.TenantID, principal.SubjectID, request.PathValue("correctionId"))
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
+	if !ok {
+		return
+	}
+	event, err := h.service.Get(request.Context(), principal.TenantID, principal.SubjectID, correctionID)
 	if err != nil {
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
@@ -132,13 +148,17 @@ func (h *CorrectionHandler) decide(writer http.ResponseWriter, request *http.Req
 	if !ok {
 		return
 	}
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
+	if !ok {
+		return
+	}
 	var input correctionDecisionRequest
 	if decodeCorrectionJSON(writer, request, &input) != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
 	command := appcorrections.DecisionCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: request.PathValue("correctionId"),
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: correctionID,
 		Reason: input.Reason, CorrelationID: middleware.CorrelationID(request.Context()), StepUpAuthenticatedAt: principal.AuthenticatedAt,
 	}
 	var event appcorrections.Event
@@ -152,11 +172,15 @@ func (h *CorrectionHandler) decide(writer http.ResponseWriter, request *http.Req
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionJSON(writer, http.StatusOK, event)
+	writeCorrectionCommitted(request.Context(), writer, http.StatusOK, event, event.CorrectionID, false, h.committedObserver)
 }
 
 func (h *CorrectionHandler) Cancel(writer http.ResponseWriter, request *http.Request) {
 	principal, ok := h.authorize(writer, request, "corrections:write", "corrections:cancel", true)
+	if !ok {
+		return
+	}
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
 	if !ok {
 		return
 	}
@@ -166,14 +190,14 @@ func (h *CorrectionHandler) Cancel(writer http.ResponseWriter, request *http.Req
 		return
 	}
 	event, err := h.service.Cancel(request.Context(), appcorrections.CancelCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: request.PathValue("correctionId"),
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: correctionID,
 		Reason: input.Reason, CorrelationID: middleware.CorrelationID(request.Context()),
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionJSON(writer, http.StatusOK, event)
+	writeCorrectionCommitted(request.Context(), writer, http.StatusOK, event, event.CorrectionID, false, h.committedObserver)
 }
 
 func (h *CorrectionHandler) Post(writer http.ResponseWriter, request *http.Request) {
@@ -181,15 +205,19 @@ func (h *CorrectionHandler) Post(writer http.ResponseWriter, request *http.Reque
 	if !ok {
 		return
 	}
+	correctionID, ok := requireCanonicalIdentifier(writer, request, identifier.KindCorrection, request.PathValue("correctionId"))
+	if !ok {
+		return
+	}
 	submission, err := h.service.Post(request.Context(), appcorrections.PostCommand{
-		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: request.PathValue("correctionId"),
+		TenantID: principal.TenantID, ActorSubjectID: principal.SubjectID, CorrectionID: correctionID,
 		IdempotencyKey: request.Header.Get("Idempotency-Key"), CorrelationID: middleware.CorrelationID(request.Context()), StepUpAuthenticatedAt: principal.AuthenticatedAt,
 	})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
-	writeCorrectionSubmission(writer, submission, http.StatusOK)
+	writeCorrectionSubmission(request.Context(), writer, submission, http.StatusOK, h.committedObserver)
 }
 
 func (h *CorrectionHandler) authorize(writer http.ResponseWriter, request *http.Request, scope, operation string, write bool) (identity.Principal, bool) {
@@ -243,11 +271,23 @@ func decodeCorrectionJSON(writer http.ResponseWriter, request *http.Request, tar
 	return nil
 }
 
-func writeCorrectionSubmission(writer http.ResponseWriter, submission appcorrections.Submission, status int) {
-	if submission.Replayed {
-		writer.Header().Set("Idempotent-Replay", "true")
+func writeCorrectionSubmission(ctx context.Context, writer http.ResponseWriter, submission appcorrections.Submission, status int, observer httptransport.CommittedResponseObserver) {
+	writeCorrectionCommitted(ctx, writer, status, submission, submission.Event.CorrectionID, submission.Replayed, observer)
+}
+
+func writeCorrectionCommitted(ctx context.Context, writer http.ResponseWriter, status int, body any, commandID string, replayed bool, observer httptransport.CommittedResponseObserver) {
+	headers := make(http.Header)
+	if replayed {
+		headers.Set("Idempotent-Replay", "true")
 	}
-	writeCorrectionJSON(writer, status, submission)
+	httptransport.WriteCommittedJSON(ctx, writer, httptransport.CommittedResponse{
+		Status:       status,
+		CommandKind:  "correction",
+		CommandID:    commandID,
+		RecoveryPath: "/api/transfer-corrections/" + commandID,
+		Body:         body,
+		Headers:      headers,
+	}, observer)
 }
 
 func writeCorrectionJSON(writer http.ResponseWriter, status int, body any) {

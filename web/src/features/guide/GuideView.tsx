@@ -8,8 +8,10 @@ import {
   ShieldCheck,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { PageHeader } from "@/ui/display/PageHeader";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
 
 const steps = [
   {
@@ -57,7 +59,7 @@ const steps = [
   },
 ] as const;
 
-export function GuideView() {
+export function GuideView({ orientation }: Readonly<{ orientation?: ReactNode }>) {
   return (
     <>
       <PageHeader
@@ -79,6 +81,15 @@ export function GuideView() {
         </div>
       </section>
 
+      {orientation}
+
+      <DisclosureSection
+        id="guide-reference-path"
+        title="Reference: the six-step operating path"
+        summary="Open this when you need the full process. Your durable checklist above remains the source of setup progress."
+        defaultOpen={!orientation}
+        lazy={Boolean(orientation)}
+      >
       <ol className="guide-steps" aria-label="LedgerSync usage steps">
         {steps.map((step, index) => {
           const Icon = step.icon;
@@ -101,6 +112,7 @@ export function GuideView() {
           );
         })}
       </ol>
+      </DisclosureSection>
 
       <section className="guide-safety" aria-labelledby="guide-safety-title">
         <CheckCircle weight="fill" aria-hidden="true" />

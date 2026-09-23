@@ -118,7 +118,7 @@
 .operator-row small {
   overflow: hidden;
   color: var(--rail-muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -133,7 +133,7 @@
 .nav-kicker {
   margin: 0 8px 22px;
   color: var(--navigation-copy-soft);
-  font-size: 9px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -141,7 +141,7 @@
 .context-label {
   margin: 0 8px 8px;
   color: var(--rail-muted);
-  font-size: 10px;
+  font-size: var(--type-label);
   font-weight: 700;
 }
 .primary-nav {
@@ -153,10 +153,28 @@
   display: grid;
   gap: 3px;
 }
+.nav-group-secondary > summary {
+  display: flex;
+  min-height: var(--target-compact);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 12px;
+  color: var(--rail-muted);
+  cursor: pointer;
+  font-size: var(--type-label);
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  list-style-position: inside;
+  text-transform: uppercase;
+}
+.nav-group-secondary > summary:hover { background: var(--navigation-hover-surface); color: var(--rail-text); }
+.nav-group-secondary > summary small { color: var(--navigation-accent-muted); font-family: var(--font-mono); font-size: var(--type-label); }
+.nav-group-links { display: grid; gap: 3px; }
 .nav-section-label {
   margin: 0 12px 3px;
   color: var(--rail-muted);
-  font-size: 8px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -202,7 +220,7 @@
   align-items: center;
   gap: 7px;
   color: var(--rail-muted);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .environment-row,
 .environment-row > span,
@@ -220,7 +238,7 @@
   padding: 2px 5px;
   color: var(--navigation-copy-strong);
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-size: var(--type-label);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -258,7 +276,7 @@
   padding: 7px 9px;
   background: var(--navigation-danger-surface);
   color: var(--navigation-danger-copy);
-  font-size: 11px;
+  font-size: var(--type-label);
   line-height: 1.45;
 }
 

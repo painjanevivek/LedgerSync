@@ -52,6 +52,7 @@ type Config struct {
 	BatchSize   int
 	ClaimLease  time.Duration
 	MaxAttempts int
+	OnItem      func(string)
 }
 
 type Worker struct {
@@ -62,6 +63,7 @@ type Worker struct {
 	batchSize   int
 	claimLease  time.Duration
 	maxAttempts int
+	onItem      func(string)
 }
 
 func NewWorker(store Store, sender Sender, clock func() time.Time, config Config) (*Worker, error) {
@@ -80,7 +82,7 @@ func NewWorker(store Store, sender Sender, clock func() time.Time, config Config
 	if config.MaxAttempts < 1 {
 		config.MaxAttempts = 8
 	}
-	return &Worker{store: store, sender: sender, clock: clock, workerID: config.WorkerID, batchSize: config.BatchSize, claimLease: config.ClaimLease, maxAttempts: config.MaxAttempts}, nil
+	return &Worker{store: store, sender: sender, clock: clock, workerID: config.WorkerID, batchSize: config.BatchSize, claimLease: config.ClaimLease, maxAttempts: config.MaxAttempts, onItem: config.OnItem}, nil
 }
 
 func (w *Worker) RunOnce(ctx context.Context) (int, error) {
@@ -89,6 +91,9 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	for _, job := range jobs {
+		if w.onItem != nil {
+			w.onItem(job.ID)
+		}
 		now := w.clock().UTC()
 		completion := Completion{JobID: job.ID, WorkerID: w.workerID, CompletedAt: now}
 		if !job.ExpiresAt.After(now) {

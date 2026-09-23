@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { sanitizeWebhookReplayUpstreamBody } from "@/lib/api/webhook-replay";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 import { privateAPIContext } from "@/lib/private-api";
 import type { Session } from "@/lib/session";
 import { privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
@@ -15,13 +16,21 @@ export async function proxyWebhookReplayMutation(
   body: Readonly<Record<string, string>>,
   requestID?: string,
 ): Promise<NextResponse> {
+  const canonicalEndpointId = canonicalUUID(endpointId);
+  const canonicalAttemptId = canonicalUUID(attemptId);
+  if (!canonicalEndpointId || !canonicalAttemptId) {
+    return NextResponse.json(
+      { error: { code: "validation_failed" } },
+      { status: 400, headers: { "Cache-Control": "no-store" } },
+    );
+  }
   let connection: Awaited<ReturnType<typeof privateAPIContext>>;
   try { connection = await privateAPIContext(session, requestID); }
   catch { return NextResponse.json({ error: { code: "temporary_unavailable" } }, { status: 503 }); }
   const suffix = stage === "approval" ? "replay-approvals" : "replay";
   let upstream: Response;
   try {
-    upstream = await fetch(`${connection.apiURL}/api/developer/webhooks/${encodeURIComponent(endpointId)}/deliveries/${encodeURIComponent(attemptId)}/${suffix}`, {
+    upstream = await fetch(`${connection.apiURL}/api/developer/webhooks/${encodeURIComponent(canonicalEndpointId)}/deliveries/${encodeURIComponent(canonicalAttemptId)}/${suffix}`, {
       method: "POST",
       headers: webhookReplayPrivateHeaders(connection.headers, idempotencyKey),
       body: JSON.stringify(body),

@@ -5,8 +5,10 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 )
 
@@ -18,13 +20,19 @@ var (
 
 const transferOperation = "transfers.create.v1"
 
+var canonicalRequestReference = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+
+func CanonicalRequestReference(value string) bool {
+	return canonicalRequestReference.MatchString(strings.ToLower(strings.TrimSpace(value)))
+}
+
 type IdempotencyRequest struct {
-	TenantID        string
+	TenantID        identifier.UUID
 	ActorSubjectID  string
 	Operation       string
 	Key             string
-	DebitAccountID  string
-	CreditAccountID string
+	DebitAccountID  identifier.UUID
+	CreditAccountID identifier.UUID
 	Amount          money.Money
 }
 
@@ -50,16 +58,16 @@ func Fingerprint(request IdempotencyRequest) ([sha256.Size]byte, error) {
 	if err := ValidateKey(request.Key); err != nil {
 		return [sha256.Size]byte{}, err
 	}
-	if request.Operation != transferOperation || strings.TrimSpace(request.TenantID) == "" || strings.TrimSpace(request.ActorSubjectID) == "" ||
-		strings.TrimSpace(request.DebitAccountID) == "" || strings.TrimSpace(request.CreditAccountID) == "" || request.DebitAccountID == request.CreditAccountID || !request.Amount.IsPositive() {
+	if request.Operation != transferOperation || request.TenantID == "" || strings.TrimSpace(request.ActorSubjectID) == "" ||
+		request.DebitAccountID == "" || request.CreditAccountID == "" || request.DebitAccountID == request.CreditAccountID || !request.Amount.IsPositive() {
 		return [sha256.Size]byte{}, fmt.Errorf("invalid idempotency request")
 	}
 	canonical := strings.Join([]string{
-		request.TenantID,
+		request.TenantID.String(),
 		request.ActorSubjectID,
 		request.Operation,
-		request.DebitAccountID,
-		request.CreditAccountID,
+		request.DebitAccountID.String(),
+		request.CreditAccountID.String(),
 		request.Amount.Currency().Code,
 		fmt.Sprintf("%d", request.Amount.Minor()),
 	}, "\n")

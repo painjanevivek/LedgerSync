@@ -7,13 +7,13 @@ import { authorizeAccountMutation, isAccountMutationDenial } from "@/lib/account
 import { proxyPrivateGET } from "@/lib/private-api";
 import { jsonError, readBoundedJSON } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
-import { isAccountId } from "@/lib/page-query/accounts";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ accountId: string }> }) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   if (!session) return jsonError("unauthorized", 401);
-  const { accountId } = await context.params;
-  if (!isAccountId(accountId)) return jsonError("not_found", 404);
+  const accountId = canonicalUUID((await context.params).accountId);
+  if (!accountId) return jsonError("validation_failed", 400);
   return proxyPrivateGET(request, session, `/api/accounts/${encodeURIComponent(accountId)}`, []);
 }
 
@@ -23,8 +23,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ a
   if (isAccountMutationDenial(authorization)) return authorization;
   if (!session) return jsonError("unauthorized", 401);
 
-  const { accountId } = await context.params;
-  if (!isAccountId(accountId)) return jsonError("not_found", 404);
+  const accountId = canonicalUUID((await context.params).accountId);
+  if (!accountId) return jsonError("validation_failed", 400);
   let body: ReturnType<typeof parseUpdateAccountRequest>;
   try {
     body = parseUpdateAccountRequest(await readBoundedJSON<unknown>(request, accountMutationMaximumBytes));

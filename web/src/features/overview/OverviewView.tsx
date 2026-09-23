@@ -10,10 +10,12 @@ import { PageHeader } from "@/ui/display/PageHeader";
 import { RecordLink } from "@/ui/display/RecordLink";
 import { StatePanel } from "@/ui/display/StatePanel";
 import type { ConsoleCapabilities } from "@/features/console/capabilities";
+import { deriveWorkspaceStage } from "@/features/console/workspaceStage";
 import { LocalOrientationPanel } from "@/features/orientation/LocalOrientationPanel";
 import { TransferList } from "@/features/transfers/TransferViews";
 import { Money } from "@/ui/display/Money";
 import { Timestamp } from "@/ui/display/Timestamp";
+import { NextBestAction } from "@/ui/disclosure/NextBestAction";
 import { approvedCurrencyGroups, isAuthoritativelyReconciled } from "@/lib/financial-ui";
 import type { LocalOrientation, OperatorPreferenceStepID } from "@/lib/api/orientation";
 import { uiDataState } from "@/lib/api/client";
@@ -57,7 +59,7 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
   const accountState = uiDataState({ loading: accountsLoading, hasData: accounts.length > 0, hasError: Boolean(accountsError), online, partial: Boolean(accountsError?.includes("partial")) });
   const transferState = uiDataState({ loading: transfersLoading, hasData: transfers.length > 0, hasError: Boolean(transfersError), online });
   const reconciliationState = uiDataState({ loading: reconciliationLoading, hasData: Boolean(reconciliation), hasError: Boolean(reconciliationError), online });
-  const newWorkspace =
+  const evidenceSettled =
     !accountsLoading &&
     !transfersLoading &&
     !reconciliationLoading &&
@@ -65,14 +67,38 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
     !transfersError &&
     !reconciliationError &&
     capabilities.accountsRead &&
-    capabilities.transfersRead &&
-    accounts.length === 0 &&
-    transfers.length === 0 &&
-    !reconciliation;
+    capabilities.transfersRead;
+  const workspaceStage = deriveWorkspaceStage({
+    accountCount: accounts.length,
+    transfers,
+    reconciliation,
+    orientation,
+    hasCriticalReadError: Boolean(accountsError || transfersError || reconciliationError || !online),
+  });
+  const newWorkspace = evidenceSettled && workspaceStage === "empty";
   return <>
     <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}>{(capabilities.accountsRead||capabilities.transfersRead||capabilities.reconciliationRead)&&<button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button>}</PageHeader>
     {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} capabilities={capabilities} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
     {!capabilities.accountsRead&&!capabilities.transfersRead&&!capabilities.reconciliationRead&&<StatePanel kind="denied" title="No financial read capability" message="Your server-issued session has no account, transfer, or reconciliation read scope. Protected overview requests were not made."/>}
+    {evidenceSettled && workspaceStage === "attention_required" && (
+      <NextBestAction
+        attention
+        title="Resolve the current evidence warning"
+        message="One or more authoritative reads, reconciliation results, or connectivity checks needs attention. Review the visible warning below before relying on normal metrics."
+        action={reconciliation && !isAuthoritativelyReconciled(reconciliation)
+          ? <Link className="button primary" href={`/reconciliation/${reconciliation.run_id}`}>Open reconciliation result</Link>
+          : <button className="button primary" type="button" onClick={onRefreshAll} disabled={!online || busy}>Refresh evidence</button>}
+      />
+    )}
+    {evidenceSettled && workspaceStage === "account_ready" && (
+      <NextBestAction
+        title="Add the first verified funding record"
+        message="Your account structure is ready. Record external value evidence and send it through the existing approval flow before making a transfer."
+        action={capabilities.fundingWrite
+          ? <Link className="button primary" href="/funding">Open funding</Link>
+          : <Link className="button secondary" href="/guide">Review the required steps</Link>}
+      />
+    )}
     {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
       <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
       <div className="new-workspace-copy">

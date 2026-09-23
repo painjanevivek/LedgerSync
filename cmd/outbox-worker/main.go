@@ -42,6 +42,12 @@ func main() {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
+	progressMonitor, err := observability.NewWorkerProgressMonitor(telemetry, 5*time.Second, nil)
+	if err != nil {
+		slog.Error("worker progress monitor initialization failed", "error", err)
+		os.Exit(1)
+	}
+	go progressMonitor.Run(ctx)
 	startupConfig := startup.Config{
 		Timeout:        configuration.StartupTimeout,
 		InitialBackoff: configuration.StartupInitialBackoff,
@@ -92,7 +98,10 @@ func main() {
 	streams.WithMaxLength(configuration.RedisStreamMaxLength)
 	hostname, _ := os.Hostname()
 	ryewMetrics := observability.NewRYEWMetrics(telemetry)
-	worker, err := outbox.NewWorker(store, streams, ryewMetrics, nil, outbox.Config{WorkerID: fmt.Sprintf("%s-%d", hostname, os.Getpid())})
+	worker, err := outbox.NewWorker(store, streams, ryewMetrics, nil, outbox.Config{
+		WorkerID: fmt.Sprintf("%s-%d", hostname, os.Getpid()),
+		OnItem:   workerItemObserver(progressMonitor, observability.WorkerQueueOutbox),
+	})
 	if err != nil {
 		slog.Error("outbox worker initialization failed", "error", err)
 		os.Exit(1)
@@ -115,7 +124,7 @@ func main() {
 			slog.Error("managed webhook key resolver initialization failed", "error", managedErr)
 			os.Exit(1)
 		}
-		webhookKeys, err = webhookdelivery.NewCachedKeyResolver(managedKeys, 5*time.Minute, nil)
+		webhookKeys, err = webhookdelivery.NewCachedKeyResolver(managedKeys, 5*time.Minute, nil, telemetry)
 		if err != nil {
 			slog.Error("managed webhook key cache initialization failed", "error", err)
 			os.Exit(1)
@@ -126,7 +135,10 @@ func main() {
 		slog.Error("webhook dispatcher initialization failed", "error", err)
 		os.Exit(1)
 	}
-	webhookWorker, err := webhookdelivery.NewWorker(webhookStore, webhookDispatcher, nil, webhookdelivery.Config{WorkerID: fmt.Sprintf("%s-%d-webhooks", hostname, os.Getpid())})
+	webhookWorker, err := webhookdelivery.NewWorker(webhookStore, webhookDispatcher, nil, webhookdelivery.Config{
+		WorkerID: fmt.Sprintf("%s-%d-webhooks", hostname, os.Getpid()),
+		OnItem:   workerItemObserver(progressMonitor, observability.WorkerQueueWebhookDelivery),
+	})
 	if err != nil {
 		slog.Error("webhook worker initialization failed", "error", err)
 		os.Exit(1)
@@ -141,7 +153,10 @@ func main() {
 		slog.Error("webhook verification dispatcher initialization failed", "error", err)
 		os.Exit(1)
 	}
-	verificationWorker, err := webhookverification.NewWorker(verificationStore, verificationDispatcher, nil, webhookverification.Config{WorkerID: fmt.Sprintf("%s-%d-webhook-verifications", hostname, os.Getpid())})
+	verificationWorker, err := webhookverification.NewWorker(verificationStore, verificationDispatcher, nil, webhookverification.Config{
+		WorkerID: fmt.Sprintf("%s-%d-webhook-verifications", hostname, os.Getpid()),
+		OnItem:   workerItemObserver(progressMonitor, observability.WorkerQueueWebhookVerification),
+	})
 	if err != nil {
 		slog.Error("webhook verification worker initialization failed", "error", err)
 		os.Exit(1)
@@ -156,7 +171,11 @@ func main() {
 		slog.Error("balance cache adapter initialization failed", "error", err)
 		os.Exit(1)
 	}
-	projector, err := projection.NewBalanceProjector(streams, cacheAdapter, projection.Config{Group: "balance-cache-v1", Consumer: fmt.Sprintf("%s-%d", hostname, os.Getpid())})
+	projector, err := projection.NewBalanceProjector(streams, cacheAdapter, projection.Config{
+		Group:    "balance-cache-v1",
+		Consumer: fmt.Sprintf("%s-%d", hostname, os.Getpid()),
+		OnItem:   workerItemObserver(progressMonitor, observability.WorkerQueueProjection),
+	})
 	if err != nil {
 		slog.Error("balance projector initialization failed", "error", err)
 		os.Exit(1)
@@ -166,34 +185,42 @@ func main() {
 	healthPoll := time.NewTicker(15 * time.Second)
 	defer healthPoll.Stop()
 	for {
+		markWorkerStarted(progressMonitor, observability.WorkerQueueOutbox)
 		iterationStarted := time.Now()
 		iterationCtx, span := telemetry.Start(ctx, "outbox.worker.publish")
 		_, publishErr := worker.RunOnce(iterationCtx)
 		span.End()
+		markWorkerCompleted(progressMonitor, observability.WorkerQueueOutbox, publishErr)
 		telemetry.ObserveBoundary(iterationCtx, "worker", "publish", iterationStarted, publishErr)
 		if publishErr != nil && ctx.Err() == nil {
 			slog.Error("outbox publish iteration failed", "error", publishErr)
 		}
+		markWorkerStarted(progressMonitor, observability.WorkerQueueWebhookDelivery)
 		iterationStarted = time.Now()
 		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.webhook_dispatch")
 		_, webhookErr := webhookWorker.RunOnce(iterationCtx)
 		span.End()
+		markWorkerCompleted(progressMonitor, observability.WorkerQueueWebhookDelivery, webhookErr)
 		telemetry.ObserveBoundary(iterationCtx, "worker", "webhook_dispatch", iterationStarted, webhookErr)
 		if webhookErr != nil && ctx.Err() == nil {
 			slog.Error("webhook delivery iteration failed", "error", webhookErr)
 		}
+		markWorkerStarted(progressMonitor, observability.WorkerQueueWebhookVerification)
 		iterationStarted = time.Now()
 		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.webhook_verification")
 		_, verificationErr := verificationWorker.RunOnce(iterationCtx)
 		span.End()
+		markWorkerCompleted(progressMonitor, observability.WorkerQueueWebhookVerification, verificationErr)
 		telemetry.ObserveBoundary(iterationCtx, "worker", "webhook_verification", iterationStarted, verificationErr)
 		if verificationErr != nil && ctx.Err() == nil {
 			slog.Error("webhook verification iteration failed", "error", verificationErr)
 		}
+		markWorkerStarted(progressMonitor, observability.WorkerQueueProjection)
 		iterationStarted = time.Now()
 		iterationCtx, span = telemetry.Start(ctx, "outbox.worker.project")
 		_, projectErr := projector.RunOnce(iterationCtx)
 		span.End()
+		markWorkerCompleted(progressMonitor, observability.WorkerQueueProjection, projectErr)
 		telemetry.ObserveBoundary(iterationCtx, "worker", "project", iterationStarted, projectErr)
 		if projectErr != nil && ctx.Err() == nil {
 			slog.Error("balance projection iteration failed", "error", projectErr)
@@ -210,4 +237,24 @@ func main() {
 	}
 stopped:
 	slog.Info("LedgerSync outbox worker stopped", "environment", configuration.Environment)
+}
+
+func workerItemObserver(monitor *observability.WorkerProgressMonitor, queue string) func(string) {
+	return func(itemID string) {
+		if err := monitor.MarkItem(queue, itemID); err != nil {
+			slog.Error("worker progress item update failed", "queue", queue, "error", err)
+		}
+	}
+}
+
+func markWorkerStarted(monitor *observability.WorkerProgressMonitor, queue string) {
+	if err := monitor.MarkStarted(queue, ""); err != nil {
+		slog.Error("worker progress start update failed", "queue", queue, "error", err)
+	}
+}
+
+func markWorkerCompleted(monitor *observability.WorkerProgressMonitor, queue string, runErr error) {
+	if err := monitor.MarkCompleted(queue, runErr != nil); err != nil {
+		slog.Error("worker progress completion update failed", "queue", queue, "error", err)
+	}
 }

@@ -22,6 +22,10 @@ import { Timestamp } from "@/ui/display/Timestamp";
 import { fundingURL } from "@/lib/page-query/funding";
 import { useFundingCommand } from "@/features/funding/useFundingCommand";
 import { ConfirmationDialog } from "@/ui/overlays/ConfirmationDialog.client";
+import { ActiveFilterSummary } from "@/ui/disclosure/ActiveFilterSummary";
+import { AdvancedFilterPanel } from "@/ui/disclosure/AdvancedFilterPanel";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
+import { PrerequisitePanel } from "@/ui/disclosure/PrerequisitePanel";
 
 function fundingTone(status: FundingStatus): "success" | "warning" | "danger" | "neutral" | "info" {
   if (status === "posted" || status === "compensated") return "success";
@@ -103,18 +107,15 @@ export function FundingListView({ events, accounts, filters, nextCursor, verifie
   filters: FundingFilters; onApplyFilters: (filters: FundingFilters) => void; onClearFilters: () => void; onOpenRequest: () => void; onRefresh: () => void;
 }>) {
   const labels = new Map(accounts.map((account) => [account.account_id, accountLabel(account)]));
+  const hasEligibleAccount = accounts.some((account) => account.status === "active" && account.currency === "INR");
   const [draftStatus, setDraftStatus] = useState<FundingFilters["status"]>(filters.status);
   const returnTo = fundingURL(filters);
   const nextHref = nextCursor ? fundingURL({ ...filters, cursor: nextCursor }) : undefined;
   return <>
     <PageHeader eyebrow="Ledger / Funding records" title="Funding records" description="Keep track of money confirmed outside LedgerSync. Each record is checked before it can change a balance.">
-      <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh records</button>{canWrite && <button className="button primary guarded-control" type="button" onClick={onOpenRequest}>Record funding</button>}</div>
+      <div className="header-actions"><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh records</button>{canWrite && hasEligibleAccount && <button className="button primary guarded-control" type="button" onClick={onOpenRequest}>Record funding</button>}</div>
     </PageHeader>
-    <form className="surface list-filter-bar" onSubmit={(event) => { event.preventDefault(); onApplyFilters({ status: draftStatus }); }}>
-      <FormField label="Exact funding status" requirement="optional" hint="The server filters the complete funding history before pagination."><select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value as FundingFilters["status"])}><option value="">All statuses</option><option value="requested">Requested</option><option value="approved">Approved</option><option value="posted">Posted</option><option value="rejected">Rejected</option><option value="compensated">Compensated</option></select></FormField>
-      <div className="action-row"><button className="button primary" type="submit" disabled={loading}>Apply filters</button><button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>Clear all</button></div>
-    </form>
-    <SavedViewCapture domain="funding" filters={{ status: filters.status || undefined }} />
+    {canWrite && !hasEligibleAccount && !loading && <PrerequisitePanel title="Create an active INR account first" message="A funding record needs an eligible destination account. Create the account before entering payment evidence; no incomplete funding request will be started." action={<Link className="button primary" href="/accounts/new?return_to=%2Ffunding">Create account</Link>} />}
     {verifiedAt && events.length > 0 && <EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={verifiedAt} label="Funding records" reason={error ?? (!online ? "Reconnect before acting on these records." : undefined)} />}
     {error && <StatePanel kind="error" title="Funding records unavailable" message={error} action={<FocusedRetry label="Retry funding records" onRetry={onRefresh} disabled={!online} busy={loading} />} />}
     {loading && events.length === 0 ? <StatePanel title="Loading funding records" message="Checking your funding records now. An empty result will appear only after the check finishes." /> : events.length === 0 && !error ? <StatePanel title="No funding records yet" message="When money is confirmed outside LedgerSync, add its reference number and supporting document here. It will be checked before your balance changes." action={canWrite ? <button className="button primary" type="button" onClick={onOpenRequest}>Add first record</button> : undefined} /> : events.length > 0 && <section className="ledger-section funding-ledger" aria-labelledby="funding-ledger-heading" aria-busy={loading}>
@@ -122,6 +123,16 @@ export function FundingListView({ events, accounts, filters, nextCursor, verifie
       <DataTableRegion label="Funding record comparison"><table className="data-table"><thead><tr><th>Reference number</th><th>Account</th><th>Amount</th><th>Status</th><th>Added</th><th>View</th></tr></thead><tbody>{events.map((event) => <tr key={event.funding_event_id}><td><strong>{event.compensation_of_event_id ? "Correction" : "Funding"}</strong><code>{event.external_reference}</code></td><td><strong>{labels.get(event.destination_account_id) ?? "Authorized account"}</strong><code>{event.destination_account_id}</code></td><td className="number-cell"><Money currency={event.currency} minorUnits={event.amount_minor} /></td><td><StatusBadge tone={fundingTone(event.status)}>{event.status}</StatusBadge>{event.demo_policy && <small>Local single-operator policy</small>}</td><td><Timestamp value={event.requested_at} inheritTypography={false} /><small>By {event.requester_subject_id}</small></td><td><Link className="record-link" href={`/funding/${encodeURIComponent(event.funding_event_id)}?return_to=${encodeURIComponent(returnTo)}`}>Open record <span aria-hidden="true">→</span></Link></td></tr>)}</tbody></table></DataTableRegion>
       <div className="pagination"><span>{nextHref ? "More matching funding records are available" : "End of this filtered funding history"}</span>{nextHref ? <Link className="button secondary" href={nextHref}>Next page</Link> : <button className="button secondary" type="button" disabled>Next page</button>}</div>
     </section>}
+    {(events.length > 0 || Boolean(filters.status)) && <>
+      <ActiveFilterSummary filters={filters.status ? [{ label: "Funding status", value: filters.status }] : []} clearHref="/funding" />
+      <AdvancedFilterPanel id="funding-record-filters" title="Filter records" activeCount={Number(Boolean(filters.status))}>
+        <form className="surface list-filter-bar" onSubmit={(event) => { event.preventDefault(); onApplyFilters({ status: draftStatus }); }}>
+          <FormField label="Exact funding status" requirement="optional" hint="The server filters the complete funding history before pagination."><select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value as FundingFilters["status"])}><option value="">All statuses</option><option value="requested">Requested</option><option value="approved">Approved</option><option value="posted">Posted</option><option value="rejected">Rejected</option><option value="compensated">Compensated</option></select></FormField>
+          <div className="action-row"><button className="button primary" type="submit" disabled={loading}>Apply filters</button><button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>Clear all</button></div>
+        </form>
+        <SavedViewCapture domain="funding" filters={{ status: filters.status || undefined }} />
+      </AdvancedFilterPanel>
+    </>}
   </>;
 }
 
@@ -150,9 +161,9 @@ export function FundingDetailView({ event, account, session, reconciliation, ver
       {event.compensation_of_event_id && <div className="funding-linked-record"><LinkSimple aria-hidden="true" /><p><strong>Compensates original record</strong><Link href={`/funding/${encodeURIComponent(event.compensation_of_event_id)}`}>{event.compensation_of_event_id}</Link></p></div>}
       {event.compensation_event_id && <div className="funding-linked-record"><LinkSimple aria-hidden="true" /><p><strong>Preserved with additive compensation</strong><Link href={`/funding/${encodeURIComponent(event.compensation_event_id)}`}>{event.compensation_event_id}</Link></p></div>}
     </section>
-    <RelatedEvidenceRail sourceType="funding" sourceId={event.funding_event_id} />
     <FundingActionPanel event={event} session={session} online={online} busy={actionBusy} canWrite={canWrite} canApprove={canApprove} onAction={onAction} onReconcile={onReconcile} onRefresh={onRefresh} />
-    {reconciliation && <section className={`funding-reconciliation ${reconciliation.status}`} aria-labelledby="funding-reconciliation-heading"><Equals aria-hidden="true" /><div><p className="eyebrow">External reference reconciliation</p><h2 id="funding-reconciliation-heading">{reconciliation.status === "matched" ? "Journal totals match" : "Journal mismatch requires investigation"}</h2><p>Expected <Money currency={reconciliation.currency} minorUnits={reconciliation.expected_minor} /> · debit <Money currency={reconciliation.currency} minorUnits={reconciliation.posted_debit_minor} /> · credit <Money currency={reconciliation.currency} minorUnits={reconciliation.posted_credit_minor} /></p><small>Checked <Timestamp value={reconciliation.checked_at} /></small></div></section>}
+    <DisclosureSection id="funding-related-evidence" title="Related evidence" summary="Inspect records linked to this funding event." lazy><RelatedEvidenceRail sourceType="funding" sourceId={event.funding_event_id} /></DisclosureSection>
+    {reconciliation && <DisclosureSection id="funding-reconciliation-evidence" title="Balance check details" summary={reconciliation.status === "matched" ? "The journal totals match." : "A mismatch requires investigation."} attention={reconciliation.status !== "matched"} defaultOpen={reconciliation.status !== "matched"}><section className={`funding-reconciliation ${reconciliation.status}`} aria-labelledby="funding-reconciliation-heading"><Equals aria-hidden="true" /><div><p className="eyebrow">External reference reconciliation</p><h2 id="funding-reconciliation-heading">{reconciliation.status === "matched" ? "Journal totals match" : "Journal mismatch requires investigation"}</h2><p>Expected <Money currency={reconciliation.currency} minorUnits={reconciliation.expected_minor} /> · debit <Money currency={reconciliation.currency} minorUnits={reconciliation.posted_debit_minor} /> · credit <Money currency={reconciliation.currency} minorUnits={reconciliation.posted_credit_minor} /></p><small>Checked <Timestamp value={reconciliation.checked_at} /></small></div></section></DisclosureSection>}
   </>;
 }
 

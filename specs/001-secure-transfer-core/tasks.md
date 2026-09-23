@@ -245,3 +245,15 @@ All tasks use the required checkbox, sequential ID, optional parallel marker, us
 
 - [ ] T122 Replace the process-local BFF actor-assertion replay guard with a bounded shared implementation and prove replay rejection across API replicas before horizontal production scaling per FR-017 and FR-020 (partial)
 - [ ] T123 Require server-initiated proof of webhook endpoint control before activation, using the hardened outbound network boundary and an expiring one-time challenge, so an API client cannot activate an unrelated public destination per FR-011 and FR-020 (partial)
+
+## Phase 10: Text-only WebRTC investigation rooms
+
+- [X] T124 Add Go domain, authorization, repository, migration, and Redis signalling tests for two-participant uncertain-transfer rooms
+- [X] T125 Add TypeScript contract, BFF security, WebRTC envelope, and browser-state tests
+- [X] T126 Add forward-only migration `000034` for transfer request references, live-room lifecycle, and append-only structured findings
+- [X] T127 Implement request-reference propagation and owner-scoped uncertain-transfer status resolution without changing exact-money or idempotency behavior
+- [X] T128 Implement investigation-room domain, PostgreSQL repository, Redis signalling/presence adapter, authorization, sanitized audit, and private API routes
+- [X] T129 Implement same-origin BFF room/status/signalling routes and exclude signalling-only contracts from public SDK artifacts
+- [X] T130 Implement the accessible text-only WebRTC room UI for unresolved transfer intents, including invite redemption, bounded ephemeral messages, reconnect, expiry, and structured findings
+- [X] T131 Add feature/config fail-closed behavior, forward-only migration-34 compatibility, two-principal local verification support, architecture/runbook documentation, and generated contract updates
+- [X] T132 Run focused, full frontend, Go, migration, browser, build, and real-stack smoke gates

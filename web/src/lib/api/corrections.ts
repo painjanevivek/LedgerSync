@@ -1,3 +1,5 @@
+import { canonicalUUID } from "@/lib/canonical-uuid";
+
 export type CorrectionStatus =
   "requested" | "approved" | "rejected" | "cancelled" | "expired" | "posted";
 export type CorrectionFilters = Readonly<{
@@ -94,9 +96,7 @@ export function toPrivateCorrectionDecision(value: unknown) {
 }
 
 export function isCorrectionID(value: string): boolean {
-  return (
-    value.length >= 1 && value.length <= 128 && /^[A-Za-z0-9-]+$/.test(value)
-  );
+  return canonicalUUID(value) !== undefined;
 }
 
 export function isCorrectionIdempotencyKey(

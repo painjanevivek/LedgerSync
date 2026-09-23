@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm ci",
+  "buildCommand": "node scripts/verify-vercel-root.mjs && npm run build"
+}

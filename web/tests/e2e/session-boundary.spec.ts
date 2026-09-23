@@ -11,15 +11,19 @@ test("session and connectivity authority persist across console route families",
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Developer" }).click();
+  const navigation = page.getByRole("navigation", { name: "Primary navigation" });
+  await navigation.getByText("Platform", { exact: true }).click();
+  await navigation.getByRole("link", { name: "Developer" }).click();
   await expect(page.getByRole("heading", { name: "Developer", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Recovery" }).click();
+  await navigation.getByRole("link", { name: "Recovery" }).click();
   await expect(page.getByRole("heading", { name: "Recovery", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Local status" }).click();
+  await navigation.getByText("Environment", { exact: true }).click();
+  await navigation.getByRole("link", { name: "Local status" }).click();
   await expect(page.getByRole("heading", { name: "Local status", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Funding records" }).click();
   await expect(page.getByRole("heading", { name: "Funding records", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Corrections" }).click();
+  await navigation.getByText("Investigate", { exact: true }).click();
+  await navigation.getByRole("link", { name: "Corrections" }).click();
   await expect(page.getByRole("heading", { name: "Transfer corrections", exact: true })).toBeVisible();
 
   expect(sessionRequests).toBe(1);

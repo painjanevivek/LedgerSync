@@ -51,7 +51,7 @@ export const emptyApprovalFilters: ApprovalFilters = {
   age: "",
   requestedAfter: "",
   requestedBefore: "",
-  actionableByMe: false,
+  actionableByMe: true,
 };
 
 export function approvalDetailHref(item: ApprovalItem, returnTo: string) {

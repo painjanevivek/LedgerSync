@@ -9,6 +9,7 @@ import { StatusBadge } from "@/ui/display/StatusBadge";
 import { Timestamp } from "@/ui/display/Timestamp";
 import { canOpenOrientationStep, type ConsoleCapabilities } from "@/features/console/capabilities";
 import type { LocalOrientation, OperatorPreferenceStepID, OrientationStep } from "@/lib/api/orientation";
+import { ActionAvailability, type ActionAvailabilityStatus } from "@/ui/controls/ActionAvailability";
 
 type StepCopy = Readonly<{ title: string; description: string; href?: string; confirmation?: string }>;
 
@@ -56,6 +57,31 @@ function canConfirm(step: OrientationStep) {
   return step.id === "confirm_health" || step.id === "understand_authority" || step.state === "evidence_available" || step.state === "operator_confirmed";
 }
 
+function OrientationChecklistStep({ step, index, current, capabilities, writable, onToggle }: Readonly<{
+  step: OrientationStep;
+  index: number;
+  current: boolean;
+  capabilities: ConsoleCapabilities;
+  writable: boolean;
+  onToggle: (step: OrientationStep) => void;
+}>) {
+  const href = evidenceHref(step);
+  return <li className={current ? "current" : complete(step) ? "completed" : undefined}>
+    <details open={current}>
+      <summary>
+        <span className="orientation-step-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+        <span className={`orientation-check ${step.state}`} aria-hidden="true">{complete(step) ? <CheckCircle weight="fill" /> : step.state === "evidence_available" ? <Info weight="fill" /> : <WarningCircle weight="fill" />}</span>
+        <span><strong>{stepCopy[step.id].title}</strong><small>{step.occurred_at ? <>Stored evidence · <Timestamp value={step.occurred_at} /></> : reason(step) ?? (step.state === "operator_confirmed" ? "Saved operator acknowledgement" : stateLabel(step))}</small></span>
+        <StatusBadge tone={tone(step)}>{stateLabel(step)}</StatusBadge>
+      </summary>
+      <div className="orientation-step-detail">
+        <p>{stepCopy[step.id].description}</p>
+        <div className="orientation-step-actions">{canOpenOrientationStep(capabilities, step.id) && href && step.state !== "unavailable" && <Link className="record-link" href={href}>{step.evidence_id ? "Open evidence" : "Open step"}</Link>}{canOpenOrientationStep(capabilities, step.id) && canConfirm(step) && <button className="record-link orientation-confirm" type="button" disabled={!writable} onClick={() => onToggle(step)}>{step.state === "operator_confirmed" ? "Undo confirmation" : stepCopy[step.id].confirmation}</button>}</div>
+      </div>
+    </details>
+  </li>;
+}
+
 type PreferenceChange = Readonly<{ dismissed: boolean; completedStepIDs: OperatorPreferenceStepID[] }>;
 type Props = Readonly<{
   evidence: LocalOrientation | null;
@@ -78,6 +104,15 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
   const hasIncompleteStep = evidence?.steps.some((step) => !complete(step)) ?? false;
   const nextStep = evidence?.steps.find((step) => !complete(step) && canOpenOrientationStep(capabilities, step.id));
   const writable = online && canWrite && !preferenceSaving;
+  const clearManualAvailability: ActionAvailabilityStatus = !online
+    ? { state: "offline", reason: "Reconnect to clear saved manual confirmations." }
+    : !canWrite
+      ? { state: "capability_missing", reason: "The local:write scope is required to clear manual confirmations." }
+      : preferenceSaving
+        ? { state: "busy", reason: "A setup preference change is already being saved." }
+        : completedStepIDs.length === 0
+          ? { state: "prerequisite", reason: "No manual confirmations are currently saved. Stored ledger evidence is never cleared here." }
+          : { state: "available" };
 
   async function setDismissed(dismissed: boolean) {
     await onUpdatePreferences({ dismissed, completedStepIDs });
@@ -113,14 +148,10 @@ export function LocalOrientationPanel({ evidence, loading, error, preferenceErro
       </ol></>
       : <><EvidenceFreshness state={error || !online ? "historical" : loading ? "refreshing" : "current"} verifiedAt={evidence.generated_at} label="Operator journey" reason={error ?? (!online ? "Reconnect before relying on checklist state." : undefined)} />
         <article className={`recommended-action ${nextStep?.state === "unavailable" || (!nextStep && hasIncompleteStep) ? "blocked" : ""}`} aria-labelledby="recommended-action-title"><div><p className="eyebrow">Recommended next action</p><h3 id="recommended-action-title">{nextStep ? stepCopy[nextStep.id].title : hasIncompleteStep ? "No authorized next action" : "Journey complete"}</h3><p>{nextStep ? (reason(nextStep) ?? stepCopy[nextStep.id].description) : hasIncompleteStep ? "Your current server-issued capabilities do not permit any remaining setup step. Ask an administrator for the required access; no protected request was made." : "Every available setup step has authoritative evidence or an explicit saved confirmation."}</p></div>{nextStep?.state === "unavailable" || (!nextStep && hasIncompleteStep) ? <span className="recommended-blocked"><LockKey weight="fill" aria-hidden="true" />Blocked safely</span> : nextStep && evidenceHref(nextStep) ? <Link className="button primary" href={evidenceHref(nextStep)!}>Open next step</Link> : nextStep && canConfirm(nextStep) ? <button className="button primary" type="button" disabled={!writable} onClick={() => void toggleStep(nextStep)}>{stepCopy[nextStep.id].confirmation}</button> : null}</article>
-        <ol className="orientation-checklist">{evidence.steps.map((step, index) => <li key={step.id} className={nextStep?.id === step.id ? "current" : undefined}>
-          <span className="orientation-step-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span className={`orientation-check ${step.state}`} aria-hidden="true">{complete(step) ? <CheckCircle weight="fill" /> : step.state === "evidence_available" ? <Info weight="fill" /> : <WarningCircle weight="fill" />}</span>
-          <div><strong>{stepCopy[step.id].title}</strong><p>{stepCopy[step.id].description}</p>{step.occurred_at ? <small>Stored evidence · <Timestamp value={step.occurred_at} /></small> : reason(step) ? <small>{reason(step)}</small> : step.state === "operator_confirmed" ? <small>Saved operator acknowledgement</small> : null}</div>
-          <StatusBadge tone={tone(step)}>{stateLabel(step)}</StatusBadge><div className="orientation-step-actions">{canOpenOrientationStep(capabilities,step.id)&&evidenceHref(step) && step.state !== "unavailable" && <Link className="record-link" href={evidenceHref(step)!}>{step.evidence_id ? "Open evidence" : "Open step"}</Link>}{canOpenOrientationStep(capabilities,step.id)&&canConfirm(step) && <button className="record-link orientation-confirm" type="button" disabled={!writable} onClick={() => void toggleStep(step)}>{step.state === "operator_confirmed" ? "Undo confirmation" : stepCopy[step.id].confirmation}</button>}</div>
-        </li>)}</ol>
+        <ol className="orientation-checklist orientation-checklist-disclosed">{evidence.steps.map((step, index) => <OrientationChecklistStep key={step.id} step={step} index={index} current={nextStep?.id === step.id} capabilities={capabilities} writable={writable} onToggle={(selected) => void toggleStep(selected)} />)}</ol>
       </>}
     {(preferenceError || !writable) && <div id="orientation-preference-help" className="orientation-preference-state" role={preferenceError ? "alert" : undefined}><Info weight="fill" aria-hidden="true"/><p>{preferenceError ?? (!online ? "Reconnect to update setup preferences." : !canWrite ? "The local:write scope is required to update setup preferences." : "Saving setup preferences…")}</p></div>}
     <details className="orientation-definitions"><summary>Plain-language ledger terms</summary><dl><div><dt>Idempotency</dt><dd>Retrying the same intent with the same key returns one durable outcome, not a second movement.</dd></div><div><dt>Double entry</dt><dd>Every posted journal has equal debit and credit postings in the same currency.</dd></div><div><dt>Projection</dt><dd>A derived balance view; PostgreSQL ledger records remain authoritative.</dd></div><div><dt>Reconciliation</dt><dd>A stored comparison between ledger postings and balance truth at a known watermark.</dd></div><div><dt>Response unknown</dt><dd>The response was lost, so the outcome must be checked or retried with the same key.</dd></div></dl></details>
-    <footer><div><strong>Stop or restart without losing persisted progress</strong><p>Safe stop preserves PostgreSQL preferences. Restarting manual progress never deletes ledger, audit, or recovery evidence.</p></div><div className="orientation-footer-actions"><button className="button secondary" type="button" disabled={!writable || completedStepIDs.length === 0} onClick={() => void onUpdatePreferences({ dismissed: false, completedStepIDs: [] })}>Restart manual progress</button><CopyControl value="powershell -File .\scripts\stop-local.ps1" label="Copy safe stop command" /></div></footer>
+    <footer><div><strong>Stop safely or clear manual confirmations</strong><p>Safe stop preserves PostgreSQL preferences. Clearing confirmations never deletes ledger, audit, or recovery evidence.</p></div><div className="orientation-footer-actions"><ActionAvailability availability={clearManualAvailability}><button className="button secondary" type="button" onClick={() => void onUpdatePreferences({ dismissed: false, completedStepIDs: [] })}>Clear manual confirmations</button></ActionAvailability><CopyControl value="powershell -File .\scripts\stop-local.ps1" label="Copy safe stop command" /></div></footer>
   </section>;
 }

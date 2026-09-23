@@ -3,11 +3,11 @@ import { NextRequest } from "next/server";
 
 import { sanitizeEventDetail } from "@/lib/api/operations";
 import { authorizeOperationsRead, isOperationsReadDenial, proxyOperationsGET, strictOperationsQuery } from "@/lib/operations-read";
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
 
-const eventDetailRateLimit = new InMemoryRateLimitStore();
+const eventDetailRateLimit = createRateLimitStore();
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: NextRequest, context: { params: Promise<{ eventId: string }> }) {

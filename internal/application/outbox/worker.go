@@ -57,6 +57,7 @@ type Worker struct {
 	batchSize   int
 	claimLease  time.Duration
 	maxAttempts int
+	onItem      func(string)
 }
 
 type Config struct {
@@ -64,6 +65,7 @@ type Config struct {
 	BatchSize   int
 	ClaimLease  time.Duration
 	MaxAttempts int
+	OnItem      func(string)
 }
 
 func NewWorker(store Store, publisher Publisher, metrics Metrics, clock func() time.Time, cfg Config) (*Worker, error) {
@@ -85,7 +87,7 @@ func NewWorker(store Store, publisher Publisher, metrics Metrics, clock func() t
 	if cfg.MaxAttempts <= 0 {
 		cfg.MaxAttempts = 12
 	}
-	return &Worker{store: store, publisher: publisher, metrics: metrics, clock: clock, workerID: cfg.WorkerID, batchSize: cfg.BatchSize, claimLease: cfg.ClaimLease, maxAttempts: cfg.MaxAttempts}, nil
+	return &Worker{store: store, publisher: publisher, metrics: metrics, clock: clock, workerID: cfg.WorkerID, batchSize: cfg.BatchSize, claimLease: cfg.ClaimLease, maxAttempts: cfg.MaxAttempts, onItem: cfg.OnItem}, nil
 }
 
 // RunOnce returns the number of claimed events. An individual event failure is
@@ -96,6 +98,9 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("claim outbox events: %w", err)
 	}
 	for _, event := range events {
+		if w.onItem != nil {
+			w.onItem(event.ID)
+		}
 		if err := validate(event); err != nil {
 			if persistErr := w.store.MarkDead(ctx, w.workerID, event.ID, w.clock().UTC(), "invalid_event"); persistErr != nil {
 				return len(events), fmt.Errorf("mark invalid event dead: %w", persistErr)

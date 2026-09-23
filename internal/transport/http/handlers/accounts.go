@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 )
@@ -68,6 +69,11 @@ func (h *AccountsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	}
 	accountID := strings.TrimSpace(request.PathValue("accountID"))
 	if accountID != "" {
+		canonicalAccountID, ok := requireCanonicalIdentifier(writer, request, identifier.KindAccount, request.PathValue("accountID"))
+		if !ok {
+			return
+		}
+		accountID = canonicalAccountID
 		item, getErr := h.service.GetOwned(request.Context(), principal.TenantID, principal.SubjectID, accountID)
 		if errors.Is(getErr, accounts.ErrAccountNotFound) {
 			httptransport.WriteError(writer, request, httptransport.ErrNotFound)

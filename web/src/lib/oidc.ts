@@ -58,6 +58,7 @@ const allowedScopes = new Set([
   "events:read",
   "investigation:read",
   "investigation:write",
+  "investigation:collaborate",
   "explainability:read",
   "developer:read",
   "credentials:read",
