@@ -50,6 +50,9 @@ func (r *ReconciliationRepository) Reconcile(ctx context.Context, tenantID strin
 		return reconciliation.Result{}, fmt.Errorf("begin reconciliation snapshot: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, tenantID); err != nil {
+		return reconciliation.Result{}, fmt.Errorf("bind reconciliation tenant scope: %w", err)
+	}
 	locked, err := acquireReconciliationLock(ctx, tx, tenantID)
 	if err != nil {
 		return reconciliation.Result{}, err

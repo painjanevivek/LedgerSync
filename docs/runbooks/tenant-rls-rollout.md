@@ -12,9 +12,8 @@ Migration `000039_tenant_rls_expand` enables row-level security on the highest-r
 
 ## Monitoring and stop conditions
 
-Count missing-context use by workload, application revision, operation, and database. Count SQLSTATE `42501` with the low-cardinality reason `tenant_context_mismatch`; never emit tenant IDs, SQL text, or parameters. Stop financial writes if mismatches occur on a current application revision, if cross-tenant mutation testing succeeds, or if a pool borrower inherits the previous transaction's context.
+Migration `000039` emits one PostgreSQL `LOG` record per transaction when a protected-table policy is evaluated without `ledgersync.tenant_id`. The record starts with `ledgersync tenant context missing` and includes the database, current workload role, `application_name` (set it to the application revision), and the transaction-local `ledgersync.operation` label when available. Aggregate this event by those fields in the database log pipeline; an unset operation label is reported as `unknown`. The record contains no tenant IDs, SQL text, or bind values. Count SQLSTATE `42501` with the low-cardinality reason `tenant_context_mismatch` separately. Stop financial writes if mismatches occur on a current application revision, if cross-tenant mutation testing succeeds, or if a pool borrower inherits the previous transaction's context.
 
 ## Force readiness
 
 Migration `000040_tenant_rls_force` must not ship until missing-context counts are zero for every supported path through a full soak window and support/reconciliation have explicit scoped access. The force migration removes missing-context compatibility and forces policies for the table owner. Roll back `000040` first if a legitimate path was missed; keep `000039` enabled and repair the application forward.
-

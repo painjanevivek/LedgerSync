@@ -13,10 +13,20 @@ import (
 // copies amounts, balances, payloads, notes, or free-form evidence into the
 // navigation response.
 func (r *InvestigationRepository) Related(ctx context.Context, tenantID, actorID string, filter investigation.RelationshipFilter) (investigation.RelationshipPage, error) {
+	var page investigation.RelationshipPage
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		page, err = relatedInvestigation(ctx, tx, tenantID, actorID, filter)
+		return err
+	})
+	return page, err
+}
+
+func relatedInvestigation(ctx context.Context, queryer tenantQueryer, tenantID, actorID string, filter investigation.RelationshipFilter) (investigation.RelationshipPage, error) {
 	if filter.Limit < 1 || filter.Limit > 20 || !relationshipSourceAllowed(filter.SourceType, filter.Access) {
 		return investigation.RelationshipPage{}, ErrInvestigationNotFound
 	}
-	exists, err := r.authorizedRelationshipSource(ctx, tenantID, actorID, filter.SourceType, filter.SourceID)
+	exists, err := authorizedRelationshipSourceWithQuerier(ctx, queryer, tenantID, actorID, filter.SourceType, filter.SourceID)
 	if err != nil {
 		return investigation.RelationshipPage{}, err
 	}
@@ -24,7 +34,7 @@ func (r *InvestigationRepository) Related(ctx context.Context, tenantID, actorID
 		return investigation.RelationshipPage{}, ErrInvestigationNotFound
 	}
 	query, args := relationshipQuery(filter, tenantID, actorID)
-	rows, err := r.database.QueryContext(ctx, query, args...)
+	rows, err := queryer.QueryContext(ctx, query, args...)
 	if err != nil {
 		return investigation.RelationshipPage{}, fmt.Errorf("read related investigation evidence: %w", err)
 	}
@@ -71,7 +81,13 @@ func relationshipSourceAllowed(sourceType string, access investigation.Relations
 }
 
 func (r *InvestigationRepository) authorizedRelationshipSource(ctx context.Context, tenantID, actorID, sourceType, sourceID string) (bool, error) {
-	return authorizedRelationshipSourceWithQuerier(ctx, r.database, tenantID, actorID, sourceType, sourceID)
+	var exists bool
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		exists, err = authorizedRelationshipSourceWithQuerier(ctx, tx, tenantID, actorID, sourceType, sourceID)
+		return err
+	})
+	return exists, err
 }
 
 type relationshipSourceQuerier interface {

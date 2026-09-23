@@ -5,14 +5,28 @@
 
 CREATE FUNCTION tenant_context_allows_v1(row_tenant_id UUID)
 RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
+LANGUAGE plpgsql
+VOLATILE
 SET search_path = pg_catalog, public
 AS $$
-  SELECT CASE
-    WHEN NULLIF(current_setting('ledgersync.tenant_id', true), '') IS NULL THEN TRUE
-    ELSE row_tenant_id::text = current_setting('ledgersync.tenant_id', true)
-  END
+DECLARE
+  v_context TEXT := NULLIF(current_setting('ledgersync.tenant_id', true), '');
+BEGIN
+  IF v_context IS NULL THEN
+    -- Emit one privacy-safe database log event per transaction. The marker is
+    -- local, so each transaction is counted independently without logging
+    -- tenant identifiers, SQL text, or parameter values.
+    IF NULLIF(current_setting('ledgersync.missing_context_observed', true), '') IS NULL THEN
+      PERFORM set_config('ledgersync.missing_context_observed', 'true', true);
+      RAISE LOG 'ledgersync tenant context missing database=% role=% application=% operation=%',
+        current_database(), current_user,
+        CASE WHEN current_setting('application_name') ~ '^ledgersync-[a-z0-9_-]+-[a-zA-Z0-9._-]{1,24}$' THEN current_setting('application_name') ELSE 'unknown' END,
+        CASE WHEN current_setting('ledgersync.operation', true) ~ '^[a-z][a-z0-9_]{0,47}$' THEN current_setting('ledgersync.operation', true) ELSE 'unknown' END;
+    END IF;
+    RETURN TRUE;
+  END IF;
+  RETURN row_tenant_id::text = v_context;
+END
 $$;
 
 CREATE FUNCTION enforce_tenant_context_if_present_v1()

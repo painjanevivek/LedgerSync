@@ -34,11 +34,13 @@ func (repository *OpeningImportRepository) Request(ctx context.Context, manifest
 		return openingimports.Result{}, err
 	}
 	var replayed, conflicted bool
-	err = repository.database.QueryRowContext(ctx, `
+	err = WithTenantContext(ctx, repository.database, manifest.TenantID, nil, func(tx *sql.Tx) error {
+		return tx.QueryRowContext(ctx, `
 SELECT replayed,conflicted FROM public.controlled_request_opening_import_v1(
   $1,$2,$3,$4,$5,$6,$7,$8,$9
 )`, manifest.TenantID, actor, manifest.BatchID, manifest.Currency, manifest.AccountIDs(),
-		manifest.OpeningMinors(), manifest.ContentHash[:], correlationID, repository.clock().UTC()).Scan(&replayed, &conflicted)
+			manifest.OpeningMinors(), manifest.ContentHash[:], correlationID, repository.clock().UTC()).Scan(&replayed, &conflicted)
+	})
 	return openingImportResult(replayed, conflicted, err)
 }
 
@@ -60,8 +62,10 @@ func (repository *OpeningImportRepository) decide(ctx context.Context, function 
 	}
 	var replayed, conflicted bool
 	query := `SELECT replayed,conflicted FROM public.` + function + `($1,$2,$3,$4,$5,$6)`
-	err = repository.database.QueryRowContext(ctx, query, manifest.TenantID, actor, manifest.BatchID,
-		manifest.ContentHash[:], correlationID, repository.clock().UTC()).Scan(&replayed, &conflicted)
+	err = WithTenantContext(ctx, repository.database, manifest.TenantID, nil, func(tx *sql.Tx) error {
+		return tx.QueryRowContext(ctx, query, manifest.TenantID, actor, manifest.BatchID,
+			manifest.ContentHash[:], correlationID, repository.clock().UTC()).Scan(&replayed, &conflicted)
+	})
 	return openingImportResult(replayed, conflicted, err)
 }
 

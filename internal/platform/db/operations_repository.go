@@ -195,12 +195,23 @@ func scanWebhookEndpointEvidence(row rowScanner) (operations.WebhookEndpointEvid
 }
 
 func (r *OperationsRepository) ListEvents(ctx context.Context, tenantID, actorID string, filter operations.EventFilter) ([]operations.EventEvidence, string, error) {
+	var items []operations.EventEvidence
+	var next string
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		items, next, err = listEvents(ctx, tx, tenantID, actorID, filter)
+		return err
+	})
+	return items, next, err
+}
+
+func listEvents(ctx context.Context, queryer tenantQueryer, tenantID, actorID string, filter operations.EventFilter) ([]operations.EventEvidence, string, error) {
 	fingerprint := eventFilterFingerprint(filter)
 	cursor, err := decodeEventCursor(filter.Cursor, fingerprint)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := queryer.QueryContext(ctx, `
 SELECT e.id::text,e.event_type,
  CASE WHEN e.published_at IS NOT NULL THEN 'published' WHEN e.dead_at IS NOT NULL THEN 'dead' WHEN e.last_error_code IS NOT NULL AND e.attempt_count>0 THEN 'retrying' ELSE 'pending' END,
  e.aggregate_type,e.aggregate_id::text,e.aggregate_version::text,e.attempt_count::text,
@@ -251,7 +262,17 @@ ORDER BY e.occurred_at DESC,e.id DESC LIMIT $10`, tenantID, filter.EventType, fi
 }
 
 func (r *OperationsRepository) GetEvent(ctx context.Context, tenantID, actorID, eventID string) (operations.EventDetail, error) {
-	row := r.database.QueryRowContext(ctx, `
+	var detail operations.EventDetail
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var innerErr error
+		detail, innerErr = getEvent(ctx, tx, tenantID, actorID, eventID)
+		return innerErr
+	})
+	return detail, err
+}
+
+func getEvent(ctx context.Context, queryer tenantQueryer, tenantID, actorID, eventID string) (operations.EventDetail, error) {
+	row := queryer.QueryRowContext(ctx, `
 SELECT e.id::text,e.event_type,
  CASE WHEN e.published_at IS NOT NULL THEN 'published' WHEN e.dead_at IS NOT NULL THEN 'dead' WHEN e.last_error_code IS NOT NULL AND e.attempt_count>0 THEN 'retrying' ELSE 'pending' END,
  e.aggregate_type,e.aggregate_id::text,e.aggregate_version::text,e.attempt_count::text,
@@ -276,7 +297,7 @@ WHERE e.tenant_id=$1 AND e.id=$2 AND (e.transfer_id IS NULL OR t.id IS NOT NULL)
 		return operations.EventDetail{}, err
 	}
 	detail := operations.EventDetail{EventEvidence: item, DeliveryAttempts: []operations.DeliveryEvidence{}, Timeline: eventTimeline(item)}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := queryer.QueryContext(ctx, `
 SELECT attempt.id::text,attempt.delivery_kind,attempt.status,attempt.attempt_number::text,COALESCE(attempt.response_class,''),COALESCE(attempt.sanitized_error_code,''),
  COALESCE(endpoint.id::text,''),COALESCE(endpoint.display_name,''),COALESCE(endpoint.endpoint_url,''),attempt.due_at,attempt.started_at,attempt.completed_at
 FROM delivery_attempts attempt

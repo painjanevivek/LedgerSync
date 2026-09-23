@@ -63,6 +63,11 @@ type transactionBeginner interface {
 	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
 }
 
+type tenantQueryer interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
 func withSerializableRetry(ctx context.Context, database transactionBeginner, attempts int, fn func(*sql.Tx) error) error {
 	if attempts < 1 {
 		attempts = 1
@@ -142,11 +147,36 @@ func WithSerializableSequence(ctx context.Context, database *sql.DB, sequenceKey
 func SetLocalTenantContext(ctx context.Context, tx *sql.Tx, tenantID string) error {
 	trimmed := strings.TrimSpace(tenantID)
 	parsed, err := uuid.Parse(trimmed)
-	if err != nil || trimmed != parsed.String() {
+	if err != nil || trimmed != tenantID || trimmed != parsed.String() {
 		return ErrInvalidTenantContext
 	}
 	if _, err := tx.ExecContext(ctx, `SELECT set_config('ledgersync.tenant_id',$1,true)`, parsed.String()); err != nil {
 		return fmt.Errorf("set local database tenant context: %w", err)
+	}
+	return nil
+}
+
+// WithTenantContext runs one tenant-scoped operation in a transaction whose
+// local RLS context is established before caller SQL executes. Use it for
+// reads and operational commands that do not need the serializable sequence
+// lock/retry behavior.
+func WithTenantContext(ctx context.Context, database *sql.DB, tenantID string, options *sql.TxOptions, fn func(*sql.Tx) error) error {
+	if database == nil || fn == nil {
+		return errors.New("tenant transaction database and operation are required")
+	}
+	tx, err := database.BeginTx(ctx, options)
+	if err != nil {
+		return fmt.Errorf("begin tenant transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, tenantID); err != nil {
+		return err
+	}
+	if err := fn(tx); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tenant transaction: %w", err)
 	}
 	return nil
 }

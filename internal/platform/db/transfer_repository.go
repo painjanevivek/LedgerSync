@@ -198,11 +198,14 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 	if err != nil {
 		return err
 	}
-	return appendControlledAuditPayload(ctx, r.database, id, AuditEvent{
+	event := AuditEvent{
 		TenantID: command.TenantID.String(), ActorSubjectID: command.ActorSubjectID,
 		EventType: "transfer.policy_denied", TargetType: "transfer_request", Outcome: "failed",
 		CorrelationID: correlationID, OccurredAt: command.OccurredAt.UTC(),
-	}, metadata)
+	}
+	return WithTenantContext(ctx, r.database, event.TenantID, nil, func(tx *sql.Tx) error {
+		return appendControlledAuditPayload(ctx, tx, id, event, metadata)
+	})
 }
 
 func newUUID() (string, error) {

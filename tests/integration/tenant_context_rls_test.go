@@ -9,7 +9,7 @@ import (
 	platformdb "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
-func TestTenantContextExpandScopesReadsRejectsMismatchesAndDoesNotLeak(t *testing.T) {
+func TestTenantContextForceScopesReadsRejectsMismatchesAndDoesNotLeak(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	requireWorkloadRoles(t, database)
 	ctx := context.Background()
@@ -26,12 +26,12 @@ func TestTenantContextExpandScopesReadsRejectsMismatchesAndDoesNotLeak(t *testin
 	api.db.SetMaxOpenConns(1)
 	api.db.SetMaxIdleConns(1)
 
-	var compatibleCount int
-	if err := api.db.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&compatibleCount); err != nil {
+	var unscopedCount int
+	if err := api.db.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&unscopedCount); err != nil {
 		t.Fatal(err)
 	}
-	if compatibleCount != 3 {
-		t.Fatalf("expand-mode missing context count=%d, want 3", compatibleCount)
+	if unscopedCount != 0 {
+		t.Fatalf("force-mode missing context count=%d, want 0", unscopedCount)
 	}
 
 	tx, err := api.db.BeginTx(ctx, nil)
@@ -62,11 +62,28 @@ func TestTenantContextExpandScopesReadsRejectsMismatchesAndDoesNotLeak(t *testin
 		t.Fatalf("mismatched controlled write SQLSTATE=%s error=%v, want 42501", sqlState(mismatchErr), mismatchErr)
 	}
 
-	if err := api.db.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&compatibleCount); err != nil {
+	if err := api.db.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&unscopedCount); err != nil {
 		t.Fatal(err)
 	}
-	if compatibleCount != 3 {
-		t.Fatalf("pooled connection leaked transaction-local tenant context: count=%d, want 3", compatibleCount)
+	if unscopedCount != 0 {
+		t.Fatalf("pooled connection leaked transaction-local tenant context: count=%d, want 0", unscopedCount)
+	}
+	committed, err := api.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = platformdb.SetLocalTenantContext(ctx, committed, testTenantID); err != nil {
+		_ = committed.Rollback()
+		t.Fatal(err)
+	}
+	if err = committed.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	if err := api.db.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&unscopedCount); err != nil {
+		t.Fatal(err)
+	}
+	if unscopedCount != 0 {
+		t.Fatalf("pooled connection leaked transaction-local tenant context after commit: count=%d, want 0", unscopedCount)
 	}
 
 	invalid, err := api.db.BeginTx(ctx, nil)
@@ -80,7 +97,7 @@ func TestTenantContextExpandScopesReadsRejectsMismatchesAndDoesNotLeak(t *testin
 	_ = invalid.Rollback()
 }
 
-func TestTenantContextExpandMigrationMetadata(t *testing.T) {
+func TestTenantContextForceMigrationMetadata(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	var enabled, forced, policies, triggers int
 	if err := database.QueryRow(`
@@ -100,7 +117,44 @@ WHERE namespace.nspname='public' AND class.relname=ANY($1::text[])`, []string{
 	if err := database.QueryRow(`SELECT count(*) FROM pg_trigger WHERE tgname='enforce_tenant_context' AND NOT tgisinternal`).Scan(&triggers); err != nil {
 		t.Fatal(err)
 	}
-	if enabled != 19 || forced != 0 || policies != 19 || triggers != 17 {
+	if enabled != 19 || forced != 19 || policies != 19 || triggers != 17 {
 		t.Fatalf("tenant expand metadata enabled=%d forced=%d policies=%d triggers=%d", enabled, forced, policies, triggers)
+	}
+}
+
+func TestTenantContextForceScopesSupportAndReconciliationRoles(t *testing.T) {
+	_, database := requireTransferService(t, 10_000)
+	requireWorkloadRoles(t, database)
+	ctx := context.Background()
+	for _, role := range []string{"ledgersync_support_readonly", "ledgersync_reconciliation"} {
+		session := provisionWorkloadSession(t, database, testDatabaseURL(t), role)
+		session.db.SetMaxOpenConns(1)
+		session.db.SetMaxIdleConns(1)
+		var unscoped int
+		if err := session.db.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&unscoped); err != nil {
+			t.Fatalf("%s unscoped read: %v", role, err)
+		}
+		if unscoped != 0 {
+			t.Fatalf("%s unscoped account count=%d, want 0", role, unscoped)
+		}
+		tx, err := session.db.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := platformdb.SetLocalTenantContext(ctx, tx, testTenantID); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("%s bind tenant: %v", role, err)
+		}
+		var scoped int
+		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&scoped); err != nil {
+			_ = tx.Rollback()
+			t.Fatalf("%s scoped read: %v", role, err)
+		}
+		if err := tx.Rollback(); err != nil {
+			t.Fatalf("%s rollback: %v", role, err)
+		}
+		if scoped != 2 {
+			t.Fatalf("%s scoped account count=%d, want 2", role, scoped)
+		}
 	}
 }

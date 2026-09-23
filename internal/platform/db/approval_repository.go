@@ -31,8 +31,18 @@ type approvalCursor struct {
 }
 
 func (r *ApprovalRepository) List(ctx context.Context, tenantID, actorID string, query appapprovals.Query) (appapprovals.Page, error) {
+	var page appapprovals.Page
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		page, err = listApprovals(ctx, tx, tenantID, actorID, query)
+		return err
+	})
+	return page, err
+}
+
+func listApprovals(ctx context.Context, queryer tenantQueryer, tenantID, actorID string, query appapprovals.Query) (appapprovals.Page, error) {
 	var finance bool
-	if err := r.database.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenant_subject_roles WHERE tenant_id=$1 AND subject_id=$2 AND role='finance')`, tenantID, actorID).Scan(&finance); err != nil {
+	if err := queryer.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenant_subject_roles WHERE tenant_id=$1 AND subject_id=$2 AND role='finance')`, tenantID, actorID).Scan(&finance); err != nil {
 		return appapprovals.Page{}, err
 	}
 	if !finance {
@@ -42,7 +52,7 @@ func (r *ApprovalRepository) List(ctx context.Context, tenantID, actorID string,
 	if err != nil {
 		return appapprovals.Page{}, appapprovals.ErrInvalidQuery
 	}
-	rows, err := r.database.QueryContext(ctx, approvalListSQL,
+	rows, err := queryer.QueryContext(ctx, approvalListSQL,
 		tenantID,
 		actorID,
 		query.CanApproveFunding,

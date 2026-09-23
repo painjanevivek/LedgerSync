@@ -171,10 +171,15 @@ func (r *FundingRepository) Compensate(ctx context.Context, command appfunding.C
 }
 
 func (r *FundingRepository) Get(ctx context.Context, tenantID, actorID, eventID string) (appfunding.Event, error) {
-	if err := authorizeFinanceDatabase(ctx, r.database, tenantID, actorID); err != nil {
-		return appfunding.Event{}, err
-	}
-	event, err := readFundingEventByID(ctx, r.database, tenantID, eventID)
+	var event appfunding.Event
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		if err := authorizeFinanceDatabase(ctx, tx, tenantID, actorID); err != nil {
+			return err
+		}
+		var err error
+		event, err = readFundingEventByID(ctx, tx, tenantID, eventID)
+		return err
+	})
 	if errors.Is(err, sql.ErrNoRows) {
 		return appfunding.Event{}, appfunding.ErrNotFound
 	}
@@ -182,14 +187,24 @@ func (r *FundingRepository) Get(ctx context.Context, tenantID, actorID, eventID 
 }
 
 func (r *FundingRepository) List(ctx context.Context, tenantID, actorID string, query appfunding.Query) (appfunding.Page, error) {
-	if err := authorizeFinanceDatabase(ctx, r.database, tenantID, actorID); err != nil {
+	var page appfunding.Page
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		page, err = listFunding(ctx, tx, tenantID, actorID, query)
+		return err
+	})
+	return page, err
+}
+
+func listFunding(ctx context.Context, queryer tenantQueryer, tenantID, actorID string, query appfunding.Query) (appfunding.Page, error) {
+	if err := authorizeFinanceDatabase(ctx, queryer, tenantID, actorID); err != nil {
 		return appfunding.Page{}, err
 	}
 	cursor, err := decodeFundingCursor(query.Cursor)
 	if err != nil {
 		return appfunding.Page{}, appfunding.ErrInvalidCommand
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT `+fundingEventColumns+` FROM funding_events WHERE tenant_id=$1 AND ($2='' OR status=$2) AND ($3::timestamptz IS NULL OR (requested_at,id)<($3::timestamptz,$4::uuid)) ORDER BY requested_at DESC,id DESC LIMIT $5`, tenantID, query.Status, nullableTime(cursor.RequestedAt), nullableString(cursor.ID), query.Limit+1)
+	rows, err := queryer.QueryContext(ctx, `SELECT `+fundingEventColumns+` FROM funding_events WHERE tenant_id=$1 AND ($2='' OR status=$2) AND ($3::timestamptz IS NULL OR (requested_at,id)<($3::timestamptz,$4::uuid)) ORDER BY requested_at DESC,id DESC LIMIT $5`, tenantID, query.Status, nullableTime(cursor.RequestedAt), nullableString(cursor.ID), query.Limit+1)
 	if err != nil {
 		return appfunding.Page{}, err
 	}
@@ -218,12 +233,22 @@ func (r *FundingRepository) List(ctx context.Context, tenantID, actorID string, 
 }
 
 func (r *FundingRepository) Reconcile(ctx context.Context, tenantID, actorID, eventID string) (appfunding.Reconciliation, error) {
-	if err := authorizeFinanceDatabase(ctx, r.database, tenantID, actorID); err != nil {
+	var result appfunding.Reconciliation
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		result, err = reconcileFunding(ctx, tx, tenantID, actorID, eventID, r.clock)
+		return err
+	})
+	return result, err
+}
+
+func reconcileFunding(ctx context.Context, queryer tenantQueryer, tenantID, actorID, eventID string, clock func() time.Time) (appfunding.Reconciliation, error) {
+	if err := authorizeFinanceDatabase(ctx, queryer, tenantID, actorID); err != nil {
 		return appfunding.Reconciliation{}, err
 	}
 	var external, currency string
 	var expected, debit, credit int64
-	err := r.database.QueryRowContext(ctx, `
+	err := queryer.QueryRowContext(ctx, `
 SELECT event.external_reference,event.currency,event.amount_minor,
  COALESCE(sum(posting.amount_minor) FILTER (WHERE posting.direction='debit'),0),
  COALESCE(sum(posting.amount_minor) FILTER (WHERE posting.direction='credit'),0)
@@ -242,10 +267,10 @@ GROUP BY event.external_reference,event.currency,event.amount_minor`, tenantID, 
 	if expected == debit && expected == credit {
 		status = "matched"
 	}
-	return appfunding.Reconciliation{FundingEventID: eventID, ExternalReference: external, Status: status, ExpectedMinor: strconv.FormatInt(expected, 10), PostedDebitMinor: strconv.FormatInt(debit, 10), PostedCreditMinor: strconv.FormatInt(credit, 10), Currency: currency, CheckedAt: r.clock().UTC().Format(time.RFC3339Nano)}, nil
+	return appfunding.Reconciliation{FundingEventID: eventID, ExternalReference: external, Status: status, ExpectedMinor: strconv.FormatInt(expected, 10), PostedDebitMinor: strconv.FormatInt(debit, 10), PostedCreditMinor: strconv.FormatInt(credit, 10), Currency: currency, CheckedAt: clock().UTC().Format(time.RFC3339Nano)}, nil
 }
 
-func authorizeFinanceDatabase(ctx context.Context, database *sql.DB, tenantID, actorID string) error {
+func authorizeFinanceDatabase(ctx context.Context, database tenantQueryer, tenantID, actorID string) error {
 	var authorized bool
 	if err := database.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenant_subject_roles WHERE tenant_id=$1 AND subject_id=$2 AND role='finance')`, tenantID, actorID).Scan(&authorized); err != nil {
 		return err

@@ -68,7 +68,7 @@ func (r *InvestigationRepository) CreateSavedView(ctx context.Context, command i
 	}
 	when := savedViewTime(command.OccurredAt)
 	var created investigation.SavedView
-	err = WithSerializableSequence(ctx, r.database, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var count int
 		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM investigation_saved_views WHERE tenant_id=$1 AND owner_subject_id=$2`, command.TenantID, command.ActorID).Scan(&count); err != nil {
 			return err
@@ -104,7 +104,7 @@ func (r *InvestigationRepository) RenameSavedView(ctx context.Context, command i
 	}
 	when := savedViewTime(command.OccurredAt)
 	var updated investigation.SavedView
-	err = WithSerializableSequence(ctx, r.database, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var schemaVersion int
 		var rawFilters []byte
 		var version int64
@@ -141,7 +141,7 @@ func (r *InvestigationRepository) DeleteSavedView(ctx context.Context, command i
 		return err
 	}
 	when := savedViewTime(command.OccurredAt)
-	err = WithSerializableSequence(ctx, r.database, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var domain string
 		var schemaVersion int
 		var rawFilters []byte
