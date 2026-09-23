@@ -47,6 +47,9 @@ func (r *AccountCommandRepository) classifyUncommittedError(ctx context.Context,
 				return beginErr
 			}
 			defer func() { _ = tx.Rollback() }()
+			if contextErr := SetLocalTenantContext(ctx, tx, envelope.TenantID); contextErr != nil {
+				return contextErr
+			}
 			var tenantExists bool
 			if queryErr := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenants WHERE id=$1)`, envelope.TenantID).Scan(&tenantExists); queryErr != nil || !tenantExists {
 				return queryErr

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -18,6 +19,11 @@ import (
 // The original PgError is not retained because SQL detail can contain financial
 // identifiers and values; boundary telemetry can safely count this sentinel.
 var ErrLedgerSemanticViolation = errors.New("ledger semantic invariant rejected")
+
+// ErrInvalidTenantContext is returned before a transaction can execute when
+// its authenticated tenant is missing or is not a canonical UUID. Rejecting
+// it here prevents an unset or ambiguous value from becoming an RLS bypass.
+var ErrInvalidTenantContext = errors.New("invalid database tenant context")
 
 type PoolConfig struct {
 	DriverName      string
@@ -55,6 +61,11 @@ func OpenPool(ctx context.Context, cfg PoolConfig) (*sql.DB, error) {
 
 type transactionBeginner interface {
 	BeginTx(context.Context, *sql.TxOptions) (*sql.Tx, error)
+}
+
+type tenantQueryer interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
 func withSerializableRetry(ctx context.Context, database transactionBeginner, attempts int, fn func(*sql.Tx) error) error {
@@ -127,6 +138,80 @@ func WithSerializableSequence(ctx context.Context, database *sql.DB, sequenceKey
 		}
 	}()
 	return withSerializableRetry(ctx, connection, attempts, fn)
+}
+
+// SetLocalTenantContext binds one canonical authenticated tenant to the
+// current transaction. The local setting is automatically discarded by
+// PostgreSQL on commit or rollback, so a pooled connection cannot leak it to
+// the next borrower.
+func SetLocalTenantContext(ctx context.Context, tx *sql.Tx, tenantID string) error {
+	trimmed := strings.TrimSpace(tenantID)
+	parsed, err := uuid.Parse(trimmed)
+	if err != nil || trimmed != tenantID || trimmed != parsed.String() {
+		return ErrInvalidTenantContext
+	}
+	if _, err := tx.ExecContext(ctx, `SELECT set_config('ledgersync.tenant_id',$1,true)`, parsed.String()); err != nil {
+		return fmt.Errorf("set local database tenant context: %w", err)
+	}
+	return nil
+}
+
+// WithTenantContext runs one tenant-scoped operation in a transaction whose
+// local RLS context is established before caller SQL executes. Use it for
+// reads and operational commands that do not need the serializable sequence
+// lock/retry behavior.
+func WithTenantContext(ctx context.Context, database *sql.DB, tenantID string, options *sql.TxOptions, fn func(*sql.Tx) error) error {
+	if database == nil || fn == nil {
+		return errors.New("tenant transaction database and operation are required")
+	}
+	tx, err := database.BeginTx(ctx, options)
+	if err != nil {
+		return fmt.Errorf("begin tenant transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, tenantID); err != nil {
+		return err
+	}
+	if err := fn(tx); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tenant transaction: %w", err)
+	}
+	return nil
+}
+
+// WithTenantSerializableSequence is the tenant-confined form used by
+// financial commands. Context is set inside every retry transaction after the
+// advisory lock is acquired and before any application SQL executes.
+func WithTenantSerializableSequence(ctx context.Context, database *sql.DB, tenantID, sequenceKey string, attempts int, fn func(*sql.Tx) error) (err error) {
+	if strings.TrimSpace(sequenceKey) == "" {
+		return errors.New("serializable sequence key is required")
+	}
+	connection, err := database.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("reserve serializable sequence connection: %w", err)
+	}
+	defer func() { _ = connection.Close() }()
+	if _, err = connection.ExecContext(ctx, `SELECT pg_advisory_lock(hashtextextended($1,0))`, sequenceKey); err != nil {
+		return fmt.Errorf("acquire serializable sequence: %w", err)
+	}
+	defer func() {
+		unlockContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if _, unlockErr := connection.ExecContext(unlockContext, `SELECT pg_advisory_unlock_all()`); unlockErr != nil {
+			_ = connection.Raw(func(any) error { return driver.ErrBadConn })
+			if err == nil {
+				err = fmt.Errorf("release serializable sequence: %w", unlockErr)
+			}
+		}
+	}()
+	return withSerializableRetry(ctx, connection, attempts, func(tx *sql.Tx) error {
+		if err := SetLocalTenantContext(ctx, tx, tenantID); err != nil {
+			return err
+		}
+		return fn(tx)
+	})
 }
 
 // IsRetryableTransactionError recognizes PostgreSQL serialization and deadlock

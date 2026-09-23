@@ -33,7 +33,7 @@ func NewDeveloperCredentialRepository(database *sql.DB, clock func() time.Time) 
 
 func (r *DeveloperCredentialRepository) CreateCredential(ctx context.Context, command developerplatform.CreateCredentialCommand, fingerprint [sha256.Size]byte) (submission developerplatform.CredentialSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-credential-create|"+command.TenantID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "developer-credential-create|"+command.TenantID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func (r *DeveloperCredentialRepository) CreateCredential(ctx context.Context, co
 
 func (r *DeveloperCredentialRepository) RotateCredential(ctx context.Context, command developerplatform.RotateCredentialCommand, fingerprint [sha256.Size]byte) (submission developerplatform.CredentialSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-credential-rotate|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "developer-credential-rotate|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func (r *DeveloperCredentialRepository) RotateCredential(ctx context.Context, co
 
 func (r *DeveloperCredentialRepository) RevokeCredential(ctx context.Context, command developerplatform.RevokeCredentialCommand, fingerprint [sha256.Size]byte) (submission developerplatform.CredentialSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-credential-revoke|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "developer-credential-revoke|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}

@@ -41,7 +41,7 @@ func (r *AccountCommandRepository) Create(ctx context.Context, command accounts.
 	}
 	envelope := commandEnvelope{command.TenantID, command.ActorSubjectID, command.CorrelationID, command.IdempotencyKey, accounts.CreateOperation, command.OccurredAt.UTC()}
 	var committedDenial error
-	err = WithSerializableSequence(ctx, r.database, "account-create|"+strings.ToLower(command.TenantID), 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "account-create|"+strings.ToLower(command.TenantID), 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, envelope.TenantID, envelope.ActorID); err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (r *AccountCommandRepository) UpdateMetadata(ctx context.Context, command a
 	}
 	envelope := commandEnvelope{command.TenantID, command.ActorSubjectID, command.CorrelationID, command.IdempotencyKey, accounts.UpdateOperation, command.OccurredAt.UTC()}
 	var committedDenial error
-	err = WithSerializableSequence(ctx, r.database, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, envelope.TenantID, envelope.ActorID); err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func (r *AccountCommandRepository) ChangeStatus(ctx context.Context, command acc
 	}
 	envelope := commandEnvelope{command.TenantID, command.ActorSubjectID, command.CorrelationID, command.IdempotencyKey, accounts.UpdateOperation, command.OccurredAt.UTC()}
 	var committedDenial error
-	err = WithSerializableSequence(ctx, r.database, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, envelope.TenantID, envelope.ActorID); err != nil {
 			return err
 		}

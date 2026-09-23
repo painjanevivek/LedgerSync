@@ -73,7 +73,7 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 		}
 	}
 	sequenceTenant := command.TenantID.String()
-	err = WithSerializableSequence(ctx, r.database, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, sequenceTenant, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
 		var response []byte
 		var replayed bool
 		queryErr := tx.QueryRowContext(ctx, `
@@ -198,11 +198,14 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 	if err != nil {
 		return err
 	}
-	return appendControlledAuditPayload(ctx, r.database, id, AuditEvent{
+	event := AuditEvent{
 		TenantID: command.TenantID.String(), ActorSubjectID: command.ActorSubjectID,
 		EventType: "transfer.policy_denied", TargetType: "transfer_request", Outcome: "failed",
 		CorrelationID: correlationID, OccurredAt: command.OccurredAt.UTC(),
-	}, metadata)
+	}
+	return WithTenantContext(ctx, r.database, event.TenantID, nil, func(tx *sql.Tx) error {
+		return appendControlledAuditPayload(ctx, tx, id, event, metadata)
+	})
 }
 
 func newUUID() (string, error) {

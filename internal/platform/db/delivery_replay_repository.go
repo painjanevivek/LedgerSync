@@ -48,6 +48,9 @@ func (r *DeliveryReplayRepository) Approve(ctx context.Context, approval recover
 		return recovery.DeliveryApprovalResult{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, approval.TenantID); err != nil {
+		return recovery.DeliveryApprovalResult{}, err
+	}
 	var exists bool
 	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM delivery_attempts WHERE tenant_id=$1 AND id=$2 AND status='dead')`, approval.TenantID, approval.AttemptID).Scan(&exists); err != nil {
 		return recovery.DeliveryApprovalResult{}, err
@@ -100,7 +103,7 @@ func (r *DeliveryReplayRepository) Replay(ctx context.Context, command recovery.
 		return recovery.DeliveryReplayResult{}, errors.New("complete delivery replay command is required")
 	}
 	var submission recovery.DeliveryReplayResult
-	err := WithSerializableSequence(ctx, r.database, "delivery-replay|"+command.TenantID+"|"+command.AttemptID, 5, func(tx *sql.Tx) error {
+	err := WithTenantSerializableSequence(ctx, r.database, command.TenantID, "delivery-replay|"+command.TenantID+"|"+command.AttemptID, 5, func(tx *sql.Tx) error {
 		var existingKey sql.NullString
 		var existingJob sql.NullString
 		existingErr := tx.QueryRowContext(ctx, `SELECT request_key,sanitized_details->>'webhook_delivery_job_id' FROM delivery_replay_actions WHERE tenant_id=$1 AND attempt_id=$2 AND action='executed'`, command.TenantID, command.AttemptID).Scan(&existingKey, &existingJob)

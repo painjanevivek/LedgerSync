@@ -48,7 +48,9 @@ func (r *AuditRepository) Record(ctx context.Context, event AuditEvent) error {
 		return fmt.Errorf("generate audit event ID: %w", err)
 	}
 	event.OccurredAt = when.UTC()
-	return appendControlledAudit(ctx, r.database, id, event)
+	return WithTenantContext(ctx, r.database, event.TenantID, nil, func(tx *sql.Tx) error {
+		return appendControlledAudit(ctx, tx, id, event)
+	})
 }
 
 func appendControlledAudit(ctx context.Context, executor auditExecutor, id string, event AuditEvent) error {

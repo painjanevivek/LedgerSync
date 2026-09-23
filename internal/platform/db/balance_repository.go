@@ -25,8 +25,14 @@ func NewBalanceRepository(database *sql.DB) (*BalanceRepository, error) {
 // returned. It uses the same non-disclosing result for absent and inaccessible
 // accounts.
 func (r *BalanceRepository) Authorize(ctx context.Context, tenantID, actorID, accountID string) error {
+	return WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		return authorizeBalanceRead(ctx, tx, tenantID, actorID, accountID)
+	})
+}
+
+func authorizeBalanceRead(ctx context.Context, queryer tenantQueryer, tenantID, actorID, accountID string) error {
 	var authorized bool
-	err := r.database.QueryRowContext(ctx, `
+	err := queryer.QueryRowContext(ctx, `
 SELECT EXISTS(
   SELECT 1
   FROM account_owners
@@ -47,8 +53,18 @@ SELECT EXISTS(
 // accounts so callers do not disclose another account's existence.
 func (r *BalanceRepository) ReadCurrent(ctx context.Context, tenantID, actorID, accountID string) (accounts.Balance, error) {
 	var balance accounts.Balance
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		balance, err = readCurrentBalance(ctx, tx, tenantID, actorID, accountID)
+		return err
+	})
+	return balance, err
+}
+
+func readCurrentBalance(ctx context.Context, queryer tenantQueryer, tenantID, actorID, accountID string) (accounts.Balance, error) {
+	var balance accounts.Balance
 	var updatedAt time.Time
-	err := r.database.QueryRowContext(ctx, `
+	err := queryer.QueryRowContext(ctx, `
 SELECT a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at
 FROM accounts AS a
 JOIN account_balance_projections AS b ON b.account_id = a.id
@@ -70,7 +86,17 @@ WHERE a.tenant_id = $1 AND a.id = $2 AND owner.subject_id = $3
 // their controlled negative projections are authoritative in PostgreSQL but are
 // neither customer-visible nor valid customer cache records.
 func (r *BalanceRepository) ListCurrentForTenant(ctx context.Context, tenantID string) ([]accounts.Balance, error) {
-	rows, err := r.database.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 AND a.account_kind='customer' ORDER BY a.id`, tenantID)
+	var balances []accounts.Balance
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		balances, err = listCurrentForTenant(ctx, tx, tenantID)
+		return err
+	})
+	return balances, err
+}
+
+func listCurrentForTenant(ctx context.Context, queryer tenantQueryer, tenantID string) ([]accounts.Balance, error) {
+	rows, err := queryer.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 AND a.account_kind='customer' ORDER BY a.id`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("list current balances: %w", err)
 	}

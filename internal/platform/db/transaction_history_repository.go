@@ -49,8 +49,19 @@ func encodeHistoryCursor(entry transactions.Entry) string {
 }
 
 func (r *TransactionHistoryRepository) ListAccountHistory(ctx context.Context, tenantID, actorID, accountID, rawCursor string, limit int) ([]transactions.Entry, string, error) {
+	var entries []transactions.Entry
+	var next string
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var innerErr error
+		entries, next, innerErr = listAccountHistory(ctx, tx, tenantID, actorID, accountID, rawCursor, limit)
+		return innerErr
+	})
+	return entries, next, err
+}
+
+func listAccountHistory(ctx context.Context, queryer tenantQueryer, tenantID, actorID, accountID, rawCursor string, limit int) ([]transactions.Entry, string, error) {
 	var allowed bool
-	if err := r.database.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM account_owners WHERE tenant_id=$1 AND account_id=$2 AND subject_id=$3 AND permission IN ('read','debit'))`, tenantID, accountID, actorID).Scan(&allowed); err != nil {
+	if err := queryer.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM account_owners WHERE tenant_id=$1 AND account_id=$2 AND subject_id=$3 AND permission IN ('read','debit'))`, tenantID, accountID, actorID).Scan(&allowed); err != nil {
 		return nil, "", fmt.Errorf("authorize history: %w", err)
 	}
 	if !allowed {
@@ -60,7 +71,7 @@ func (r *TransactionHistoryRepository) ListAccountHistory(ctx context.Context, t
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := queryer.QueryContext(ctx, `
 SELECT transfer.id, CASE WHEN transfer.debit_account_id = $2 THEN 'debit' ELSE 'credit' END, transfer.amount_minor,
  transfer.currency,transfer.status,transfer.completed_at,COALESCE(correction.id::text,''),COALESCE(correction.status,''),
  CASE WHEN correction.id IS NULL THEN '' WHEN correction.original_transfer_id=transfer.id THEN 'original' ELSE 'compensation' END,

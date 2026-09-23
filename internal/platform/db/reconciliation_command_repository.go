@@ -28,6 +28,9 @@ func (r *ReconciliationRepository) RunCommand(ctx context.Context, command recon
 		return submission, fmt.Errorf("%w: begin command: %w", reconciliation.ErrCommandUnavailable, err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, command.TenantID); err != nil {
+		return submission, fmt.Errorf("%w: bind command tenant scope: %w", reconciliation.ErrCommandUnavailable, err)
+	}
 
 	stored, replayed, denial, replayedActiveRunID, err := reserveReconciliationCommand(ctx, tx, command, fingerprint)
 	if err != nil {
@@ -127,7 +130,10 @@ func (r *ReconciliationRepository) executeReconciliationCommand(ctx context.Cont
 		return reconciliation.CommandSubmission{}, classifyReconciliationCommandError(err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	// This is deliberately the first statement: a run never takes its financial
+	if err := SetLocalTenantContext(ctx, tx, command.TenantID); err != nil {
+		return reconciliation.CommandSubmission{}, classifyReconciliationCommandError(err)
+	}
+	// This is the first application query: a run never takes its financial
 	// snapshot before proving non-queued tenant execution authority.
 	locked, err := acquireReconciliationLock(ctx, tx, command.TenantID)
 	if err != nil {

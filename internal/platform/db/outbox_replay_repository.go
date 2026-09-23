@@ -48,6 +48,9 @@ func (r *OutboxReplayRepository) Approve(ctx context.Context, approval recovery.
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, approval.TenantID); err != nil {
+		return err
+	}
 	var exists bool
 	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM outbox_events WHERE tenant_id=$1 AND id=$2 AND dead_at IS NOT NULL AND published_at IS NULL)`, approval.TenantID, approval.EventID).Scan(&exists); err != nil {
 		return err
@@ -98,6 +101,9 @@ func (r *OutboxReplayRepository) Replay(ctx context.Context, command recovery.Re
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, command.TenantID); err != nil {
+		return err
+	}
 	var approver, reason string
 	err = tx.QueryRowContext(ctx, `SELECT actor_subject_id,reason_code FROM outbox_replay_actions WHERE tenant_id=$1 AND event_id=$2 AND action='approved' AND correlation_id=$3 ORDER BY created_at DESC LIMIT 1 FOR UPDATE`, command.TenantID, command.EventID, command.CorrelationID).Scan(&approver, &reason)
 	if errors.Is(err, sql.ErrNoRows) {

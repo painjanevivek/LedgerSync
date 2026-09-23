@@ -104,6 +104,15 @@ BEGIN
     EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz) FROM PUBLIC';
     EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_rollback_provisioned_tenant_v1(uuid,text,uuid,timestamptz) TO ledgersync_provisioning';
   END IF;
+  IF to_regprocedure('public.tenant_context_allows_v1(uuid)') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.tenant_context_allows_v1(uuid) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.tenant_context_allows_v1(uuid) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.tenant_context_allows_v1(uuid) TO ledgersync_api,ledgersync_worker,ledgersync_reconciliation,ledgersync_provisioning,ledgersync_support_readonly';
+  END IF;
+  IF to_regprocedure('public.enforce_tenant_context_if_present_v1()') IS NOT NULL THEN
+    EXECUTE 'ALTER FUNCTION public.enforce_tenant_context_if_present_v1() OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.enforce_tenant_context_if_present_v1() FROM PUBLIC';
+  END IF;
 END $$;
 
 -- SECURITY DEFINER command functions run as the non-login migration owner.

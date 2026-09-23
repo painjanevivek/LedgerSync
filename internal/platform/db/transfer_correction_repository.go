@@ -38,7 +38,7 @@ func NewTransferCorrectionRepository(database *sql.DB, clock func() time.Time) (
 }
 
 func (r *TransferCorrectionRepository) Request(ctx context.Context, command appcorrections.RequestCommand, fingerprint [sha256.Size]byte) (submission appcorrections.Submission, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction|"+strings.ToLower(command.TenantID)+"|"+command.OriginalTransferID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction|"+strings.ToLower(command.TenantID)+"|"+command.OriginalTransferID, 5, func(tx *sql.Tx) error {
 		var id string
 		var replayed bool
 		if err := tx.QueryRowContext(ctx, `SELECT correction_id::text,replayed FROM public.controlled_request_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
@@ -58,7 +58,7 @@ func (r *TransferCorrectionRepository) Request(ctx context.Context, command appc
 }
 
 func (r *TransferCorrectionRepository) Approve(ctx context.Context, command appcorrections.DecisionCommand) (event appcorrections.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		if err := executeControlledCorrectionDecision(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, "approve", command.Reason, command.CorrelationID, command.StepUpAuthenticatedAt, command.DecidedAt); err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func (r *TransferCorrectionRepository) Approve(ctx context.Context, command appc
 }
 
 func (r *TransferCorrectionRepository) Reject(ctx context.Context, command appcorrections.DecisionCommand) (event appcorrections.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		if err := executeControlledCorrectionDecision(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, "reject", command.Reason, command.CorrelationID, command.StepUpAuthenticatedAt, command.DecidedAt); err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func (r *TransferCorrectionRepository) Reject(ctx context.Context, command appco
 }
 
 func (r *TransferCorrectionRepository) Cancel(ctx context.Context, command appcorrections.CancelCommand) (event appcorrections.Event, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-decision|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		if err := executeControlledCorrectionDecision(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrectionID, "cancel", command.Reason, command.CorrelationID, time.Time{}, command.CancelledAt); err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (r *TransferCorrectionRepository) Cancel(ctx context.Context, command appco
 }
 
 func (r *TransferCorrectionRepository) Post(ctx context.Context, command appcorrections.PostCommand) (submission appcorrections.Submission, err error) {
-	err = WithSerializableSequence(ctx, r.database, "transfer-correction-post|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "transfer-correction-post|"+strings.ToLower(command.TenantID)+"|"+command.CorrectionID, 5, func(tx *sql.Tx) error {
 		var replayed bool
 		if queryErr := tx.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
 			command.TenantID, command.ActorSubjectID, command.CorrectionID,
@@ -170,13 +170,29 @@ func classifyControlledCorrectionLifecycleError(err error) error {
 }
 
 func (r *TransferCorrectionRepository) Get(ctx context.Context, tenantID, actorID, correctionID string) (appcorrections.Event, error) {
-	if err := authorizeCorrectionReaderDB(ctx, r.database, tenantID, actorID); err != nil {
-		return appcorrections.Event{}, err
-	}
-	return readCorrectionByID(ctx, r.database, tenantID, correctionID)
+	var event appcorrections.Event
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		if err := authorizeCorrectionReaderDB(ctx, tx, tenantID, actorID); err != nil {
+			return err
+		}
+		var err error
+		event, err = readCorrectionByID(ctx, tx, tenantID, correctionID)
+		return err
+	})
+	return event, err
 }
 func (r *TransferCorrectionRepository) List(ctx context.Context, tenantID, actorID string, query appcorrections.Query) (appcorrections.Page, error) {
-	if err := authorizeCorrectionReaderDB(ctx, r.database, tenantID, actorID); err != nil {
+	var page appcorrections.Page
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		page, err = listCorrections(ctx, tx, tenantID, actorID, query)
+		return err
+	})
+	return page, err
+}
+
+func listCorrections(ctx context.Context, queryer tenantQueryer, tenantID, actorID string, query appcorrections.Query) (appcorrections.Page, error) {
+	if err := authorizeCorrectionReaderDB(ctx, queryer, tenantID, actorID); err != nil {
 		return appcorrections.Page{}, err
 	}
 	var before time.Time
@@ -196,7 +212,7 @@ func (r *TransferCorrectionRepository) List(ctx context.Context, tenantID, actor
 		}
 		beforeID = parts[1]
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT `+correctionColumns+` FROM transfer_corrections c JOIN transfers original ON original.id=c.original_transfer_id LEFT JOIN transfers compensation ON compensation.id=c.compensation_transfer_id WHERE c.tenant_id=$1 AND ($2='' OR c.status=$2) AND ($3::timestamptz IS NULL OR (c.requested_at,c.id)<($3::timestamptz,$4::uuid)) ORDER BY c.requested_at DESC,c.id DESC LIMIT $5`, tenantID, query.Status, nullableTime(before), nullableString(beforeID), query.Limit+1)
+	rows, err := queryer.QueryContext(ctx, `SELECT `+correctionColumns+` FROM transfer_corrections c JOIN transfers original ON original.id=c.original_transfer_id LEFT JOIN transfers compensation ON compensation.id=c.compensation_transfer_id WHERE c.tenant_id=$1 AND ($2='' OR c.status=$2) AND ($3::timestamptz IS NULL OR (c.requested_at,c.id)<($3::timestamptz,$4::uuid)) ORDER BY c.requested_at DESC,c.id DESC LIMIT $5`, tenantID, query.Status, nullableTime(before), nullableString(beforeID), query.Limit+1)
 	if err != nil {
 		return appcorrections.Page{}, err
 	}
@@ -246,7 +262,7 @@ func scanCorrection(scanner correctionScanner) (appcorrections.Event, error) {
 	return event, nil
 }
 
-func authorizeCorrectionReaderDB(ctx context.Context, database *sql.DB, tenantID, actorID string) error {
+func authorizeCorrectionReaderDB(ctx context.Context, database tenantQueryer, tenantID, actorID string) error {
 	var allowed bool
 	err := database.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenant_subject_roles WHERE tenant_id=$1 AND subject_id=$2 AND role IN ('operator','finance','auditor'))`, tenantID, actorID).Scan(&allowed)
 	if err != nil {

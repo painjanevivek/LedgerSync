@@ -34,7 +34,7 @@ func NewDeveloperWebhookRepository(database *sql.DB, clock func() time.Time) (*D
 
 func (r *DeveloperWebhookRepository) RegisterWebhook(ctx context.Context, command developerplatform.RegisterWebhookCommand, fingerprint [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-register|"+command.TenantID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "developer-webhook-register|"+command.TenantID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (r *DeveloperWebhookRepository) RegisterWebhook(ctx context.Context, comman
 
 func (r *DeveloperWebhookRepository) VerifyWebhook(ctx context.Context, command developerplatform.VerifyWebhookCommand, fingerprint, challengeDigest [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-verify|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "developer-webhook-verify|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -111,7 +111,7 @@ func (r *DeveloperWebhookRepository) VerifyWebhook(ctx context.Context, command 
 
 func (r *DeveloperWebhookRepository) RotateWebhook(ctx context.Context, command developerplatform.RotateWebhookCommand, fingerprint [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-rotate|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "developer-webhook-rotate|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -151,7 +151,7 @@ func (r *DeveloperWebhookRepository) RotateWebhook(ctx context.Context, command 
 
 func (r *DeveloperWebhookRepository) DisableWebhook(ctx context.Context, command developerplatform.DisableWebhookCommand, fingerprint [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-disable|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "developer-webhook-disable|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}

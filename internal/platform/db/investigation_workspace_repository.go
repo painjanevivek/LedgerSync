@@ -20,7 +20,17 @@ func (r *InvestigationRepository) ListWorkspaces(ctx context.Context, tenantID, 
 	if r == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" || !access.Any() {
 		return investigation.WorkspacePage{}, investigation.ErrInvalidWorkspace
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT id::text,title,taxonomy,status,version,created_at,updated_at,closed_at
+	var page investigation.WorkspacePage
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var err error
+		page, err = listWorkspaces(ctx, tx, tenantID, actorID, access)
+		return err
+	})
+	return page, err
+}
+
+func listWorkspaces(ctx context.Context, queryer tenantQueryer, tenantID, actorID string, access investigation.SearchAccess) (investigation.WorkspacePage, error) {
+	rows, err := queryer.QueryContext(ctx, `SELECT id::text,title,taxonomy,status,version,created_at,updated_at,closed_at
 FROM investigation_workspaces workspace
 WHERE tenant_id=$1 AND owner_subject_id=$2 AND (
  (root_record_type='account' AND $3 AND EXISTS(SELECT 1 FROM accounts record JOIN account_owners owner ON owner.tenant_id=record.tenant_id AND owner.account_id=record.id WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id AND owner.subject_id=$2 AND owner.permission IN ('read','debit') AND record.account_kind='customer')) OR
@@ -80,7 +90,7 @@ func (r *InvestigationRepository) CreateWorkspace(ctx context.Context, command i
 		return investigation.Workspace{}, err
 	}
 	when := workspaceTime(command.OccurredAt)
-	err = WithSerializableSequence(ctx, r.database, "investigation-workspace-owner:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, command.TenantID, "investigation-workspace-owner:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var count int
 		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM investigation_workspaces WHERE tenant_id=$1 AND owner_subject_id=$2 AND status='open'`, command.TenantID, command.ActorID).Scan(&count); err != nil {
 			return err
@@ -217,7 +227,18 @@ func (r *InvestigationRepository) readWorkspaceReferences(ctx context.Context, t
 }
 
 func (r *InvestigationRepository) readWorkspaceHistory(ctx context.Context, tenantID, actorID, workspaceID string) ([]investigation.WorkspaceHistoryItem, bool, error) {
-	rows, err := r.database.QueryContext(ctx, `SELECT event_type,actor_subject_id=$2,sanitized_metadata->>'workspace_version',sanitized_metadata->>'status',occurred_at FROM audit_events WHERE tenant_id=$1 AND target_type='investigation_workspace' AND target_id=$3 AND event_type IN ('investigation.workspace_created','investigation.workspace_handed_off','investigation.workspace_closed','investigation.workspace_reopened') ORDER BY occurred_at DESC,id DESC LIMIT $4`, tenantID, actorID, workspaceID, investigation.MaxWorkspaceHistoryItems+1)
+	var items []investigation.WorkspaceHistoryItem
+	var truncated bool
+	err := WithTenantContext(ctx, r.database, tenantID, nil, func(tx *sql.Tx) error {
+		var innerErr error
+		items, truncated, innerErr = readWorkspaceHistory(ctx, tx, tenantID, actorID, workspaceID)
+		return innerErr
+	})
+	return items, truncated, err
+}
+
+func readWorkspaceHistory(ctx context.Context, queryer tenantQueryer, tenantID, actorID, workspaceID string) ([]investigation.WorkspaceHistoryItem, bool, error) {
+	rows, err := queryer.QueryContext(ctx, `SELECT event_type,actor_subject_id=$2,sanitized_metadata->>'workspace_version',sanitized_metadata->>'status',occurred_at FROM audit_events WHERE tenant_id=$1 AND target_type='investigation_workspace' AND target_id=$3 AND event_type IN ('investigation.workspace_created','investigation.workspace_handed_off','investigation.workspace_closed','investigation.workspace_reopened') ORDER BY occurred_at DESC,id DESC LIMIT $4`, tenantID, actorID, workspaceID, investigation.MaxWorkspaceHistoryItems+1)
 	if err != nil {
 		return nil, false, fmt.Errorf("read investigation workspace history: %w", err)
 	}
@@ -294,7 +315,7 @@ func (r *InvestigationRepository) mutateWorkspace(ctx context.Context, tenantID,
 		return investigation.WorkspaceReceipt{}, err
 	}
 	receipt := investigation.WorkspaceReceipt{InvestigationID: workspaceID, Outcome: strings.TrimPrefix(eventType, "investigation.workspace_"), OccurredAt: when}
-	err = WithSerializableSequence(ctx, r.database, "investigation-workspace:"+tenantID+":"+workspaceID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, tenantID, "investigation-workspace:"+tenantID+":"+workspaceID, 3, func(tx *sql.Tx) error {
 		var taxonomy, currentStatus, rootType, rootID string
 		var version int64
 		err := tx.QueryRowContext(ctx, `SELECT taxonomy,status,version,root_record_type,root_record_id::text FROM investigation_workspaces WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3 FOR UPDATE`, tenantID, actorID, workspaceID).Scan(&taxonomy, &currentStatus, &version, &rootType, &rootID)

@@ -41,6 +41,9 @@ func (r *ProvisioningRepository) Apply(ctx context.Context, configuration provis
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, configuration.TenantID); err != nil {
+		return err
+	}
 	var existing []byte
 	err = tx.QueryRowContext(ctx, `SELECT configuration_fingerprint FROM partner_provisioning_requests WHERE correlation_id=$1 AND status='applied'`, correlation).Scan(&existing)
 	if err == nil {
@@ -128,6 +131,9 @@ func (r *ProvisioningRepository) Rollback(ctx context.Context, tenantID, actor, 
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := SetLocalTenantContext(ctx, tx, tenantID); err != nil {
+		return err
+	}
 	var alreadyRolledBack bool
 	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM partner_provisioning_requests WHERE tenant_id=$1 AND correlation_id=$2 AND status='rolled_back')`, tenantID, correlation).Scan(&alreadyRolledBack); err != nil {
 		return err
