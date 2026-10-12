@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { NextRequest, NextResponse } from "next/server";
 
 import { createLocalSession } from "../../src/lib/local-access";
 import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF, hasValidHost, readPublicOrigin } from "../../src/lib/security";
-import { createSession, readSession, sessionCookie, type Session } from "../../src/lib/session";
+import { createSession, expiredSessionCookie, maxSessionCookieValueBytes, readSession, sessionCookie, type Session } from "../../src/lib/session";
 import { readTransaction, transactionCookie } from "../../src/lib/oidc";
 import { proxy } from "../../src/proxy";
 
@@ -51,7 +52,7 @@ test("signed sessions preserve the complete bounded operator scope set", () => {
   assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 33 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
 });
 
-test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts", () => {
+test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts", async () => {
   const previousOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN;
   try {
     delete process.env.LEDGERSYNC_PUBLIC_ORIGIN;
@@ -62,8 +63,8 @@ test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts
     const accepted = new NextRequest("http://127.0.0.1:3000/api/session", { headers: { host: "127.0.0.1:3000" } });
     const rebound = new NextRequest("http://attacker.example:3000/api/session", { headers: { host: "attacker.example:3000" } });
     assert.equal(hasValidHost(accepted), true);
-    assert.equal(proxy(accepted).status, 200);
-    const rejected = proxy(rebound);
+    assert.equal((await proxy(accepted)).status, 200);
+    const rejected = await proxy(rebound);
     assert.equal(rejected.status, 421);
     assert.equal(rejected.headers.get("Cache-Control"), "no-store");
   } finally {
@@ -91,6 +92,51 @@ test("insecure cookies are explicit-local only and cannot weaken production", ()
     if (previousDeployment === undefined) delete process.env.LEDGERSYNC_DEPLOYMENT_ENV; else process.env.LEDGERSYNC_DEPLOYMENT_ENV = previousDeployment;
     if (previousSecure === undefined) delete process.env.LEDGERSYNC_COOKIE_SECURE; else process.env.LEDGERSYNC_COOKIE_SECURE = previousSecure;
     if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN; else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
+  }
+});
+
+test("session cookies stay within budget and retain the newest valid consistency requirements", () => {
+  const requirements = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`account-${index}`, `token-${index}-${"x".repeat(700)}`]));
+  const encoded = createSession({ ...session, consistencyRequirements: requirements });
+  const decoded = readSession(encoded);
+  assert.ok(encoded.length <= maxSessionCookieValueBytes);
+  assert.ok(decoded);
+  assert.ok(Object.keys(decoded.consistencyRequirements ?? {}).length <= 10);
+  assert.equal(decoded.consistencyRequirements?.["account-11"], requirements["account-11"]);
+  assert.equal(decoded.consistencyRequirements?.["account-0"], undefined);
+});
+
+test("session creation drops unusable consistency evidence and rejects oversized identity claims", () => {
+  const encoded = createSession({ ...session, consistencyRequirements: { account: "x".repeat(3_000) } });
+  assert.equal(readSession(encoded)?.consistencyRequirements, undefined);
+  assert.throws(
+    () => createSession({ ...session, subjectId: "operator".repeat(600) }),
+    /exceed the cookie budget/,
+  );
+  assert.equal(readSession(`x${encoded.padStart(maxSessionCookieValueBytes, "x")}`), null);
+});
+
+test("browser sessions are opaque, revocable, rotating, and cleared with exact cookie attributes", () => {
+  const previousOrigin = process.env.LEDGERSYNC_PUBLIC_ORIGIN;
+  try {
+    process.env.LEDGERSYNC_PUBLIC_ORIGIN = "http://127.0.0.1:3000";
+    const sessionSource = readFileSync(new URL("../../src/lib/session.ts", import.meta.url), "utf8");
+    const proxySource = readFileSync(new URL("../../src/proxy.ts", import.meta.url), "utf8");
+    const signInSource = readFileSync(new URL("../../src/app/api/auth/sign-in/route.ts", import.meta.url), "utf8");
+    const signOutSource = readFileSync(new URL("../../src/app/api/auth/sign-out/route.ts", import.meta.url), "utf8");
+    assert.match(sessionSource, /authenticationCookiePolicy/);
+    assert.match(sessionSource, /api\/internal\/bff\/sessions\/resolve/);
+    assert.match(proxySource, /resolveOpaqueSession\(browserSession\)/);
+    assert.match(signInSource, /x-ledgersync-session-handle/);
+    assert.match(signOutSource, /revokeOpaqueSession/);
+    const expired = expiredSessionCookie();
+    assert.equal(expired.path, "/");
+    assert.equal(expired.httpOnly, true);
+    assert.equal(expired.maxAge, 0);
+    assert.equal(expired.expires.getTime(), 0);
+  } finally {
+    if (previousOrigin === undefined) delete process.env.LEDGERSYNC_PUBLIC_ORIGIN;
+    else process.env.LEDGERSYNC_PUBLIC_ORIGIN = previousOrigin;
   }
 });
 

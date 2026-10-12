@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isWebhookReplayIdempotencyKey, isWebhookReplayIdentifier } from "@/lib/api/webhook-replay";
-import type { RateLimitStore } from "@/lib/rate-limit";
+import { rateLimitResponse, type RateLimitStore } from "@/lib/rate-limit";
 import { hasValidCSRF, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
 import { isPrivateAPITimeout } from "@/lib/upstream-outcome";
+import { emitGuardrailMetric } from "@/lib/guardrail-metrics";
 
 export type WebhookReplayStage = "approval" | "execution";
 export type WebhookReplayAuthorization = Readonly<{ idempotencyKey: string }>;
@@ -28,6 +29,7 @@ export async function authorizeWebhookReplay(
   if (!hasValidCSRF(request, session)) return jsonError("csrf_failed", 403);
   const authenticatedAt = session.authenticatedAt;
   if (!authenticatedAt || authenticatedAt > Date.now() + 60_000 || Date.now() - authenticatedAt > 10 * 60_000) {
+    emitGuardrailMetric("step_up", "required");
     return jsonError("step_up_required", 403);
   }
   const idempotencyKey = request.headers.get("idempotency-key");
@@ -35,11 +37,8 @@ export async function authorizeWebhookReplay(
   const mediaType = request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
   if (mediaType !== "application/json") return jsonError("unsupported_media_type", 415);
   const decision = await rateLimit.consume(`webhook-replay:${stage}:${session.tenantId}:${session.subjectId}`, 6, 60);
-  if (!decision.allowed) {
-    const response = jsonError("rate_limited", 429);
-    response.headers.set("Retry-After", String(decision.retryAfterSeconds));
-    return response;
-  }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return { idempotencyKey };
 }
 

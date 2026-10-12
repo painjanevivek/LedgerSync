@@ -8,8 +8,9 @@ import {
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
 import { readPublicOrigin } from "@/lib/security";
+import { authenticationCookiePolicy } from "@/lib/cookie-policy";
 
-const transactionCookieName = "ledgersync_oidc_transaction";
+const transactionCookieName = authenticationCookiePolicy().transactionName;
 const transactionLifetimeMs = 10 * 60 * 1000;
 
 type Discovery = Readonly<{
@@ -346,13 +347,18 @@ export { transactionCookieName };
 
 export function transactionCookie(value: string) {
   readPublicOrigin();
+  const policy = authenticationCookiePolicy();
   return {
-    name: transactionCookieName,
+    name: policy.transactionName,
     value,
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: policy.secure,
     path: "/api/auth",
     maxAge: transactionLifetimeMs / 1000,
   };
+}
+
+export function expiredTransactionCookie() {
+  return { ...transactionCookie(""), maxAge: 0, expires: new Date(0) };
 }
