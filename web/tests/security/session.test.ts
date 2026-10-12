@@ -7,11 +7,112 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createLocalSession } from "../../src/lib/local-access";
 import { addSecurityHeaders, contentSecurityPolicy, hasValidCSRF, hasValidHost, readPublicOrigin } from "../../src/lib/security";
-import { createSession, expiredSessionCookie, maxSessionCookieValueBytes, readSession, sessionCookie, type Session } from "../../src/lib/session";
+import { createSession, expiredSessionCookie, maxSessionCookieValueBytes, readSession, sessionCookie, sessionCookieName, type Session } from "../../src/lib/session";
 import { readTransaction, transactionCookie } from "../../src/lib/oidc";
 import { proxy } from "../../src/proxy";
 
 process.env.LEDGERSYNC_WEB_SESSION_SECRET = "phase-five-test-secret-that-is-long-enough";
+
+async function withOpaqueSessionProxy(run: () => Promise<void>) {
+  const keys = [
+    "LEDGERSYNC_PUBLIC_ORIGIN", "LEDGERSYNC_ENV", "LEDGERSYNC_DEPLOYMENT_ENV",
+    "LEDGERSYNC_PRIVATE_API_URL", "LEDGERSYNC_PRIVATE_API_TOKEN", "LEDGERSYNC_PRIVATE_API_TOKEN_FILE",
+    "LEDGERSYNC_PRIVATE_API_TOKEN_URL", "LEDGERSYNC_PRIVATE_API_CLIENT_ID",
+    "LEDGERSYNC_PRIVATE_API_CLIENT_SECRET", "LEDGERSYNC_PRIVATE_API_AUDIENCE", "LEDGERSYNC_PRIVATE_API_SCOPE",
+  ] as const;
+  const previous = new Map(keys.map((key) => [key, process.env[key]]));
+  const previousFetch = globalThis.fetch;
+  for (const key of keys) delete process.env[key];
+  Object.assign(process.env, {
+    LEDGERSYNC_PUBLIC_ORIGIN: "http://127.0.0.1:3000",
+    LEDGERSYNC_ENV: "development",
+    LEDGERSYNC_DEPLOYMENT_ENV: "development",
+    LEDGERSYNC_PRIVATE_API_URL: "http://private-api.example",
+    LEDGERSYNC_PRIVATE_API_TOKEN: "test-only-workload-credential",
+  });
+  try {
+    await run();
+  } finally {
+    globalThis.fetch = previousFetch;
+    for (const key of keys) {
+      const value = previous.get(key);
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+}
+
+function opaqueProxyRequest(path: string, method = "GET") {
+  return new NextRequest(`http://127.0.0.1:3000${path}`, {
+    method,
+    headers: {
+      host: "127.0.0.1:3000",
+      cookie: `${sessionCookieName}=${"a".repeat(43)}`,
+      "x-ledgersync-session-handle": "untrusted-client-actor",
+    },
+  });
+}
+
+test("session store failures block reads and mutations with a sanitized retryable response", async () => {
+  await withOpaqueSessionProxy(async () => {
+    const failures = [
+      async () => { throw new Error("private database credentials must not reach the browser"); },
+      async () => new Response("private infrastructure details", { status: 503 }),
+      async () => new Response("private infrastructure details", { status: 500 }),
+      async () => new Response("not valid JSON", { status: 200 }),
+    ];
+    for (const failure of failures) {
+      globalThis.fetch = failure;
+      for (const [path, method] of [["/api/me/accounts", "GET"], ["/api/transfers", "POST"]]) {
+        const response = await proxy(opaqueProxyRequest(path, method));
+        assert.equal(response.status, 503);
+        assert.deepEqual(await response.json(), { error: { code: "temporary_unavailable" } });
+        assert.equal(response.headers.get("Cache-Control"), "private, no-store");
+        assert.equal(response.headers.get("Retry-After"), "5");
+        assert.equal(response.headers.get("Set-Cookie"), null);
+        assert.equal(response.headers.get("x-middleware-next"), null);
+        assert.equal(response.headers.get("x-middleware-request-x-ledgersync-session-handle"), null);
+        assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+      }
+    }
+  });
+});
+
+test("a session store outage does not redirect protected pages or block public pages", async () => {
+  await withOpaqueSessionProxy(async () => {
+    let calls = 0;
+    globalThis.fetch = async () => { calls += 1; throw new Error("private failure"); };
+    const response = await proxy(opaqueProxyRequest("/accounts"));
+    assert.equal(response.status, 503);
+    assert.equal(await response.text(), "Workspace is temporarily unavailable. Please retry.");
+    assert.equal(response.headers.get("Location"), null);
+    assert.equal(response.headers.get("Set-Cookie"), null);
+    assert.equal((await proxy(opaqueProxyRequest("/"))).headers.get("x-middleware-next"), "1");
+    assert.equal(calls, 1);
+  });
+});
+
+test("confirmed session rejection stays denied and an existing cookie works after store recovery", async () => {
+  await withOpaqueSessionProxy(async () => {
+    for (const status of [401, 404]) {
+      globalThis.fetch = async () => new Response(null, { status });
+      const denied = await proxy(opaqueProxyRequest("/api/session"));
+      assert.equal(denied.headers.get("x-middleware-next"), "1");
+      assert.equal(denied.headers.get("x-middleware-request-cookie"), null);
+      assert.equal(denied.headers.get("x-middleware-request-x-ledgersync-session-handle"), null);
+    }
+    globalThis.fetch = async () => new Response(null, { status: 503 });
+    assert.equal((await proxy(opaqueProxyRequest("/api/session"))).status, 503);
+    globalThis.fetch = async () => Response.json({
+      subject_id: "operator-a", tenant_id: "tenant-a", csrf_token: "csrf-token",
+      expires_at: Date.now() + 60_000, roles: [], scopes: ["accounts:read"],
+    });
+    const recovered = await proxy(opaqueProxyRequest("/api/session"));
+    assert.equal(recovered.headers.get("x-middleware-next"), "1");
+    assert.equal(recovered.headers.get("x-middleware-request-x-ledgersync-session-handle"), "a".repeat(43));
+    const encoded = recovered.headers.get("x-middleware-request-cookie")?.split("=")[1];
+    assert.equal(readSession(encoded)?.subjectId, "operator-a");
+  });
+});
 
 const session: Session = { subjectId: "operator-a", tenantId: "tenant-a", csrfToken: "csrf-token", expiresAt: Date.now() + 60_000 };
 
