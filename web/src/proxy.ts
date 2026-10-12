@@ -17,7 +17,18 @@ export async function proxy(_request: NextRequest) {
     try {
       resolved = await resolveOpaqueSession(browserSession);
     } catch {
-      resolved = null;
+      // Store failure is not evidence of expiry or revocation. Deny the request
+      // without clearing the browser cookie or forwarding an unverified actor.
+      const unavailable = _request.nextUrl.pathname.startsWith("/api/")
+        ? NextResponse.json({ error: { code: "temporary_unavailable" } }, { status: 503 })
+        : new NextResponse("Workspace is temporarily unavailable. Please retry.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      unavailable.headers.set("Cache-Control", "private, no-store");
+      unavailable.headers.set("Retry-After", "5");
+      unavailable.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return addSecurityHeaders(unavailable, nonce);
     }
     const requestCookies = _request.cookies.getAll()
       .filter((cookie) => cookie.name !== sessionCookieName)
