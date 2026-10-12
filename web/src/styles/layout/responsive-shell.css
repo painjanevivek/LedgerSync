@@ -165,14 +165,14 @@
         min-width: 0;
         gap: 2px;
         overflow: hidden;
-        font-size: 11px;
+        font-size: var(--type-label);
         font-weight: 750;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
     .mobile-context small {
         color: var(--rail-muted);
-        font-size: 10px;
+        font-size: var(--type-label);
     }
     .menu-button {
         display: inline-flex;
@@ -184,7 +184,7 @@
         border: 1px solid var(--navigation-mobile-control-border);
         background: transparent;
         color: var(--white);
-        font-size: 11px;
+        font-size: var(--type-label);
     }
     .menu-button svg {
         width: 18px;
@@ -397,7 +397,7 @@
         padding: 9px 11px;
         background: var(--paper-subtle);
         color: var(--muted);
-        font-size: 10px;
+        font-size: var(--type-label);
     }
     .data-table th:first-child,.data-table td:first-child {
         position: sticky;
@@ -692,11 +692,6 @@
     .orientation-checklist-loading li {
         grid-template-columns: 30px minmax(0,1fr) auto;
     }
-    .orientation-step-actions {
-        grid-column: 3/-1;
-        justify-self: start !important;
-        justify-content: flex-start;
-    }
     .stage-evidence-list>li {
         grid-template-columns: minmax(160px,1fr) auto auto;
     }
@@ -829,7 +824,7 @@
     .orientation-checklist-loading .status-label {
         grid-column: 2;
     }
-    .orientation-checklist .status-label,.orientation-step-actions {
+    .orientation-checklist .status-label {
         grid-column: 3;
         justify-self: start;
     }
@@ -968,7 +963,31 @@
     }
     .developer-boundary {
         grid-template-columns: 34px minmax(0,1fr);
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
         padding: 18px 14px;
+    }
+    .developer-boundary > *,
+    .developer-boundary dd,
+    .developer-boundary code {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+    .section-developer,
+    .section-developer :where(header, div, p, h3) {
+        min-width: 0;
+        max-width: 100%;
+    }
+    .section-developer code:not(pre code) {
+        display: inline-block;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
     }
     .developer-boundary dl {
         grid-column: 1/-1;
@@ -1083,4 +1102,3 @@
         border-bottom: 0;
     }
 }
-

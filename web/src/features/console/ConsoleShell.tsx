@@ -52,7 +52,8 @@ export type ConsoleSection =
   | "developer"
   | "recovery"
   | "guide"
-  | "search";
+  | "search"
+  | "tasks";
 
 type Props = Readonly<{
   section: ConsoleSection;

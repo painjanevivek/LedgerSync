@@ -29,7 +29,7 @@ type ConsoleSessionContextValue = Readonly<{
 
 const ConsoleSessionContext = createContext<ConsoleSessionContextValue | null>(null);
 
-function isConsoleSession(value: unknown): value is ConsoleSession {
+export function isConsoleSession(value: unknown): value is ConsoleSession {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<ConsoleSession>;
   return (
@@ -47,10 +47,10 @@ function isConsoleSession(value: unknown): value is ConsoleSession {
   );
 }
 
-export function ConsoleSessionBoundary({ children }: Readonly<{ children: ReactNode }>) {
+export function ConsoleSessionBoundary({ children, initialSession, onResolved }: Readonly<{ children: ReactNode; initialSession?: ConsoleSession; onResolved?: (session: ConsoleSession) => void }>) {
   const router = useRouter();
-  const [session, setSession] = useState<ConsoleSession | null>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
+  const [session, setSession] = useState<ConsoleSession | null>(initialSession ?? null);
+  const [sessionLoading, setSessionLoading] = useState(!initialSession);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [publicOrigin, setPublicOrigin] = useState("http://127.0.0.1:3000");
@@ -59,12 +59,14 @@ export function ConsoleSessionBoundary({ children }: Readonly<{ children: ReactN
   const signOutInFlight = useRef(false);
 
   useEffect(() => {
+    if (initialSession) return;
     let active = true;
     void (async () => {
       const response = await readJSON<ConsoleSession>("/api/session");
       if (!active) return;
       if (response.ok && isConsoleSession(response.data)) {
         setSession(response.data);
+        onResolved?.(response.data);
         setSessionError(null);
       } else {
         setSession(null);
@@ -83,7 +85,7 @@ export function ConsoleSessionBoundary({ children }: Readonly<{ children: ReactN
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialSession, onResolved]);
 
   useEffect(() => {
     const update = () => {

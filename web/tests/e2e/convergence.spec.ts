@@ -125,7 +125,7 @@ test("canonical type, touch targets, and reduced motion hold at tablet width", a
     const duration = getComputedStyle(document.querySelector(".side-nav")!).transitionDuration;
     return { h1: px(".page-header h1"), h2: px("h2"), row: px(".data-table td"), label: px(".data-table th"), minimumTarget: Math.min(...targetHeights), duration, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
-  expect(metrics).toMatchObject({ h1: "32px", h2: "18px", row: "14px", label: "12px", overflow: false });
+  expect(metrics).toMatchObject({ h1: "32px", h2: "24px", row: "16px", label: "14px", overflow: false });
   expect(metrics.minimumTarget).toBeGreaterThanOrEqual(44);
   expect(metrics.duration === "0s" || metrics.duration === "1e-05s" || metrics.duration === "0.00001s").toBe(true);
 });

@@ -53,7 +53,9 @@ test("converged controls, boundaries, and reduced motion use the shared design c
   const buttons = readFileSync(new URL("../../src/styles/primitives/buttons.css", import.meta.url), "utf8");
   const tables = readFileSync(new URL("../../src/styles/primitives/tables.css", import.meta.url), "utf8");
   const responsive = readFileSync(new URL("../../src/styles/layout/responsive-shell.css", import.meta.url), "utf8");
-  assert.match(tokens, /--line-strong:\s*#89968e/);
+  assert.match(tokens, /--line-strong:\s*#8a98ae/);
+  assert.match(tokens, /--ink:\s*#1b2d45/);
+  assert.match(tokens, /--blue-accent:\s*#315bdd/);
   assert.match(buttons, /\.button\s*\{[^}]*min-height:\s*var\(--target-compact\)/);
   assert.match(tables, /\.data-table\s*\{[^}]*font-size:\s*var\(--type-body\)/);
   assert.match(responsive, /transition-duration:\s*\.01ms !important/);
