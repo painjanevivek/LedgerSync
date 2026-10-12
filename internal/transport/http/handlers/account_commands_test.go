@@ -19,6 +19,8 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
+const accountCommandTestAccountID = "10000000-0000-4000-8000-000000000001"
+
 type accountCommandTestRepository struct {
 	createCommand accounts.CreateAccountCommand
 	updateCommand accounts.UpdateAccountMetadataCommand
@@ -80,7 +82,7 @@ func accountCommandRequest(method, target, body, key string) *http.Request {
 
 func TestCreateAccountCommandReturnsTransportDTOAndReplayHeader(t *testing.T) {
 	repository := &accountCommandTestRepository{submission: accounts.CommandSubmission{Replayed: true, Result: accounts.CommandResult{
-		AccountID: "account-1", TenantID: "tenant", Currency: "INR", Status: "active", DisplayName: "भारत Operations",
+		AccountID: accountCommandTestAccountID, TenantID: "tenant", Currency: "INR", Status: "active", DisplayName: "भारत Operations",
 		Reference: "ops-inr", Category: "operating", Version: "1", AvailableMinor: "0", LedgerMinor: "0",
 		CreatedAt: "2026-08-25T10:00:00Z", UpdatedAt: "2026-08-25T10:00:00Z",
 	}}}
@@ -126,7 +128,7 @@ func TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion(t *tes
 			repository := &accountCommandTestRepository{}
 			handler := accountCommandTestHandler(t, repository, "accounts:write")
 			response := httptest.NewRecorder()
-			handler.ServeHTTP(response, accountCommandRequest(http.MethodPatch, "/api/accounts/account-1", body, "account-patch-key-0001"))
+			handler.ServeHTTP(response, accountCommandRequest(http.MethodPatch, "/api/accounts/"+accountCommandTestAccountID, body, "account-patch-key-0001"))
 			if response.Code != http.StatusBadRequest || response.Header().Get("Cache-Control") != "no-store" {
 				t.Fatalf("status=%d headers=%v body=%s", response.Code, response.Header(), response.Body.String())
 			}
@@ -143,17 +145,17 @@ func TestPatchAccountCommandRoutesMetadataAndLifecycleIntent(t *testing.T) {
 		"status":   `{"expected_version":"7","target_status":"frozen","reason":"  नियमित समीक्षा  "}`,
 	} {
 		t.Run(name, func(t *testing.T) {
-			repository := &accountCommandTestRepository{submission: accounts.CommandSubmission{Result: accounts.CommandResult{AccountID: "account-1", Version: "8"}}}
+			repository := &accountCommandTestRepository{submission: accounts.CommandSubmission{Result: accounts.CommandResult{AccountID: accountCommandTestAccountID, Version: "8"}}}
 			handler := accountCommandTestHandler(t, repository, "accounts:write")
 			response := httptest.NewRecorder()
-			handler.ServeHTTP(response, accountCommandRequest(http.MethodPatch, "/api/accounts/account-1", body, "account-patch-key-0002"))
+			handler.ServeHTTP(response, accountCommandRequest(http.MethodPatch, "/api/accounts/"+accountCommandTestAccountID, body, "account-patch-key-0002"))
 			if response.Code != http.StatusOK {
 				t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 			}
-			if name == "metadata" && (repository.updateCommand.AccountID != "account-1" || repository.updateCommand.ExpectedVersion != 7 || repository.updateCommand.Reference != "payroll-inr") {
+			if name == "metadata" && (repository.updateCommand.AccountID != accountCommandTestAccountID || repository.updateCommand.ExpectedVersion != 7 || repository.updateCommand.Reference != "payroll-inr") {
 				t.Fatalf("unexpected metadata command: %#v", repository.updateCommand)
 			}
-			if name == "status" && (repository.statusCommand.AccountID != "account-1" || repository.statusCommand.ExpectedVersion != 7 || repository.statusCommand.TargetStatus != accountdomain.StatusFrozen || repository.statusCommand.Reason != "नियमित समीक्षा") {
+			if name == "status" && (repository.statusCommand.AccountID != accountCommandTestAccountID || repository.statusCommand.ExpectedVersion != 7 || repository.statusCommand.TargetStatus != accountdomain.StatusFrozen || repository.statusCommand.Reason != "नियमित समीक्षा") {
 				t.Fatalf("unexpected lifecycle command: %#v", repository.statusCommand)
 			}
 		})

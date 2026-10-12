@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 )
 
 // OIDCProvider verifies Cognito-style OAuth access tokens. Tenant authority is
@@ -38,19 +40,20 @@ func NewOIDCProvider(ctx context.Context, config OIDCProviderConfig) (*OIDCProvi
 	if config.IssuerURL == "" || config.ResourceAudience == "" || len(config.ClientTenants) == 0 {
 		return nil, errors.New("OIDC issuer URL, resource audience, and client tenant mapping are required")
 	}
+	clientTenants := make(map[string]string, len(config.ClientTenants))
+	for clientID, tenantID := range config.ClientTenants {
+		clientID = strings.TrimSpace(clientID)
+		canonicalTenantID, err := identifier.Parse(context.Background(), identifier.KindTenant, tenantID)
+		if clientID == "" || err != nil {
+			return nil, errors.New("OIDC client tenant mapping is invalid")
+		}
+		clientTenants[clientID] = canonicalTenantID.String()
+	}
 	discoveryContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	provider, err := oidc.NewProvider(discoveryContext, config.IssuerURL)
 	if err != nil {
 		return nil, errors.New("discover OIDC provider")
-	}
-	clientTenants := make(map[string]string, len(config.ClientTenants))
-	for clientID, tenantID := range config.ClientTenants {
-		clientID, tenantID = strings.TrimSpace(clientID), strings.TrimSpace(tenantID)
-		if clientID == "" || tenantID == "" {
-			return nil, errors.New("OIDC client tenant mapping is invalid")
-		}
-		clientTenants[clientID] = tenantID
 	}
 	return &OIDCProvider{verifier: provider.Verifier(&oidc.Config{
 		SkipClientIDCheck:    true,

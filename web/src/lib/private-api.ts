@@ -3,6 +3,7 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 
 import { createActorAssertion } from "@/lib/actor-assertion";
+import { canonicalizeUUIDPathSegments } from "@/lib/canonical-uuid";
 import type { Session } from "@/lib/session";
 import { jsonError } from "@/lib/security";
 import { getPrivateAPIWorkloadCredential } from "@/lib/workload-credential";
@@ -40,7 +41,7 @@ export async function proxyPrivateGET(request: NextRequest, session: Session, pa
   try {
     const connection = await privateAPIContext(session, request.headers.get("x-request-id") ?? undefined);
     const suffix = query.size ? `?${query}` : "";
-    const upstream = await fetch(`${connection.apiURL}${path}${suffix}`, {
+    const upstream = await fetch(`${connection.apiURL}${canonicalizeUUIDPathSegments(path)}${suffix}`, {
       headers: connection.headers,
       cache: "no-store",
       signal: AbortSignal.timeout(privateReadTimeoutMilliseconds),

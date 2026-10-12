@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseWorkspaceHandoffInput, parseWorkspaceStatusInput, readBoundedWorkspaceBody, sanitizeWorkspaceReceipt } from "@/lib/api/investigation-workspaces";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 import { authorizeInvestigationWorkspaces, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
 import { InMemoryRateLimitStore } from "@/lib/rate-limit";
@@ -11,15 +12,14 @@ import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upst
 
 const rateLimit = new InMemoryRateLimitStore();
 const maximumRequestBytes = 4 << 10;
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const actions = new Set(["handoff", "close", "reopen"]);
 
 export async function POST(request: NextRequest, { params }: Readonly<{ params: Promise<{ investigationId: string; action: string }> }>) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   const authorization = await authorizeInvestigationWorkspaces(request, session, rateLimit, true);
   if (isInvestigationSearchDenial(authorization)) return authorization;
-  const route = await params; const investigationId = route.investigationId.toLowerCase();
-  if (!uuid.test(investigationId) || !actions.has(route.action) || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
+  const route = await params; const investigationId = canonicalUUID(route.investigationId);
+  if (!investigationId || !actions.has(route.action) || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
   let input: ReturnType<typeof parseWorkspaceStatusInput> | ReturnType<typeof parseWorkspaceHandoffInput>;
   try { const body = await readBoundedJSON<unknown>(request, maximumRequestBytes); input = route.action === "handoff" ? parseWorkspaceHandoffInput(body) : parseWorkspaceStatusInput(body); }
   catch { return jsonError("invalid_request", 400); }

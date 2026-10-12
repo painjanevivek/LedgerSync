@@ -6,9 +6,9 @@ import { authorizeOperationsRead, isOperationsReadDenial, proxyOperationsGET, st
 import { InMemoryRateLimitStore } from "@/lib/rate-limit";
 import { jsonError } from "@/lib/security";
 import { readSession, sessionCookieName } from "@/lib/session";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 
 const explainabilityRateLimit = new InMemoryRateLimitStore();
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const requiredScopes = ["transfers:read", "events:read", "reconciliation:read"] as const;
 
 export async function GET(request: NextRequest, context: { params: Promise<{ transferId: string }> }) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tra
   if (!requiredScopes.every((scope) => authorization.session.scopes?.includes(scope))) return jsonError("forbidden", 403);
   const query = strictOperationsQuery(request, []);
   if (!(query instanceof URLSearchParams)) return query;
-  const { transferId } = await context.params;
-  if (!uuid.test(transferId)) return jsonError("not_found", 404);
+  const transferId = canonicalUUID((await context.params).transferId);
+  if (!transferId) return jsonError("validation_failed", 400);
   return proxyOperationsGET(authorization.session, `/api/transfers/${encodeURIComponent(transferId)}/explainability`, query, sanitizeTransferExplainability);
 }

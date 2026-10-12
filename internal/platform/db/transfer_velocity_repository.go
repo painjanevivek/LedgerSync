@@ -25,7 +25,7 @@ func (r *TransferRepository) validateTransferPolicy(ctx context.Context, tx *sql
 	if command.Amount.Currency().Code != r.pilotCurrency {
 		return 0, ErrUnsupportedPilotCurrency
 	}
-	policy, err := loadTransferPolicy(ctx, tx, command.TenantID)
+	policy, err := loadTransferPolicy(ctx, tx, command.TenantID.String())
 	if err != nil {
 		return 0, err
 	}
@@ -42,7 +42,7 @@ func (r *TransferRepository) validateTransferPolicy(ctx context.Context, tx *sql
 	if err := ensureVelocityTotals(ctx, tx, command); err != nil {
 		return 0, err
 	}
-	if err := pruneExpiredVelocity(ctx, tx, command.TenantID, command.OccurredAt.UTC()); err != nil {
+	if err := pruneExpiredVelocity(ctx, tx, command.TenantID.String(), command.OccurredAt.UTC()); err != nil {
 		return 0, err
 	}
 	totals, err := loadVelocityTotals(ctx, tx, command)
