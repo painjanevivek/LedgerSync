@@ -103,6 +103,14 @@ BEGIN
     EXECUTE 'GRANT SELECT,INSERT ON investigation_workspace_references TO ledgersync_api';
     EXECUTE 'GRANT SELECT ON investigation_workspaces,investigation_workspace_references TO ledgersync_support_readonly';
   END IF;
+  IF to_regclass('public.bff_sessions') IS NOT NULL THEN
+    -- Session identity, CSRF, and authorization state are API-private and are
+    -- deliberately excluded from support and analytics roles.
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE,DELETE ON bff_sessions TO ledgersync_api';
+  END IF;
+  IF to_regclass('public.operator_ui_preferences') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON operator_ui_preferences TO ledgersync_api';
+  END IF;
 END $$;
 
 DO $$

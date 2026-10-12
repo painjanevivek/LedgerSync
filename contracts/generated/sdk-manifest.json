@@ -3,14 +3,14 @@
   "api_version": "3.3.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "e1f49a26",
-    "772167c0",
-    "0599ded2",
-    "c0b557c5",
-    "f0b58cf9",
-    "bf101bf1",
-    "c41eba5d",
-    "a87b6156"
+    "27e7922f",
+    "8cb10d26",
+    "b74af21c",
+    "fc484b07",
+    "f0ac2b4a",
+    "09ba9fac",
+    "403a5da2",
+    "b6a55b61"
   ],
   "operations": [
     {

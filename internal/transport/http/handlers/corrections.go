@@ -111,6 +111,11 @@ func (h *CorrectionHandler) List(writer http.ResponseWriter, request *http.Reque
 		httptransport.WriteError(writer, request, publicCorrectionError(err))
 		return
 	}
+	// The public contract requires an array, including a verified empty page.
+	// Normalize only after successful authorization and repository completion.
+	if page.Events == nil {
+		page.Events = []appcorrections.Event{}
+	}
 	writeCorrectionJSON(writer, http.StatusOK, page)
 }
 

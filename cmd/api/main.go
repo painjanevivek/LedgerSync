@@ -266,6 +266,14 @@ func main() {
 				slog.Error("account command route initialization failed", "error", err)
 				os.Exit(1)
 			}
+			if err := registerSessionRoutes(router, database, provider); err != nil {
+				slog.Error("BFF session route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerUIPreferenceRoutes(router, database, provider, authenticator); err != nil {
+				slog.Error("UI preference route initialization failed", "error", err)
+				os.Exit(1)
+			}
 			if err := registerReconciliationCommandRoutes(router, reconciliationCommandRouteConfig{
 				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
 				RateLimitPerMinute: configuration.WriteRateLimitPerMinute, CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
