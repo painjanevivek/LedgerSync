@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { ConsoleSessionBoundary } from "@/features/console/ConsoleSessionBoundary";
+import { RouteProviders } from "@/features/console/WorkspaceProviders";
 import "./globals.css";
 
 // A per-request CSP nonce requires dynamic rendering so Next can attach it to
@@ -7,8 +7,8 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "LedgerSync | Operator Console",
-  description: "Exact, explainable internal ledger transfers and balances.",
+  title: "LedgerSync | Clear money operations",
+  description: "Understand balances, move money, and resolve work with confidence.",
 };
 
 export const viewport: Viewport = {
@@ -18,5 +18,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><ConsoleSessionBoundary>{children}</ConsoleSessionBoundary></body></html>;
+  return <html lang="en"><body><RouteProviders>{children}</RouteProviders></body></html>;
 }

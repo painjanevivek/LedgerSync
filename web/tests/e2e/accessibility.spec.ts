@@ -4,9 +4,9 @@ import { expect, test } from "@playwright/test";
 import { mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
 
 test("the operator console has no automatically detectable accessibility violations", async ({ page }) => {
-  await mockOperatorConsole(page);
+  await mockOperatorConsole(page, { experienceMode: "simple" });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your money at a glance" })).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
@@ -115,19 +115,19 @@ test("keyboard-only transfer review announces an unknown result and preserves th
     keys.push(route.request().headers()["idempotency-key"] ?? "");
     return route.abort("failed");
   });
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   const amount = page.getByLabel("Amount");
   await amount.focus();
   await amount.fill("12.50");
   const review = page.getByRole("button", { name: "Review transfer" });
   await review.focus();
   await review.press("Enter");
-  await expect(page.getByRole("heading", { name: "Confirm exact transfer" })).toBeFocused();
-  const confirm = page.getByRole("button", { name: "Confirm and post" });
+  await expect(page.getByRole("heading", { name: "Review transfer", exact: true })).toBeFocused();
+  const confirm = page.getByRole("button", { name: "Confirm transfer", exact: true });
   await confirm.focus();
   await confirm.press("Enter");
-  await expect(page.getByRole("status").filter({ hasText: "Result not yet confirmed" })).toBeVisible();
-  const retry = page.getByRole("button", { name: "Retry same transfer" });
+  await expect(page.getByRole("alert").filter({ hasText: "Do not create another transfer" })).toBeVisible();
+  const retry = page.getByRole("button", { name: "Retry this same request safely" });
   await retry.focus();
   await retry.press("Enter");
   expect(keys).toHaveLength(2);
@@ -138,7 +138,7 @@ test("keyboard-only transfer review announces an unknown result and preserves th
 test("exact-money input survives phone rotation and retains maximum signed-64-bit evidence", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockOperatorConsole(page);
-  await page.goto("/transfers");
+  await page.goto("/transfers/new");
   const amount = page.getByLabel("Amount");
   await expect(amount).toHaveAttribute("inputmode", "decimal");
   await amount.fill("92233720368547758.07");
@@ -146,7 +146,9 @@ test("exact-money input survives phone rotation and retains maximum signed-64-bi
   await expect(amount).toHaveValue("92233720368547758.07");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await expect(page.getByText("INR 92233720368547758.07")).toBeVisible();
+  await expect(amount).toHaveValue("92233720368547758.07");
+  await expect(page.locator("#transfer-error")).toContainText("available");
+  await expect(page.getByRole("button", { name: "Confirm transfer", exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
@@ -170,7 +172,7 @@ test("compact primary actions and navigation meet the 44 CSS-pixel touch target"
   await page.setViewportSize({ width: 390, height: 844 });
   await mockOperatorConsole(page);
   await page.goto("/transfers");
-  const targets = [page.getByRole("button", { name: /menu/i }), page.getByRole("button", { name: "Review transfer" }), page.getByRole("button", { name: "Refresh history" })];
+  const targets = [page.getByRole("button", { name: /menu/i }), page.getByRole("button", { name: "Make a transfer" }), page.getByRole("button", { name: "Refresh history" })];
   for (const target of targets) {
     const box = await target.boundingBox();
     expect(box, `missing touch target for ${await target.getAttribute("aria-label") ?? await target.textContent()}`).not.toBeNull();

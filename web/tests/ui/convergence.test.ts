@@ -6,6 +6,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { ConsoleFooter } from "../../src/features/console/ConsoleShell";
+import { ExperienceModeProvider } from "../../src/features/console/ExperienceModeBoundary";
 import { EvidenceFreshness } from "../../src/ui/display/Evidence";
 import { FundingRequestFlow } from "../../src/features/funding/FundingRequestFlow";
 import { TransferList } from "../../src/features/transfers/TransferViews";
@@ -29,20 +30,24 @@ test("evidence freshness distinguishes verified, refreshing, and historical fact
 });
 
 test("overview recent-transfer variant never claims the end of history", () => {
-  const markup = renderToStaticMarkup(createElement(TransferList, {
-    variant: "recent",
-    transfers: [{
-      transfer_id: "11111111-1111-4111-8111-111111111111",
-      source_account_id: "22222222-2222-4222-8222-222222222222",
-      destination_account_id: "33333333-3333-4333-8333-333333333333",
-      amount_minor: "1250",
-      currency: "INR",
-      financial_status: "posted",
-      delivery_status: "delivered",
-      created_at: "2026-08-25T09:59:59Z",
-      completed_at: "2026-08-25T10:00:00Z",
-    }],
-  }));
+  const markup = renderToStaticMarkup(createElement(
+    ExperienceModeProvider,
+    { mode: "simple", setMode: () => undefined },
+    createElement(TransferList, {
+      variant: "recent",
+      transfers: [{
+        transfer_id: "11111111-1111-4111-8111-111111111111",
+        source_account_id: "22222222-2222-4222-8222-222222222222",
+        destination_account_id: "33333333-3333-4333-8333-333333333333",
+        amount_minor: "1250",
+        currency: "INR",
+        financial_status: "posted",
+        delivery_status: "delivered",
+        created_at: "2026-08-25T09:59:59Z",
+        completed_at: "2026-08-25T10:00:00Z",
+      }],
+    }),
+  ));
   assert.match(markup, /Latest transfer records/);
   assert.match(markup, /View all transfers/);
   assert.doesNotMatch(markup, /End of available records/);

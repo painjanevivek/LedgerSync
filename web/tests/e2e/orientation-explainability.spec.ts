@@ -20,8 +20,13 @@ test("local guide persists confirmation, dismissal, and reopening in server-owne
   await expect(page.getByRole("heading",{name:"Follow one INR ledger record from system health to recovery"})).toBeVisible();
   await expect(page.getByText("PostgreSQL ledger",{exact:true})).toBeVisible();
   await expect(page.getByText("Ready to inspect",{exact:true}).first()).toBeVisible();
+  const clearManualConfirmations=page.getByRole("button",{name:"Clear manual confirmations"});
+  await expect(clearManualConfirmations).toBeDisabled();
+  await expect(page.getByText("No manual confirmations are currently saved. Stored ledger evidence is never cleared here.",{exact:true})).toBeVisible();
+  await expect(clearManualConfirmations).toHaveAttribute("aria-describedby",/.+/);
   await page.getByRole("button",{name:"I checked current health"}).first().click();
   await expect(page.getByText("Operator confirmed",{exact:true})).toBeVisible();
+  await expect(clearManualConfirmations).toBeEnabled();
   await page.getByRole("button",{name:"Copy safe stop command"}).click();
   expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe("powershell -File .\\scripts\\stop-local.ps1");
   await page.getByRole("button",{name:"Dismiss setup guide"}).click();
@@ -84,6 +89,11 @@ test("workspace and local guide fill the browser canvas on phone, tablet, and de
         shellRight:Math.round(shell.right),
         shellHeight:Math.round(shell.height),
         mainRight:Math.round(main.right),
+        undersizedText:[...document.querySelectorAll<HTMLElement>(".app-shell *")].filter((element)=>{
+          if (!element.checkVisibility({visibilityProperty:true})) return false;
+          const hasDirectText=[...element.childNodes].some((node)=>node.nodeType===Node.TEXT_NODE&&Boolean(node.textContent?.trim()));
+          return hasDirectText&&Number.parseFloat(getComputedStyle(element).fontSize)<12;
+        }).map((element)=>`${element.tagName.toLowerCase()}.${element.className}:${getComputedStyle(element).fontSize}`).slice(0,20),
       };
     });
     expect(geometry.scrollWidth).toBe(geometry.viewportWidth);
@@ -91,6 +101,7 @@ test("workspace and local guide fill the browser canvas on phone, tablet, and de
     expect(geometry.shellRight).toBe(geometry.viewportWidth);
     expect(geometry.mainRight).toBe(geometry.viewportWidth);
     expect(geometry.shellHeight).toBeGreaterThanOrEqual(geometry.viewportHeight);
+    expect(geometry.undersizedText).toEqual([]);
   }
 });
 
