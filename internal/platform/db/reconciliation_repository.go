@@ -80,8 +80,8 @@ WITH posting_totals AS (
     SUM(CASE WHEN p.direction='credit' THEN p.amount_minor::numeric ELSE -p.amount_minor::numeric END) AS posted_delta,
     count(*) AS posting_count
   FROM ledger_postings p
-  JOIN accounts pa ON pa.id=p.account_id
-  WHERE pa.tenant_id=$1
+  JOIN accounts pa ON pa.id=p.account_id AND pa.tenant_id=p.tenant_id
+  WHERE p.tenant_id=$1
   GROUP BY p.account_id
 )
 SELECT a.id::text,a.currency,
@@ -226,8 +226,8 @@ func findIncompleteTransfers(ctx context.Context, tx *sql.Tx, tenantID string) (
 SELECT t.id::text,COALESCE(t.journal_transaction_id::text,''),count(p.id),
   COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amount_minor::numeric ELSE -p.amount_minor::numeric END),0)::text
 FROM transfers t
-LEFT JOIN journal_transactions j ON j.id=t.journal_transaction_id
-LEFT JOIN ledger_postings p ON p.journal_transaction_id=j.id
+LEFT JOIN journal_transactions j ON j.id=t.journal_transaction_id AND j.tenant_id=t.tenant_id
+LEFT JOIN ledger_postings p ON p.journal_transaction_id=j.id AND p.tenant_id=j.tenant_id
 WHERE t.tenant_id=$1 AND t.status='posted'
 GROUP BY t.id,t.journal_transaction_id
 HAVING count(p.id)<2 OR COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amount_minor::numeric ELSE -p.amount_minor::numeric END),0)<>0`, tenantID)

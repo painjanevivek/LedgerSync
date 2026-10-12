@@ -48,6 +48,9 @@ func requireFaultDependencies(t *testing.T, sourceBalance int64) (*transfers.Ser
 	if _, err := database.ExecContext(ctx, `INSERT INTO tenants (id, external_reference) VALUES ($1, 'fault-tenant')`, faultTenantID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES ($1,$2,'operator')`, faultTenantID, faultActorID); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := database.ExecContext(ctx, `INSERT INTO accounts (id, tenant_id, currency, status) VALUES ($1, $3, 'USD', 'active'), ($2, $3, 'USD', 'active')`, faultSourceID, faultDestinationID, faultTenantID); err != nil {
 		t.Fatal(err)
 	}

@@ -23,6 +23,11 @@ func TestProvisioningConfigRequiresExactMoneyKnownSubjectsAndExternalCredentials
 		t.Fatal("decimal opening balance must be rejected")
 	}
 	configuration = validProvisioningConfig()
+	configuration.Accounts[0].OpeningMinor = "1"
+	if _, err = configuration.Validate("USD"); err == nil {
+		t.Fatal("non-zero opening value must require the approved import workflow")
+	}
+	configuration = validProvisioningConfig()
 	configuration.Accounts[0].DebitSubjects = []string{"unknown"}
 	if _, err = configuration.Validate("USD"); err == nil {
 		t.Fatal("unknown permission subject must be rejected")
@@ -59,6 +64,6 @@ func validProvisioningConfig() provisioning.Config {
 		MinimumTransferMinor: "1", MaximumTransferMinor: "100000", ActorRolling24hMinor: "500000", SourceRolling24hMinor: "500000", TenantRolling24hMinor: "1000000",
 		Subjects:    []provisioning.Subject{{ID: "partner-operator", Roles: []string{"operator"}}},
 		Credentials: []provisioning.Credential{{Reference: "idp://pilot/client-101", Audience: "ledgersync-api", Scopes: []string{"accounts:read", "transfers:write"}, ExpiresAt: "2035-01-01T00:00:00Z"}},
-		Accounts:    []provisioning.Account{{ID: "00000000-0000-0000-0000-000000000111", DisplayName: "Operating", Category: "operating", OpeningMinor: "10000", ReadSubjects: []string{"partner-operator"}, DebitSubjects: []string{"partner-operator"}, CreditSubjects: []string{"partner-operator"}}},
+		Accounts:    []provisioning.Account{{ID: "00000000-0000-0000-0000-000000000111", DisplayName: "Operating", Category: "operating", OpeningMinor: "0", ReadSubjects: []string{"partner-operator"}, DebitSubjects: []string{"partner-operator"}, CreditSubjects: []string{"partner-operator"}}},
 	}
 }
