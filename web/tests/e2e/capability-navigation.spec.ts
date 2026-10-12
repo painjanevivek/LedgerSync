@@ -48,7 +48,9 @@ test("local finance operator sees grouped work, investigation, platform, and env
   await expect(navigation.getByText("Platform", { exact: true })).toBeVisible();
   await expect(navigation.getByText("Environment", { exact: true })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Approvals" })).toBeVisible();
+  await navigation.getByText("Investigate", { exact: true }).click();
   await expect(navigation.getByRole("link", { name: "Events & webhooks" })).toBeVisible();
+  await navigation.getByText("Environment", { exact: true }).click();
   await expect(navigation.getByRole("link", { name: "Local status" })).toBeVisible();
 });
 
@@ -60,6 +62,7 @@ test("production read role sees only relevant navigation and never local status"
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(navigation.getByRole("link", { name: "Accounts" })).toBeVisible();
+  await navigation.getByText("Investigate", { exact: true }).click();
   await expect(navigation.getByRole("link", { name: "Events & webhooks" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Approvals" })).toHaveCount(0);
   await expect(navigation.getByRole("link", { name: "Local status" })).toHaveCount(0);

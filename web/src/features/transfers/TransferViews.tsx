@@ -27,6 +27,11 @@ import type { TransferExplainability } from "@/lib/api/orientation";
 import { Money } from "@/ui/display/Money";
 import { Timestamp } from "@/ui/display/Timestamp";
 import { emptyTransferFilters, transferExportQuery, transferURL, type TransferFilters } from "@/lib/page-query/transfers";
+import { ActiveFilterSummary } from "@/ui/disclosure/ActiveFilterSummary";
+import { AdvancedFilterPanel } from "@/ui/disclosure/AdvancedFilterPanel";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
+import { EvidenceDisclosure } from "@/ui/disclosure/EvidenceDisclosure";
+import { PrerequisitePanel } from "@/ui/disclosure/PrerequisitePanel";
 
 function financialTone(status: string) {
   return status === "posted"
@@ -225,6 +230,7 @@ export function TransfersView({
   const [status, setStatus] = useState<TransferFilters["status"]>(initialFilters.status);
   const [fromDate, setFromDate] = useState(initialFilters.from.slice(0, 10));
   const [toDate, setToDate] = useState(initialFilters.to.slice(0, 10));
+  const eligibleAccounts = accounts.filter((account) => account.status === "active" && account.currency === "INR");
   if (detail) {
     const detailHref = `/transfers/${encodeURIComponent(detail.transfer_id)}?return_to=${encodeURIComponent(returnTo ?? "/transfers")}`;
     return (
@@ -313,6 +319,7 @@ export function TransfersView({
             </div>
           </dl>
         </section>
+        <EvidenceDisclosure id="transfer-posting-evidence" title="Show posting evidence" summary={`${detail.postings.length} immutable posting${detail.postings.length === 1 ? "" : "s"}`}>
         <section className="ledger-section">
           <div className="section-heading">
             <div>
@@ -346,7 +353,7 @@ export function TransfersView({
             />
           )}
         </section>
-        <RelatedEvidenceRail sourceType="transfer" sourceId={detail.transfer_id} />
+        </EvidenceDisclosure>
         <TransferCorrectionPanel
           transfer={detail}
           csrfToken={csrfToken}
@@ -354,7 +361,8 @@ export function TransfersView({
           canRead={canReadCorrections}
           canWrite={canWriteCorrections}
         />
-        <TransferEvidenceTimeline
+        <DisclosureSection id="transfer-evidence-timeline" title="Evidence timeline and delivery" summary="Follow the request, journal, balance versions, delivery, and balance-check results." attention={Boolean(explainabilityError)} defaultOpen={Boolean(explainabilityError)} lazy>
+          <TransferEvidenceTimeline
           evidence={explainability}
           loading={explainabilityLoading}
           error={explainabilityError}
@@ -363,7 +371,9 @@ export function TransfersView({
           transferId={detail.transfer_id}
           backTo={detailHref}
           onRefresh={onRefreshExplainability}
-        />
+          />
+        </DisclosureSection>
+        <DisclosureSection id="transfer-related-evidence" title="Related investigation evidence" summary="Open linked records and case context." lazy><RelatedEvidenceRail sourceType="transfer" sourceId={detail.transfer_id} /></DisclosureSection>
         <Link className="text-link back-link" href={returnTo ?? "/transfers"}>
           ← Back to previous view
         </Link>
@@ -412,7 +422,7 @@ export function TransfersView({
           description="Move an exact amount between your accounts, then check the result."
       />
       <div className="two-column-layout">
-        <TransferForm
+        {eligibleAccounts.length >= 2 || accountsLoading || accountsError ? <TransferForm
           accounts={accounts}
           accountsLoading={accountsLoading}
           accountsError={accountsError}
@@ -432,24 +442,20 @@ export function TransfersView({
           returnTo={returnTo}
           onRetryAccounts={onRefreshAccounts}
           onPosted={onRefresh}
-        />
+        /> : <PrerequisitePanel title={eligibleAccounts.length === 0 ? "Create two active INR accounts" : "Create one more active INR account"} message="A transfer needs an eligible source and a different eligible destination. LedgerSync will not open a transfer intent until both are available." action={canWrite?<Link className="button primary" href="/accounts/new?return_to=%2Ftransfers">Create account</Link>:undefined} />}
         <aside className="guardrail-panel">
-          <p className="eyebrow">Trust controls</p>
-          <h2>One intent, one movement</h2>
-          <ol>
-            <li>Only authorized active accounts are selectable.</li>
-            <li>Amounts use exact integer minor units.</li>
-            <li>Retries retain the same idempotency key.</li>
-            <li>Ledger, balance, audit, and outbox commit together.</li>
-          </ol>
-          {!canWrite && (
-            <p className="permission-note">
-              {writeUnavailableReason ??
-                "Read-only role: transfer posting is not permitted."}
-            </p>
-          )}
+          <DisclosureSection id="transfer-trust-rules" title="Why this transfer is safe" summary="Review authorization, exact-money, retry, and atomic-commit protections.">
+            <ol>
+              <li>Only authorized active accounts are selectable.</li>
+              <li>Amounts use exact integer minor units.</li>
+              <li>Retries retain the same idempotency key.</li>
+              <li>Ledger, balance, audit, and outbox commit together.</li>
+            </ol>
+            {!canWrite && <p className="permission-note">{writeUnavailableReason ?? "Read-only role: transfer posting is not permitted."}</p>}
+          </DisclosureSection>
         </aside>
       </div>
+      <ActiveFilterSummary filters={exportFilters} clearHref="/transfers" />
       <form
         className="surface list-filter-bar transfer-filters"
         aria-label="Transfer filters"
@@ -473,9 +479,10 @@ export function TransfersView({
             pattern="[0-9A-Fa-f-]*"
             title="Use a complete or partial transfer or account identifier"
           /></FormField>
-        <FormField label="Exact account ID" requirement="optional" hint="Matches either side of the transfer. Select a known account or paste its full ID."><input value={accountId} onChange={(event) => setAccountId(event.target.value)} list="transfer-account-options" maxLength={36} pattern="[0-9A-Fa-f-]{36}" placeholder="00000000-0000-0000-0000-000000000000" /></FormField>
-        <datalist id="transfer-account-options">{accounts.map((account) => <option key={account.account_id} value={account.account_id}>{account.display_name ?? "Authorized account"}</option>)}</datalist>
-        <FormField label="Financial status" requirement="optional"><select
+        <AdvancedFilterPanel id="transfer-advanced-filters" activeCount={exportFilters.length - (initialFilters.query ? 1 : 0)}>
+          <FormField label="Exact account ID" requirement="optional" hint="Matches either side of the transfer. Select a known account or paste its full ID."><input value={accountId} onChange={(event) => setAccountId(event.target.value)} list="transfer-account-options" maxLength={36} pattern="[0-9A-Fa-f-]{36}" placeholder="00000000-0000-0000-0000-000000000000" /></FormField>
+          <datalist id="transfer-account-options">{accounts.map((account) => <option key={account.account_id} value={account.account_id}>{account.display_name ?? "Authorized account"}</option>)}</datalist>
+          <FormField label="Financial status" requirement="optional"><select
             value={status}
             onChange={(event) => setStatus(event.target.value as TransferFilters["status"])}
           >
@@ -484,8 +491,9 @@ export function TransfersView({
             <option value="posted">Posted</option>
             <option value="rejected">Rejected</option>
           </select></FormField>
-        <FormField label="From date (UTC)" requirement="optional" hint="Inclusive start of day in UTC."><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></FormField>
-        <FormField label="To date (UTC)" requirement="optional" hint="Inclusive end of day in UTC."><input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></FormField>
+          <FormField label="From date (UTC)" requirement="optional" hint="Inclusive start of day in UTC."><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></FormField>
+          <FormField label="To date (UTC)" requirement="optional" hint="Inclusive end of day in UTC."><input type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></FormField>
+        </AdvancedFilterPanel>
         <button
           className="button primary"
           type="submit"

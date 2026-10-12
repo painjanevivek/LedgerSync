@@ -2,11 +2,14 @@
 
 import { ArrowRight, CheckCircle, DownloadSimple, Key, LockKey, ShieldCheck, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
 import { PageHeader } from "@/ui/display/PageHeader";
 import { StatePanel } from "@/ui/display/StatePanel";
 import { StatusBadge } from "@/ui/display/StatusBadge";
+import { FormField } from "@/ui/forms/FormField.client";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
 import { DeveloperCopyCode } from "@/features/developer/DeveloperCopyCode";
 import {
   DeveloperReferenceNavigation,
@@ -68,6 +71,13 @@ type DeveloperViewProps = Readonly<{
 export function DeveloperView({ metadata, loading, error, online, canRead, publicOrigin, onRefresh }: DeveloperViewProps) {
   const transfer = metadata?.examples.find((example) => example.id === "create_transfer");
   const account = metadata?.examples.find((example) => example.id === "create_account");
+  const [operationQuery, setOperationQuery] = useState("");
+  const [pathQuery, setPathQuery] = useState("");
+  const [scopeQuery, setScopeQuery] = useState("");
+  const [errorQuery, setErrorQuery] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const filteredGroups = useMemo(() => metadata?.endpoint_groups.map((group) => ({ ...group, operations: group.operations.filter((operation) => operation.operation_id.toLowerCase().includes(operationQuery.trim().toLowerCase()) && operation.path.toLowerCase().includes(pathQuery.trim().toLowerCase()) && operation.scope.toLowerCase().includes(scopeQuery.trim().toLowerCase())) })).filter((group) => group.operations.length > 0) ?? [], [metadata, operationQuery, pathQuery, scopeQuery]);
+  const filteredErrors = useMemo(() => metadata?.error_catalogue.filter((entry) => `${entry.code} ${entry.meaning}`.toLowerCase().includes(errorQuery.trim().toLowerCase())) ?? [], [errorQuery, metadata]);
 
   return (
     <>
@@ -93,6 +103,11 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
 
           <DeveloperReferenceNavigation />
 
+          <nav className="developer-task-entry" aria-label="Developer tasks">
+            <p className="eyebrow">Choose one task</p>
+            <a href="#authentication-heading">Authenticate</a><button type="button" onClick={() => setSelectedGroup("accounts")}>Accounts</button><button type="button" onClick={() => setSelectedGroup("funding")}>Funding</button><button type="button" onClick={() => setSelectedGroup("transfers")}>Transfers</button><a href="#safe-retries-heading">Retries</a><button type="button" onClick={() => setSelectedGroup("webhooks")}>Webhooks</button><a href="#safe-retries-heading">Errors</a><a href="#openapi-heading">OpenAPI</a>
+          </nav>
+
           <section className="developer-section" aria-labelledby="authentication-heading">
             <div className="section-heading"><div><p className="eyebrow">Two boundaries, never one shared token</p><h2 id="authentication-heading">Authentication</h2></div></div>
             <div className="authentication-ledger">{metadata.authentication.map((authentication, index) => <article key={authentication.id}><span className="auth-order">0{index + 1}</span>{authentication.id === "browser_bff_session" ? <ShieldCheck aria-hidden="true" /> : <Key aria-hidden="true" />}<div><h3>{authentication.label}</h3><p>{authentication.summary}</p>{authentication.id === "browser_bff_session" ? <p className="auth-rule"><strong>Use:</strong> same-origin paths, signed cookie, CSRF header for writes. The BFF adds private credentials server-side.</p> : <><p className="auth-rule"><strong>Use:</strong> protected host tooling only. Never paste revealed output into this browser, source, screenshots, or logs.</p><DeveloperCopyCode value=".\scripts\local-api-credential.ps1" label="credential fingerprint command" /><DeveloperCopyCode value=".\scripts\local-api-credential.ps1 -Reveal" label="deliberate credential reveal command" /></>}</div></article>)}</div>
@@ -100,7 +115,14 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
 
           <section className="developer-section" aria-labelledby="endpoint-groups-heading">
             <div className="section-heading"><div><p className="eyebrow">Private API contract</p><h2 id="endpoint-groups-heading">Endpoint groups</h2></div><span>{metadata.endpoint_groups.reduce((count, group) => count + group.operations.length, 0)} operations</span></div>
-            <div className="endpoint-catalogue">{metadata.endpoint_groups.map((group, index) => <details id={`schema-${group.id}`} key={group.id} open={index === 0}><summary><span>{group.label}</span><small>{group.operations.length} operations</small></summary><div>{group.operations.map((operation) => <div className="endpoint-row" key={operation.operation_id}><span className={`method-label ${operation.method.toLowerCase()}`}>{operation.method}</span><code>{metadata.base_url}{operation.path}</code><span>{operation.scope}</span><small>{operation.operation_id}</small></div>)}</div></details>)}</div>
+            <div className="developer-operation-filters" role="search" aria-label="Filter private API operations">
+              <FormField label="Operation name" requirement="optional"><input type="search" value={operationQuery} onChange={(event) => setOperationQuery(event.target.value)} /></FormField>
+              <FormField label="HTTP path" requirement="optional"><input type="search" value={pathQuery} onChange={(event) => setPathQuery(event.target.value)} /></FormField>
+              <FormField label="Required scope" requirement="optional"><input type="search" value={scopeQuery} onChange={(event) => setScopeQuery(event.target.value)} /></FormField>
+            </div>
+            <div className="endpoint-group-picker" aria-label="Endpoint groups">{filteredGroups.map((group) => <button className="button secondary" type="button" key={group.id} aria-pressed={selectedGroup === group.id} onClick={() => setSelectedGroup((current) => current === group.id ? null : group.id)}><span>{group.label}</span><small>{group.operations.length} operations</small></button>)}</div>
+            {filteredGroups.length === 0 && <StatePanel title="No matching operations" message="Clear or change the local filters. The downloaded OpenAPI contract remains unchanged." />}
+            <div className="endpoint-catalogue">{filteredGroups.filter((group) => group.id === selectedGroup).map((group) => <section id={`schema-${group.id}`} key={group.id} aria-labelledby={`schema-${group.id}-heading`}><h3 id={`schema-${group.id}-heading`}>{group.label}</h3>{group.operations.map((operation) => <DisclosureSection id={`operation-${operation.operation_id}`} key={operation.operation_id} title={`${operation.method} ${operation.path}`} summary={operation.operation_id} lazy><div className="endpoint-operation-detail"><p><strong>Overview</strong><br/><code>{metadata.base_url}{operation.path}</code></p><p><strong>Required scope</strong><br/><code>{operation.scope}</code></p><p><strong>Request and response</strong><br/>Use the versioned OpenAPI schema and examples. The browser never executes this private operation.</p><p><strong>Errors</strong><br/>See the searchable error catalogue below.</p><p><strong>Retry rule</strong><br/>{operation.method === "GET" ? "Repeat only after checking freshness and authorization." : "Persist the exact intent and idempotency key before send; an unknown response keeps the same key."}</p></div></DisclosureSection>)}</section>)}</div>
           </section>
 
           <ExactMoneyAndRetryGuide metadata={metadata} />
@@ -119,7 +141,8 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
           <section className="developer-section" aria-labelledby="safe-retries-heading">
             <div className="section-heading"><div><p className="eyebrow">Outcome-aware recovery</p><h2 id="safe-retries-heading">Errors and safe retries</h2></div></div>
             <DataTableRegion label="Safe retry outcomes"><table className="data-table developer-error-table"><thead><tr><th scope="col">Outcome code</th><th scope="col">Safe action</th></tr></thead><tbody>{metadata.retry_outcomes.map((outcome) => <tr key={outcome.code}><td><strong><code>{outcome.code}</code></strong></td><td>{outcome.safe_action}</td></tr>)}</tbody></table></DataTableRegion>
-            <DataTableRegion label="Developer error catalogue"><table className="data-table developer-error-table"><thead><tr><th scope="col">Error code</th><th scope="col">Meaning</th></tr></thead><tbody>{metadata.error_catalogue.map((entry) => <tr key={entry.code}><td><strong><code>{entry.code}</code></strong></td><td>{entry.meaning}</td></tr>)}</tbody></table></DataTableRegion>
+            <FormField label="Filter error codes" requirement="optional"><input type="search" value={errorQuery} onChange={(event) => setErrorQuery(event.target.value)} placeholder="Example: idempotency" /></FormField>
+            <DisclosureSection id="developer-error-catalogue" title="Full error catalogue" summary={`${filteredErrors.length} matching error code${filteredErrors.length === 1 ? "" : "s"}`} lazy><DataTableRegion label="Developer error catalogue"><table className="data-table developer-error-table"><thead><tr><th scope="col">Error code</th><th scope="col">Meaning</th></tr></thead><tbody>{filteredErrors.map((entry) => <tr key={entry.code}><td><strong><code>{entry.code}</code></strong></td><td>{entry.meaning}</td></tr>)}</tbody></table></DataTableRegion></DisclosureSection>
           </section>
 
           <section className="developer-correlation" aria-labelledby="correlation-heading">

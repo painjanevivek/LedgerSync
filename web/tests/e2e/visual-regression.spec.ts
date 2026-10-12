@@ -7,6 +7,12 @@ const tablet = { width: 768, height: 1024 };
 const desktop = { width: 1440, height: 900 };
 const ultrawide = { width: 2560, height: 1440 };
 
+test.beforeEach(async ({ page }) => {
+  // Relative-time labels must not change when CI runs on a different date.
+  // Keep timers active so command, focus, and polling assertions still run.
+  await page.clock.setFixedTime(new Date("2026-08-19T12:30:00Z"));
+});
+
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({
     status,
@@ -59,7 +65,7 @@ for (const route of populatedRoutes) {
     await mockOperatorConsole(page);
     await page.goto(route.path);
     await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Search records" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
     await capture(page, route.name);
   });
 }
@@ -248,6 +254,7 @@ test("account lifecycle guard has a Windows local-console baseline", async ({ pa
   await mockOperatorConsole(page);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
   await expect(page.getByText(/Balance details verified/u)).toBeVisible();
+  await page.getByText("Related evidence", { exact: true }).click();
   await expect(page.getByText(/2 explicit relationships/u)).toBeVisible();
   await page.getByRole("button", { name: "Freeze account" }).click();
   await page.getByLabel("Reason").fill("Temporary review of duplicate instructions");

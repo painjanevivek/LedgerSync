@@ -19,6 +19,7 @@ import { RecordLink } from "@/ui/display/RecordLink";
 import { StatePanel } from "@/ui/display/StatePanel";
 import { StatusBadge, type StatusTone } from "@/ui/display/StatusBadge";
 import { Timestamp } from "@/ui/display/Timestamp";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
 
 function resultPath(type: InvestigationRecordType, id: string): string | null {
   switch (type) {
@@ -123,8 +124,6 @@ export function InvestigationSearchController({ initialQuery, invalidQuery }: Re
   return <ConsoleRouteFrame section="search" loadingLabel="Search" pending={loading}>
     <div className="investigation-search-workspace">
       <PageHeader eyebrow="Investigate / Exact lookup" title="Search records" description="Locate authorized evidence by one complete immutable ID or approved external reference. LedgerSync does not perform broad or cross-tenant discovery." />
-      <WorkspaceListPanel />
-      <SavedViewsPanel />
       {!canSearch && session ? <StatePanel kind="denied" title="Investigation authority required" message="Your server-issued role and scopes do not permit cross-domain lookup. No protected search was made." /> : invalidQuery ? <StatePanel kind="error" title="Invalid search URL" message="The shared URL contains an unknown, repeated, empty, oversized, partial, or malformed lookup. No protected search was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/search")}>Clear invalid lookup</button>} /> : <>
         <form className="investigation-search-form" role="search" onSubmit={submit}>
           <FormField label="Exact ID or approved reference" requirement="required" hint="Examples: a complete account/transfer UUID or an exact approved account or funding reference. Minimum reference length: 8." error={inputError}>
@@ -142,6 +141,7 @@ export function InvestigationSearchController({ initialQuery, invalidQuery }: Re
           <div className="investigation-results-summary"><div><p className="eyebrow">Bounded lookup</p><h2 id="investigation-results-heading">{page.results.length} authorized locator{page.results.length === 1 ? "" : "s"}</h2></div><p>Generated <Timestamp value={page.generated_at} />{page.truncated ? " · Additional matches withheld by the result bound." : ""}</p></div>
           <ol>{page.results.map((result) => <SearchResultCard key={`${result.record_type}-${result.record_id}-${result.related_record_id ?? "direct"}`} result={result} query={initialQuery} queryKind={page.query_kind} />)}</ol>
         </section>}
+        {(Boolean(page?.results.length) || Boolean(initialQuery)) && <DisclosureSection id="investigation-case-tools" title="Case tools" summary="Open saved views and investigation workspaces after locating evidence." lazy><WorkspaceListPanel /><SavedViewsPanel /></DisclosureSection>}
       </>}
     </div>
   </ConsoleRouteFrame>;

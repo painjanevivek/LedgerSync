@@ -15,11 +15,12 @@ test("local status orders financial authority, delivery, and disposable cache wi
   await page.goto("/local-status");
   await expect(page.getByRole("heading", { name:"Local status", exact:true })).toBeVisible();
   const ledger = page.getByRole("region", { name:"Ordered local truth domains" });
-  await expect(ledger.getByRole("heading", { name:"PostgreSQL ledger" })).toBeVisible();
+  await expect(ledger.locator("#local-postgres-status > summary strong")).toHaveText("PostgreSQL ledger");
   await expect(ledger.getByRole("heading", { name:"Transactional outbox" })).toBeVisible();
   await expect(ledger.getByRole("heading", { name:"Redis cache" })).toBeVisible();
   await expect(ledger.getByText(/cache outage may slow reads.*never evidence that PostgreSQL money changed/i)).toBeVisible();
   await expect(page.getByRole("link", { name:"Investigate delivery events" })).toHaveAttribute("href", "/events");
+  await page.getByText("Environment and diagnostic evidence", { exact:true }).click();
   await expect(page.getByRole("button", { name:"Copy local status command" })).toBeVisible();
   await expectNoSeriousA11yViolations(page);
 });
@@ -37,6 +38,7 @@ test("event filters use the exact allowlisted query and an empty result is expli
   await mockOperatorConsole(page);
   await page.route("**/api/events?*", (route) => json(route, { events:[],next_cursor:"" }));
   await page.goto("/events");
+  await page.getByText("Advanced event filters", { exact: true }).click();
   await page.getByLabel("Event type").fill("account.balance.changed.v1");
   await page.getByLabel("State").selectOption("dead");
   await page.getByLabel("Related ID").fill(deliveryEvent.aggregate_id);
@@ -86,6 +88,7 @@ test("webhook endpoint list exposes safe origin and exact URL-backed filters", a
   await expect(page.getByText(webhookEndpoint.origin, { exact:true })).toBeVisible();
   await expect(page.getByText(/2 recent · 1 dead/i)).toBeVisible();
   await expect(page.getByText(/private\/hooks|credential=|signing_key/i)).toHaveCount(0);
+  await page.getByText("Filter endpoints", { exact: true }).click();
   await page.getByLabel("Endpoint status").selectOption("active");
   await page.getByLabel("Subscribed event").fill("transfer.posted");
   const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/webhook-endpoints" && new URL(request.url()).searchParams.get("status") === "active");
@@ -191,6 +194,7 @@ test("operations screens reflow at 320px and 200-percent-equivalent width with f
 test("offline status retains its timestamp but disables refresh", async ({ page, context }) => {
   await mockOperatorConsole(page);
   await page.goto("/local-status");
+  await page.getByText("Environment and diagnostic evidence", { exact:true }).click();
   await expect(page.getByText("2026-08-19 12:00:00 UTC")).toBeVisible();
   await context.setOffline(true);
   await expect(page.getByText("Offline — evidence is not current")).toBeVisible();
