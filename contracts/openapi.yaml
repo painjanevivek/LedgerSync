@@ -163,6 +163,7 @@ paths:
           headers:
             Idempotent-Replay: { schema: { type: string, enum: ['true'] } }
             X-LedgerSync-Consistency-Requirements: { schema: { type: string } }
+            X-LedgerSync-Metadata-Status: { schema: { type: string, enum: [complete, partial, unavailable] } }
           content: { application/json: { schema: { $ref: '#/components/schemas/TransferResult' } } }
         '400': { $ref: '#/components/responses/InvalidRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -1471,6 +1472,8 @@ components:
         completed_at: { type: string, format: date-time }
         journal_transaction_id: { type: string, format: uuid }
         rejection_code: { type: string }
+        metadata_status: { type: string, enum: [complete, partial, unavailable], description: "Availability of optional post-commit consistency metadata; the financial outcome is already final." }
+        warnings: { type: array, maxItems: 8, uniqueItems: true, items: { type: string, enum: [destination_consistency_unavailable, consistency_requirement_unavailable, consistency_header_unavailable] } }
         correction_id: { type: string, format: uuid }
         correction_status: { type: string, enum: [requested, approved, rejected, cancelled, expired, posted] }
         correction_role: { type: string, enum: [original, compensation] }

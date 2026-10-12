@@ -120,8 +120,10 @@ func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 func TestSecretHistoryExceptionsAreExactReviewedFingerprints(t *testing.T) {
 	root := repositoryRoot(t)
 	content := readContractFile(t, filepath.Join(root, ".gitleaksignore"))
-	fingerprintPattern := regexp.MustCompile(`^[0-9a-f]{40}:(?:internal|tests|docs)/[^:]+:generic-api-key:[1-9][0-9]*$`)
-	fingerprints := make([]string, 0, 12)
+	// Generated public provenance is limited to these three exact artifacts.
+	// Credential-bearing configuration and general contract paths stay excluded.
+	fingerprintPattern := regexp.MustCompile(`^[0-9a-f]{40}:(?:(?:internal|tests|docs)/[^:]+|contracts/generated/(?:sdk-manifest\.json|go/ledgersync\.go|typescript/ledgersync\.ts)):generic-api-key:[1-9][0-9]*$`)
+	fingerprints := make([]string, 0, 24)
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -132,8 +134,8 @@ func TestSecretHistoryExceptionsAreExactReviewedFingerprints(t *testing.T) {
 		}
 		fingerprints = append(fingerprints, line)
 	}
-	if len(fingerprints) != 12 {
-		t.Fatalf("reviewed secret-history exception count = %d, want exactly 12", len(fingerprints))
+	if len(fingerprints) != 24 {
+		t.Fatalf("reviewed secret-history exception count = %d, want exactly 24", len(fingerprints))
 	}
 	if strings.Contains(content, "allowlist") || strings.Contains(content, "regex") || strings.Contains(content, "path =") {
 		t.Fatal("secret-history exceptions must not introduce rule-, regex-, or path-wide allowlisting")

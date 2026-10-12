@@ -4,6 +4,7 @@ package webhookdelivery
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -22,10 +23,21 @@ import (
 	"time"
 )
 
-const maxPayloadBytes = 256 * 1024
+const (
+	maxPayloadBytes       = 256 * 1024
+	maximumCachedKeyCount = 128
+)
 
 type KeyResolver interface {
 	Resolve(context.Context, string) ([]byte, error)
+}
+
+// KeyCacheObserver receives only bounded operational dimensions. References,
+// key material, tenants and endpoint identifiers must never be emitted.
+type KeyCacheObserver interface {
+	ObserveWebhookKeyCacheResolve(context.Context, string, time.Duration, time.Duration)
+	ObserveWebhookKeyCacheEntries(context.Context, int)
+	ObserveWebhookKeyCacheEviction(context.Context, string)
 }
 
 // StaticKeyResolver is suitable for a worker-only secret-injection adapter.
@@ -60,58 +72,159 @@ type CachedKeyResolver struct {
 	ttl      time.Duration
 	clock    func() time.Time
 	mu       sync.Mutex
-	entries  map[string]cachedKey
+	entries  map[string]*list.Element
+	recency  *list.List
+	observer KeyCacheObserver
 }
 
 type cachedKey struct {
+	reference string
 	value     []byte
 	expiresAt time.Time
 }
 
-func NewCachedKeyResolver(upstream KeyResolver, ttl time.Duration, clock func() time.Time) (*CachedKeyResolver, error) {
+func NewCachedKeyResolver(upstream KeyResolver, ttl time.Duration, clock func() time.Time, observers ...KeyCacheObserver) (*CachedKeyResolver, error) {
 	if upstream == nil || ttl <= 0 || ttl > 15*time.Minute {
 		return nil, errors.New("managed webhook key resolver requires a 1ns..15m cache TTL")
+	}
+	if len(observers) > 1 {
+		return nil, errors.New("managed webhook key resolver accepts at most one observer")
 	}
 	if clock == nil {
 		clock = time.Now
 	}
-	return &CachedKeyResolver{upstream: upstream, ttl: ttl, clock: clock, entries: make(map[string]cachedKey)}, nil
+	var observer KeyCacheObserver
+	if len(observers) == 1 {
+		observer = observers[0]
+	}
+	return &CachedKeyResolver{
+		upstream: upstream,
+		ttl:      ttl,
+		clock:    clock,
+		entries:  make(map[string]*list.Element),
+		recency:  list.New(),
+		observer: observer,
+	}, nil
 }
 
 func (r *CachedKeyResolver) Resolve(ctx context.Context, reference string) ([]byte, error) {
+	started := time.Now()
 	reference = strings.TrimSpace(reference)
 	if reference == "" {
 		return nil, errors.New("webhook signing key reference is required")
 	}
 	now := r.clock().UTC()
+	lockStarted := time.Now()
 	r.mu.Lock()
-	if cached, ok := r.entries[reference]; ok && cached.expiresAt.After(now) {
+	lockWait := time.Since(lockStarted)
+	if element, ok := r.entries[reference]; ok && element.Value.(*cachedKey).expiresAt.After(now) {
+		cached := element.Value.(*cachedKey)
+		r.recency.MoveToFront(element)
 		value := bytes.Clone(cached.value)
+		entryCount := len(r.entries)
 		r.mu.Unlock()
+		r.observeResolve(ctx, "hit", started, lockWait)
+		r.observeEntries(ctx, entryCount)
 		return value, nil
 	}
+	expiredOnLookup := false
+	if element, ok := r.entries[reference]; ok {
+		r.removeLocked(element)
+		expiredOnLookup = true
+	}
+	entryCount := len(r.entries)
 	r.mu.Unlock()
+	if expiredOnLookup {
+		r.observeEviction(ctx, "expired")
+	}
+	r.observeEntries(ctx, entryCount)
+
 	value, err := r.upstream.Resolve(ctx, reference)
 	if err != nil || len(value) < 32 {
+		outcome := "upstream_error"
+		if ctx.Err() != nil {
+			outcome = "cancelled"
+		}
+		r.observeResolve(ctx, outcome, started, lockWait)
 		return nil, errors.New("managed webhook signing key is unavailable")
 	}
 	value = bytes.Clone(value)
+
+	now = r.clock().UTC()
+	lockStarted = time.Now()
 	r.mu.Lock()
-	if len(r.entries) >= 128 {
-		for key, cached := range r.entries {
-			if !cached.expiresAt.After(now) {
-				clear(cached.value)
-				delete(r.entries, key)
-			}
-		}
-		if len(r.entries) >= 128 {
-			return nil, errors.New("managed webhook key cache is full")
-		}
+	lockWait += time.Since(lockStarted)
+	if element, ok := r.entries[reference]; ok && element.Value.(*cachedKey).expiresAt.After(now) {
+		cached := element.Value.(*cachedKey)
+		r.recency.MoveToFront(element)
+		result := bytes.Clone(cached.value)
+		entryCount = len(r.entries)
+		r.mu.Unlock()
+		clear(value)
+		r.observeResolve(ctx, "concurrent_hit", started, lockWait)
+		r.observeEntries(ctx, entryCount)
+		return result, nil
 	}
-	r.entries[reference] = cachedKey{value: value, expiresAt: now.Add(r.ttl)}
+	if element, ok := r.entries[reference]; ok {
+		r.removeLocked(element)
+	}
+	expiredEvictions := 0
+	for element := r.recency.Back(); element != nil; {
+		previous := element.Prev()
+		if !element.Value.(*cachedKey).expiresAt.After(now) {
+			r.removeLocked(element)
+			expiredEvictions++
+		}
+		element = previous
+	}
+	capacityEvicted := false
+	if len(r.entries) >= maximumCachedKeyCount {
+		r.removeLocked(r.recency.Back())
+		capacityEvicted = true
+	}
+	element := r.recency.PushFront(&cachedKey{reference: reference, value: value, expiresAt: now.Add(r.ttl)})
+	r.entries[reference] = element
 	result := bytes.Clone(value)
+	entryCount = len(r.entries)
 	r.mu.Unlock()
+
+	for index := 0; index < expiredEvictions; index++ {
+		r.observeEviction(ctx, "expired")
+	}
+	if capacityEvicted {
+		r.observeEviction(ctx, "capacity")
+	}
+	r.observeResolve(ctx, "miss", started, lockWait)
+	r.observeEntries(ctx, entryCount)
 	return result, nil
+}
+
+func (r *CachedKeyResolver) removeLocked(element *list.Element) {
+	if element == nil {
+		return
+	}
+	cached := element.Value.(*cachedKey)
+	clear(cached.value)
+	delete(r.entries, cached.reference)
+	r.recency.Remove(element)
+}
+
+func (r *CachedKeyResolver) observeResolve(ctx context.Context, outcome string, started time.Time, lockWait time.Duration) {
+	if r.observer != nil {
+		r.observer.ObserveWebhookKeyCacheResolve(ctx, outcome, time.Since(started), lockWait)
+	}
+}
+
+func (r *CachedKeyResolver) observeEntries(ctx context.Context, count int) {
+	if r.observer != nil {
+		r.observer.ObserveWebhookKeyCacheEntries(ctx, count)
+	}
+}
+
+func (r *CachedKeyResolver) observeEviction(ctx context.Context, reason string) {
+	if r.observer != nil {
+		r.observer.ObserveWebhookKeyCacheEviction(ctx, reason)
+	}
 }
 
 type Delivery struct {
