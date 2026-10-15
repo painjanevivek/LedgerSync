@@ -25,6 +25,6 @@ export async function POST(request: NextRequest) {
  if(!key || !reference) return jsonError("validation_failed",400);
  try {
   const body=toPrivateTransferRequest(await readBoundedJSON<CreateTransferInput>(request));
-  return proxyTransferMutation(session,"/api/transfers/recovery",body,key,reference);
+  return proxyTransferMutation(session,"/api/transfers/recovery",body,key,reference,request.headers.get("x-request-id")??undefined,request.headers.get("x-ledgersync-session-handle")??undefined);
  } catch {return jsonError("validation_failed",400);}
 }

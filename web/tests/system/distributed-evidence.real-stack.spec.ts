@@ -2,15 +2,25 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { requireIsolatedRealStack } from "./real-stack";
 
-test("distributed evidence stays behind an accessible disclosure", async ({ page }) => {
+test("distributed evidence follows the configured feature boundary", async ({ page }, testInfo) => {
   requireIsolatedRealStack();
   await page.goto("/");
   await page.getByRole("link", { name: "Log in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   await page.goto("/developer");
   await expect(page.getByRole("heading", { name: "Developer", exact: true })).toBeVisible();
+  const session = await (await page.request.get("/api/session")).json();
+  if (session.features?.systems_lab !== true) {
+    await expect(page.locator("#developer-distributed-systems")).toHaveCount(0);
+    expect((await page.request.get("/api/developer/distributed")).status()).toBe(404);
+    expect((await page.request.get("/api/developer/distributed/evidence")).status()).toBe(404);
+    const accessibility = await new AxeBuilder({ page }).analyze();
+    expect(accessibility.violations).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath("developer-core.png"), fullPage: true });
+    return;
+  }
   if (process.env.LEDGERSYNC_STUDY_CAPTURE_BASELINE === "true") {
-    await page.screenshot({ path: "../docs/release-evidence/unit-3-unit-4/ui-developer-before.png", fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath("ui-developer-before.png"), fullPage: true });
     return;
   }
   const disclosure = page.locator("#developer-distributed-systems");
@@ -34,8 +44,8 @@ test("distributed evidence stays behind an accessible disclosure", async ({ page
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const accessibility = await new AxeBuilder({ page }).analyze();
     expect(accessibility.violations).toEqual([]);
-    await page.screenshot({ path: `../docs/release-evidence/unit-3-unit-4/ui-developer-${width}.png`, fullPage: true });
-    await page.screenshot({ path: `../docs/release-evidence/unit-3-unit-4/ui-developer-${width}-viewport.png` });
+    await page.screenshot({ path: testInfo.outputPath(`ui-developer-${width}.png`), fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath(`ui-developer-${width}-viewport.png`) });
   }
   const evidence = await page.request.get("/api/developer/distributed/evidence");
   await expect(disclosure.getByText("Historical lease — refresh needed", { exact: true })).toBeVisible({ timeout: 6_000 });

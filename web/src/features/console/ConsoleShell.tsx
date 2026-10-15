@@ -32,6 +32,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { useExperienceMode } from "@/features/console/ExperienceModeBoundary";
+import { ExperienceModeSwitch } from "@/ui/presentation/ExperienceModeSwitch";
 import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import {
   canOpenApprovalInbox,
@@ -55,6 +57,7 @@ export type ConsoleSection =
   | "developer"
   | "recovery"
   | "guide"
+  | "tasks"
   | "search";
 
 type Props = Readonly<{
@@ -137,6 +140,13 @@ const navigation: ReadonlyArray<NavigationGroupDefinition> = [
         href: "/transfers",
         icon: ArrowsLeftRight,
         visible: (capabilities) => capabilities.transfersRead,
+      },
+      {
+        section: "tasks" as const,
+        label: "Tasks",
+        href: "/tasks",
+        icon: CheckCircle,
+        visible: always,
       },
       {
         section: "approvals" as const,
@@ -327,6 +337,7 @@ export function ConsoleShell({
     () => deriveConsoleCapabilities(session),
     [session],
   );
+  const { mode } = useExperienceMode();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [compactNavigation, setCompactNavigation] = useState(false);
   const sidebarCollapsed = useSyncExternalStore(
@@ -467,7 +478,7 @@ export function ConsoleShell({
 
         <nav className="primary-nav" aria-label="Primary navigation">
           {navigation.map((group) => {
-            const items = group.items.filter((item) => item.visible(capabilities));
+            const items = group.items.filter((item) => item.visible(capabilities) && (mode === "expert" || group.priority === "primary" || item.section === section));
             if (items.length === 0) return null;
             return (
               <NavigationGroup
@@ -495,6 +506,7 @@ export function ConsoleShell({
             <span className="environment-chip">{environmentLabel}</span>
           </div>
           <div className="workspace-topbar-actions">
+            <ExperienceModeSwitch />
             {canSearchInvestigations(capabilities) && (
               <Link href="/search" className="topbar-link">
                 <MagnifyingGlass aria-hidden="true" />

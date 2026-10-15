@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
@@ -20,7 +20,7 @@ async function handoff(page: Page, subject: string) {
   await expect(page.getByRole("heading", { name: "Investigation handed off", exact: true })).toBeVisible();
 }
 
-test("@real-stack saved filters, audited bundle, and reauthorized peer handoff", async ({ page, browser }) => {
+test("@real-stack saved filters, audited bundle, and reauthorized peer handoff", async ({ page, browser }, testInfo) => {
   test.setTimeout(120_000);
   page.setDefaultTimeout(10_000);
   const run = requireIsolatedJourney();
@@ -33,8 +33,6 @@ test("@real-stack saved filters, audited bundle, and reauthorized peer handoff",
   const peerContext = await browser.newContext();
   const peer = await peerContext.newPage();
   peer.setDefaultTimeout(10_000);
-  const qa = "../docs/design/qa/journey-20261010";
-  mkdirSync(qa, { recursive: true });
   try {
     await login(page, run.baseURL);
     await login(peer, peerOrigin);
@@ -54,7 +52,7 @@ test("@real-stack saved filters, audited bundle, and reauthorized peer handoff",
     const id = workspaceURL.split("/").at(-1)!;
     await expect(page.getByRole("heading", { name: "Reconciliation follow up", exact: true })).toBeVisible();
     await expect(page.getByRole("region", { name: "Current evidence", exact: true })).toContainText("matched");
-    await page.screenshot({ path: `${qa}/investigation.png`, fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath("investigation.png"), fullPage: true });
     await page.getByText("Export evidence bundle", { exact: true }).click();
     await page.getByRole("button", { name: "Review evidence bundle", exact: true }).click();
     const response = page.waitForResponse((value) => value.url().endsWith("/evidence-bundle") && value.request().method() === "POST");
@@ -66,7 +64,7 @@ test("@real-stack saved filters, audited bundle, and reauthorized peer handoff",
     expect(bundle.headers()["cache-control"]).toContain("no-store");
     const downloaded = await download;
     expect(downloaded.suggestedFilename()).toMatch(/^ledgersync-investigation-.*-v1\.zip$/);
-    const bundlePath = "../.tmp/journey-validation/investigation-bundle.zip";
+    const bundlePath = testInfo.outputPath("investigation-bundle.zip");
     await downloaded.saveAs(bundlePath);
     const archive = readFileSync(bundlePath);
     expect(archive.subarray(0, 2).toString()).toBe("PK");
@@ -77,7 +75,7 @@ test("@real-stack saved filters, audited bundle, and reauthorized peer handoff",
     await peer.goto(workspaceURL.replace(":3102", ":3103"));
     await expect(peer.getByRole("heading", { name: "Reconciliation follow up", exact: true })).toBeVisible();
     await expect(peer.getByRole("region", { name: "Current evidence", exact: true })).toContainText("matched");
-    await peer.screenshot({ path: `${qa}/peer-handoff.png`, fullPage: true });
+    await peer.screenshot({ path: testInfo.outputPath("peer-handoff.png"), fullPage: true });
     await handoff(peer, "local-user");
     expect((await peer.request.get(`${peerOrigin}/api/investigation/workspaces/${id}`)).status()).toBe(404);
     await page.goto(workspaceURL);

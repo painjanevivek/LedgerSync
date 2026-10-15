@@ -11,5 +11,5 @@ export default async function NewTransferPage({ searchParams }: Readonly<{ searc
       return path === "/transfers" || path === "/accounts" || /^\/accounts\/[0-9a-f-]{36}$/i.test(path);
     } },
   });
-  return <TransfersController creating invalidQuery={!parsed.ok} returnTo={parsed.ok ? parsed.values.return_to : undefined} />;
+  return <TransfersController invalidQuery={!parsed.ok} returnTo={parsed.ok ? parsed.values.return_to : undefined} />;
 }

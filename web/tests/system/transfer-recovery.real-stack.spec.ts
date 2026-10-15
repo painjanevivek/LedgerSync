@@ -8,7 +8,7 @@ async function account(page:Page,name:string){await page.goto("/accounts/new");a
 async function reviewTransfer(page:Page,source:string,destination:string){await page.goto("/transfers");await page.getByLabel("From account").selectOption(source);await page.getByLabel("To account").selectOption(destination);await page.getByLabel("Amount").fill("1.00");await page.getByRole("button",{name:"Review transfer"}).click();}
 async function token(page:Page){const response=await page.request.get("/api/session");return (await response.json()).csrf_token as string;}
 
-test("@real-stack clean-device recovery survives lost request and lost committed response without duplicate money",async({browser})=>{
+test("@real-stack clean-device recovery survives lost request and lost committed response without duplicate money",async({browser},testInfo)=>{
  test.setTimeout(240_000);const run=requireIsolatedJourney();const contexts:BrowserContext[]=[];
  const device=async()=>{const context=await browser.newContext({baseURL:run.baseURL});contexts.push(context);const page=await context.newPage();page.setDefaultTimeout(10000);await login(page);return page;};
  try {
@@ -40,7 +40,7 @@ test("@real-stack clean-device recovery survives lost request and lost committed
   for(const id of [posted.transfer_id,secondID,reference,secondReference])expect(id).toMatch(/^[0-9a-f-]{36}$/);
   const sql=`SELECT json_build_object('intents',(SELECT count(*) FROM transfer_recovery_intents WHERE request_reference IN ('${reference}','${secondReference}')),'transfers',(SELECT count(*) FROM transfers WHERE id IN ('${posted.transfer_id}','${secondID}')),'postings',(SELECT count(*) FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.transfer_id IN ('${posted.transfer_id}','${secondID}')),'balanced',(SELECT count(*) FROM (SELECT j.transfer_id FROM journal_transactions j JOIN ledger_postings p ON p.journal_transaction_id=j.id WHERE j.transfer_id IN ('${posted.transfer_id}','${secondID}') GROUP BY j.transfer_id HAVING count(*)=2 AND sum(CASE WHEN direction='debit' THEN amount_minor ELSE -amount_minor END)=0) x))::text;`;
   const proof=JSON.parse(execFileSync("docker",["exec","-i",run.postgresContainerID,"psql","-X","-U","ledgersync","-d","ledgersync","-At","-v","ON_ERROR_STOP=1"],{input:sql,encoding:"utf8",windowsHide:true,timeout:15000}));expect(proof).toEqual({intents:2,transfers:2,postings:4,balanced:2});
-  await third.goto("/transfers#saved-transfer-recovery");await expect(third.getByRole("link",{name:"Open original posted receipt"}).first()).toBeVisible();await third.screenshot({path:"../docs/design/qa/journey-20261010/cross-device-recovery.jpg",fullPage:true});
-  writeFileSync("../.tmp/journey-validation/cross-device-proof.json",JSON.stringify({source,destination,firstReference:reference,firstTransfer:posted.transfer_id,secondReference,secondTransfer:secondID,proof},null,2));
+  await third.goto("/transfers#saved-transfer-recovery");await expect(third.getByRole("link",{name:"Open original posted receipt"}).first()).toBeVisible();await third.screenshot({path:testInfo.outputPath("cross-device-recovery.jpg"),fullPage:true});
+  writeFileSync(testInfo.outputPath("cross-device-proof.json"),JSON.stringify({source,destination,firstReference:reference,firstTransfer:posted.transfer_id,secondReference,secondTransfer:secondID,proof},null,2));
  } finally {for(const context of contexts)await context.close();}
 });

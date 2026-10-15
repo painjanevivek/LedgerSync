@@ -31,5 +31,5 @@ export async function POST(request: NextRequest) {
     return jsonError("validation_failed", 400);
   }
 
-  return proxyTransferMutation(session, "/api/transfers", body, idempotencyKey, requestReference, request.headers.get("x-request-id") ?? undefined);
+  return proxyTransferMutation(session, "/api/transfers", body, idempotencyKey, requestReference, request.headers.get("x-request-id") ?? undefined, request.headers.get("x-ledgersync-session-handle") ?? undefined);
 }

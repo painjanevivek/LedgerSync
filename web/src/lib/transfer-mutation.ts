@@ -1,11 +1,11 @@
 import "server-only";
 import { NextResponse } from "next/server";
-import { type Session, sessionCookie } from "@/lib/session";
+import { type Session, updateOpaqueSessionConsistency } from "@/lib/session";
 import { jsonError } from "@/lib/security";
 import { privateAPIContext } from "@/lib/private-api";
 import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
-import { applyConsistencySessionMetadata } from "@/lib/committed-response";
-export async function proxyTransferMutation(session: Session, path: string, body?: unknown, idempotencyKey?: string, requestReference?: string, requestID?: string) {
+import { parseConsistencyRequirements } from "@/lib/committed-response";
+export async function proxyTransferMutation(session: Session, path: string, body?: unknown, idempotencyKey?: string, requestReference?: string, requestID?: string, sessionHandle?: string) {
   let upstream: Response;
   try {
     const connection = await privateAPIContext(session, requestID);
@@ -62,12 +62,16 @@ export async function proxyTransferMutation(session: Session, path: string, body
   }
   const serializedRequirements = upstream.headers.get("x-ledgersync-consistency-requirements");
   if (serializedRequirements && upstream.ok) {
-    const metadataStatus = applyConsistencySessionMetadata(
-      serializedRequirements,
-      session,
-      (signedSession) => response.cookies.set(sessionCookie(signedSession)),
-    );
-    if (metadataStatus === "unavailable") {
+    const requirements = parseConsistencyRequirements(serializedRequirements);
+    let metadataStored = false;
+    try {
+      metadataStored = Boolean(requirements && sessionHandle && await updateOpaqueSessionConsistency(sessionHandle, requirements));
+    } catch {
+      // The financial command is already committed. Metadata failure must not
+      // change that result or replace the opaque browser session.
+      metadataStored = false;
+    }
+    if (!metadataStored) {
       response.headers.delete("X-LedgerSync-Consistency-Requirements");
       response.headers.set("X-LedgerSync-Metadata-Status", "unavailable");
     }

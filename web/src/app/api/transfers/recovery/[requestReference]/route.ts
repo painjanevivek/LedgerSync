@@ -18,5 +18,5 @@ export async function POST(request: NextRequest, context: {params: Promise<{requ
   try { while(true) {const chunk=await reader.read();if(chunk.done) break;if(chunk.value.length) return jsonError("validation_failed",400);} }
   finally {await reader.cancel();}
  }
- return proxyTransferMutation(session,`/api/transfers/recovery/${reference}/retry`,undefined,undefined,reference);
+ return proxyTransferMutation(session,`/api/transfers/recovery/${reference}/retry`,undefined,undefined,reference,request.headers.get("x-request-id")??undefined,request.headers.get("x-ledgersync-session-handle")??undefined);
 }
