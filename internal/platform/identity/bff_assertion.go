@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 )
 
 const (
@@ -96,7 +98,18 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 	if err != nil || !allAllowed(payload.Roles, allowedRoles) || !allAllowed(payload.Scopes, allowedScopes) {
 		return Principal{}, ErrUnauthenticated
 	}
-	if payload.TenantID != principal.TenantID {
+	workloadTenantID, workloadTenantErr := identifier.Parse(ctx, identifier.KindTenant, principal.TenantID)
+	actorTenantID, actorTenantErr := identifier.Parse(ctx, identifier.KindTenant, payload.TenantID)
+	canonicalTenantID := payload.TenantID
+	if workloadTenantErr == nil && actorTenantErr == nil {
+		if actorTenantID != workloadTenantID {
+			return Principal{}, ErrUnauthenticated
+		}
+		canonicalTenantID = actorTenantID.String()
+	} else if workloadTenantErr == nil || actorTenantErr == nil || payload.TenantID != principal.TenantID {
+		// The explicit development provider historically uses human-readable
+		// tenant labels. Preserve that local-only contract while production OIDC
+		// mappings are parsed strictly during provider construction.
 		return Principal{}, ErrUnauthenticated
 	}
 	if err := a.config.ReplayGuard.Use(ctx, payload.AssertionID, time.Unix(payload.ExpiresAt, 0)); err != nil {
@@ -105,7 +118,7 @@ func (a *RequestAuthenticator) Authenticate(ctx context.Context, credential, ass
 		}
 		return Principal{}, ErrAuthenticationUnavailable
 	}
-	actorPrincipal := Principal{SubjectID: payload.SubjectID, TenantID: payload.TenantID, Roles: allowedSet(payload.Roles, allowedRoles), Scopes: allowedSet(payload.Scopes, allowedScopes)}
+	actorPrincipal := Principal{SubjectID: payload.SubjectID, TenantID: canonicalTenantID, Roles: allowedSet(payload.Roles, allowedRoles), Scopes: allowedSet(payload.Scopes, allowedScopes)}
 	if payload.AuthenticatedAt > 0 {
 		actorPrincipal.AuthenticatedAt = time.Unix(payload.AuthenticatedAt, 0).UTC()
 	}

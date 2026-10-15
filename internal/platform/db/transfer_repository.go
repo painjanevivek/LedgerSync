@@ -77,7 +77,7 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 	// PostgreSQL UUID input is case-insensitive. Normalize the textual tenant
 	// identity as well so equivalent configured UUID spellings cannot split the
 	// cross-replica policy sequence into separate advisory-lock keys.
-	sequenceTenant := strings.ToLower(strings.TrimSpace(command.TenantID))
+	sequenceTenant := command.TenantID.String()
 	err = WithSerializableSequence(ctx, r.database, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
 		resolved, replay, err := reserveOrReplay(ctx, tx, command, fingerprint)
 		if err != nil {
@@ -194,12 +194,12 @@ type lockedAccount struct {
 }
 
 func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, command transfers.Command) (transfers.Result, error) {
-	accounts, err := lockAccounts(ctx, tx, command.TenantID, command.DebitAccountID, command.CreditAccountID)
+	accounts, err := lockAccounts(ctx, tx, command.TenantID.String(), command.DebitAccountID.String(), command.CreditAccountID.String())
 	if err != nil {
 		return transfers.Result{}, err
 	}
-	source := accounts[command.DebitAccountID]
-	destination := accounts[command.CreditAccountID]
+	source := accounts[command.DebitAccountID.String()]
+	destination := accounts[command.CreditAccountID.String()]
 	if err := validateAccounts(ctx, tx, command, source, destination); err != nil {
 		return transfers.Result{}, err
 	}
@@ -213,7 +213,7 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err != nil {
 		return transfers.Result{}, err
 	}
-	entry, err := transferdomain.New(transferID, command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount, now)
+	entry, err := transferdomain.New(transferID, command.TenantID.String(), command.ActorSubjectID, command.DebitAccountID.String(), command.CreditAccountID.String(), command.Amount, now)
 	if err != nil {
 		return transfers.Result{}, err
 	}
@@ -260,7 +260,7 @@ func (r *TransferRepository) postOrReject(ctx context.Context, tx *sql.Tx, comma
 	if err := ledger.ValidateBalanced([]ledger.Posting{debit, credit}); err != nil {
 		return transfers.Result{}, err
 	}
-	if err := createJournal(ctx, tx, journalID, command.TenantID, entry.ID, now); err != nil {
+	if err := createJournal(ctx, tx, journalID, command.TenantID.String(), entry.ID, now); err != nil {
 		return transfers.Result{}, err
 	}
 	if err := createPosting(ctx, tx, debit); err != nil {
@@ -399,7 +399,7 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 			return err
 		}
 	}
-	metadata, err := json.Marshal(map[string]string{"denial_code": code, "source_account_id": command.DebitAccountID, "destination_account_id": command.CreditAccountID})
+	metadata, err := json.Marshal(map[string]string{"denial_code": code, "source_account_id": command.DebitAccountID.String(), "destination_account_id": command.CreditAccountID.String()})
 	if err != nil {
 		return err
 	}
@@ -532,8 +532,8 @@ func enqueueTransferWebhookEvent(ctx context.Context, tx *sql.Tx, command transf
 		"event_id":               eventID,
 		"event_type":             "transfer.posted",
 		"transfer_id":            transferID,
-		"debit_account_id":       command.DebitAccountID,
-		"credit_account_id":      command.CreditAccountID,
+		"debit_account_id":       command.DebitAccountID.String(),
+		"credit_account_id":      command.CreditAccountID.String(),
 		"amount_minor":           strconv.FormatInt(command.Amount.Minor(), 10),
 		"currency":               command.Amount.Currency().Code,
 		"occurred_at":            now.Format(time.RFC3339Nano),

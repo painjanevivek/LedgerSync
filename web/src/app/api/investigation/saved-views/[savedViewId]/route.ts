@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseSavedViewRenameInput, readBoundedSavedViewBody, sanitizeSavedView } from "@/lib/api/saved-investigation-views";
+import { canonicalUUID } from "@/lib/canonical-uuid";
 import { authorizeInvestigationSavedViews, isInvestigationSearchDenial } from "@/lib/investigation-search-boundary";
 import { privateAPIContext } from "@/lib/private-api";
 import { InMemoryRateLimitStore } from "@/lib/rate-limit";
@@ -11,14 +12,13 @@ import { isPrivateAPITimeout, privateWriteTimeoutMilliseconds } from "@/lib/upst
 
 const savedViewMutationRateLimit = new InMemoryRateLimitStore();
 const maximumRequestBytes = 4 << 10;
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const versionTag = /^"[1-9][0-9]{0,18}"$/u;
 
 async function authorize(request: NextRequest, savedViewId: string) {
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   const authorization = await authorizeInvestigationSavedViews(request, session, savedViewMutationRateLimit, true);
   if (isInvestigationSearchDenial(authorization)) return authorization;
-  if (!uuid.test(savedViewId) || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
+  if (!savedViewId || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);
   return authorization;
 }
 
@@ -32,7 +32,7 @@ function headers(upstream: Response) {
 }
 
 export async function PUT(request: NextRequest, { params }: Readonly<{ params: Promise<{ savedViewId: string }> }>) {
-  const savedViewId = (await params).savedViewId.toLowerCase();
+  const savedViewId = canonicalUUID((await params).savedViewId) ?? "";
   const authorization = await authorize(request, savedViewId);
   if (authorization instanceof NextResponse) return authorization;
   let input: ReturnType<typeof parseSavedViewRenameInput>;
@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest, { params }: Readonly<{ params: P
 }
 
 export async function DELETE(request: NextRequest, { params }: Readonly<{ params: Promise<{ savedViewId: string }> }>) {
-  const savedViewId = (await params).savedViewId.toLowerCase();
+  const savedViewId = canonicalUUID((await params).savedViewId) ?? "";
   const authorization = await authorize(request, savedViewId);
   if (authorization instanceof NextResponse) return authorization;
   const ifMatch = request.headers.get("if-match");

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 )
@@ -59,6 +60,11 @@ func (h *TransactionsHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 		writeAuthenticationError(writer, request, err)
 		return
 	}
+	canonicalAccountID, ok := requireCanonicalIdentifier(writer, request, identifier.KindAccount, accountID)
+	if !ok {
+		return
+	}
+	accountID = canonicalAccountID
 	if identity.RequireScope(principal, "transactions:read") != nil {
 		writeScopeDenial(writer, request, h.audit, principal, "transactions:read")
 		return

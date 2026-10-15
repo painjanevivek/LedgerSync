@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
+import { canonicalizeUUIDPathSegments } from "@/lib/canonical-uuid";
 import { privateAPIContext } from "@/lib/private-api";
 import { jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
@@ -21,7 +22,7 @@ export async function proxyCorrectionMutation(
     const headers: Record<string, string> = { ...connection.headers };
     if (body) headers["Content-Type"] = "application/json";
     if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
-    const upstream = await fetch(`${connection.apiURL}${path}`, {
+    const upstream = await fetch(`${connection.apiURL}${canonicalizeUUIDPathSegments(path)}`, {
       method: "POST",
       headers,
       body: body ? JSON.stringify(body) : undefined,

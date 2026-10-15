@@ -13,6 +13,7 @@ import (
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
@@ -142,11 +143,19 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
+	tenantID, tenantOK := parseIdentifier(request, identifier.KindTenant, principal.TenantID)
+	sourceAccountID, sourceOK := parseIdentifier(request, identifier.KindAccount, input.SourceAccountID)
+	destinationAccountID, destinationOK := parseIdentifier(request, identifier.KindAccount, input.DestinationAccountID)
+	if !tenantOK || !sourceOK || !destinationOK || sourceAccountID == destinationAccountID {
+		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	input.SourceAccountID, input.DestinationAccountID = sourceAccountID.String(), destinationAccountID.String()
 	submission, err := h.service.Submit(request.Context(), transfers.Command{
-		TenantID:        principal.TenantID,
+		TenantID:        tenantID,
 		ActorSubjectID:  principal.SubjectID,
-		DebitAccountID:  input.SourceAccountID,
-		CreditAccountID: input.DestinationAccountID,
+		DebitAccountID:  sourceAccountID,
+		CreditAccountID: destinationAccountID,
 		Amount:          amount,
 		IdempotencyKey:  request.Header.Get("Idempotency-Key"),
 		CorrelationID:   middleware.CorrelationID(request.Context()),

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -59,6 +60,7 @@ type Telemetry struct {
 	workerLastFailure            metric.Int64Gauge
 	committedMetadataUnavailable metric.Int64Counter
 	committedWriteFailures       metric.Int64Counter
+	invalidIdentifiers           metric.Int64Counter
 	shutdown                     func(context.Context) error
 }
 
@@ -197,6 +199,10 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	if err != nil {
 		return nil, err
 	}
+	invalidIdentifiers, err := meter.Int64Counter("ledgersync.identifier.invalid")
+	if err != nil {
+		return nil, err
+	}
 	telemetry.enabled, telemetry.tracer = true, tracerProvider.Tracer(instrumentationName)
 	telemetry.requests, telemetry.boundaryCalls, telemetry.boundaryDuration, telemetry.httpRouteDuration = requests, boundaryCalls, boundaryDuration, httpRouteDuration
 	telemetry.transferOutcomes, telemetry.outboxAge = transferOutcomes, outboxAge
@@ -208,10 +214,17 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	telemetry.workerHeartbeat, telemetry.workerProgressAge, telemetry.workerActive = workerHeartbeat, workerProgressAge, workerActive
 	telemetry.workerLastStarted, telemetry.workerLastCompleted, telemetry.workerLastFailure = workerLastStarted, workerLastCompleted, workerLastFailure
 	telemetry.committedMetadataUnavailable, telemetry.committedWriteFailures = committedMetadataUnavailable, committedWriteFailures
+	telemetry.invalidIdentifiers = invalidIdentifiers
 	telemetry.shutdown = func(shutdownCtx context.Context) error {
 		return errors.Join(meterProvider.Shutdown(shutdownCtx), tracerProvider.Shutdown(shutdownCtx))
 	}
 	return telemetry, nil
+}
+
+func (t *Telemetry) ObserveInvalidIdentifier(ctx context.Context, kind identifier.Kind) {
+	if t != nil && t.enabled {
+		t.invalidIdentifiers.Add(ctx, 1, metric.WithAttributes(attribute.String("kind", string(kind))))
+	}
 }
 
 func (t *Telemetry) Shutdown(ctx context.Context) error {

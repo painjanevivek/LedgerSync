@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/operations"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
@@ -128,7 +129,11 @@ func (h *OperationsHandler) WebhookEndpoint(writer http.ResponseWriter, request 
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
-	item, err := h.webhooks.Get(request.Context(), principal.TenantID, principal.SubjectID, strings.TrimSpace(request.PathValue("endpointId")))
+	endpointID, ok := requireCanonicalIdentifier(writer, request, identifier.KindWebhook, request.PathValue("endpointId"))
+	if !ok {
+		return
+	}
+	item, err := h.webhooks.Get(request.Context(), principal.TenantID, principal.SubjectID, endpointID)
 	if errors.Is(err, db.ErrInvestigationNotFound) {
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return
@@ -149,7 +154,11 @@ func (h *OperationsHandler) Event(writer http.ResponseWriter, request *http.Requ
 	if !ok {
 		return
 	}
-	item, err := h.events.Get(request.Context(), principal.TenantID, principal.SubjectID, strings.TrimSpace(request.PathValue("eventID")))
+	eventID, ok := requireCanonicalIdentifier(writer, request, identifier.KindEvent, request.PathValue("eventID"))
+	if !ok {
+		return
+	}
+	item, err := h.events.Get(request.Context(), principal.TenantID, principal.SubjectID, eventID)
 	if errors.Is(err, db.ErrInvestigationNotFound) {
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return

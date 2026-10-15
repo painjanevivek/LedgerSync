@@ -352,7 +352,8 @@ func main() {
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
-	handler := middleware.Correlation(middleware.Contract(configuration.Environment, telemetry.HTTP(router)))
+	identifierAwareRouter := httptransport.WithIdentifierObserver(router, telemetry)
+	handler := middleware.Correlation(middleware.Contract(configuration.Environment, telemetry.HTTP(identifierAwareRouter)))
 	server := &http.Server{
 		Addr: configuration.HTTPAddress, Handler: handler,
 		ReadHeaderTimeout: configuration.HTTPReadHeaderTimeout,

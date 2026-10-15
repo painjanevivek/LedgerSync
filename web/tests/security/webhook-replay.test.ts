@@ -63,6 +63,8 @@ test("browser replay routes remain fixed to immutable developer delivery command
   const mutation = await readFile(new URL("../../src/lib/webhook-replay-mutation.ts", import.meta.url), "utf8");
   assert.match(approvalRoute, /parseWebhookReplayApprovalRequest/);
   assert.match(replayRoute, /parseWebhookReplayRequest/);
-  assert.match(mutation, /\/api\/developer\/webhooks\/\$\{encodeURIComponent\(endpointId\)\}\/deliveries\/\$\{encodeURIComponent\(attemptId\)\}\/\$\{suffix\}/);
+  assert.match(mutation, /\/api\/developer\/webhooks\/\$\{encodeURIComponent\(canonicalEndpointId\)\}\/deliveries\/\$\{encodeURIComponent\(canonicalAttemptId\)\}\/\$\{suffix\}/);
+  assert.match(mutation, /canonicalUUID\(endpointId\)/);
+  assert.match(mutation, /canonicalUUID\(attemptId\)/);
   assert.doesNotMatch(mutation, /endpoint_url|payload/);
 });

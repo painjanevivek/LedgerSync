@@ -6,10 +6,10 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 	httptransport "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
@@ -95,9 +95,8 @@ func (h *InvestigationHandler) RenameSavedView(writer http.ResponseWriter, reque
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
-	viewID := strings.ToLower(strings.TrimSpace(request.PathValue("savedViewId")))
-	if !canonicalInvestigationUUID.MatchString(viewID) {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	viewID, ok := requireCanonicalIdentifier(writer, request, identifier.KindSavedView, request.PathValue("savedViewId"))
+	if !ok {
 		return
 	}
 	var input savedViewRenameRequest
@@ -128,12 +127,11 @@ func (h *InvestigationHandler) DeleteSavedView(writer http.ResponseWriter, reque
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
-	viewID := strings.ToLower(strings.TrimSpace(request.PathValue("savedViewId")))
-	version, err := parseSavedViewIfMatch(request.Header.Get("If-Match"))
-	if !canonicalInvestigationUUID.MatchString(viewID) {
-		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+	viewID, ok := requireCanonicalIdentifier(writer, request, identifier.KindSavedView, request.PathValue("savedViewId"))
+	if !ok {
 		return
 	}
+	version, err := parseSavedViewIfMatch(request.Header.Get("If-Match"))
 	if err != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return

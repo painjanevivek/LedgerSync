@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	appcorrections "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/corrections"
 	apptransfers "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money"
 )
@@ -365,7 +366,7 @@ VALUES($1,$2,$3,$4,$5,$6,$7,'posted',$8,$9,$9,$10,$11)`, compensationID, command
 		if err = requireOneRow(result, "post correction"); err != nil {
 			return appcorrections.ErrConflict
 		}
-		transferCommand := apptransfers.Command{TenantID: command.TenantID, ActorSubjectID: command.ActorSubjectID, DebitAccountID: creditID, CreditAccountID: debitID, Amount: amountValue, CorrelationID: command.CorrelationID, OccurredAt: command.OccurredAt}
+		transferCommand := apptransfers.Command{TenantID: identifier.UUID(command.TenantID), ActorSubjectID: command.ActorSubjectID, DebitAccountID: identifier.UUID(creditID), CreditAccountID: identifier.UUID(debitID), Amount: amountValue, CorrelationID: command.CorrelationID, OccurredAt: command.OccurredAt}
 		if err = enqueueBalanceEvent(ctx, tx, transferCommand, compensationID, updatedSource, command.OccurredAt); err != nil {
 			return err
 		}

@@ -15,6 +15,8 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
+const correctionTestTransferID = "20000000-0000-4000-8000-000000000001"
+
 type correctionHandlerRepository struct {
 	request      appcorrections.RequestCommand
 	requestCalls int
@@ -62,8 +64,8 @@ func TestCorrectionRequestUsesVerifiedStepUpAndWriteScope(t *testing.T) {
 		Scopes: map[string]struct{}{"corrections:write": {}},
 	}}
 	handler := NewCorrectionHandler(service, provider)
-	request := httptest.NewRequest(http.MethodPost, "/api/transfers/transfer-1/corrections", strings.NewReader(`{"reason_code":"operational_error","operator_note":"Exact reversal evidence reviewed."}`))
-	request.SetPathValue("transferID", "transfer-1")
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/"+correctionTestTransferID+"/corrections", strings.NewReader(`{"reason_code":"operational_error","operator_note":"Exact reversal evidence reviewed."}`))
+	request.SetPathValue("transferID", correctionTestTransferID)
 	request.Header.Set("Authorization", "Bearer verified")
 	request.Header.Set("Idempotency-Key", "correction-request-0001")
 	response := httptest.NewRecorder()
@@ -74,8 +76,8 @@ func TestCorrectionRequestUsesVerifiedStepUpAndWriteScope(t *testing.T) {
 
 	provider.principal.Scopes = map[string]struct{}{"corrections:read": {}}
 	denied := NewCorrectionHandler(service, provider)
-	deniedRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/transfer-1/corrections", strings.NewReader(`{}`))
-	deniedRequest.SetPathValue("transferID", "transfer-1")
+	deniedRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/"+correctionTestTransferID+"/corrections", strings.NewReader(`{}`))
+	deniedRequest.SetPathValue("transferID", correctionTestTransferID)
 	deniedResponse := httptest.NewRecorder()
 	denied.Request(deniedResponse, deniedRequest)
 	if deniedResponse.Code != http.StatusForbidden || repository.requestCalls != 1 {
