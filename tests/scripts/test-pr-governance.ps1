@@ -64,6 +64,8 @@ try {
         "docs/design/qa/responsive/baselines/linux/chromium/accounts.png"
     ) -Body $completeBody -MaximumVisualBaselineFiles 1 -ExpectedExitCode 1
     Invoke-GovernanceCase -Name "unacknowledged-critical" -Files @("migrations/000034_example.up.sql") -Body ($completeBody -replace '\[x\] Financial/security behavior changed', '[ ] Financial/security behavior changed') -ExpectedExitCode 1
+    & $powerShellExecutable -NoLogo -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot "test-pr-governance-policy.ps1")
+    if ($LASTEXITCODE -ne 0) { throw "Review-policy exception checks failed" }
     Write-Host "PR governance checks passed."
 }
 finally {
