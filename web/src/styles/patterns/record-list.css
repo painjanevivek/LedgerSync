@@ -15,7 +15,7 @@
 .section-heading p:not(.eyebrow) {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--type-label);
 }
 .ledger-list {
   border-bottom: 1px solid var(--line);

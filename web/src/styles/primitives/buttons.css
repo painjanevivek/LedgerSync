@@ -34,7 +34,7 @@
   align-items: center;
   gap: 6px;
   color: var(--blue);
-  font-size: 10px;
+  font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: 0.02em;
   text-decoration: none;
@@ -48,4 +48,24 @@
 .row-action svg {
   width: 14px;
   height: 14px;
+}
+
+.action-availability {
+  display: inline-grid;
+  max-width: 100%;
+  justify-items: start;
+  gap: var(--space-2);
+}
+.action-availability > .button {
+  max-width: 100%;
+}
+.action-availability-reason {
+  max-width: 42ch;
+  color: var(--muted);
+  font-size: var(--type-label);
+  line-height: 1.45;
+}
+.action-availability[data-availability="temporary_unavailable"] .action-availability-reason,
+.action-availability[data-availability="step_up"] .action-availability-reason {
+  color: var(--amber);
 }
