@@ -811,6 +811,7 @@
       "tests/model/ledger_test.go",
       "tests/model/sequence.go",
       "tests/performance/k6/transfers.js",
+      "tests/scripts/test-local-runtime-doctor.ps1",
       "tests/unit/opening_import_manifest_test.go",
       "tests/unit/outbox_worker_test.go",
       "web/.env.example",
