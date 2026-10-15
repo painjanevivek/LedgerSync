@@ -1,13 +1,14 @@
 # Internal design-partner provisioning
 
-Provisioning is a controlled operator workflow, not a public route or self-service admin product. The reviewed JSON creates one tenant, its pilot-currency policy, subject/role mappings, external credential references, authorized accounts, exact opening projections, and audit evidence in one serializable PostgreSQL transaction.
+Provisioning is a controlled operator workflow, not a public route or self-service admin product. The reviewed JSON creates one tenant, its pilot-currency policy, subject/role mappings, external credential references, zero-opening authorized accounts, and audit evidence in one serializable PostgreSQL transaction. Non-zero value is a separate two-person [opening-import workflow](opening-import.md).
 
 ## Preconditions
 
 - jurisdiction, non-custodial positioning, one pilot currency, design-partner contract, and data-retention schedule are approved in writing;
 - OIDC/workload credentials already exist in the selected external provider/secret manager;
 - the JSON contains only credential references, audiences, scopes, and expiry—never secrets or tokens;
-- account UUIDs, external references, categories, opening minor units, subjects, credit/debit rights, velocity limits, and rollback owner are independently reviewed;
+- account UUIDs, external references, categories, subjects, credit/debit rights, velocity limits, and rollback owner are independently reviewed;
+- every normal provisioning `opening_minor` is exactly `"0"`;
 - the operator uses the least-privilege `ledgersync_provisioning` database role and an approved change UUID.
 
 ## Validate and apply
@@ -26,7 +27,7 @@ silently ignore. The supported operator read scopes include `accounts:read`,
 separately gated by `transfers:write` plus account relationships and tenant
 policy.
 
-Verify tenant policy, accounts, exact opening balances, owner/credit permissions, subject roles, external credential events, and `partner.provisioned` audit evidence before enabling traffic.
+Verify tenant policy, accounts, zero opening balances, owner/credit permissions, subject roles, external credential events, and `partner.provisioned` audit evidence before enabling traffic. If approved opening value is required, keep traffic disabled and follow the opening-import runbook.
 
 ## Rollback before financial activity only
 
@@ -34,4 +35,4 @@ Verify tenant policy, accounts, exact opening balances, owner/credit permissions
 go run ./cmd/provision-partner -action rollback -tenant-id <tenant-uuid> -actor-subject-id <different-reviewer> -correlation-id <original-change-uuid>
 ```
 
-Rollback is refused once any transfer exists. With no transfers it removes access mappings, closes rather than deletes accounts, appends external credential revocation events, and records immutable rollback/audit evidence. It does not delete opening balances, accounts, requests, or evidence.
+Rollback is refused once any transfer, posted funding, or executed opening import exists. With no financial history it removes access mappings, closes rather than deletes accounts, appends external credential revocation events, and records immutable rollback/audit evidence. It does not delete opening balances, accounts, requests, or evidence.
