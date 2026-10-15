@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { InMemoryRateLimitStore } from "@/lib/rate-limit";
+import { createRateLimitStore, rateLimitResponse } from "@/lib/rate-limit";
 import { hasValidHost, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
 import { isPrivateAPITimeout } from "@/lib/upstream-outcome";
 import { parseTransferSearchParams, transferExportQueryRules } from "@/lib/page-query/transfers";
 
-const exportRateLimit = new InMemoryRateLimitStore();
+const exportRateLimit = createRateLimitStore();
 const maximumCSVBytes = 16 * 1024 * 1024;
 const maximumErrorBytes = 65_536;
 const exportTimeoutMilliseconds = 12_000;
@@ -21,7 +21,8 @@ export async function authorizeEvidenceExport(request: NextRequest, session: Ses
   if (!session.scopes?.includes("exports:read") || !session.scopes.includes(additionalScope)) return jsonError("forbidden", 403);
   if (!hasValidHost(request)) return jsonError("invalid_request", 400);
   const decision = await exportRateLimit.consume(`export:${session.tenantId}:${session.subjectId}`, 10, 60);
-  if (!decision.allowed) { const response = jsonError("rate_limited", 429); response.headers.set("Retry-After", String(decision.retryAfterSeconds)); return response; }
+  const rateLimitFailure = rateLimitResponse(decision);
+  if (rateLimitFailure) return rateLimitFailure;
   return session;
 }
 

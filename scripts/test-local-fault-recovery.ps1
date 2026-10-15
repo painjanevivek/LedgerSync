@@ -32,8 +32,8 @@ function Assert-LedgerSyncDependencyUnavailableResponse {
         throw "PostgreSQL outage returned HTTP $([int]$response.StatusCode); expected sanitized temporary unavailability (503)."
     }
     $payload = $response.Content | ConvertFrom-Json
-    if ($payload.error.code -cne "account_directory_unavailable") {
-        throw "PostgreSQL outage did not return the bounded account-directory unavailable code."
+    if ($payload.error.code -cnotin @("account_directory_unavailable", "temporary_unavailable")) {
+        throw "PostgreSQL outage did not return a bounded dependency-unavailable code."
     }
 }
 
@@ -112,6 +112,13 @@ try {
     Assert-LedgerSyncDependencyUnavailableResponse -Session $session
     Write-Output "POSTGRES_UNAVAILABLE_503=PASS"
     Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait") | Out-Null
+    $recoveredResponse = Invoke-WebRequest -UseBasicParsing -SkipHttpErrorCheck `
+        -WebSession $session -TimeoutSec 8 `
+        -Uri "$script:LedgerSyncWebUrl/api/me/accounts?limit=1"
+    if ([int]$recoveredResponse.StatusCode -ne 200) {
+        throw "The existing browser session did not recover after PostgreSQL became available."
+    }
+    Write-Output "EXISTING_SESSION_AFTER_POSTGRES_RECOVERY=PASS"
 
     Invoke-LedgerSyncCompose -ComposeArguments @("stop", "web", "api", "outbox-worker", "redis", "postgres") | Out-Null
     Invoke-LedgerSyncCompose -ComposeArguments @("up", "-d", "--wait") | Out-Null
