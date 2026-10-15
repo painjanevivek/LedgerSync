@@ -71,3 +71,46 @@ f642e94db4c771ed75dfec06567e2e5718c69759:tests/integration/account_commands_test
 0cb076d0a5bde7a06ccbb14084a23256810dd1b1:tests/integration/cron_worker_role_test.go:generic-api-key:34
 79a68b4decfa5a262388e193df62317d5f0f9a9f:tests/integration/cron_worker_role_test.go:generic-api-key:34
 f8632859f495212b86c14681fb1c93a7584d56c8:tests/integration/cron_worker_role_test.go:generic-api-key:34
+
+# PR #23 squash: exact reviewed local test evidence identifiers (not credentials).
+# api-failure contains public retry keys; concurrent-transfers contains a transfer ID.
+# Keep new commits, changed lines, other paths, and other rules subject to scanning.
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/concurrent-transfers.json:generic-api-key:13
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:24
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:34
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:44
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:54
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:64
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:74
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:84
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:104
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:114
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:124
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:134
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:144
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:154
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:164
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:174
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:188
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:198
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:208
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:218
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:228
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:238
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:248
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:258
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:268
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:278
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:298
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:308
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:318
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:328
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:338
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:348
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:358
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:368
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:378
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:388
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:398
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:408
+f7e5c154eccfa1eafe52d30b9f18ba837a118e9a:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:418
