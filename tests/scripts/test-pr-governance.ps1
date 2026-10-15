@@ -64,6 +64,35 @@ try {
         "docs/design/qa/responsive/baselines/linux/chromium/accounts.png"
     ) -Body $completeBody -MaximumVisualBaselineFiles 1 -ExpectedExitCode 1
     Invoke-GovernanceCase -Name "unacknowledged-critical" -Files @("migrations/000034_example.up.sql") -Body ($completeBody -replace '\[x\] Financial/security behavior changed', '[ ] Financial/security behavior changed') -ExpectedExitCode 1
+    # Exercise the complete child guard, not only its pure policy resolver.
+    # This catches PowerShell ValidateRange attributes on reassigned variables.
+    $originalEventPath = $env:GITHUB_EVENT_PATH
+    try {
+        $policy = Get-Content -LiteralPath (Join-Path $repositoryRoot '.github/governance/merge-policy.json') -Raw | ConvertFrom-Json
+        $base = (& git -C $repositoryRoot rev-parse HEAD).Trim()
+        $eventPath = Join-Path $testRoot 'bounded-scope-event.json'
+        @{
+            number = 23
+            repository = @{ full_name = 'painjanevivek/LedgerSync' }
+            pull_request = @{
+                user = @{ login = 'painjanevivek' }
+                base = @{ sha = $base }
+                head = @{ ref = 'codex/portfolio-restructuring-r00-r10' }
+            }
+        } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $eventPath
+        $env:GITHUB_EVENT_PATH = $eventPath
+        $scopeFiles = @($policy.consolidation.allowed_paths | Where-Object { $_ -notmatch '^docs/design/qa/responsive/baselines/' } | Select-Object -First 100)
+        $scopeBody = ($completeBody -replace 'The author is not the sole approving reviewer', 'Solo-maintainer review applies under repository policy') + "`n- [x] Consolidation scope exception 2026-10-ledgersync applies`n"
+        # Once this one-time policy expires, the same oversized request must fail.
+        $scopeExit = if ([DateTimeOffset]$policy.consolidation.expires_at -gt [DateTimeOffset]::UtcNow) { 0 } else { 1 }
+        Invoke-GovernanceCase -Name 'approved-bounded-scope' -Files $scopeFiles -Body $scopeBody -ExpectedExitCode $scopeExit
+        Invoke-GovernanceCase -Name 'unlisted-bounded-scope' -Files ($scopeFiles + 'unapproved/extra.go') -Body $scopeBody -ExpectedExitCode 1
+        Invoke-GovernanceCase -Name 'unacknowledged-bounded-scope' -Files $scopeFiles -Body ($scopeBody -replace '\[x\] Consolidation', '[ ] Consolidation') -ExpectedExitCode 1
+    }
+    finally {
+        if ($null -eq $originalEventPath) { Remove-Item Env:GITHUB_EVENT_PATH -ErrorAction SilentlyContinue }
+        else { $env:GITHUB_EVENT_PATH = $originalEventPath }
+    }
     & $powerShellExecutable -NoLogo -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot "test-pr-governance-policy.ps1")
     if ($LASTEXITCODE -ne 0) { throw "Review-policy exception checks failed" }
     Write-Host "PR governance checks passed."

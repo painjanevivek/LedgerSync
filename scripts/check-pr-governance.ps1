@@ -14,6 +14,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Keep approved exception values separate from validated CLI parameters.
+$reviewLimit = $MaximumChangedFiles
+$criticalLimit = $MaximumCriticalFiles
+$visualLimit = $MaximumVisualBaselineFiles
+
 foreach ($path in @($ChangedFilesPath, $PullRequestBodyPath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Required governance input does not exist: $path"
@@ -38,26 +43,26 @@ $errors = [System.Collections.Generic.List[string]]::new()
 . (Join-Path $PSScriptRoot 'pr-governance-policy.ps1')
 $approvedPolicy = Get-LedgerSyncApprovedReviewPolicy -RepositoryRoot (Resolve-Path (Join-Path $PSScriptRoot '..')).Path -ChangedFiles $changedFiles -Body $body
 if ($approvedPolicy.ScopeException) {
-    $MaximumChangedFiles = [int]$approvedPolicy.ScopeException.maximum_review_files
-    $MaximumCriticalFiles = [int]$approvedPolicy.ScopeException.maximum_critical_files
-    $MaximumVisualBaselineFiles = [int]$approvedPolicy.ScopeException.maximum_visual_baselines
+    $reviewLimit = [int]$approvedPolicy.ScopeException.maximum_review_files
+    $criticalLimit = [int]$approvedPolicy.ScopeException.maximum_critical_files
+    $visualLimit = [int]$approvedPolicy.ScopeException.maximum_visual_baselines
 }
 
 
 if ($changedFiles.Count -eq 0) {
     $errors.Add("The pull request contains no changed-file evidence.")
 }
-if ($reviewFiles.Count -gt $MaximumChangedFiles) {
-    $errors.Add("The pull request changes $($reviewFiles.Count) review files; the review limit is $MaximumChangedFiles. Split it or document an approved exception in a dedicated governance change.")
+if ($reviewFiles.Count -gt $reviewLimit) {
+    $errors.Add("The pull request changes $($reviewFiles.Count) review files; the review limit is $reviewLimit. Split it or document an approved exception in a dedicated governance change.")
 }
-if ($visualBaselineFiles.Count -gt $MaximumVisualBaselineFiles) {
-    $errors.Add("The pull request changes $($visualBaselineFiles.Count) visual baselines; the baseline review limit is $MaximumVisualBaselineFiles.")
+if ($visualBaselineFiles.Count -gt $visualLimit) {
+    $errors.Add("The pull request changes $($visualBaselineFiles.Count) visual baselines; the baseline review limit is $visualLimit.")
 }
 if ($visualBaselineFiles.Count -gt 0 -and $changedFiles -notcontains $visualApprovalLedger) {
     $errors.Add("Visual baseline changes require an entry in $visualApprovalLedger.")
 }
-if ($criticalFiles.Count -gt $MaximumCriticalFiles) {
-    $errors.Add("The pull request changes $($criticalFiles.Count) critical files; the critical review limit is $MaximumCriticalFiles.")
+if ($criticalFiles.Count -gt $criticalLimit) {
+    $errors.Add("The pull request changes $($criticalFiles.Count) critical files; the critical review limit is $criticalLimit.")
 }
 
 $requiredSections = @("Risk", "Test evidence", "Rollout and rollback", "Reviewer independence")
