@@ -815,6 +815,7 @@
       "tests/unit/outbox_worker_test.go",
       "web/.env.example",
       "web/eslint.config.mjs",
+      "web/next.config.ts",
       "web/package-lock.json",
       "web/package.json",
       "web/playwright.config.ts",
