@@ -1,4 +1,4 @@
-# Branch consolidation — 15 October 2026
+# Branch consolidation - 15 October 2026
 
 ## Scope and preserved source
 
@@ -6,10 +6,10 @@ The owner requested all development branches and verified local work in main. Lo
 
 ## Reviewed conflict resolutions
 
-- The ten split PR branches (#13–#22) were already squash merged. The final split tree `81e1a1d` exactly equals the pre-consolidation main tree `d4991cc`. Retain the current tree and record their original ancestry in this integration branch.
+- The ten split PR branches (#13-#22) were already squash merged. The final split tree `81e1a1d` exactly equals the pre-consolidation main tree `d4991cc`. Retain the current tree and record their original ancestry in this integration branch.
 - Original hardening branches through controlled financial commands are ancestors of the local portfolio branch. Retain the newer actor-bound functions, scoped repositories, worker fences and immutable evidence.
-- Approved opening imports were missing. Port `1cfadec` to migration **000064**, because 000037–000063 are already assigned. Keep immutable manifests, independent finance approval, exact content hashes, zero-state reconciliation, atomic execution, replay safety and provisioning-only execution. Add forced tenant policies, actor context, current rollback protection and the complete function ACL inventory.
-- Older correction and financial-DML contractions are replaced by current migrations 000048–000060 and the R03 restricted-role matrix. Do not replay old numbered migrations or restore obsolete function names and broad writes.
+- Approved opening imports were missing. Port `1cfadec` to migration **000064**, because 000037-000063 are already assigned. Keep immutable manifests, independent finance approval, exact content hashes, zero-state reconciliation, atomic execution, replay safety and provisioning-only execution. Add forced tenant policies, actor context, current rollback protection and the complete function ACL inventory.
+- Older correction and financial-DML contractions are replaced by current migrations 000048-000060 and the R03 restricted-role matrix. Do not replay old numbered migrations or restore obsolete function names and broad writes.
 - Older tenant RLS uses `ledgersync.tenant_id`. The current implementation uses both `app.tenant_id` and `app.actor_id`, clears pooled state and forces scoped policies. Keep it, including migration 000063 for sessions/preferences and the new opening evidence policies.
 - The integration branch's Vercel packaging fix was missing. Preserve conditional output tracing for Vercel and standalone output for containers.
 - The simple-first and fork UI work is represented by the latest guided UI and scoped sessions. Retain current migration 000062/000063 rather than duplicate old migration 000037. Current system design, diagrams, exact money, concurrency, idempotency, consistency, delivery and recovery documentation supersede the older README layout. Keep the current README's explicit local-only boundary and links.
@@ -57,6 +57,9 @@ The screenshot fork `yashmahajan11234567/Real-Time-Balance-Visibility-in-Microse
 ## Verification and limits
 
 - Go deterministic production, unit, contract, architecture and model packages passed before history consolidation.
-- Disposable full integration and fault inventories passed at source `b3b8a99`; no normal container or source changes were made during that run.
-- Linux visuals, complete browser checks, final image journeys and hosted CI remain pending at this checkpoint. A pending check is not a pass.
+- Disposable full integration and fault inventories passed at source `6bd4363`; no normal container or source changes were made during that run.
+- Immutable candidate `a346e05` passed all six full-stack browser journeys, including clean-device recovery. Its source and normal-container identities were preserved. The earlier failed funding-artifact run remains retained; the fix writes proof into the owning Playwright output directory.
+- After the compact identifier-wrap correction, the Linux no-update run passed 271 browser checks, with four platform-specific skips; all three performance checks and JavaScript budgets passed. All 44 Linux baseline images were visually inspected. Windows passed all 62 responsive/accessibility/visual checks.
+- Final candidate-image and hosted CI results must be read on the latest PR head before merge. All nine required checks remain enabled. PR #24 merged only after all nine passed.
+- Superseded PRs #2, #3, #4, #6, #7, #8, #9, #10, #11 and #12 are covered by the heads and decisions above. After the consolidation passes and merges, close those duplicate PRs without deleting their branches.
 - R13 remains in progress. R14-R17 are not completed by this consolidation. No managed environment, real provider, independent human accessibility review or production approval is claimed.

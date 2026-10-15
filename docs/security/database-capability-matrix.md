@@ -1,5 +1,7 @@
 # Database workload capability matrix
 
+Consolidation update: migration 000064 adds immutable, approved opening-import evidence. All four new tables force tenant row policies. Only provisioning can execute the three import functions; API, worker, support and other workload execution remains denied. Each function checks the current tenant and actor. The complete ACL inventory and fresh/populated database suites passed on disposable targets. The older R03 counts below describe that phase's recorded checkpoint.
+
 R13 candidate update: migration 000063 adds forced row security for opaque BFF sessions and UI preferences. Opaque lookup occurs before tenant discovery, so its exact token digest is installed only for the owning transaction. Preference rows require both tenant and actor context. A separate fixed cleanup function removes at most 100 expired or long-revoked records for the current operator and returns only a count. Raw API deletion is revoked. The controlled function execution inventory includes this non-financial cleanup function. These changes are qualified on disposable targets. They are not applied to the preserved normal database in this work packet.
 
 Status: R03 locally verified through migration 000060 on 15 October 2026. All current core observations align with the target.
