@@ -31,7 +31,11 @@ foreach ($privatePort in @("5432", "6379", "8080")) {
     $publishedPattern = '(?m)^\s*-?\s*["'']?0\.0\.0\.0:{0}' -f $privatePort
     Assert-LocalRuntimeDoctor ($composeSource -notmatch $publishedPattern) "Private port $privatePort was published."
 }
-Assert-LocalRuntimeDoctor (([regex]::Matches($composeSource, 'stop_grace_period:\s*30s')).Count -eq 5) "Long-running services do not share the graceful shutdown window."
+foreach ($serviceName in @('postgres', 'redis', 'api', 'outbox-worker', 'web', 'web-peer')) {
+    $servicePattern = '(?ms)^  {0}:\r?\n(?<body>.*?)(?=^  [a-zA-Z0-9_-]+:|\z)' -f [regex]::Escape($serviceName)
+    $service = [regex]::Match($composeSource, $servicePattern)
+    Assert-LocalRuntimeDoctor ($service.Success -and $service.Groups['body'].Value -match '(?m)^    stop_grace_period:\s*30s\s*$') "Service $serviceName does not preserve the 30-second graceful shutdown window."
+}
 
 $seedSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "deploy\compose\demo-seed.sql") -Raw
 Assert-LocalRuntimeDoctor ($seedSource -match "local_demo_seed_metadata" -and $seedSource -match "persisted_version > 2") "Demo seed version compatibility is not fail-closed."
