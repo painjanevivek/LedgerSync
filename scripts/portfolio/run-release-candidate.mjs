@@ -94,6 +94,12 @@ try {
   const browserOutput = join(root, 'browser-artifacts');
   const env = { ...process.env, PLAYWRIGHT_HTML_OUTPUT_DIR: join(root, 'browser-report'), LEDGERSYNC_SYSTEM_ARTIFACT_ROOT: browserOutput, LEDGERSYNC_SYSTEM_ALLOW_LEDGER_MUTATION: 'true', LEDGERSYNC_SYSTEM_ISOLATED_PROJECT: 'true', LEDGERSYNC_SYSTEM_WEB_URL: 'http://127.0.0.1:3102', LEDGERSYNC_SYSTEM_PEER_WEB_URL: 'http://127.0.0.1:3103', LEDGERSYNC_SYSTEM_COMPOSE_PROJECT: project, LEDGERSYNC_SYSTEM_SEEDED_SOURCE_ACCOUNT_ID: '10000000-0000-4000-8000-000000000001', LEDGERSYNC_SYSTEM_RUN_ID: `release-${suffix}` };
   await run(process.platform === 'win32' ? 'pwsh' : 'npm', process.platform === 'win32' ? ['-NoProfile', '-Command', 'npm run test:e2e:real-stack -- --output "$env:LEDGERSYNC_SYSTEM_ARTIFACT_ROOT"'] : ['run', 'test:e2e:real-stack', '--', '--output', browserOutput], 'browser-real-stack.txt', { cwd: join(repository, 'web'), env });
+  const goEnvironment = { ...cleanEnvironment, GOMAXPROCS: '2', LEDGERSYNC_SYSTEM_WEB_URL: 'http://127.0.0.1:3102', LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: `candidate-go-${suffix}` };
+  await run('go', ['test', './tests/system', '-count=1', '-v'], 'go-real-stack.txt', { cwd: candidate.snapshot, env: goEnvironment });
+  for (const target of targets) verifyTarget(target);
+  await run('docker', compose('restart', 'api'), 'api-restart.txt');
+  await run('docker', compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'api'), 'api-restart-ready.txt');
+  await run('go', ['test', './tests/system', '-run', '^TestRealBFFSameKeyReplayAfterAPIProcessRestart$', '-count=1', '-v'], 'go-restart-replay.txt', { cwd: candidate.snapshot, env: { ...goEnvironment, LEDGERSYNC_SYSTEM_EXPECT_RESTART_REPLAY: 'true' } });
   save('resources-after.json', docker('stats', '--no-stream', '--format', '{{json .}}', ...targets.filter(t => verifyTarget(t).State.Running).map(t => t.id)) + '\n');
 } catch (error) { failure = error.message; }
 finally {
