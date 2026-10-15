@@ -196,6 +196,11 @@ try {
         throw "Could not resolve the isolated recovery containers."
     }
 
+    $policyRoleSQL = Get-LedgerSyncRestorePolicyRoleSQL
+    & docker exec $postgresContainer psql --single-transaction -v ON_ERROR_STOP=1 `
+        -U ledgersync -d ledgersync -c $policyRoleSQL | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Isolated restore policy-role initialization failed." }
+
     Invoke-LedgerSyncFileToContainerCommand -SourcePath $backup.DumpPath `
         -ContainerID $postgresContainer -CommandArguments @(
             "pg_restore", "-U", "ledgersync", "-d", "ledgersync",
