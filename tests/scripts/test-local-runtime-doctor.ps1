@@ -4,6 +4,7 @@ param()
 $ErrorActionPreference = "Stop"
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 . (Join-Path $repositoryRoot "scripts\local-runtime-common.ps1")
+. (Join-Path $repositoryRoot "scripts\local-backup-common.ps1")
 
 function Assert-LocalRuntimeDoctor {
     param([bool]$Condition, [string]$Message)
@@ -44,8 +45,20 @@ Assert-LocalRuntimeDoctor ($resetSource -match "Latest validated backup" -and $r
 $logsSource = Get-Content -LiteralPath (Join-Path $repositoryRoot "scripts\logs-local.ps1") -Raw
 Assert-LocalRuntimeDoctor ($logsSource -match '"--timestamps"') "Bounded logs omit correlation-friendly timestamps."
 
+$policyRoleSQL = Get-LedgerSyncRestorePolicyRoleSQL
+foreach ($role in @('api','break_glass','maintenance','maintenance_owner','migration_owner','preflight_owner','provisioning','queue_owner','reconciliation','scheduler','support_readonly','worker')) {
+    Assert-LocalRuntimeDoctor ($policyRoleSQL.Contains("'ledgersync_$role'")) "Restore policy role identity is missing: $role"
+}
+Assert-LocalRuntimeDoctor ($policyRoleSQL.Contains('NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')) "Restore policy roles lack inert attributes."
+Assert-LocalRuntimeDoctor ($policyRoleSQL -notmatch '(?im)^\s*(GRANT|CREATE\s+USER|ALTER\s+ROLE)\b') "Restore bootstrap installs unexpected privileges or login identities."
+$restoreSource = Get-Content -LiteralPath (Join-Path $repositoryRoot 'scripts/local-restore-drill.ps1') -Raw
+$bootstrapPosition = $restoreSource.IndexOf('Get-LedgerSyncRestorePolicyRoleSQL')
+$restorePosition = $restoreSource.IndexOf('"pg_restore"')
+Assert-LocalRuntimeDoctor ($bootstrapPosition -ge 0 -and $restorePosition -gt $bootstrapPosition) "Policy role identities must exist before pg_restore."
+
 Write-Output "LOCAL_RUNTIME_DOCTOR_TESTS=PASS"
 Write-Output "DOCKER_FAILURE_CLASSIFICATION=PASS"
 Write-Output "SERVICE_RECOVERY_GUIDANCE=PASS"
 Write-Output "LOOPBACK_AND_GRACEFUL_SHUTDOWN=PASS"
 Write-Output "SEED_AND_RESET_SAFETY=PASS"
+Write-Output "INERT_RESTORE_POLICY_ROLES=PASS"

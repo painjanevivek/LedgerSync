@@ -9,6 +9,31 @@ $script:LedgerSyncRecoveryEvidenceFileName = "recovery-evidence-index.json"
 $script:LedgerSyncRestoreEvidenceFileName = "restore-evidence.json"
 $script:LedgerSyncMaximumBackupEntries = 200
 
+function Get-LedgerSyncRestorePolicyRoleSQL {
+    # pg_dump does not contain cluster roles, but RLS policies name them.
+    # Recreate only these inert identities in the isolated restore target.
+    return @'
+DO $restore_roles$
+DECLARE role_name text;
+BEGIN
+ FOREACH role_name IN ARRAY ARRAY[
+  'ledgersync_api','ledgersync_break_glass','ledgersync_maintenance',
+  'ledgersync_maintenance_owner','ledgersync_migration_owner','ledgersync_preflight_owner',
+  'ledgersync_provisioning','ledgersync_queue_owner','ledgersync_reconciliation',
+  'ledgersync_scheduler','ledgersync_support_readonly','ledgersync_worker'] LOOP
+  IF EXISTS(SELECT 1 FROM pg_roles r WHERE r.rolname=role_name AND
+   (r.rolcanlogin OR r.rolsuper OR r.rolcreatedb OR r.rolcreaterole OR r.rolreplication OR r.rolbypassrls
+    OR EXISTS(SELECT 1 FROM pg_auth_members m WHERE m.member=r.oid OR m.roleid=r.oid))) THEN
+   RAISE EXCEPTION 'unsafe existing restore policy role' USING ERRCODE='42501';
+  END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname=role_name) THEN
+   EXECUTE format('CREATE ROLE %I NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',role_name);
+  END IF;
+ END LOOP;
+END $restore_roles$;
+'@
+}
+
 function Invoke-LedgerSyncFileToContainerCommand {
     param(
         [Parameter(Mandatory = $true)][string]$SourcePath,
