@@ -52,8 +52,8 @@ test("non-token styles use semantic color variables", () => {
 test("responsive shell owns canonical compact behavior and accessibility fallbacks", () => {
   const responsive = read("src/styles/layout/responsive-shell.css");
 
-  assert.equal(COMPACT_NAVIGATION_MAX_WIDTH_PX, 760);
-  assert.equal(COMPACT_NAVIGATION_MEDIA_QUERY, "(max-width: 760px)");
+  assert.equal(COMPACT_NAVIGATION_MAX_WIDTH_PX, 1279);
+  assert.equal(COMPACT_NAVIGATION_MEDIA_QUERY, "(max-width: 1279px)");
   const guided = read("src/styles/layout/guided-workspace.css");
   assert.equal((guided.match(/@media \(max-width: 1279px\)/gu) ?? []).length, 1);
   assert.match(guided, /\.guided-desktop-nav\s*\{\s*display: none/);

@@ -33,7 +33,7 @@ function unknownOutcome(reference: string): TransferOutcome {
   return {
     kind: "unknown",
     requestReference: reference,
-    message: `The result is not confirmed. Retry this exact transfer; LedgerSync will reuse its existing idempotency key. Request reference: ${reference}.`,
+    message: "We do not yet know whether this transfer completed. Do not create another transfer. Use the original request below to resolve it safely.",
   };
 }
 
@@ -46,10 +46,11 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
   const [outcome, setOutcome] = useState<TransferOutcome>(null);
+  const [storageError, setStorageError] = useState(false);
   const storageKey = transferIntentStorageKey(tenantId);
   const subscribe = useCallback((notify: () => void) => {
     const onStorage = (event: StorageEvent) => {
-      if (event.storageArea === sessionStorage && event.key === storageKey) notify();
+      if (event.key === storageKey) notify();
     };
     window.addEventListener("storage", onStorage);
     window.addEventListener("ledgersync-transfer-intent", notify);
@@ -58,7 +59,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       window.removeEventListener("ledgersync-transfer-intent", notify);
     };
   }, [storageKey]);
-  const getSnapshot = useCallback(() => sessionStorage.getItem(storageKey), [storageKey]);
+  const getSnapshot = useCallback(() => { try { return sessionStorage.getItem(storageKey); } catch { return "storage-unavailable"; } }, [storageKey]);
   const rawStoredIntent = useSyncExternalStore(subscribe, getSnapshot, () => null);
   const storedIntent = useMemo(() => parseStoredTransferIntent(rawStoredIntent), [rawStoredIntent]);
 
@@ -68,12 +69,16 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
 
   function saveIntent(intent: StoredTransferIntent) {
     sessionStorage.setItem(storageKey, JSON.stringify(intent));
+    if (sessionStorage.getItem(storageKey) !== JSON.stringify(intent)) throw new Error("Retry information was not retained");
     notifyIntentChanged();
   }
 
   function clearIntent() {
-    sessionStorage.removeItem(storageKey);
-    notifyIntentChanged();
+    try {
+      sessionStorage.removeItem(storageKey);
+      if (sessionStorage.getItem(storageKey) !== null) throw new Error("Retry information was not cleared");
+      notifyIntentChanged();
+    } catch { setStorageError(true); }
   }
 
   async function loadTransferDetail(transferId: string): Promise<TransferDetail | null> {
@@ -91,7 +96,17 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     if (pending || inFlight.current) return false;
     inFlight.current = true;
 
-    const persisted = parseStoredTransferIntent(sessionStorage.getItem(storageKey)) ?? storedIntent;
+    let persisted: StoredTransferIntent | null;
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      persisted = parseStoredTransferIntent(raw) ?? storedIntent;
+      // Do not overwrite an unrecognized legacy request or silently start a new one.
+      if (storageError || (raw && !parseStoredTransferIntent(raw))) throw new Error("Retry information unavailable");
+    } catch {
+      setStorageError(true);
+      inFlight.current = false;
+      return false;
+    }
     if (persisted && !storedIntentMatches(persisted, prepared)) {
       setOutcome({
         kind: "unknown",
@@ -103,7 +118,8 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
 
     const intent = persisted ?? createStoredTransferIntent(crypto.randomUUID(), prepared);
     const localReference = crypto.randomUUID();
-    if (!persisted) saveIntent(intent);
+    try { if (!persisted) saveIntent(intent); }
+    catch { setStorageError(true); inFlight.current = false; return false; }
     setPending(true);
     setOutcome(null);
 
@@ -137,7 +153,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       const balances = Object.values(payload.balances ?? {});
       const baseOutcome: TransferOutcome = {
         kind: "success",
-        message: "The ledger posting committed exactly once. Committed balance versions are shown below.",
+        message: "The money moved between your accounts. This result is confirmed.",
         transferId: payload.transfer_id,
         amountMinor: payload.amount_minor || intent.amountMinor,
         currency: payload.currency || intent.currency,
@@ -186,10 +202,10 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
 
   const visibleOutcome = outcome ?? (storedIntent ? {
     kind: "unknown" as const,
-    message: "An unconfirmed transfer was restored after navigation or reload. Editing is locked; retry this exact intent with its original key.",
+    message: "An unconfirmed transfer was restored. We do not yet know whether it completed. Do not create another transfer. Resolve the original request below.",
   } : null);
 
-  return { outcome: visibleOutcome, pending, setOutcome, storedIntent, submit };
+  return { outcome: visibleOutcome, pending, setOutcome, storedIntent, submit, storageBlocked: storageError || Boolean(rawStoredIntent && !storedIntent) };
 }
 
 export type { PreparedTransfer } from "@/features/transfers/transferIntent";
