@@ -37,7 +37,8 @@ func TestOpenAPIIsStructurallyValidAndEveryReferenceResolves(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(content) > 160*1024 {
+	// The additive observation schemas remain a bounded, embedded contract asset.
+	if len(content) > 192*1024 {
 		t.Fatalf("OpenAPI download is unbounded: %d bytes", len(content))
 	}
 	document := loadOpenAPIDocument(t)

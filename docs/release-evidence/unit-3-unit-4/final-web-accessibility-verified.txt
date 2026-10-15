@@ -1,0 +1,101 @@
+
+> ledgersync-web@0.1.0 test:e2e
+> playwright test --grep-invert @performance tests/e2e/phase9-matrix.spec.ts --workers=2
+
+[WebServer] (node:472952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:472952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:462492) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:471728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:473664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:473760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:475024) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:469540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:475972) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:464428) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:475872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:469976) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:470364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:472212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:472596) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:472536) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:473744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:473956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:469252) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:470952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:471776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:439176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:468160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:434988) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:472720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:470096) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:468216) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:476128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:470128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:471016) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:475128) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:469372) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:471832) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:455420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 20 tests using 2 workers
+
+(node:465960) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:471368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  2 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 390x844 (9.6s)
+  ok  1 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 320x800 (10.2s)
+  ok  3 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 768x1024 (7.6s)
+  ok  4 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1024x768 (7.7s)
+  ok  5 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1366x768 (7.0s)
+  ok  6 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1440x900 (7.0s)
+  ok  8 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › / passes the complete authored-color WCAG A and AA rules (7.0s)
+  ok  7 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1920x1080 (7.6s)
+  ok  9 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /accounts passes the complete authored-color WCAG A and AA rules (6.4s)
+  ok 10 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /accounts/11111111-1111-4111-8111-111111111111 passes the complete authored-color WCAG A and AA rules (6.4s)
+  ok 11 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /accounts/new passes the complete authored-color WCAG A and AA rules (6.5s)
+  ok 12 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /transfers passes the complete authored-color WCAG A and AA rules (6.6s)
+  ok 13 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /transfers/33333333-3333-4333-8333-333333333333 passes the complete authored-color WCAG A and AA rules (6.9s)
+  ok 14 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /reconciliation passes the complete authored-color WCAG A and AA rules (6.7s)
+  ok 15 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /reconciliation/55555555-5555-4555-8555-555555555555 passes the complete authored-color WCAG A and AA rules (5.9s)
+  ok 16 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /local-status passes the complete authored-color WCAG A and AA rules (5.9s)
+  ok 17 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /events passes the complete authored-color WCAG A and AA rules (6.2s)
+  ok 18 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /events/77777777-7777-4777-8777-777777777777 passes the complete authored-color WCAG A and AA rules (6.2s)
+  ok 20 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /recovery passes the complete authored-color WCAG A and AA rules (6.7s)
+  ok 19 [chromium] › tests\e2e\phase9-matrix.spec.ts:68:7 › /developer passes the complete authored-color WCAG A and AA rules (7.2s)
+
+  20 passed (1.8m)

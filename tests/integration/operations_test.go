@@ -65,7 +65,7 @@ func TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth(t *testing.T) {
 	if err != nil || claimedDetail.State != "pending" {
 		t.Fatalf("healthy first claim mislabeled: detail=%#v error=%v", claimedDetail, err)
 	}
-	if err := outboxRepository.Reschedule(context.Background(), "operations-test-worker", claimed[0].ID, claimTime.Add(time.Minute), "publish_failed"); err != nil {
+	if err := outboxRepository.Reschedule(context.Background(), "operations-test-worker", claimed[0].ID, claimTime.Add(time.Minute), "publish_failed", claimed[0].ClaimGeneration); err != nil {
 		t.Fatal(err)
 	}
 	retrying, _, err := events.List(context.Background(), testTenantID, testActorID, operations.EventFilter{State: "retrying", Limit: 25})
@@ -157,11 +157,17 @@ func TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived(t *tes
 		t.Fatal(err)
 	}
 	repository, _ := db.NewOperationsRepository(database)
-	facts, err := repository.Facts(context.Background(), testTenantID)
+	facts, err := repository.Facts(context.Background(), testTenantID, testActorID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if facts.SchemaVersion != "000038_live_investigation_compatibility.up.sql" || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
+	wantSchema := ""
+	for version := range liveMigrationSource(t, false) {
+		if version > wantSchema {
+			wantSchema = version
+		}
+	}
+	if facts.SchemaVersion != wantSchema || facts.PendingOutboxCount != 3 || facts.DeadOutboxCount != 0 || facts.OldestPendingAt.IsZero() {
 		t.Fatalf("unexpected database-derived facts: %#v", facts)
 	}
 }

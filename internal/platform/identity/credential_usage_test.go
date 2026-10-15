@@ -14,13 +14,13 @@ func (p usageProvider) Authenticate(context.Context, string) (Principal, error) 
 }
 
 type usageRecorder struct {
-	tenant, reference string
-	at                time.Time
-	err               error
+	tenant, actor, reference string
+	at                       time.Time
+	err                      error
 }
 
-func (r *usageRecorder) RecordUsage(_ context.Context, tenant, reference string, at time.Time) error {
-	r.tenant, r.reference, r.at = tenant, reference, at
+func (r *usageRecorder) RecordUsage(_ context.Context, tenant, actor, reference string, at time.Time) error {
+	r.tenant, r.actor, r.reference, r.at = tenant, actor, reference, at
 	return r.err
 }
 
@@ -35,7 +35,7 @@ func TestUsageTrackingRecordsOnlyOAuthClientReference(t *testing.T) {
 	if err != nil || principal.SubjectID != "oauth-client:partner-001" {
 		t.Fatalf("principal=%#v err=%v", principal, err)
 	}
-	if recorder.tenant != "tenant-1" || recorder.reference != "partner-001" || !recorder.at.Equal(now) {
+	if recorder.actor != principal.SubjectID || recorder.tenant != "tenant-1" || recorder.reference != "partner-001" || !recorder.at.Equal(now) {
 		t.Fatalf("usage=%#v", recorder)
 	}
 }

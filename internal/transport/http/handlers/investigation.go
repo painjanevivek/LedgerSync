@@ -297,7 +297,7 @@ func (h *InvestigationHandler) Transfers(writer http.ResponseWriter, request *ht
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
 	}
-	items, next, err := h.repository.ListTransfers(request.Context(), principal.TenantID, filter)
+	items, next, err := h.repository.ListTransfers(request.Context(), principal.TenantID, principal.SubjectID, filter)
 	if err != nil {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
 		return
@@ -314,7 +314,7 @@ func (h *InvestigationHandler) Transfer(writer http.ResponseWriter, request *htt
 	if !ok {
 		return
 	}
-	item, err := h.repository.GetTransfer(request.Context(), principal.TenantID, id)
+	item, err := h.repository.GetTransfer(request.Context(), principal.TenantID, principal.SubjectID, id)
 	if errors.Is(err, db.ErrInvestigationNotFound) {
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return
@@ -335,7 +335,7 @@ func (h *InvestigationHandler) ReconciliationRuns(writer http.ResponseWriter, re
 	if !ok {
 		return
 	}
-	items, next, err := h.repository.ListReconciliationRuns(request.Context(), principal.TenantID, request.URL.Query().Get("cursor"), limit)
+	items, next, err := h.repository.ListReconciliationRuns(request.Context(), principal.TenantID, principal.SubjectID, request.URL.Query().Get("cursor"), limit)
 	if err != nil {
 		httptransport.WriteError(writer, request, &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "evidence_unavailable", Message: "Authoritative reconciliation evidence is unavailable."})
 		return
@@ -351,7 +351,7 @@ func (h *InvestigationHandler) ReconciliationRun(writer http.ResponseWriter, req
 	if !ok {
 		return
 	}
-	item, err := h.repository.GetReconciliationRun(request.Context(), principal.TenantID, runID)
+	item, err := h.repository.GetReconciliationRun(request.Context(), principal.TenantID, principal.SubjectID, runID)
 	if errors.Is(err, db.ErrInvestigationNotFound) {
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return

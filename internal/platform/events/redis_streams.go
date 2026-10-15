@@ -26,6 +26,37 @@ type RedisStreams struct {
 	stream    string
 	telemetry *observability.Telemetry
 	maxLength int64
+	receiver  interface {
+		Receive(context.Context, projection.Message) error
+	}
+}
+
+func (p *RedisStreams) WithReceiver(receiver interface {
+	Receive(context.Context, projection.Message) error
+}) *RedisStreams {
+	p.receiver = receiver
+	return p
+}
+func (p *RedisStreams) recordReceipts(ctx context.Context, messages []projection.Message, err error) ([]projection.Message, error) {
+	if err != nil {
+		return nil, err
+	}
+	if p.receiver != nil {
+		if batch, ok := p.receiver.(interface {
+			ReceiveBatch(context.Context, []projection.Message) error
+		}); ok {
+			if err := batch.ReceiveBatch(ctx, messages); err != nil {
+				return nil, fmt.Errorf("persist logical receive batch: %w", err)
+			}
+			return messages, nil
+		}
+		for _, message := range messages {
+			if err := p.receiver.Receive(ctx, message); err != nil {
+				return nil, fmt.Errorf("persist logical receive evidence: %w", err)
+			}
+		}
+	}
+	return messages, nil
 }
 
 func (p *RedisStreams) WithMaxLength(maxLength int64) *RedisStreams {
@@ -69,8 +100,8 @@ func NewRedisStreams(client redis.UniversalClient, stream string, telemetry ...*
 
 func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) (err error) {
 	started := time.Now()
-	ctx, span := p.start(ctx, "event.redis.publish")
-	defer func() { span.End(); p.observe(ctx, "publish", started, err) }()
+	ctx, span := p.telemetry.StartLinked(ctx, "event.redis.publish", event.DiagnosticTraceParent)
+	defer func() { p.observe(ctx, "publish", started, err); span.End() }()
 	aggregateType, aggregateID := event.AggregateType, event.AggregateID
 	if aggregateType == "" {
 		aggregateType = "account_balance"
@@ -78,7 +109,7 @@ func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) (err err
 	if aggregateID == "" {
 		aggregateID = event.AccountID
 	}
-	_, err = p.client.XAdd(ctx, &redis.XAddArgs{Stream: p.stream, MaxLen: p.maxLength, Approx: p.maxLength > 0, Values: map[string]any{
+	values := map[string]any{
 		"event_id":          event.ID,
 		"event_type":        event.EventType,
 		"tenant_id":         event.TenantID,
@@ -89,7 +120,20 @@ func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) (err err
 		"aggregate_version": strconv.FormatInt(event.AggregateVersion, 10),
 		"payload":           string(event.Payload),
 		"occurred_at":       event.OccurredAt.UTC().Format(time.RFC3339Nano),
-	}}).Result()
+	}
+	if parent := observability.TraceParent(ctx); parent != "" {
+		values["diagnostic_traceparent"] = parent
+	}
+	if event.Causal != nil {
+		values["origin_node_id"] = event.Causal.NodeID
+		values["origin_logical_timestamp"] = strconv.FormatInt(event.Causal.Timestamp, 10)
+		values["parent_reference"] = event.Causal.ParentReference
+	}
+	if event.Delivery != nil {
+		values["delivery_node_id"] = event.Delivery.NodeID
+		values["delivery_logical_timestamp"] = strconv.FormatInt(event.Delivery.Timestamp, 10)
+	}
+	_, err = p.client.XAdd(ctx, &redis.XAddArgs{Stream: p.stream, MaxLen: p.maxLength, Approx: p.maxLength > 0, Values: values}).Result()
 	if err != nil {
 		return fmt.Errorf("publish redis stream event: %w", err)
 	}
@@ -101,7 +145,7 @@ func (p *RedisStreams) Publish(ctx context.Context, event outbox.Event) (err err
 func (p *RedisStreams) EnsureConsumerGroup(ctx context.Context, group string) (err error) {
 	started := time.Now()
 	ctx, span := p.start(ctx, "event.redis.ensure_consumer_group")
-	defer func() { span.End(); p.observe(ctx, "ensure_consumer_group", started, err) }()
+	defer func() { p.observe(ctx, "ensure_consumer_group", started, err); span.End() }()
 	groups, err := p.client.XInfoGroups(ctx, p.stream).Result()
 	if err == nil {
 		for _, existing := range groups {
@@ -122,7 +166,7 @@ func (p *RedisStreams) EnsureConsumerGroup(ctx context.Context, group string) (e
 func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, count int64, block time.Duration) (messages []projection.Message, err error) {
 	started := time.Now()
 	ctx, span := p.start(ctx, "event.redis.read_group")
-	defer func() { span.End(); p.observe(ctx, "read_group", started, err) }()
+	defer func() { p.observe(ctx, "read_group", started, err); span.End() }()
 	if group == "" || consumer == "" || count <= 0 {
 		return nil, errors.New("group, consumer, and count are required")
 	}
@@ -133,7 +177,8 @@ func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, co
 	if err != nil {
 		return nil, fmt.Errorf("read redis consumer group: %w", err)
 	}
-	return decodeEntries(entries)
+	messages, decodeErr := decodeEntries(entries)
+	return p.recordReceipts(ctx, messages, decodeErr)
 }
 
 // RecoverPending claims messages idle longer than minIdle. This makes cache
@@ -141,7 +186,7 @@ func (p *RedisStreams) ReadGroup(ctx context.Context, group, consumer string, co
 func (p *RedisStreams) RecoverPending(ctx context.Context, group, consumer string, minIdle time.Duration, count int64) (messages []projection.Message, err error) {
 	started := time.Now()
 	ctx, span := p.start(ctx, "event.redis.recover_pending")
-	defer func() { span.End(); p.observe(ctx, "recover_pending", started, err) }()
+	defer func() { p.observe(ctx, "recover_pending", started, err); span.End() }()
 	if group == "" || consumer == "" || count <= 0 {
 		return nil, errors.New("group, consumer, and count are required")
 	}
@@ -152,13 +197,14 @@ func (p *RedisStreams) RecoverPending(ctx context.Context, group, consumer strin
 	if err != nil {
 		return nil, fmt.Errorf("recover redis pending events: %w", err)
 	}
-	return decodeMessages(entries)
+	messages, decodeErr := decodeMessages(entries)
+	return p.recordReceipts(ctx, messages, decodeErr)
 }
 
 func (p *RedisStreams) Ack(ctx context.Context, group string, messageID string) (err error) {
 	started := time.Now()
 	ctx, span := p.start(ctx, "event.redis.ack")
-	defer func() { span.End(); p.observe(ctx, "ack", started, err) }()
+	defer func() { p.observe(ctx, "ack", started, err); span.End() }()
 	if _, err := p.client.XAck(ctx, p.stream, group, messageID).Result(); err != nil {
 		return fmt.Errorf("ack redis stream event: %w", err)
 	}
@@ -166,9 +212,6 @@ func (p *RedisStreams) Ack(ctx context.Context, group string, messageID string) 
 }
 
 func (p *RedisStreams) start(ctx context.Context, name string) (context.Context, trace.Span) {
-	if p.telemetry == nil {
-		return ctx, trace.SpanFromContext(ctx)
-	}
 	return p.telemetry.Start(ctx, name)
 }
 
@@ -273,5 +316,38 @@ func decodeEvent(values map[string]any) (outbox.Event, error) {
 	if aggregateID == "" {
 		aggregateID = accountID
 	}
-	return outbox.Event{ID: id, EventType: eventType, TenantID: tenantID, TransferID: transferID, AccountID: accountID, AggregateType: aggregateType, AggregateID: aggregateID, AggregateVersion: version, Payload: []byte(payload), OccurredAt: occurredAt}, nil
+	origin, err := decodeCausal(values, "origin", optional("parent_reference"))
+	if err != nil {
+		return outbox.Event{}, err
+	}
+	delivery, err := decodeCausal(values, "delivery", id)
+	if err != nil {
+		return outbox.Event{}, err
+	}
+	parent := optional("diagnostic_traceparent")
+	if !observability.TraceContextFromHeader(parent).IsValid() {
+		parent = ""
+	}
+	return outbox.Event{ID: id, EventType: eventType, TenantID: tenantID, TransferID: transferID, AccountID: accountID, AggregateType: aggregateType, AggregateID: aggregateID, AggregateVersion: version, Payload: []byte(payload), OccurredAt: occurredAt, Causal: origin, Delivery: delivery, DiagnosticTraceParent: parent}, nil
+}
+
+func decodeCausal(values map[string]any, prefix, parent string) (*outbox.CausalMetadata, error) {
+	nodeValue, hasNode := values[prefix+"_node_id"]
+	stampValue, hasStamp := values[prefix+"_logical_timestamp"]
+	if !hasNode && !hasStamp {
+		return nil, nil
+	}
+	node, ok := nodeValue.(string)
+	if !ok || node == "" || len(node) > 128 || len(parent) > 128 {
+		return nil, errors.New("invalid causal node metadata")
+	}
+	text, ok := stampValue.(string)
+	if !ok || !hasStamp {
+		return nil, errors.New("invalid causal counter metadata")
+	}
+	stamp, err := strconv.ParseInt(text, 10, 64)
+	if err != nil || stamp < 1 {
+		return nil, errors.New("invalid causal counter metadata")
+	}
+	return &outbox.CausalMetadata{NodeID: node, Timestamp: stamp, ParentReference: parent}, nil
 }

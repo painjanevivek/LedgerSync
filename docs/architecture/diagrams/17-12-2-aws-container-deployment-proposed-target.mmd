@@ -1,0 +1,23 @@
+flowchart TB
+  Browser[Operator browser] --> Edge[HTTPS edge and reviewed ingress]
+  Browser --> IdP[Approved OIDC provider, Cognito if selected]
+  subgraph AppBoundary[Proposed application network]
+    Edge --> Web[Next.js BFF containers]
+    Web --> API[Private Go API containers]
+    Worker[Continuous worker containers]
+    API --> PG[(Managed PostgreSQL authority)]
+    Worker --> PG
+    API --> Redis[(Managed Redis)]
+    Worker --> Redis
+    API --> Keys[Managed secrets and key policy]
+    Worker --> Keys
+    API --> Observe[Telemetry and tested alert routing]
+    Worker --> Observe
+    Worker --> Egress[Controlled outbound HTTPS]
+  end
+  Web --> IdP
+  Egress --> Receiver[Verified webhook receiver]
+  PG --> Backup[Encrypted PITR and separate backup boundary]
+  Recovery[Isolated restore environment] --> Backup
+  Release[Signed build and controlled migration job] --> API
+  Release --> PG

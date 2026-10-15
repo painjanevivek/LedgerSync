@@ -36,9 +36,9 @@ export function ReconciliationController({ runId, returnTo, filters = {}, invali
   return (
     <ConsoleRouteFrame section="reconciliation" loadingLabel="Reconciliation" pending={hasScope("reconciliation:read") && !initialEvidenceSettled}>
       {session && !hasScope("reconciliation:read") ? (
-        <><PageHeader eyebrow="Investigate / Reconciliation" title="Reconciliation" description="Compare stored ledger postings with authoritative balance evidence."/><StatePanel kind="denied" title="Reconciliation read authority required" message="Your server-issued session does not include reconciliation:read. No protected reconciliation request was made."/></>
+        <><PageHeader eyebrow="Investigate / Reconciliation" title="Internal reconciliation" description="Compare ledger postings with stored account balances."/><StatePanel kind="denied" title="Reconciliation access required" message="Your session cannot read reconciliation results."/></>
       ) : session && invalidQuery && !runId ? (
-        <><PageHeader eyebrow="Ledger / Reconciliation" title="Reconciliation" description="Check that account balances match the ledger records."/><StatePanel kind="error" title="Invalid reconciliation investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, or malformed cursor. No protected reconciliation request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/reconciliation")}>Clear invalid continuation</button>}/></>
+        <><PageHeader eyebrow="Ledger / Reconciliation" title="Internal reconciliation" description="Compare ledger postings with stored account balances."/><StatePanel kind="error" title="Invalid reconciliation link" message="The link contains an invalid page cursor. No records were loaded." action={<button className="button secondary" type="button" onClick={() => router.replace("/reconciliation")}>Clear invalid continuation</button>}/></>
       ) : session && (
         <ReconciliationView
           runs={workspace.runs}

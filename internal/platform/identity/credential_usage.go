@@ -8,7 +8,7 @@ import (
 )
 
 type CredentialUsageRecorder interface {
-	RecordUsage(context.Context, string, string, time.Time) error
+	RecordUsage(context.Context, string, string, string, time.Time) error
 }
 
 // UsageTrackingProvider records successful OAuth client use without receiving
@@ -41,7 +41,7 @@ func (p *UsageTrackingProvider) Authenticate(ctx context.Context, credential str
 	}
 	usageContext, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
-	if err := p.recorder.RecordUsage(usageContext, principal.TenantID, reference, p.clock().UTC()); err != nil {
+	if err := p.recorder.RecordUsage(usageContext, principal.TenantID, principal.SubjectID, reference, p.clock().UTC()); err != nil {
 		return Principal{}, ErrUnauthenticated
 	}
 	return principal, nil

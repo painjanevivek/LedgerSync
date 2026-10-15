@@ -35,9 +35,19 @@ type Props = Readonly<{
   onPosted: () => Promise<void>;
 }>;
 
+export function hasUnavailablePreferredDestination(
+  accounts: readonly Account[],
+  preferredDestinationId: string | undefined,
+  hasPreservedIntent: boolean,
+) {
+  return Boolean(preferredDestinationId && !hasPreservedIntent && !accounts.some(
+    (account) => account.account_id === preferredDestinationId && account.status === "active" && account.currency === "INR",
+  ));
+}
+
 export function TransferForm({ accounts, accountsLoading, accountsError, accountsVerifiedAt, tenantId, csrfToken, disabled, disabledReason, preferredDestinationId, returnTo, onRetryAccounts, onPosted }: Props) {
-  const { session } = useConsoleSession();
-  const transferable = useMemo(() => accounts.filter((account) => account.status === "active"), [accounts]);
+  const { session, online } = useConsoleSession();
+  const transferable = useMemo(() => accounts.filter((account) => account.status === "active" && account.currency === "INR"), [accounts]);
   const fundedSources = useMemo(() => transferable.filter((account) => hasPositiveMinorUnits(account.available_minor)), [transferable]);
   const preferredDestination = useMemo(() => transferable.find((account) => account.account_id === preferredDestinationId), [preferredDestinationId, transferable]);
   const initialSource = preferredDestination
@@ -205,12 +215,25 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
     </section>;
   }
 
-  if (accountsLoading && accounts.length === 0) {
+  if (!online && accounts.length === 0 && !accountsError) {
+    return <StatePanel kind="unknown" title="Account picker unavailable" message="Connect to load authorized accounts before preparing a transfer." />;
+  }
+
+  if ((accountsLoading || !accountsVerifiedAt) && accounts.length === 0 && !accountsError) {
     return <StatePanel title="Loading authorized account picker" message="Source and destination controls remain disabled until the account request succeeds. No empty account scope is inferred." />;
   }
 
   if (accountsError && accounts.length === 0) {
     return <StatePanel kind="error" title="Account picker unavailable" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />;
+  }
+
+  if (!pickerUnavailable && hasUnavailablePreferredDestination(accounts, preferredDestinationId, Boolean(storedIntent))) {
+    return <StatePanel
+      kind="denied"
+      title="Selected destination unavailable"
+      message="The requested destination is not an active, authorized INR account. Select another destination in a new transfer."
+      action={<Link className="text-link" href="/transfers">Choose another destination →</Link>}
+    />;
   }
 
   if (preferredFundingBlocked || transferable.length < 2 || fundedSources.length === 0 || destinations.length === 0) {
@@ -223,7 +246,7 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
       <h2 id="transfer-heading">Internal transfer</h2>
       <p className="muted">Exact, same-currency movement between authorized ledger accounts.</p>
     </div>
-    {accountsVerifiedAt && <EvidenceFreshness state={accountsError ? "historical" : accountsLoading ? "refreshing" : "current"} verifiedAt={accountsVerifiedAt} label="Account picker" reason={accountsError ?? undefined} />}
+    {accountsVerifiedAt && <EvidenceFreshness state={accountsError || !online ? "historical" : accountsLoading ? "refreshing" : "current"} verifiedAt={accountsVerifiedAt} label="Account picker" reason={accountsError ?? (!online ? "Connect to refresh the account picker." : undefined)} />}
     {accountsError && <StatePanel kind="error" title="Account picker not refreshed" message={accountsError} action={<FocusedRetry label="Retry account picker only" onRetry={onRetryAccounts} disabled={disabled} busy={accountsLoading} />} />}
     <form onSubmit={prepare} noValidate>
       <FormField label="From account" requirement="required" hint="Money will leave this account."><select value={effectiveSource} onChange={(event) => { userChangedRoute.current = true; setSource(event.target.value); }} disabled={disabled || pickerUnavailable} required>{fundedSources.map((account) => <option key={account.account_id} value={account.account_id}>{accountLabel(account)} · {account.currency}</option>)}</select></FormField>

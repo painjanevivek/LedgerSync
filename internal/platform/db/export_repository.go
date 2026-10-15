@@ -34,21 +34,26 @@ func NewExportRepository(database *sql.DB) (*ExportRepository, error) {
 	return &ExportRepository{database: database, investigation: investigationRepository, history: historyRepository}, nil
 }
 
-func (r *ExportRepository) ListTransfers(ctx context.Context, tenantID string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
-	return r.investigation.ListTransfers(ctx, tenantID, filter)
+func (r *ExportRepository) ListTransfers(ctx context.Context, tenantID, actorID string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
+	return r.investigation.ListTransfers(ctx, tenantID, actorID, filter)
 }
 
 func (r *ExportRepository) ListAccountHistory(ctx context.Context, tenantID, actorID, accountID, cursor string, limit int) ([]transactions.Entry, string, error) {
 	return r.history.ListAccountHistory(ctx, tenantID, actorID, accountID, cursor, limit)
 }
 
-func (r *ExportRepository) ListReconciliationRuns(ctx context.Context, tenantID string, filter appexports.ReconciliationFilter) ([]investigation.ReconciliationRun, string, error) {
+func (r *ExportRepository) ListReconciliationRuns(ctx context.Context, tenantID, actorID string, filter appexports.ReconciliationFilter) ([]investigation.ReconciliationRun, string, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, "", scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	cursor, err := decodeInvestigationCursor(filter.Cursor)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `
-SELECT id,status,checked_account_count,posting_count,mismatch_count,correlation_id,started_at,completed_at,scope,ledger_watermark,application_version,schema_version
+	rows, err := tx.QueryContext(ctx, `
+SELECT id,status,checked_account_count,posting_count,mismatch_count,correlation_id,started_at,completed_at,scope,ledger_watermark,application_version,schema_version,details
 FROM reconciliation_runs
 WHERE tenant_id=$1
  AND ($2='' OR id::text=$2)
@@ -81,12 +86,17 @@ ORDER BY completed_at DESC,id DESC LIMIT $8`, tenantID, filter.RunID, filter.Sta
 	return items, next, nil
 }
 
-func (r *ExportRepository) ListReconciliationMismatches(ctx context.Context, tenantID, runID, rawCursor string, limit int) ([]investigation.ReconciliationMismatch, string, error) {
+func (r *ExportRepository) ListReconciliationMismatches(ctx context.Context, tenantID, actorID, runID, rawCursor string, limit int) ([]investigation.ReconciliationMismatch, string, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, "", scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	cursor, err := decodeInvestigationCursor(rawCursor)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT id,COALESCE(account_id::text,''),classification,COALESCE(currency,''),COALESCE(expected_minor::text,''),COALESCE(observed_minor::text,''),COALESCE(observed_available_minor::text,''),COALESCE(balance_version::text,''),created_at
 FROM reconciliation_mismatches
 WHERE tenant_id=$1 AND run_id=$2

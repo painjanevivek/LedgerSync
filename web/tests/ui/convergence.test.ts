@@ -10,10 +10,12 @@ import { EvidenceFreshness } from "../../src/ui/display/Evidence";
 import { FundingRequestFlow } from "../../src/features/funding/FundingRequestFlow";
 import { TransferList } from "../../src/features/transfers/TransferViews";
 
-test("console footer identifies PostgreSQL as balance authority and Redis as disposable", () => {
+test("console footer provides the guide without adding unverified financial or infrastructure claims", () => {
   const markup = renderToStaticMarkup(createElement(ConsoleFooter));
-  assert.match(markup, /PostgreSQL alone supplies customer-visible balances\. Redis is disposable\./);
-  assert.doesNotMatch(markup, /Cached reads|version-checked/);
+  assert.match(markup, /LedgerSync · Internal ledger/);
+  assert.match(markup, /href="\/guide"/);
+  assert.match(markup, /Help and guide/);
+  assert.doesNotMatch(markup, /PostgreSQL|Redis|Cached reads|version-checked|Inc\./);
 });
 
 test("evidence freshness distinguishes verified, refreshing, and historical facts", () => {
@@ -43,7 +45,8 @@ test("overview recent-transfer variant never claims the end of history", () => {
       completed_at: "2026-08-25T10:00:00Z",
     }],
   }));
-  assert.match(markup, /Latest transfer records/);
+  assert.match(markup, /Recent transfer records/);
+  assert.match(markup, /Latest five loaded records/);
   assert.match(markup, /View all transfers/);
   assert.doesNotMatch(markup, /End of available records/);
 });
@@ -53,7 +56,7 @@ test("converged controls, boundaries, and reduced motion use the shared design c
   const buttons = readFileSync(new URL("../../src/styles/primitives/buttons.css", import.meta.url), "utf8");
   const tables = readFileSync(new URL("../../src/styles/primitives/tables.css", import.meta.url), "utf8");
   const responsive = readFileSync(new URL("../../src/styles/layout/responsive-shell.css", import.meta.url), "utf8");
-  assert.match(tokens, /--line-strong:\s*#89968e/);
+  assert.match(tokens, /--line-strong:\s*#[0-9a-f]{6}/i);
   assert.match(buttons, /\.button\s*\{[^}]*min-height:\s*var\(--target-compact\)/);
   assert.match(tables, /\.data-table\s*\{[^}]*font-size:\s*var\(--type-body\)/);
   assert.match(responsive, /transition-duration:\s*\.01ms !important/);

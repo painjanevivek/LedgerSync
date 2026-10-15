@@ -1,0 +1,41 @@
+flowchart TB
+  subgraph WebProcess[Next.js process]
+    UI[Pages and feature components]
+    State[UI state, forms and saved command intent]
+    BFF[Same-origin route handlers]
+    Session[Session, OIDC, CSRF and actor assertion]
+    UI --> State
+    State --> BFF
+    BFF --> Session
+  end
+  subgraph GoProcess[Go API process]
+    HTTP[HTTP handlers and middleware]
+    Identity[Identity, scope and rate limits]
+    App[Accounts, transfers, durable transfer recovery, funding and corrections]
+    Reads[Investigation, operations, exports and recovery reads]
+    DB[PostgreSQL repositories]
+    Domain[Money, account and ledger invariants]
+    HTTP --> Identity
+    HTTP --> App
+    HTTP --> Reads
+    App --> Domain
+    App --> DB
+    Reads --> DB
+  end
+  subgraph WorkerProcess[Worker process or bounded cron runner]
+    Outbox[Outbox publisher]
+    Projector[Balance projector]
+    Hook[Webhook delivery]
+    Verify[Endpoint verification]
+  end
+  BFF --> HTTP
+  DB --> PG[(PostgreSQL)]
+  PG --- Intents[Immutable transfer recovery intents and original outcomes]
+  Outbox --> PG
+  Hook --> PG
+  Verify --> PG
+  Outbox --> Streams[(Redis streams)]
+  Streams --> Projector
+  Projector --> Cache[(Redis cache)]
+  Hook -.-> External[HTTPS receiver]
+  Verify -.-> External

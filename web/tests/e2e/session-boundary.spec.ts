@@ -12,12 +12,12 @@ test("session and connectivity authority persist across console route families",
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  await navigation.getByText("Platform", { exact: true }).click();
+  await navigation.locator("summary").filter({ hasText: "Developer" }).click();
   await navigation.getByRole("link", { name: "Developer" }).click();
   await expect(page.getByRole("heading", { name: "Developer", exact: true })).toBeVisible();
+  await navigation.getByText("Operations", { exact: true }).click();
   await navigation.getByRole("link", { name: "Recovery" }).click();
   await expect(page.getByRole("heading", { name: "Recovery", exact: true })).toBeVisible();
-  await navigation.getByText("Environment", { exact: true }).click();
   await navigation.getByRole("link", { name: "Local status" }).click();
   await expect(page.getByRole("heading", { name: "Local status", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Funding records" }).click();
@@ -32,8 +32,11 @@ test("session and connectivity authority persist across console route families",
 test("failed sign-out keeps the proven session visible and exposes a retryable error", async ({ page }) => {
   await mockOperatorConsole(page);
   let signOutRequests = 0;
-  await page.route("**/api/auth/sign-out", (route) => {
+  let releaseResponse: () => void = () => undefined;
+  const responseGate = new Promise<void>((resolve) => { releaseResponse = resolve; });
+  await page.route("**/api/auth/sign-out", async (route) => {
     signOutRequests += 1;
+    await responseGate;
     return route.fulfill({
       status: 503,
       contentType: "application/json",
@@ -45,8 +48,11 @@ test("failed sign-out keeps the proven session visible and exposes a retryable e
   await page.goto("/");
   const signOut = page.getByRole("button", { name: "Sign out" });
   await signOut.dblclick();
+  await expect.poll(() => signOutRequests).toBe(1);
+  await expect(page.getByRole("button", { name: "Signing out" })).toBeDisabled();
+  releaseResponse();
 
-  await expect(page.locator("#sign-out-error")).toContainText(
+  await expect(page.getByRole("alert").filter({ hasText: "Sign-out was not confirmed" })).toContainText(
     "Sign-out was not confirmed (503). The current workspace remains signed in.",
   );
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();

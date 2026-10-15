@@ -5,5 +5,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     readPublicOrigin();
     readLocalAccessConfiguration();
+    const { registerBFFTelemetry } = await import("@/lib/bff-telemetry");
+    registerBFFTelemetry();
   }
 }

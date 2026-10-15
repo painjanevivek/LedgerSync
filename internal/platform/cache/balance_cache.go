@@ -51,7 +51,7 @@ func NewBalanceCache(client redis.UniversalClient, prefix string, ttl time.Durat
 func (c *BalanceCache) Get(ctx context.Context, tenantID, accountID string) (balance Balance, err error) {
 	started := time.Now()
 	ctx, span := c.start(ctx, "cache.balance.get")
-	defer func() { span.End(); c.observe(ctx, "get", started, err) }()
+	defer func() { c.observe(ctx, "get", started, err); span.End() }()
 	values, err := c.client.HGetAll(ctx, c.key(tenantID, accountID)).Result()
 	if err != nil {
 		return Balance{}, fmt.Errorf("read balance cache: %w", err)
@@ -67,7 +67,7 @@ func (c *BalanceCache) Get(ctx context.Context, tenantID, accountID string) (bal
 func (c *BalanceCache) PutIfNewer(ctx context.Context, balance Balance) (written bool, err error) {
 	started := time.Now()
 	ctx, span := c.start(ctx, "cache.balance.put_if_newer")
-	defer func() { span.End(); c.observe(ctx, "put_if_newer", started, err) }()
+	defer func() { c.observe(ctx, "put_if_newer", started, err); span.End() }()
 	if err := validate(balance); err != nil {
 		return false, err
 	}
@@ -97,7 +97,7 @@ return 1`
 func (c *BalanceCache) Delete(ctx context.Context, tenantID, accountID string) (err error) {
 	started := time.Now()
 	ctx, span := c.start(ctx, "cache.balance.delete")
-	defer func() { span.End(); c.observe(ctx, "delete", started, err) }()
+	defer func() { c.observe(ctx, "delete", started, err); span.End() }()
 	if err := c.client.Del(ctx, c.key(tenantID, accountID)).Err(); err != nil {
 		return fmt.Errorf("delete balance cache: %w", err)
 	}
@@ -112,9 +112,6 @@ func firstTelemetry(values []*observability.Telemetry) *observability.Telemetry 
 }
 
 func (c *BalanceCache) start(ctx context.Context, name string) (context.Context, trace.Span) {
-	if c.telemetry == nil {
-		return ctx, trace.SpanFromContext(ctx)
-	}
 	return c.telemetry.Start(ctx, name)
 }
 

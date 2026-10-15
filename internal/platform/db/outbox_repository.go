@@ -5,14 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
-
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/outbox"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
+	"time"
 )
 
-// OutboxRepository is the PostgreSQL delivery-state adapter. It never changes
-// financial records; it only coordinates already-committed outbox rows.
+var ErrStaleClaim = errors.New("claim owner, generation, or expiry is no longer valid")
+
+// OutboxRepository coordinates committed events with database time and a new
+// generation for each claim. It never changes financial records.
 type OutboxRepository struct {
 	database  *sql.DB
 	clock     func() time.Time
@@ -28,84 +29,71 @@ func NewOutboxRepository(database *sql.DB, clock func() time.Time, telemetry ...
 	}
 	return &OutboxRepository{database: database, clock: clock, telemetry: firstTelemetry(telemetry)}, nil
 }
-
-func (r *OutboxRepository) Claim(ctx context.Context, workerID string, limit int, lease time.Duration) ([]outbox.Event, error) {
-	if workerID == "" || limit <= 0 || lease <= 0 {
-		return nil, errors.New("valid outbox claim arguments are required")
+func (r *OutboxRepository) Claim(ctx context.Context, workerID string, limit int, duration time.Duration) ([]outbox.Event, error) {
+	if workerID == "" || limit < 1 || limit > 100 || duration <= 0 || duration > 10*time.Minute {
+		return nil, errors.New("bounded outbox claim is required")
 	}
-	now := r.clock().UTC()
-	rows, err := r.database.QueryContext(ctx, `
-WITH candidates AS (
-    SELECT id
-    FROM outbox_events
-    WHERE published_at IS NULL
-      AND dead_at IS NULL
-      AND available_at <= $1
-      AND (claimed_until IS NULL OR claimed_until <= $1)
-    ORDER BY available_at, created_at, id
-    LIMIT $2
-    FOR UPDATE SKIP LOCKED
-)
-UPDATE outbox_events AS event
-SET claim_owner = $3,
-    claimed_until = $4,
-    attempt_count = event.attempt_count + 1
-FROM candidates
-WHERE event.id = candidates.id
-RETURNING event.id, event.tenant_id, COALESCE(event.transfer_id::text,''), COALESCE(event.account_id::text,''),
-          event.aggregate_type, event.aggregate_id, event.event_type,
-          event.aggregate_version, event.payload, event.occurred_at, event.attempt_count`, now, limit, workerID, now.Add(lease))
+	rows, err := r.database.QueryContext(ctx, `SELECT * FROM public.controlled_claim_outbox_v1($1,$2,$3)`, limit, workerID, duration.Seconds())
 	if err != nil {
 		return nil, fmt.Errorf("claim outbox events: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
-	var events []outbox.Event
+	var result []outbox.Event
 	for rows.Next() {
 		var event outbox.Event
-		if err := rows.Scan(&event.ID, &event.TenantID, &event.TransferID, &event.AccountID, &event.AggregateType, &event.AggregateID, &event.EventType, &event.AggregateVersion, &event.Payload, &event.OccurredAt, &event.AttemptCount); err != nil {
-			return nil, fmt.Errorf("scan claimed outbox event: %w", err)
+		var node, parent sql.NullString
+		var timestamp sql.NullInt64
+		if err := rows.Scan(&event.ID, &event.TenantID, &event.TransferID, &event.AccountID, &event.AggregateType, &event.AggregateID, &event.EventType, &event.AggregateVersion, &event.Payload, &event.OccurredAt, &event.AttemptCount, &event.ClaimGeneration, &node, &timestamp, &parent); err != nil {
+			return nil, err
 		}
-		if r.telemetry != nil && now.After(event.OccurredAt) {
-			r.telemetry.ObserveOutboxAge(ctx, now.Sub(event.OccurredAt))
+		if node.Valid && timestamp.Valid {
+			event.Causal = &outbox.CausalMetadata{NodeID: node.String, Timestamp: timestamp.Int64, ParentReference: parent.String}
 		}
-		events = append(events, event)
+		if r.telemetry != nil && r.clock().After(event.OccurredAt) {
+			r.telemetry.ObserveOutboxAge(ctx, r.clock().Sub(event.OccurredAt))
+		}
+		result = append(result, event)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate claimed outbox events: %w", err)
-	}
-	return events, nil
+	return result, rows.Err()
+}
+func (r *OutboxRepository) RenewClaim(ctx context.Context, owner, id string, generation int64, duration time.Duration) error {
+	return renewWorkerClaim(ctx, r.database, "outbox", owner, id, generation, duration)
 }
 
-func (r *OutboxRepository) MarkPublished(ctx context.Context, workerID, eventID string, at time.Time) error {
-	return r.updateClaimed(ctx, `
-UPDATE outbox_events
-SET published_at = $3, claim_owner = NULL, claimed_until = NULL
-WHERE id = $1 AND claim_owner = $2 AND published_at IS NULL AND dead_at IS NULL`, workerID, eventID, at, "mark outbox event published")
+func (r *OutboxRepository) MarkPublished(ctx context.Context, owner, id string, at time.Time, generation int64) error {
+	return r.complete(ctx, owner, id, at, generation, "published", "")
 }
-
-func (r *OutboxRepository) Reschedule(ctx context.Context, workerID, eventID string, availableAt time.Time, errorCode string) error {
-	return r.updateClaimed(ctx, `
-UPDATE outbox_events
-SET available_at = $3, last_error_code = $4, claim_owner = NULL, claimed_until = NULL
-WHERE id = $1 AND claim_owner = $2 AND published_at IS NULL AND dead_at IS NULL`, workerID, eventID, availableAt, errorCode, "reschedule outbox event")
+func (r *OutboxRepository) Reschedule(ctx context.Context, owner, id string, at time.Time, code string, generation int64) error {
+	return r.complete(ctx, owner, id, at, generation, "retrying", code)
 }
-
-func (r *OutboxRepository) MarkDead(ctx context.Context, workerID, eventID string, at time.Time, errorCode string) error {
-	return r.updateClaimed(ctx, `
-UPDATE outbox_events
-SET dead_at = $3, last_error_code = $4, claim_owner = NULL, claimed_until = NULL
-WHERE id = $1 AND claim_owner = $2 AND published_at IS NULL AND dead_at IS NULL`, workerID, eventID, at, errorCode, "mark outbox event dead")
+func (r *OutboxRepository) MarkDead(ctx context.Context, owner, id string, at time.Time, code string, generation int64) error {
+	return r.complete(ctx, owner, id, at, generation, "dead", code)
 }
-
-func (r *OutboxRepository) updateClaimed(ctx context.Context, statement, workerID, eventID string, value any, args ...string) error {
-	queryArgs := []any{eventID, workerID, value}
-	if len(args) > 1 {
-		queryArgs = append(queryArgs, args[0])
-	}
-	result, err := r.database.ExecContext(ctx, statement, queryArgs...)
+func (r *OutboxRepository) complete(ctx context.Context, owner, id string, at time.Time, generation int64, status, code string) error {
+	tx, err := beginClaimTransaction(ctx, r.database, "outbox", id, owner, generation, nil)
 	if err != nil {
 		return err
 	}
-	operation := args[len(args)-1]
-	return requireOneRow(result, operation)
+	defer tx.Rollback()
+	var completed bool
+	if err := tx.QueryRowContext(ctx, `SELECT public.controlled_complete_outbox_v1($1,$2,$3,$4,$5,$6)`, id, owner, generation, at, status, code).Scan(&completed); err != nil {
+		return err
+	}
+	if !completed {
+		return ErrStaleClaim
+	}
+	return tx.Commit()
+}
+func claimUpdate(result sql.Result, err error) error {
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return ErrStaleClaim
+	}
+	return nil
 }

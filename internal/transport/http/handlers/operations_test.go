@@ -15,7 +15,7 @@ import (
 
 type operationsDiagnosticRepositoryStub struct{ err error }
 
-func (r operationsDiagnosticRepositoryStub) Facts(context.Context, string) (operations.DatabaseFacts, error) {
+func (r operationsDiagnosticRepositoryStub) Facts(context.Context, string, string) (operations.DatabaseFacts, error) {
 	return operations.DatabaseFacts{SchemaVersion: "15"}, r.err
 }
 

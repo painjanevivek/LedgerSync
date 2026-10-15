@@ -86,7 +86,7 @@ func TestControlledCorrectionFunctionExecutesAsAPIAndRejectsSpoofing(t *testing.
 	const postKey = "controlled-correction-post-0001"
 	const correlationID = "00000000-0000-4000-8000-000000008603"
 	var replayed bool
-	if err = api.db.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
+	if err = tenantTestRow(ctx, api.db, testTenantID, approver, `SELECT replayed FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
 		testTenantID, approver, created.Event.CorrectionID, postKey, correlationID, now, now).Scan(&replayed); err != nil || replayed {
 		t.Fatalf("API controlled correction post replayed=%t error=%v", replayed, err)
 	}
@@ -95,7 +95,7 @@ func TestControlledCorrectionFunctionExecutesAsAPIAndRejectsSpoofing(t *testing.
 		t.Fatal("controlled correction post did not commit one exact compensation journal")
 	}
 
-	if _, err = api.db.ExecContext(ctx, `SELECT * FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
+	if _, err = tenantTestExec(ctx, api.db, testTenantID, approver, `SELECT * FROM public.controlled_post_transfer_correction_v1($1,$2,$3,$4,$5,$6,$7)`,
 		testTenantID, "spoofed-finance-actor", created.Event.CorrectionID, postKey, correlationID, now, now); sqlState(err) != "42501" {
 		t.Fatalf("spoofed actor SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
 	}
@@ -109,6 +109,9 @@ func TestControlledCorrectionFunctionExecutesAsAPIAndRejectsSpoofing(t *testing.
 		t.Fatal(err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec(`SELECT set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true)`, testTenantID, approver); err != nil {
+		t.Fatal(err)
+	}
 	if _, err = tx.Exec(`CREATE TEMP TABLE transfer_corrections(id uuid); SET LOCAL search_path=pg_temp,public`); err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +135,13 @@ func TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe(t *testing.T) {
 	if err != nil || original.Result.Status != "posted" {
 		t.Fatalf("original=%#v err=%v", original, err)
 	}
-	repository, err := db.NewTransferCorrectionRepository(database, func() time.Time { return now })
+	requireWorkloadRoles(t, database)
+	api := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_api")
+	if _, err := database.Exec(`REVOKE INSERT,UPDATE ON transfer_corrections FROM ledgersync_api`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { provisionLiveMigrationRoles(t, database) })
+	repository, err := db.NewTransferCorrectionRepository(api.db, func() time.Time { return now })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,11 +197,11 @@ func TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	detail, err := investigationRepository.GetTransfer(ctx, testTenantID, original.Result.TransferID)
+	detail, err := investigationRepository.GetTransfer(ctx, testTenantID, testActorID, original.Result.TransferID)
 	if err != nil || detail.CorrectionRole != "original" || detail.CorrectionStatus != "posted" || detail.OriginalJournalID != posted.Event.OriginalJournalID || detail.CompensationJournalID != posted.Event.CompensationJournalID {
 		t.Fatalf("original correction detail=%#v err=%v", detail, err)
 	}
-	compensationDetail, err := investigationRepository.GetTransfer(ctx, testTenantID, posted.Event.CompensationTransferID)
+	compensationDetail, err := investigationRepository.GetTransfer(ctx, testTenantID, testActorID, posted.Event.CompensationTransferID)
 	if err != nil || compensationDetail.CorrectionRole != "compensation" || compensationDetail.OriginalTransferID != original.Result.TransferID {
 		t.Fatalf("compensation detail=%#v err=%v", compensationDetail, err)
 	}

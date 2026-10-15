@@ -4,11 +4,19 @@
 
 **Established:** 2026-08-28
 
-**Current milestone:** API-first developer product and provider-led payout foundation
+**Current milestone:** Closed-loop ledger boundary and API-first developer product
 
-**Current phase:** Phase 7 — complete the API-first developer product
+**Current phase:** M07 API-first developer product; M11 database boundary is the immediate release gate
 
 This register is the single repository status source for the master plan. Earlier plans and registers are retained as historical evidence. A phase is complete only when every exit criterion has evidence for the exact commit. Code, documentation, emulation, or a local test cannot substitute for a managed-provider result, physical-device review, legal decision, named owner, partner action, or production approval.
+
+## Product focus — 2026-09-27
+
+LedgerSync currently records internal same-currency movement. Its reconciliation compares ledger postings with its own balance projections; no bank or payment-provider feed is ingested. The next product hypothesis is read-only comparison of a mapped clearing account with one independently sourced external statement, followed by deterministic matching and operator-reviewed exceptions. This requires a named buyer, a real workflow, and sample evidence before implementation is approved. An external variance must never trigger an automatic ledger adjustment.
+
+The immediate release boundary is database authority: finish the controlled-command cutover, revoke broad direct financial DML from workload roles, and enforce tenant isolation in the database. The [database capability matrix](../security/database-capability-matrix.md) records the current grants and target. Existing semantic journal checks, committed-response handling, and worker progress fixes require current-commit qualification; older hardening scores are historical, not current status.
+
+Provider-led payouts, multi-provider orchestration, FX, cards, and broad pending/available balance models are deferred. Worker failure-domain separation remains a resilience review, driven by observed lag or stall evidence. Navigation and page headings call the current control **internal reconciliation**; other product copy must not imply external settlement proof.
 
 ## Status vocabulary
 
@@ -36,7 +44,7 @@ This register is the single repository status source for the master plan. Earlie
 | M08 | Operator-console IA | `PARTIAL` | M03, M05–M07 | Product/operations | Overview, accounts, funding, transfers, corrections, reconciliation, events, recovery, developer, local status, related-record links, bounded exports, and the [server-session-derived capability matrix](../architecture/operator-capability-matrix.md); navigation is role/environment-aware, protected reads fail closed, and Approvals has a safe source-workspace entry boundary | Build the bounded Approval Inbox and Webhook workspace; keep Administration absent until its privileged server contract and approval exist; then standardize search, filters, sort, result counts, URL state, evidence, and exports. |
 | M09 | Unified design and accessibility | `PARTIAL` | M08 | Product design/accessibility | `DESIGN.md`, responsive tokens, shared console state/field/table primitives, and automated browser/a11y/visual evidence | Split the client-only primitive/CSS accumulation into maintained foundations and feature styles; standardize high-risk confirmations and complete authorized physical-device/screen-reader review. |
 | M10 | Separate public website | `PENDING` | M07, M09 | Product/marketing/legal | Product positioning exists in repository docs | Build `site/` with evidence-backed content, pilot request, trust/legal/accessibility pages, consent, abuse controls, and monitoring. |
-| M11 | Production identity and tenancy | `PARTIAL` | M05–M08 | Security/platform | Cognito validation, server-owned mappings, audited partner provisioning foundations | Add managed tenant/operator lifecycle and prove real Cognito MFA, PKCE, scopes, grants, revocation, and isolation. |
+| M11 | Production identity and tenancy | `PARTIAL` | M05–M08 | Security/platform | Cognito validation, server-owned mappings, audited partner provisioning foundations | Revoke broad workload financial DML, enforce database tenant isolation, then prove managed tenant/operator lifecycle and real Cognito MFA, PKCE, scopes, grants, and revocation. |
 | M12 | Production AWS infrastructure | `PENDING` | M11 | Platform/security | AWS Mumbai target and threat model are documented | Implement reviewed Terraform; deployment remains gated by AWS account, budget, DNS, credentials, legal boundary, and named owners. |
 | M13 | Observability and incident operations | `PARTIAL` | M12 | Operations/SRE | Local telemetry, alerts, dashboards, recovery runbooks | Bind SLOs, alerts, customer status, paging, ownership, and exercised runbooks to the managed environment. |
 | M14 | Security, privacy, compliance, legal | `PARTIAL` | M10–M13 | Security/legal/product | Threat model and repository security gates | Complete policies and external reviews; no critical/high risk, legal conclusion, or penetration result may be self-certified. |
@@ -44,15 +52,9 @@ This register is the single repository status source for the master plan. Earlie
 | M16 | Design-partner pilot | `EXTERNAL_GATE` | M05–M15 | Product/partner/operations | Partner templates and graduation gates only | Contract and provision 2–3 approved partners, operate staged traffic, and close or accept findings with named owners. |
 | M17 | Production release and operations | `EXTERNAL_GATE` | M16 | Product/release/operations/legal | Release workflow foundations only | Obtain go/no-go authority and execute staged production release with immutable traceability and ongoing reviews. |
 
-## Provider-led payout program
+## Deferred payout program
 
-The first external-money program is governed by the [provider-led payout
-production program](provider-led-payout-production-program.md). It is an
-engineering-planning boundary, not evidence that a payment provider, legal
-approval, AWS environment, or live payout path exists. The program starts with
-the shared platform controls in T122 and T123, then adds a separately modeled
-payout domain only after the provider/finance/legal stop-ship conditions are
-recorded.
+The [provider-led payout program](provider-led-payout-production-program.md) is retained as a deferred design. Shared controls in T122 and T123 remain relevant to the API-first product, but their completion does not authorize a payout domain or a live provider integration. Product discovery and a separate scope decision must precede any payout implementation.
 
 ## Previous-plan traceability
 
@@ -80,3 +82,99 @@ Older documents must not be deleted. If their wording conflicts with the master 
 ## Phase evidence protocol
 
 For every phase: preserve unrelated changes; execute test-first where financial contracts change; run targeted checks during development; run the complete phase gate before commit; inspect the diff and whitespace; scan staged content for secrets and generated noise; update this register and evidence; commit with `feat/fix/test/docs(scope) : outcome` plus truthful bullet points; push only to `origin`; wait for exact-commit CI; fix genuine failures; verify local/remote alignment; and leave the supported local runtime healthy.
+
+
+## Portfolio restructuring update — 14 October 2026
+
+The owner selected a strong technical portfolio as the immediate objective. The external portfolio plan uses R00–R17. This update preserves all earlier M-phase records and their commercial or managed-environment gates.
+
+R00 is verified with a recorded local-index substitution. R01 is verified for architecture, contracts, and delivery controls. See the [portfolio progress register](../portfolio/progress.md), [baseline](../portfolio/baseline.md), [issues](../portfolio/issues.md), and [work packets](../portfolio/work-packets.md). R02–R14 remain planned; R15/R16 are optional; R17 is conditional.
+
+Source correction: the current OpenAPI is 3.5.0, not the older M07 table value 1.14. Current source contains approval and webhook workspaces, bounded provisioning, shared assertion replay protection, and webhook verification. Current styles already have foundations/layout/primitives/feature separation. Treat the older M07–M09 remaining-work wording as historical where it says to build these existing items. Qualify and refine them against current source instead of duplicating them. Their full acceptance and human-review gates remain open.
+
+M11 remains a release boundary. Existing controlled transfer functions are present, but broader controlled-writer cutover and database tenant isolation remain R02/R03 work. No database policy, role, migration, or financial behaviour changed in R00/R01.
+
+Evidence: preserved dirty source manifest, validated backup, selected Go checks, 23 frontend tests, 14 read-only page checks against existing images, two architecture tests with 12 policy cases, and 26 demo-contract tests. All passed in their stated scope. Final normal financial counts and fingerprints were unchanged. A backup is not a completed restore drill. Existing-image smoke is not qualification of the dirty source build.
+
+Automatic approval review rejected external code indexing because it could export private source to an unverified destination. A local source/package/route/table/reference inventory substitutes; the external index was not refreshed. Complete local evidence and limitations are in the portfolio register.
+
+Next packet: R02.01 access/role inventory in an isolated environment, then R02.02 trusted tenant-context tests. No reset, commit, push, deployment, or paid pilot is part of this phase result.
+
+
+## Portfolio continuation — 15 October 2026
+
+The owner requested all R phases. R15 uses a documented CSV format and synthetic samples. R16 uses the bounded reservation model. R17 prepares a production deployment package with local execution only. Managed deployment and commercial M-phase gates remain unchanged.
+
+R02 is in progress. Scoped database transactions, cleanup on pool reuse, and core/evidence/guidance/developer caller adoption are implemented. A stale session-context leak was reproduced and repaired. The complete integration suite passed 113 top-level tests and 73 subtests, with one intentional standalone crash-helper skip. Six fault tests passed. Internal/unit/contract/architecture checks and static checks passed in their recorded scope. See [current progress](../portfolio/progress.md) and [adoption record](../security/tenant-context-adoption.md).
+
+Permanent row policies, remaining caller/worker conversion, controlled-write cutover, race/image/browser/restore qualification and later phases remain open. No normal migration, seed or financial command was run. The five normal services are healthy, and their read-only financial check matches the R00 verification record. All original source and data remain protected. No commit, push or cloud deployment is claimed.
+
+
+## Portfolio R02 completion — 15 October 2026
+
+R02 is locally verified. Migrations 000044–000046 add 53 forced tenant policies, bounded queue functions and controlled verification completion. Actor-aware repository paths and maintenance/worker scope are implemented. The isolated suite passed 119 integration tests and 81 subtests, six fault tests, 41 Go test packages and Go vet. One standalone process helper skips by design; its parent passed. Fresh and populated upgrade paths passed. The normal database matches the fresh continuation-entry financial fingerprint and retains 45 migrations. No normal data was migrated or seeded. See the portfolio progress and completion evidence.
+
+R03 begins with the remaining financial/audit writer inventory. R04–R17 remain selected work in dependency order. R15 uses synthetic CSV input. R16 uses bounded full capture/release. R17 remains a local production deployment package. Race, restore, full UI/image qualification and managed-environment M gates remain explicit.
+
+## Portfolio R03 completion — 15 October 2026
+
+R03 is locally verified through 000060. 134 integration tests and 83 subtests, six fault tests, 41 Go packages and vet passed. The core matrix has 294 aligned observations and the allowlist covers 36 controlled functions. Financial and evidence writes use the documented narrow boundary. Normal financial fingerprints match and original source/index identities remain preserved. The normal stack was not migrated or rebuilt. R04–R17 remain selected work. Race, restore, exact candidate browser/image qualification and managed release gates remain open. See docs/portfolio/progress.md and docs/release-evidence/portfolio/r03/completion.json.
+
+## Portfolio R04 completion — 15 October 2026
+
+R04 is locally verified for selected worker/adapter/UI state responsibilities. 43 Go packages, vet, architecture, 9 affected integration tests with 2 subtests, 214 frontend tests, TypeScript, ESLint and four production-build browser journeys passed. Four source/test files moved with preserved before-copies. Correction rendering has an identical normalized hash. Normal financial records and images remain preserved. P-033 tracks optional request-driven worker role binding for R11. R05–R17 remain selected work.
+
+
+## R05 completion — 15 October 2026
+
+Navigation now groups health, events and recovery under Operations. Work and Investigate retain their routes and permissions. Developer retains its reference workspace. Help stays in the existing Guide utility to avoid duplicate links. The Overview requires a destination account before suggesting a first transfer. The Guide explains two accounts, independent review, posting, exact money, unknown outcomes and reconciliation limits. Existing visual primitives and high-risk controls remain.
+
+Verification: 214 frontend tests, TypeScript, targeted ESLint, a production build and 56 browser tests passed. Browser checks cover role visibility, denied direct routes, back/forward query preservation, first-run actions, funding-post order, transfer review, historical/unavailable/unknown evidence, sign-out, keyboard focus, reduced motion, forced colors, zoom-equivalent reflow and automated accessibility. API responses were mocked and the test server used a disabled backend address.
+
+Preservation: All phase-entry source files remain. The Git index and HEAD are unchanged. Normal financial fingerprints match R04, and the five preserved services are healthy. No normal migration, financial command, image rebuild or cloud action ran.
+
+Issues and limits: No physical-device or human assistive-technology acceptance claim. The existing Guide utility represents Help; duplicate sidebar links were not added. The normal images are preserved prior images; candidate image qualification remains R13. R06-R17 remain selected implementation work. See [completion evidence](../release-evidence/portfolio/r05/completion.json). R06 is next.
+
+
+## R06 completion — 15 October 2026
+
+The existing telemetry stack now links a bounded BFF private-context span to API/database work. Transaction-local diagnostic context becomes optional immutable outbox origin evidence. Redis publication, projection and webhook delivery attempts have separate linked spans. Event details expose only an authorized opaque trace ID. A same-origin viewer route rechecks record access and uses a fixed configured viewer. Historical or absent trace states remain explicit. Raw errors, framework spans, baggage, trace state, arbitrary resource attributes and financial values are excluded. API 3.6.0 documents the optional response field; generated clients and examples are aligned.
+
+Verification: All 43 Go packages and Go vet passed. The full isolated integration suite passed 136 top-level tests and 83 subtests; the standalone crash helper intentionally skipped and its parent passed. Six fault tests passed. Final affected platform and contract checks passed after span-lifetime and API-contract changes. The frontend passed 220 tests, TypeScript and targeted ESLint. Seven developer contract checks passed after version alignment. Nineteen operations/diagnostic browser checks passed; the final BFF runtime production build and three diagnostic journeys also passed. Three 10,000-operation local telemetry microbenchmarks recorded bounded collector-down overhead. Collector YAML is parsed locally; live collector compatibility remains in R17 package verification.
+
+Preservation: Every phase-entry source file remains. The Git index and HEAD are unchanged. Migration 000061 ran only in the verified disposable PostgreSQL stack. Normal financial fingerprints match R04 and all five preserved services are healthy. No normal migration, financial command, image rebuild or cloud execution ran.
+
+Issues and limits: The BFF span measures private-context preparation, not the complete browser request. Traces are sampled diagnostic evidence; sampling, retention and collector loss can remove them. Collector configuration was parsed; live collector compatibility and a configured private viewer remain package/deployment checks. Existing locked telemetry dependency versions were promoted without a version upgrade; R13 owns final dependency review. Normal images remain preserved prior images. No normal cutover or managed-production qualification is claimed. R07-R17 remain selected implementation work. See [completion evidence](../release-evidence/portfolio/r06/completion.json). R07 is next.
+
+
+## R07 completion — 15 October 2026
+
+A host-only runner now executes seven fixed failure scenarios in a new tmpfs PostgreSQL/Redis project. It verifies exact IDs, labels, images, storage and loopback binds before each scenario and cleanup. It compiles and preserves the actual Go test binaries, source/index hashes, applied migration identity, limits and JSON test output. The verifier rejects missing, skipped or failed tests, tampered artifacts and mismatched provenance. Cancellation retains an incomplete bundle and verifies cleanup. The advanced Systems Lab reads only an archived safe summary; it has no browser fault command.
+
+Verification: The final run demo-20261015111612-82a0f63d passed lost response, concurrent duplicate command, duplicate/reordered event, stale worker, cache loss, publication dependency loss and real worker process crash scenarios. Its 26 artifacts total 75,953,051 bytes and pass integrity/provenance checks. Both temporary containers were removed. An independent startup cancellation run exited nonzero, retained incomplete/failed checks and passed cleanup. All 31 contract/safety/projection tests, 220 frontend tests, TypeScript, targeted ESLint, a production build and 11 developer/Systems Lab browser journeys passed. The quality workflow parses and includes the evidence safety tests. No hosted CI run is claimed.
+
+Preservation: All phase-entry files remain, with unchanged Git index and HEAD. Each complete runtime run checked source/index and normal container identities. Normal financial fingerprints match before and after the final run, and five preserved services remain healthy. No normal migration, seed, financial command, image rebuild or cloud action ran. Failed, cancelled and successful bundles remain separate.
+
+Issues and limits: Source/binary provenance belongs to each recorded run; later documentation and generated summary updates do not relabel old runs. The lost-response case discards a service result; no network-proxy or multi-host partition claim is made. PostgreSQL/Redis image IDs are dependency identities. No candidate API image was built or tested in R07. The browser receives only the safe historical projection. Optional-surface availability remains R11. R08-R17 remain selected implementation work. See [completion evidence](../release-evidence/portfolio/r07/completion.json). R08 is next.
+
+
+## R08 completion — 15 October 2026
+
+An independent standard-library financial model now predicts exact balances, versions, durable outcomes and journals before commands run. Five seeded sequences cover transfers in both directions, rejected/replayed/conflicting intents, dual-reviewed funding, approved exact corrections, lost caller results, pre-commit rollback and four-way duplicate concurrency. Every step checks database balances, versions, balanced journals and immutable old records through a restricted API workload login. The guarded R07 host harness now has a fixed model profile and bounded counterexample replay. The minimizer and reproducible seed/operation records are retained.
+
+Verification: The full isolated integration suite passed 137 top-level tests and 88 subtests; the standalone crash helper intentionally skipped and its parent passed. All 44 Go packages and Go vet passed. The final fresh guarded model profile passed five seeds and 320 steps, with 214 balanced synthetic journals across those sequences. A new isolated run replayed the historical one-step harness input successfully. Both runtime bundles have 13 verified artifacts, exact compiled-binary/source/migration provenance and verified cleanup. Standard-library dependency and minimizer checks passed. The final ten-second fuzz run passed with two workers. All 34 host input/evidence safety tests passed. CI syntax and model vet/unit/race/fuzz/replay steps were checked locally; no hosted run is claimed.
+
+Preservation: All 1,694 phase-entry source files remain. Git index and HEAD are unchanged. Financial commands and test-only failure triggers ran only in verified disposable databases. Normal financial fingerprints still match R07 and five preserved services are healthy. No production financial code, normal migration, financial command, image rebuild or cloud execution changed.
+
+Issues and limits: The model covers bounded valid USD intents, selected workflows and selected concurrency. It does not prove every schedule or policy. Generated correction steps with no eligible funded original are checked no-ops. The full integration run and final guarded model run are retained separately; each exact-source runtime bundle states its own candidate identity. No product money-movement defect was found in these bounded runs. The initial receipt mismatch was a corrected harness assumption, with failure evidence retained. Normal runtime images remain preserved prior images. No normal cutover or managed-production claim is made. R09-R17 remain selected implementation work. See [completion evidence](../release-evidence/portfolio/r08/completion.json). R09 is next.
+
+
+## R09 completion — 15 October 2026
+
+A guarded local capacity profile now drives fixed offered load through the real financial application service and a real native continuous worker. It measures hot and independent account pairs, two tenants, exact replay/rejection outcomes, authoritative reads, latency distributions, queue growth, pool/lock samples and bounded resources. Receipt storage reuses one scoped transaction for consecutive messages from the same tenant; every message retains its controlled function and Lamport checks. Publication preparation reads diagnostic origin in its existing query. Three same-source baseline calibrations and two three-run candidate cohorts retain favourable and limited results. Default batch 10 remains. Three final default runs qualify 10 offered commands per second for the stated component workload, followed by actual Redis interruption and worker process restart. A separate real signed slow TLS receiver check proves posting and lease renewal continue while HTTP waits.
+
+Verification: All 44 deterministic Go packages and Go vet passed. The complete isolated integration run passed 138 top-level tests and 88 subtests; the standalone crash helper and opt-in capacity test skipped as designed. A separate added slow-receiver integration test passed 12 postings with p95 170.64 ms, a renewed lease and a free one-connection worker pool. Six fault tests passed. Each of three full capacity runs completed a requested 300-second, 3000-command steady stage, then a 60-second, 300-command recovery stage. Each complete run produced 3168 journals and passed exact oracle balances/versions, balanced postings, original/replay identity, internal reconciliation, projection convergence, source/index/normal-container preservation and cleanup. Steady command p95 was 27.27–27.63 ms; sampled steady oldest pending was 0.41–2.10 seconds. All 28 artifacts per run passed a separate integrity recheck. A PID-bound cancellation check proved an actual native worker stopped, no capacity pass was claimed, and both temporary containers were removed. All 37 final host safety tests passed. CI syntax and wiring passed locally; no hosted run is claimed.
+
+Preservation: All 1706 phase-entry source files remain. Git index and HEAD are unchanged. Normal financial fingerprints match R08 and all five preserved services are healthy. All test mutations, claims and faults used verified disposable targets. Three older performance/decision documents retain their full prior text and now identify their historical measurement scope. Failed, limited, successful and cancelled records remain separate. No normal migration, seed, financial command, image rebuild, volume replacement or cloud execution ran.
+
+Issues and limits: One local synthetic Go-service/native-worker component study. It does not measure HTTP/BFF throughput, candidate API images, multiple hosts, managed infrastructure or a production SLA. Offered commands include replays and expected rejections. Rejected response counts overlap replay counts; the capacity note provides exclusive new-outcome counts. 20 offered commands per second remains unqualified. Short calibrations never qualify a five-minute interval. Batch 50 has no sustained capacity recommendation; default 10 remains. Driver CPU/current heap and PostgreSQL/Redis resources are recorded. Native worker CPU/RSS are not measured here; R13 must inspect final service resources. Queue, connection and lock statistics are sampled. The slow-receiver profile is a finite 12-command burst and one controlled TLS receiver with a test-only transport redirect. Production destination policy is unchanged. The cancelled and early failed bundles are incomplete evidence, not successful financial qualifications. The early paused target was removed only after an independent exact-identity and original-port check. The three measured bundles bind their exact dirty source and compiled binaries. Later PID-bound cancellation metadata, summary-profile checks, documentation and phase records do not relabel that measurement build. Production Go code is unchanged after the qualified measurements. Normal runtime remains on preserved prior images. No normal cutover or cloud/commercial production approval is claimed. R10–R17 remain selected implementation work. See [completion evidence](../release-evidence/portfolio/r09/completion.json). R10 is next.

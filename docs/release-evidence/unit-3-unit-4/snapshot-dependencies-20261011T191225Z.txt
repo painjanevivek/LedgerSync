@@ -1,0 +1,8 @@
+=== RUN   TestRedisLossUsesPrimaryAndRebuildsTheBalanceCache
+--- PASS: TestRedisLossUsesPrimaryAndRebuildsTheBalanceCache (0.42s)
+=== RUN   TestForgedHighVersionRedisBalanceCannotOverridePostgreSQLTruth
+--- PASS: TestForgedHighVersionRedisBalanceCannotOverridePostgreSQLTruth (0.39s)
+=== RUN   TestRedisDependencyLossReschedulesWithoutChangingFinancialRecords
+--- PASS: TestRedisDependencyLossReschedulesWithoutChangingFinancialRecords (0.43s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/fault	1.846s

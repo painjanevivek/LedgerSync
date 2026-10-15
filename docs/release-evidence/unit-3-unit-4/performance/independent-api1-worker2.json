@@ -1,0 +1,230 @@
+{
+    "metrics": {
+        "http_req_receiving": {
+            "p(99)": 0.7486708200000001,
+            "max": 62.466205,
+            "avg": 0.2401834910256412,
+            "min": 0.030627,
+            "med": 0.095462,
+            "p(50)": 0.095462,
+            "p(95)": 0.29860219999999993
+        },
+        "iteration_duration": {
+            "p(99)": 1001.85541965,
+            "max": 1002.301562,
+            "avg": 977.5186228599997,
+            "min": 202.477187,
+            "med": 1000.604972,
+            "p(50)": 1000.604972,
+            "p(95)": 1001.2591292
+        },
+        "iterations": {
+            "count": 300,
+            "rate": 10.193599539337754
+        },
+        "http_reqs": {
+            "count": 780,
+            "rate": 26.50335880227816
+        },
+        "vus": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "data_sent": {
+            "count": 1867426,
+            "rate": 63452.642711157816
+        },
+        "ledgersync_balance_duration": {
+            "p(50)": 23.217829000000002,
+            "p(95)": 87.66338895000003,
+            "p(99)": 108.74833041999997,
+            "max": 124.214937,
+            "avg": 32.52173418333333,
+            "min": 4.550083,
+            "med": 23.217829000000002,
+            "thresholds": {
+                "p(95)<200": false
+            }
+        },
+        "http_req_connecting": {
+            "max": 0.293168,
+            "avg": 0.0025854397435897437,
+            "min": 0,
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0,
+            "p(99)": 0.09158734000000292
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 3.534314,
+            "med": 48.8902955,
+            "p(50)": 48.8902955,
+            "p(95)": 193.58819184999987,
+            "p(99)": 283.88221123,
+            "max": 381.719322,
+            "avg": 72.9723016423077
+        },
+        "http_req_tls_handshaking": {
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0
+        },
+        "checks": {
+            "passes": 790,
+            "fails": 0,
+            "value": 1
+        },
+        "ledgersync_transfer_iterations": {
+            "count": 300,
+            "rate": 10.193599539337754
+        },
+        "ledgersync_same_key_replays": {
+            "count": 30,
+            "rate": 1.0193599539337754
+        },
+        "http_req_waiting": {
+            "p(99)": 282.1926662000001,
+            "max": 380.493944,
+            "avg": 72.7110927115384,
+            "min": 3.206912,
+            "med": 48.809665,
+            "p(50)": 48.809665,
+            "p(95)": 193.43701159999986
+        },
+        "http_req_failed{journey:transfer}": {
+            "passes": 0,
+            "fails": 330,
+            "thresholds": {
+                "rate<0.001": false
+            },
+            "value": 0
+        },
+        "ledgersync_posted_commands": {
+            "count": 300,
+            "rate": 10.193599539337754
+        },
+        "ledgersync_unexpected_outcomes": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "ledgersync_business_rejections": {
+            "count": 0,
+            "rate": 0
+        },
+        "ledgersync_technical_attempt_failures": {
+            "count": 0,
+            "rate": 0
+        },
+        "data_received": {
+            "rate": 74129.7586553115,
+            "count": 2181656
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "http_req_blocked": {
+            "avg": 0.006465946153846155,
+            "min": 0.000864,
+            "med": 0.0024595,
+            "p(50)": 0.0024595,
+            "p(95)": 0.008268449999999997,
+            "p(99)": 0.11773719000000413,
+            "max": 0.356751
+        },
+        "ledgersync_transfer_duration": {
+            "med": 122,
+            "p(50)": 122,
+            "p(95)": 240,
+            "p(99)": 299.5499999999999,
+            "max": 382,
+            "avg": 124.94848484848485,
+            "min": 16,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_duration": {
+            "p(99)": 283.88221123,
+            "max": 381.719322,
+            "avg": 72.9723016423077,
+            "min": 3.534314,
+            "med": 48.8902955,
+            "p(50)": 48.8902955,
+            "p(95)": 193.58819184999987
+        },
+        "http_req_sending": {
+            "avg": 0.021025439743589735,
+            "min": 0.003638,
+            "med": 0.0117325,
+            "p(50)": 0.0117325,
+            "p(95)": 0.06293969999999999,
+            "p(99)": 0.1405485100000002,
+            "max": 0.622553
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 780,
+            "value": 0
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "BFF session established": {
+                    "name": "BFF session established",
+                    "path": "::BFF session established",
+                    "id": "9e91519b0c2da71bf03dbcacf476984d",
+                    "passes": 10,
+                    "fails": 0
+                },
+                "transfer command has a controlled result": {
+                    "name": "transfer command has a controlled result",
+                    "path": "::transfer command has a controlled result",
+                    "id": "b7c897ae6eea929d574e799e7a8408fe",
+                    "passes": 330,
+                    "fails": 0
+                },
+                "current exact balance returned": {
+                    "name": "current exact balance returned",
+                    "path": "::current exact balance returned",
+                    "id": "dff58d9045eef887378d436eb80120fb",
+                    "passes": 300,
+                    "fails": 0
+                },
+                "account page available": {
+                    "path": "::account page available",
+                    "id": "8ca50497166f6a77a729dd3e6b31512e",
+                    "passes": 60,
+                    "fails": 0,
+                    "name": "account page available"
+                },
+                "history page available": {
+                    "passes": 60,
+                    "fails": 0,
+                    "name": "history page available",
+                    "path": "::history page available",
+                    "id": "a5119956967d52c438b8b8e9a724f513"
+                },
+                "same-key retry replays one transfer": {
+                    "fails": 0,
+                    "name": "same-key retry replays one transfer",
+                    "path": "::same-key retry replays one transfer",
+                    "id": "e6dabeb8801c1898b24f0aa83fd8b034",
+                    "passes": 30
+                }
+            }
+    }
+}

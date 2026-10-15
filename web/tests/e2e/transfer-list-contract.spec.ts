@@ -20,6 +20,7 @@ test("transfer filters, cursor, export scope, and detail return context share on
   });
 
   await page.goto("/transfers");
+  await page.getByText("Filter history", { exact: true }).click();
   await page.getByLabel("Search transfers").fill("ABC-1");
   await page.getByText("Advanced filters", { exact: true }).click();
   await page.getByLabel("Exact account ID").fill(sourceAccount.account_id);
@@ -35,8 +36,8 @@ test("transfer filters, cursor, export scope, and detail return context share on
   expect(visible.get("from")).toBe("2026-08-01T00:00:00.000Z");
   expect(visible.get("to")).toBe("2026-08-31T23:59:59.999Z");
   await expect.poll(() => requestedURL).toContain("accountId=");
-  await expect(page.getByText(/1 record on this page\. A total is not calculated or implied\./)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open record" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent(`/transfers?${visible}`)}`));
+  await expect(page.getByText("1 record on this page", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: transfer.transfer_id, exact: true })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent(`/transfers?${visible}`)}`));
 
   await page.getByRole("button", { name: "Export transfer details" }).click();
   await expect(page.getByText(`Search: abc-1 · Account ID: ${sourceAccount.account_id} · Financial status: pending · From UTC: 2026-08-01T00:00:00.000Z · To UTC: 2026-08-31T23:59:59.999Z`)).toBeVisible();

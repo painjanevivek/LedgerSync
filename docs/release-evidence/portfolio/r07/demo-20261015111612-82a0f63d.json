@@ -1,0 +1,75 @@
+{
+  "schema_version": "ledgersync-demo-summary/v1",
+  "run_id": "demo-20261015111612-82a0f63d",
+  "completed_at": "2026-10-15T11:17:15.730Z",
+  "purpose": "historical-local-synthetic-demonstration",
+  "passed": true,
+  "source": {
+    "commit": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "manifest_sha256": "1b0c8384a01ab21d61609e6c64913d1486bb0a2e40b69c40fc856385f9744439",
+    "dirty": true
+  },
+  "api_contract_version": "3.6.0",
+  "migration": {
+    "latest": "000061_event_diagnostic_context.up.sql",
+    "count": 61,
+    "manifest_sha256": "73bcb743b1221600b80ce85345f42fb1e7ac23639238f260111f15b2888e3f42"
+  },
+  "images": [
+    {
+      "service": "postgres",
+      "digest": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777"
+    },
+    {
+      "service": "redis",
+      "digest": "sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "lost-response",
+      "status": "passed"
+    },
+    {
+      "id": "duplicate-command",
+      "status": "passed"
+    },
+    {
+      "id": "duplicate-and-reordered-event",
+      "status": "passed"
+    },
+    {
+      "id": "stale-worker",
+      "status": "passed"
+    },
+    {
+      "id": "cache-loss",
+      "status": "passed"
+    },
+    {
+      "id": "dependency-loss",
+      "status": "passed"
+    },
+    {
+      "id": "process-crash",
+      "status": "passed"
+    },
+    {
+      "id": "source-and-target-preservation",
+      "status": "passed"
+    },
+    {
+      "id": "disposable-cleanup",
+      "status": "passed"
+    }
+  ],
+  "artifact_count": 26,
+  "limitations": [
+    "One local Docker host with synthetic test fixtures. No cloud, external funds or production SLA claim.",
+    "Go test binaries were compiled from the recorded dirty source. PostgreSQL/Redis image IDs are dependency images; no candidate API image claim.",
+    "The lost-response test loses the caller result at the service boundary. The process-crash test terminates an actual worker child process.",
+    "Duplicate financial commands and reordered/duplicate notifications are separate scenarios. Cache loss uses a real isolated Redis flush.",
+    "All normal containers and source/index identities were checked. The calling phase separately compares normal financial fingerprints.",
+    "Raw artifacts stay in ignored local storage. The browser has no fault-execution route."
+  ]
+}

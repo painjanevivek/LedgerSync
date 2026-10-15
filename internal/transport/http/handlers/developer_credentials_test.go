@@ -15,7 +15,8 @@ import (
 )
 
 type developerCredentialHandlerRepository struct {
-	command developerplatform.CreateCredentialCommand
+	command               developerplatform.CreateCredentialCommand
+	readTenant, readActor string
 }
 
 func (r *developerCredentialHandlerRepository) CreateCredential(_ context.Context, command developerplatform.CreateCredentialCommand, _ [sha256.Size]byte) (developerplatform.CredentialSubmission, error) {
@@ -29,11 +30,27 @@ func (*developerCredentialHandlerRepository) RotateCredential(context.Context, d
 func (*developerCredentialHandlerRepository) RevokeCredential(context.Context, developerplatform.RevokeCredentialCommand, [sha256.Size]byte) (developerplatform.CredentialSubmission, error) {
 	return developerplatform.CredentialSubmission{}, nil
 }
-func (*developerCredentialHandlerRepository) GetCredential(context.Context, string, string) (developerplatform.Credential, error) {
+func (*developerCredentialHandlerRepository) GetCredential(context.Context, string, string, string) (developerplatform.Credential, error) {
 	return developerplatform.Credential{}, developerplatform.ErrNotFound
 }
-func (*developerCredentialHandlerRepository) ListCredentials(context.Context, string, developerplatform.CredentialQuery) (developerplatform.CredentialPage, error) {
+func (r *developerCredentialHandlerRepository) ListCredentials(_ context.Context, tenantID, actorID string, _ developerplatform.CredentialQuery) (developerplatform.CredentialPage, error) {
+	r.readTenant, r.readActor = tenantID, actorID
 	return developerplatform.CredentialPage{Items: []developerplatform.Credential{}}, nil
+}
+
+func TestDeveloperCredentialReadUsesVerifiedPrincipal(t *testing.T) {
+	repository := &developerCredentialHandlerRepository{}
+	service, _ := developerplatform.NewCredentialService(repository, time.Now)
+	handler := NewDeveloperCredentialHandler(service, identity.DevelopmentProvider{SubjectID: "verified-operator", TenantID: "verified-tenant", Scopes: []string{"credentials:read"}})
+	request := httptest.NewRequest(http.MethodGet, "/api/developer/credentials", nil)
+	request.Header.Set("Authorization", "Bearer development-local-only")
+	request.Header.Set("X-Tenant-ID", "forged-tenant")
+	request.Header.Set("X-Actor-ID", "forged-operator")
+	response := httptest.NewRecorder()
+	middleware.Correlation(http.HandlerFunc(handler.List)).ServeHTTP(response, request)
+	if response.Code != http.StatusOK || repository.readTenant != "verified-tenant" || repository.readActor != "verified-operator" {
+		t.Fatalf("read did not use verified principal: status=%d tenant=%q actor=%q", response.Code, repository.readTenant, repository.readActor)
+	}
 }
 
 func TestDeveloperCredentialCreateIsScopedStrictAndNonSecret(t *testing.T) {

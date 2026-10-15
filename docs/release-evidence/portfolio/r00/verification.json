@@ -1,0 +1,266 @@
+{
+  "schema_version": "ledgersync-phase-verification/v1",
+  "review_date_local": "2026-10-14",
+  "timezone": "Asia/Calcutta",
+  "recorded_at_utc": "2026-10-13T19:08:30.735Z",
+  "phases": {
+    "R00": "verified-with-local-index-substitution",
+    "R01": "verified"
+  },
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "branch": "main",
+    "dirty": true,
+    "baseline_manifest_sha256": "51ec5b242d8577de3c58457fe2adca62eef22f4832bb3ad9712b64a9a3eaf24f",
+    "original_entries": 1565,
+    "index_unchanged": true,
+    "changed_originals": [
+      ".github/workflows/quality.yml",
+      "docs/plans/ledgersync-master-progress.md"
+    ],
+    "delivery_files": [
+      {
+        "path": ".github/workflows/quality.yml",
+        "bytes": 15219,
+        "sha256": "66ea91e5f1d692b5f28d0b96e2fb2e4caa297273254725d9cb04d23269aa5bda"
+      },
+      {
+        "path": "contracts/demo/README.md",
+        "bytes": 1939,
+        "sha256": "3b73e8b09081d1d086eefc88c54c4a62de219280051ad34def8281ee3edf47e8"
+      },
+      {
+        "path": "contracts/demo/run-manifest.v1.example.json",
+        "bytes": 1207,
+        "sha256": "d1a20ff381265c0cb92af78efde6853ac0516c3799b8789456a393ae6825e51d"
+      },
+      {
+        "path": "contracts/demo/run-manifest.v1.schema.json",
+        "bytes": 6673,
+        "sha256": "8f3feec4c4dcb8400d34a7e5b9796a20906fb88d77492427017e6faae1badf64"
+      },
+      {
+        "path": "docs/architecture/decisions/001-portfolio-module-boundaries.md",
+        "bytes": 2504,
+        "sha256": "e988eeccdd2d510f64c48505ccbe46236c762d198bbc56941ea8a486346f69c7"
+      },
+      {
+        "path": "docs/architecture/decisions/002-tenant-context-and-controlled-writes.md",
+        "bytes": 2604,
+        "sha256": "f3d5f7d7492fc0cbef28c2b65475091d0475b5eec82eee40c811b0da355233a9"
+      },
+      {
+        "path": "docs/architecture/decisions/003-capabilities-and-systems-lab.md",
+        "bytes": 1632,
+        "sha256": "fd340e8a7e1c536d3c5069bcd12e1ff2d1075164e3c2c4fdfb7c634d3b1f82cb"
+      },
+      {
+        "path": "docs/architecture/decisions/004-financial-outcomes-and-navigation.md",
+        "bytes": 1905,
+        "sha256": "b34c7cf115897bb1d3fe25facd50f5a0cd6d6340791e8d7f5e6e1ac615c2a841"
+      },
+      {
+        "path": "docs/architecture/decisions/005-tracing-and-resource-bounds.md",
+        "bytes": 2498,
+        "sha256": "aa2e3d49db320c06a8dd5dde3b181592235f03e79ba9a645bc00225eb426c046"
+      },
+      {
+        "path": "docs/architecture/decisions/006-evidence-and-release-identity.md",
+        "bytes": 1686,
+        "sha256": "db66612f46515f35a4500662e6fc59f0b593254c8455892b0435fad1f92e7064"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "bytes": 15167,
+        "sha256": "8c79f4bfc3aa93a62f8c3283554924bfa7d37df2b3c8cd377e59c49400d67a31"
+      },
+      {
+        "path": "docs/portfolio/baseline.md",
+        "bytes": 6685,
+        "sha256": "e8b41ddd990fe0f59f5ac1fb1068505b078c160a3a22b4fb9bd9386f5f49da9a"
+      },
+      {
+        "path": "docs/portfolio/boundary-walkthroughs.md",
+        "bytes": 8975,
+        "sha256": "7efe2c48b38a9aed78d672e8f3e136d21a9bce67733502566e6a746e5294b21f"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "bytes": 3595,
+        "sha256": "054f11a493b5d3419e998ae30126b1c8b77932f5edd0414eea436de07203466b"
+      },
+      {
+        "path": "docs/portfolio/module-inventory.md",
+        "bytes": 9179,
+        "sha256": "2f629fdddb08d067269050201bba20c2b31627edc6d1758400009dbf422eac37"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "bytes": 5381,
+        "sha256": "86e6d7cba17507eb8547720835f2a67e9defc04690605f9b30ad162389002c25"
+      },
+      {
+        "path": "docs/portfolio/source-inventory.json",
+        "bytes": 236217,
+        "sha256": "fd3d307194d7dd0999b28276695aae3ed768e3a17043f52d1ce921c11dd9dfee"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "bytes": 22857,
+        "sha256": "b4252a2dd1fe1e3aba279c6422e4d01dd032d0717fb1707cab4fb440153a92eb"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r00/manifest.json",
+        "bytes": 332837,
+        "sha256": "5afd19e7f1553ae0d2eed6f0734df166fb409d3e6ed1af9c69cc1b33933f6478"
+      },
+      {
+        "path": "scripts/portfolio/demo-contract.mjs",
+        "bytes": 3095,
+        "sha256": "cb44d29e19ec6267ff4de4858a1c12513a57c7890b11f71d15bb7616cfd0ab05"
+      },
+      {
+        "path": "scripts/portfolio/demo-contract.test.mjs",
+        "bytes": 3868,
+        "sha256": "791c9ed05ccfba519af62fb1f01cc06a44c82d51afed73dc55c0150b44376c5b"
+      },
+      {
+        "path": "tests/architecture/boundaries_test.go",
+        "bytes": 3661,
+        "sha256": "d41e9fbb460bdf29f42f2d46d3cd35322d41ffbea1905613dd1192e4bebed471"
+      }
+    ]
+  },
+  "checks": {
+    "go_baseline": "passed selected packages",
+    "frontend_baseline": {
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    "runtime_page_smoke": {
+      "passed": 14,
+      "mutations": 0,
+      "candidate": "existing images; not rebuilt from source"
+    },
+    "architecture": {
+      "top_level_tests": 2,
+      "policy_cases": 12,
+      "domain_files": 8,
+      "application_files": 46,
+      "go_vet": "passed"
+    },
+    "demo_contract": {
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "fixture_only": true
+    },
+    "workflow": {
+      "yaml": "parsed with existing js-yaml",
+      "jobs": 6,
+      "hosted_ci": "not run"
+    },
+    "runtime": {
+      "long_running_services_healthy": 5,
+      "setup_services_exit_zero": 2,
+      "preserved_original_containers": 7
+    },
+    "financial_preservation": {
+      "unchanged": true,
+      "accounts": 8,
+      "transfers": 5,
+      "ledger_postings": 20,
+      "migration_count": 45,
+      "latest_migration": "000043_reconciliation_scheduler.up.sql"
+    },
+    "backup": {
+      "bundle": "data/portfolio/r00-20261014/backups/backup-20261013T184305Z-ed1662e",
+      "status": "passed bundle validation",
+      "bytes": 371412,
+      "sha256": "d852231ace00e3ab952a323b677d481fe4bd71f9caa7f8c9184dc1d77a87f7c4",
+      "restore_executed": false
+    }
+  },
+  "private_evidence": [
+    {
+      "path": "data/portfolio/r00-20261014/go-baseline.txt",
+      "bytes": 1575,
+      "sha256": "490cb8cec854ed0117343a1c1fc6301431a510f4edca406e392746a056607593"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/web-baseline.txt",
+      "bytes": 2199,
+      "sha256": "171db12f98462baa4e5ff1c6090972dad170d2498abdc7d6d3ea16f988c217cd"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/browser-baseline.json",
+      "bytes": 980,
+      "sha256": "93d0b8cf3a741e21545e6c5debfa7e8dd33f47c2b5d1434e49643d4061126793"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/architecture-checks.txt",
+      "bytes": 3552,
+      "sha256": "7c5f2a428913960ff6dc9cc4478e18f6f0a07acec0f698699e002e5e826e6c02"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/demo-contract-checks.txt",
+      "bytes": 1432,
+      "sha256": "ee79358cbd471dc20751054d30d7d1a796ab8413b4a27c3593455fa9419913bf"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/doctor-final.txt",
+      "bytes": 802,
+      "sha256": "bbdd0b270e5210160816ca09780eb2935434f3322edcdcd536bf0b7ef547e2df"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/status-final.txt",
+      "bytes": 535,
+      "sha256": "b0a3277ed029589ba5b29aaff245c8a2ba72957598d08d2f5acd54528d52fb61"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/financial-before.json",
+      "bytes": 347,
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/financial-verify.json",
+      "bytes": 347,
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/containers-before.json",
+      "bytes": 4518,
+      "sha256": "85c0bb995974e1ef6ea3e9f636f1f47c541ff73d731be59931adafd6cbe0a6e1"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/containers-verify.json",
+      "bytes": 4523,
+      "sha256": "a6770274570795943a5320def376328f4a46a68c8088b536a89eb1911409058b"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/preservation-final.json",
+      "bytes": 419,
+      "sha256": "f85c519b1cfddc250f86e6aefff8defb651f7eb83546ae02bed036e242740702"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/go-packages.txt",
+      "bytes": 7699,
+      "sha256": "374c5aa9a99c041405ba9624430064ffdd6accb08ada441ae1c385257f5a3a27"
+    },
+    {
+      "path": "data/portfolio/r00-20261014/external-plan-update.json",
+      "bytes": 235,
+      "sha256": "5c31057eea86e44390c6108c4ae9fa584afebf0576231695bbba1fb755f4da85"
+    }
+  ],
+  "limitations": [
+    "External index refresh rejected by automatic approval review; local static inventory used.",
+    "Selected source tests and existing-image runtime smoke have distinct provenance.",
+    "No normal financial command, migration, seed, role change, or image rebuild was performed.",
+    "Financial fingerprints cover named financial records, not all live operational-table writes.",
+    "Full integration, fault, browser, and race qualification remains R13; restore remains R10.",
+    "New demonstration validator checks metadata; R07 must verify executed runtime evidence.",
+    "No Git staging, commit, push, publication, or deployment performed."
+  ]
+}

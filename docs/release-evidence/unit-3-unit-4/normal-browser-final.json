@@ -1,0 +1,92 @@
+{
+  "captured_at_utc": "2026-10-11T20:38:14.179Z",
+  "base_url": "http://127.0.0.1:3000",
+  "pages": [
+    {
+      "path": "/",
+      "status": 200,
+      "heading": "Overview"
+    },
+    {
+      "path": "/accounts",
+      "status": 200,
+      "heading": "Accounts"
+    },
+    {
+      "path": "/funding",
+      "status": 200,
+      "heading": "Funding records"
+    },
+    {
+      "path": "/transfers",
+      "status": 200,
+      "heading": "Transfers"
+    },
+    {
+      "path": "/approvals",
+      "status": 200,
+      "heading": "Approvals"
+    },
+    {
+      "path": "/corrections",
+      "status": 200,
+      "heading": "Transfer corrections"
+    },
+    {
+      "path": "/reconciliation",
+      "status": 200,
+      "heading": "Internal reconciliation"
+    },
+    {
+      "path": "/events",
+      "status": 200,
+      "heading": "Delivery events"
+    },
+    {
+      "path": "/webhooks",
+      "status": 200,
+      "heading": "Webhook endpoints"
+    },
+    {
+      "path": "/developer",
+      "status": 200,
+      "heading": "Developer"
+    },
+    {
+      "path": "/recovery",
+      "status": 200,
+      "heading": "Recovery"
+    },
+    {
+      "path": "/local-status",
+      "status": 200,
+      "heading": "Local status"
+    },
+    {
+      "path": "/search",
+      "status": 200,
+      "heading": "Search records"
+    },
+    {
+      "path": "/guide",
+      "status": 200,
+      "heading": "Get started"
+    }
+  ],
+  "observations": {
+    "api_replicas": {
+      "state": "unavailable",
+      "sampled_at": "2026-10-11T20:38:14.171017141Z"
+    },
+    "worker_publications": {
+      "state": "historical",
+      "sampled_at": "2026-10-11T20:38:14.17261741Z",
+      "count": "0"
+    },
+    "scheduler": {
+      "state": "not_observed",
+      "sampled_at": "2026-10-11T20:38:14.172784953Z"
+    }
+  },
+  "financial_commands": 0
+}

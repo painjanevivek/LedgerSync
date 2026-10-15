@@ -1,0 +1,10 @@
+=== RUN   TestBFFActorAssertionReplayIsRejectedAcrossAPIReplicas
+--- PASS: TestBFFActorAssertionReplayIsRejectedAcrossAPIReplicas (1.09s)
+=== RUN   TestConcurrentSameKeyRequestsResolveToOneMovement
+--- PASS: TestConcurrentSameKeyRequestsResolveToOneMovement (0.46s)
+=== RUN   TestRateLimitIsSharedByTenantPrincipalAndRoute
+--- PASS: TestRateLimitIsSharedByTenantPrincipalAndRoute (0.41s)
+=== RUN   TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe
+--- PASS: TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe (0.45s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	2.947s

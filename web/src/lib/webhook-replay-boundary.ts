@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { diagnosticTraceHeaders } from "@/lib/diagnostic-trace";
 
 import { isWebhookReplayIdempotencyKey, isWebhookReplayIdentifier } from "@/lib/api/webhook-replay";
 import { rateLimitResponse, type RateLimitStore } from "@/lib/rate-limit";
@@ -53,6 +54,7 @@ export function webhookReplayPrivateHeaders(privateHeaders: Readonly<Record<stri
   }
   return {
     Authorization: authorization,
+    ...diagnosticTraceHeaders(privateHeaders),
     "X-LedgerSync-Actor-Assertion": assertion,
     "X-Request-ID": requestID,
     "Content-Type": "application/json",

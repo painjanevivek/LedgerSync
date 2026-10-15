@@ -27,10 +27,10 @@ func (r *credentialRepositoryStub) RevokeCredential(_ context.Context, command R
 	r.revoke = command
 	return r.result, nil
 }
-func (*credentialRepositoryStub) GetCredential(context.Context, string, string) (Credential, error) {
+func (*credentialRepositoryStub) GetCredential(context.Context, string, string, string) (Credential, error) {
 	return Credential{}, ErrNotFound
 }
-func (*credentialRepositoryStub) ListCredentials(context.Context, string, CredentialQuery) (CredentialPage, error) {
+func (*credentialRepositoryStub) ListCredentials(context.Context, string, string, CredentialQuery) (CredentialPage, error) {
 	return CredentialPage{}, nil
 }
 

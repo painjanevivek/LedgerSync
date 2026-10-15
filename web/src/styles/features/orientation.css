@@ -347,6 +347,9 @@
   color: var(--rail-muted);
   font-size: var(--type-label);
 }
+.local-orientation > footer .action-availability-reason {
+  color: var(--rail-muted);
+}
 .local-orientation > footer .copy-control {
   color: var(--rail-text);
 }

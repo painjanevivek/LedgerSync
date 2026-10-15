@@ -102,7 +102,7 @@ func (h *DeveloperWebhookHandler) List(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	page, err := h.service.List(r.Context(), p.TenantID, developerplatform.WebhookQuery{Status: r.URL.Query().Get("status"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
+	page, err := h.service.List(r.Context(), p.TenantID, p.SubjectID, developerplatform.WebhookQuery{Status: r.URL.Query().Get("status"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
@@ -122,7 +122,7 @@ func (h *DeveloperWebhookHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	item, err := h.service.Get(r.Context(), p.TenantID, webhookID)
+	item, err := h.service.Get(r.Context(), p.TenantID, p.SubjectID, webhookID)
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return
@@ -190,7 +190,7 @@ func (h *DeveloperWebhookHandler) Deliveries(w http.ResponseWriter, r *http.Requ
 	if !ok {
 		return
 	}
-	page, err := h.service.Deliveries(r.Context(), p.TenantID, webhookID, developerplatform.DeliveryQuery{Status: r.URL.Query().Get("status"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
+	page, err := h.service.Deliveries(r.Context(), p.TenantID, p.SubjectID, webhookID, developerplatform.DeliveryQuery{Status: r.URL.Query().Get("status"), Cursor: r.URL.Query().Get("cursor"), Limit: limit})
 	if err != nil {
 		httptransport.WriteError(w, r, publicDeveloperWebhookError(err))
 		return

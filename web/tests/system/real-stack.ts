@@ -58,11 +58,12 @@ function dockerOutput(args: string[], input?: string): string {
   }
 }
 
-function requireIsolatedComposeBoundary(composeProject: string): string {
-  const owner = dockerOutput(["ps", "--filter", "publish=3000", "--format", "{{.Label \"com.docker.compose.project\"}}|{{.Label \"com.docker.compose.service\"}}"])
+function requireIsolatedComposeBoundary(composeProject: string, baseURL: string): string {
+  const port = new URL(baseURL).port;
+  const owner = dockerOutput(["ps", "--filter", `publish=${port}`, "--format", "{{.Label \"com.docker.compose.project\"}}|{{.Label \"com.docker.compose.service\"}}"])
     .split(/\r?\n/).filter(Boolean);
   if (owner.length !== 1 || owner[0] !== `${composeProject}|web`) {
-    throw new Error("loopback port 3000 is not owned by the explicitly isolated LedgerSync web service");
+    throw new Error(`loopback port ${port} is not owned by the explicitly isolated LedgerSync web service`);
   }
   const postgres = dockerOutput([
     "ps",
@@ -76,18 +77,24 @@ function requireIsolatedComposeBoundary(composeProject: string): string {
   return postgres[0];
 }
 
-export function requireIsolatedRealStack(): RealStackRun {
+export function requireIsolatedJourney(): Omit<RealStackRun, "sourceAccountID"> {
   const rawBaseURL = process.env.LEDGERSYNC_SYSTEM_WEB_URL ?? "";
-  const sourceAccountID = process.env.LEDGERSYNC_SYSTEM_SEEDED_SOURCE_ACCOUNT_ID ?? "";
   const runID = process.env.LEDGERSYNC_SYSTEM_RUN_ID ?? "";
   const rawComposeProject = process.env.LEDGERSYNC_SYSTEM_COMPOSE_PROJECT ?? "";
-  if (process.env.LEDGERSYNC_SYSTEM_ALLOW_LEDGER_MUTATION !== "true" || process.env.LEDGERSYNC_SYSTEM_ISOLATED_PROJECT !== "true" || !rawBaseURL || !uuid.test(sourceAccountID) || !/^[a-z0-9-]{3,32}$/.test(runID)) {
-    throw new Error("real-stack lifecycle tests require explicit isolated-project mutation approval, loopback web URL, seeded source account UUID, and a bounded unique run ID");
+  if (process.env.LEDGERSYNC_SYSTEM_ALLOW_LEDGER_MUTATION !== "true" || process.env.LEDGERSYNC_SYSTEM_ISOLATED_PROJECT !== "true" || !rawBaseURL || !/^[a-z0-9-]{3,32}$/.test(runID)) {
+    throw new Error("real-stack journey tests require explicit isolated-project mutation approval, loopback web URL, and a bounded unique run ID");
   }
   const baseURL = parseSystemWebURL(rawBaseURL);
   const composeProject = parseIsolatedComposeProject(rawComposeProject);
-  const postgresContainerID = requireIsolatedComposeBoundary(composeProject);
-  return { baseURL, composeProject, postgresContainerID, sourceAccountID, runID };
+  const postgresContainerID = requireIsolatedComposeBoundary(composeProject, baseURL);
+  return { baseURL, composeProject, postgresContainerID, runID };
+}
+
+export function requireIsolatedRealStack(): RealStackRun {
+  const boundary = requireIsolatedJourney();
+  const sourceAccountID = process.env.LEDGERSYNC_SYSTEM_SEEDED_SOURCE_ACCOUNT_ID ?? "";
+  if (!uuid.test(sourceAccountID)) throw new Error("real-stack lifecycle tests require a seeded source account UUID");
+  return { ...boundary, sourceAccountID };
 }
 
 export function readComposeDurableEvidence(run: RealStackRun, expected: DurableEvidenceExpectation): DurableEvidence {
@@ -170,7 +177,7 @@ export async function replayCapturedMutation(page: Page, request: Request): Prom
     "Content-Type": headers["content-type"] ?? "application/json",
     Origin: headers.origin ?? new URL(page.url()).origin,
   };
-  for (const name of ["x-csrf-token", "idempotency-key"]) {
+  for (const name of ["x-csrf-token", "idempotency-key", "x-ledgersync-request-reference"]) {
     if (headers[name]) replayHeaders[name] = headers[name];
   }
   expect(replayHeaders["idempotency-key"]).toBeTruthy();

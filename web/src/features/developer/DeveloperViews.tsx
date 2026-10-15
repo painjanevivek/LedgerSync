@@ -2,6 +2,7 @@
 
 import { ArrowRight, CheckCircle, DownloadSimple, Key, LockKey, ShieldCheck, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
@@ -19,6 +20,8 @@ import {
   WebhookVerificationSection,
 } from "@/features/developer/DeveloperReferenceSections";
 import type { DeveloperExample, DeveloperMetadata } from "@/lib/api/developer";
+const DistributedSystems = dynamic(() => import("./DistributedSystems").then((module) => module.DistributedSystems), { loading: () => <p role="status">Loading observations…</p> });
+const SystemsLabEvidence = dynamic(() => import("./SystemsLabEvidence").then((module) => module.SystemsLabEvidence));
 
 function browserRequest(example: DeveloperExample) {
   const path = example.id === "create_account" ? "/api/me/accounts" : `/api${example.path}`;
@@ -87,6 +90,7 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
           {online && canRead && metadata ? <a className="button primary guarded-control" href="/api/developer/openapi" download="ledgersync-openapi.yaml"><DownloadSimple aria-hidden="true" />Download OpenAPI YAML</a> : <span className="permission-note">Download unavailable until the current authorized contract is loaded.</span>}
         </div>
       </PageHeader>
+      <DisclosureSection id="developer-distributed-systems" title="Systems Lab" summary="Replica observations and retained local failure evidence." priority="advanced" lazy><DistributedSystems online={online} canRead={canRead} />{canRead && <SystemsLabEvidence />}</DisclosureSection>
 
       {!canRead && <StatePanel kind="denied" title="Developer contract not authorized" message="This session does not include developer:read. No contract metadata or download has been requested." />}
       {!online && <StatePanel kind="offline" title="Offline — contract freshness is not verified" message={metadata ? "The last loaded version remains visible. Reconnect before using it as the current contract." : "Reconnect to retrieve the versioned local API contract."} />}

@@ -35,6 +35,7 @@ type TransferHandler struct {
 	rateLimit         int
 	capacityLimit     int
 	audit             AuditRecorder
+	recovery          transfers.RecoveryRepository
 }
 
 type consistencyBalanceReader interface {
@@ -127,6 +128,10 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		writeScopeDenial(writer, request, h.audit, principal, "transfers:write")
 		return
 	}
+	h.submitAuthenticated(writer, request, principal)
+}
+
+func (h *TransferHandler) submitAuthenticated(writer http.ResponseWriter, request *http.Request, principal identity.Principal) {
 	if !enforceTenantCapacity(writer, request, h.rateLimiter, principal, "transfers:create", h.capacityLimit) {
 		return
 	}
@@ -151,7 +156,7 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		return
 	}
 	input.SourceAccountID, input.DestinationAccountID = sourceAccountID.String(), destinationAccountID.String()
-	submission, err := h.service.Submit(request.Context(), transfers.Command{
+	command := transfers.Command{
 		TenantID:         tenantID,
 		ActorSubjectID:   principal.SubjectID,
 		DebitAccountID:   sourceAccountID,
@@ -160,7 +165,14 @@ func (h *TransferHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		IdempotencyKey:   request.Header.Get("Idempotency-Key"),
 		RequestReference: request.Header.Get("X-LedgerSync-Request-Reference"),
 		CorrelationID:    middleware.CorrelationID(request.Context()),
-	})
+	}
+	if h.recovery != nil && command.RequestReference != "" {
+		if err := h.recovery.PrepareRecovery(request.Context(), command); err != nil {
+			httptransport.WriteError(writer, request, publicTransferError(err))
+			return
+		}
+	}
+	submission, err := h.service.Submit(request.Context(), command)
 	if err != nil {
 		httptransport.WriteError(writer, request, publicTransferError(err))
 		return

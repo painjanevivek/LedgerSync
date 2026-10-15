@@ -7,6 +7,10 @@ const tablet = { width: 768, height: 1024 };
 const desktop = { width: 1440, height: 900 };
 const ultrawide = { width: 2560, height: 1440 };
 
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-10-12T00:00:00Z"));
+});
+
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({
     status,
@@ -41,9 +45,9 @@ const populatedRoutes = [
   { name: "funding-records-populated", path: "/funding", heading: "Funding records" },
   { name: "approvals-populated", path: "/approvals", heading: "Approvals" },
   { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
-  { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
-  { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
-  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation details" },
+  { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfers" },
+  { name: "reconciliation-populated", path: "/reconciliation", heading: "Internal reconciliation" },
+  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Internal reconciliation result" },
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
   { name: "events-populated", path: "/events", heading: "Delivery events" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
@@ -197,6 +201,7 @@ test("read-only transfer role explains why posting is disabled", async ({ page }
   await mockOperatorConsole(page);
   await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "transfers:read"], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
   await page.goto("/transfers");
+  await page.getByText("Create a transfer", { exact: true }).click();
   await expect(
     page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),
   ).toHaveText("Read-only role: transfer posting is not permitted.");
@@ -207,7 +212,8 @@ test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, { ...destinationAccount, currency: "EUR" }], next_cursor: "" }));
   await page.goto("/");
-  await expect(page.getByText("Mixed-currency pilot data blocked")).toBeVisible();
+  await expect(page.getByText("Mixed currencies", { exact: true })).toBeVisible();
+  await expect(page.locator(".hero-amount")).toHaveCount(0);
   await capture(page, "overview-mixed-currency-error", desktop);
 });
 

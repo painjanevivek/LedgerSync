@@ -1,0 +1,18 @@
+[
+  {
+    "path": "web/src/features/accounts/AccountViews.tsx",
+    "unchanged_from_step_1": true
+  },
+  {
+    "path": "web/src/features/console/ConsoleShell.tsx",
+    "unchanged_from_step_1": true
+  },
+  {
+    "path": "web/src/styles/layout/chain-of-custody-world.css",
+    "unchanged_from_step_1": true
+  },
+  {
+    "path": "web/src/styles/tokens.css",
+    "unchanged_from_step_1": true
+  }
+]

@@ -24,24 +24,38 @@ test("account controller does not start transfer, reconciliation, or orientation
   expect(paths.some((path) => path.startsWith("/api/local/orientation"))).toBe(false);
 });
 
-test("transfer detail controller owns only account-picker and transfer evidence", async ({ page }) => {
+test("transfer detail controller owns account selection, transfer proof, and the latest ledger check", async ({ page }) => {
   await mockOperatorConsole(page);
   const paths = captureAPIPaths(page);
   await page.goto(`/transfers/${transfer.transfer_id}`);
-  await expect(page.getByRole("heading", { name: "Transfer detail", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: `Transfer ${transfer.transfer_id}`, exact: true })).toBeVisible();
 
   await expect.poll(() => paths).toContain("/api/me/accounts");
   await expect.poll(() => paths).toContain(`/api/transfers/${transfer.transfer_id}`);
   await expect.poll(() => paths).toContain(`/api/transfers/${transfer.transfer_id}/explainability`);
-  expect(paths.some((path) => path.startsWith("/api/reconciliation"))).toBe(false);
+  await expect.poll(() => paths).toContain("/api/reconciliation/runs");
   expect(paths.some((path) => path.startsWith("/api/local/orientation"))).toBe(false);
+});
+
+test("transfer detail does not request ledger checks or explainability without their scopes", async ({ page }) => {
+  await mockOperatorConsole(page);
+  await page.route("**/api/session", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", environment: "local", scopes: ["accounts:read", "transfers:read"] }),
+  }));
+  const paths = captureAPIPaths(page);
+  await page.goto(`/transfers/${transfer.transfer_id}`);
+  await expect(page.getByRole("heading", { name: `Transfer ${transfer.transfer_id}`, exact: true })).toBeVisible();
+  expect(paths.some((path) => path.startsWith("/api/reconciliation"))).toBe(false);
+  expect(paths.some((path) => path.endsWith("/explainability"))).toBe(false);
 });
 
 test("reconciliation controller does not load account or transfer graphs", async ({ page }) => {
   await mockOperatorConsole(page);
   const paths = captureAPIPaths(page);
   await page.goto("/reconciliation");
-  await expect(page.getByRole("heading", { name: "Reconciliation", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Internal reconciliation", exact: true })).toBeVisible();
 
   await expect.poll(() => paths).toContain("/api/reconciliation/runs");
   expect(paths.some((path) => path.startsWith("/api/me/accounts"))).toBe(false);
@@ -53,7 +67,7 @@ test("guide controller has no financial or operational evidence graph", async ({
   await mockOperatorConsole(page);
   const paths = captureAPIPaths(page);
   await page.goto("/guide");
-  await expect(page.getByRole("heading", { name: "Use LedgerSync step by step" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Get started" })).toBeVisible();
 
   await expect.poll(() => paths).toContain("/api/local/orientation");
   expect(paths).toEqual(["/api/session", "/api/local/orientation"]);

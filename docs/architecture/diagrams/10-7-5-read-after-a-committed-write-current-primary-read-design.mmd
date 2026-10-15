@@ -1,0 +1,20 @@
+sequenceDiagram
+  participant Browser
+  participant BFF
+  participant API
+  participant PG as PostgreSQL
+  participant Redis
+  Browser->>BFF: Read account balance
+  BFF->>API: Actor assertion and saved consistency requirement if present
+  API->>PG: One tenant/owner-scoped current balance read
+  PG-->>API: Authorized balance, version and timestamp
+  API->>API: Verify requirement signature, account and minimum version
+  alt Version meets requirement
+    API->>Redis: Opportunistic monotonic cache refresh
+    Note over API,Redis: Cache failure does not change the primary answer
+    API-->>BFF: Primary balance and recorded evidence
+    BFF-->>Browser: Current verified balance
+  else Current version is below requirement
+    API-->>BFF: Current balance unavailable
+    BFF-->>Browser: Keep historical evidence labeled, offer read retry
+  end

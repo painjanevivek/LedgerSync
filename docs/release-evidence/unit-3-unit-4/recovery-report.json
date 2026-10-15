@@ -1,0 +1,36 @@
+{
+  "api": {
+    "captured_at": "2026-10-11T20:05:00.7620930Z",
+    "detection_ms": 1661.8369,
+    "commands": 40,
+    "interrupted_attempts": 1,
+    "reconciliation": "matched"
+  },
+  "workers": [
+    {
+      "stage": "before_publish",
+      "recovery_ms": 620,
+      "deliveries": 1,
+      "reconciliation": "matched"
+    },
+    {
+      "stage": "after_publish",
+      "recovery_ms": 615,
+      "deliveries": 2,
+      "reconciliation": "matched"
+    }
+  ],
+  "scheduler": [
+    {
+      "mode": "stop",
+      "takeover_ms": 4901,
+      "stale_owner_rejected": true
+    },
+    {
+      "mode": "pause",
+      "takeover_ms": 5025,
+      "stale_owner_rejected": true
+    }
+  ],
+  "limits": "Worker timing includes a deliberate 600ms wait after killing the process. API and scheduler timing include Docker commands and probes. These are local controlled demonstrations."
+}

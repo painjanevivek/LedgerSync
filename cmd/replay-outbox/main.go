@@ -44,7 +44,7 @@ func main() {
 	}
 	switch *action {
 	case "inspect":
-		item, err := repository.Inspect(ctx, *tenant, *event)
+		item, err := repository.Inspect(ctx, *tenant, *actor, *event)
 		if err != nil {
 			fail(err)
 		}

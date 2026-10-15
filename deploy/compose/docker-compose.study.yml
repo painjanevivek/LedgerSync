@@ -1,0 +1,121 @@
+# Isolated course study. Requires Compose 2.24.4 or later for !override.
+# Start with scripts/start-unit-study.ps1. Do not use this file on product data.
+services:
+  api:
+    image: ${LEDGERSYNC_STUDY_IMAGE_PREFIX:?Study project is required}-api
+    environment:
+      LEDGERSYNC_STUDY_ENABLED: "true"
+      LEDGERSYNC_DATABASE_MAX_OPEN_CONNS: "4"
+    volumes: !override
+      - ${LEDGERSYNC_STUDY_STATE:?Study state is required}/recovery-evidence-index.json:/run/ledgersync/recovery/recovery-evidence-index.json:ro
+    cpus: 1.0
+    mem_limit: 256m
+  outbox-worker:
+    image: ${LEDGERSYNC_STUDY_IMAGE_PREFIX:?Study project is required}-worker
+    environment:
+      LEDGERSYNC_DATABASE_MAX_OPEN_CONNS: "4"
+    cpus: 1.0
+    mem_limit: 256m
+  migrate:
+    image: ${LEDGERSYNC_STUDY_IMAGE_PREFIX:?Study project is required}-migrate
+    environment:
+      LEDGERSYNC_SCHEDULER_DATABASE_PASSWORD: ${LEDGERSYNC_SCHEDULER_DATABASE_PASSWORD:?Study scheduler secret is required}
+    command:
+      - >-
+        /usr/local/bin/migrate && exec psql --single-transaction -v ON_ERROR_STOP=1 -h postgres -U ledgersync -d ledgersync
+        -f /database-roles/roles.sql -f /database-roles/local-workload-logins.sql -f /database-roles/study-scheduler-login.sql
+  demo-seed:
+    environment:
+      LEDGERSYNC_INITIALIZATION_MODE: demo
+  web:
+    image: ${LEDGERSYNC_STUDY_IMAGE_PREFIX:?Study project is required}-web
+    ports: !override ["127.0.0.1:3102:3000"]
+    environment:
+      LEDGERSYNC_PUBLIC_ORIGIN: http://127.0.0.1:3102
+      LEDGERSYNC_PRIVATE_API_URL: http://study-proxy:8080
+    depends_on:
+      study-proxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "const net=require('node:net');const s=net.connect(3000,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1))"]
+    cpus: 1.0
+    mem_limit: 512m
+  web-peer:
+    image: ${LEDGERSYNC_STUDY_IMAGE_PREFIX:?Study project is required}-web
+    ports: !override ["127.0.0.1:3103:3000"]
+    environment:
+      LEDGERSYNC_PUBLIC_ORIGIN: http://127.0.0.1:3103
+      LEDGERSYNC_PRIVATE_API_URL: http://study-proxy:8080
+    depends_on:
+      study-proxy:
+        condition: service_healthy
+  study-proxy:
+    image: ${LEDGERSYNC_STUDY_IMAGE_PREFIX:?Study project is required}-proxy
+    build:
+      context: ../..
+      dockerfile: deploy/docker/study-proxy.Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/readyz"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+    networks: [private]
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    cpus: 0.5
+    mem_limit: 64m
+  reconciliation-scheduler:
+    profiles: ["scheduler"]
+    image: ${LEDGERSYNC_STUDY_IMAGE_PREFIX:?Study project is required}-api
+    entrypoint: ["/usr/local/bin/reconciliation-scheduler"]
+    environment:
+      LEDGERSYNC_ENV: development
+      LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_scheduler:${LEDGERSYNC_SCHEDULER_DATABASE_PASSWORD:?Study scheduler secret is required}@postgres:5432/ledgersync?sslmode=disable
+      LEDGERSYNC_SCHEDULER_ENABLED: "true"
+      LEDGERSYNC_SCHEDULER_TENANTS: 00000000-0000-4000-8000-000000000001
+      LEDGERSYNC_SCHEDULER_LEASE: 4s
+      LEDGERSYNC_SCHEDULER_INTERVAL: 15s
+    depends_on:
+      demo-seed: { condition: service_completed_successfully }
+    networks: [private]
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    cpus: 0.5
+    mem_limit: 128m
+  test-postgres:
+    profiles: ["test-dependencies"]
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    environment:
+      POSTGRES_DB: ledgersync_test
+      POSTGRES_USER: ledgersync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Study secret is required}
+    ports: ["127.0.0.1:35432:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "ledgersync", "-d", "ledgersync_test"]
+      interval: 2s
+      retries: 30
+    networks: [study-tests]
+    volumes: ["test-postgres-data:/var/lib/postgresql/data"]
+  test-redis:
+    profiles: ["test-dependencies"]
+    image: redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+    ports: ["127.0.0.1:36379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 30
+    networks: [study-tests]
+volumes:
+  test-postgres-data:
+networks:
+  # Test-only dependencies use loopback ports. Product data remains private.
+  study-tests:

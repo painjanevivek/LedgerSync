@@ -1,0 +1,734 @@
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-2 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-1 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-1 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-2 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Stopping 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Stopped 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Stopped 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-proxy Building 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-web Building 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-worker Building 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-api Building 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-web Building 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-migrate Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 3.54kB done
+#1 DONE 0.0s
+
+#2 [migrate internal] load build definition from api.Dockerfile
+#2 transferring dockerfile: 1.70kB 0.0s done
+#2 DONE 0.1s
+
+#3 [study-proxy internal] load build definition from study-proxy.Dockerfile
+#3 transferring dockerfile: 605B 0.0s done
+#3 DONE 0.1s
+
+#4 [outbox-worker internal] load build definition from outbox-worker.Dockerfile
+#4 transferring dockerfile: 770B 0.0s done
+#4 DONE 0.1s
+
+#5 [web internal] load build definition from web.Dockerfile
+#5 transferring dockerfile: 971B 0.0s done
+#5 DONE 0.1s
+
+#6 [api internal] load metadata for docker.io/library/golang:1.26.6-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83
+#6 DONE 0.1s
+
+#7 [migrate internal] load metadata for docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+#7 DONE 0.1s
+
+#8 [study-proxy internal] load metadata for docker.io/library/alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+#8 DONE 0.1s
+
+#9 [web-peer internal] load metadata for docker.io/library/node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43
+#9 DONE 0.1s
+
+#10 [web internal] load .dockerignore
+#10 transferring context: 172B done
+#10 DONE 0.0s
+
+#11 [outbox-worker internal] load build context
+#11 DONE 0.0s
+
+#12 [study-proxy internal] load build context
+#12 DONE 0.0s
+
+#13 [api internal] load build context
+#13 DONE 0.0s
+
+#14 [web-peer internal] load build context
+#14 DONE 0.0s
+
+#15 [study-proxy builder 1/6] FROM docker.io/library/golang:1.26.6-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83
+#15 resolve docker.io/library/golang:1.26.6-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83 0.0s done
+#15 DONE 0.1s
+
+#16 [web-peer builder 1/7] FROM docker.io/library/node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43
+#16 resolve docker.io/library/node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 0.0s done
+#16 DONE 0.1s
+
+#17 [outbox-worker stage-1 1/2] FROM docker.io/library/alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+#17 resolve docker.io/library/alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b 0.0s done
+#17 DONE 0.1s
+
+#18 [migrate internal] load build context
+#18 transferring context: 62.16kB 0.1s done
+#18 DONE 0.1s
+
+#19 [migrate database-tooling 1/6] FROM docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+#19 resolve docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777 0.0s done
+#19 DONE 0.1s
+
+#20 [migrate builder  3/10] COPY go.mod go.sum go.work ./
+#20 CACHED
+
+#21 [migrate builder 2/6] WORKDIR /src
+#21 CACHED
+
+#22 [migrate builder  4/10] COPY cmd ./cmd
+#22 CACHED
+
+#14 [web-peer internal] load build context
+#14 ...
+
+#22 [outbox-worker builder  4/10] COPY cmd ./cmd
+#22 CACHED
+
+#13 [api internal] load build context
+#13 transferring context: 537.51kB 0.1s done
+#13 DONE 0.1s
+
+#23 [api builder  5/10] COPY contracts ./contracts
+#23 DONE 0.1s
+
+#11 [outbox-worker internal] load build context
+#11 transferring context: 40.20kB 0.1s done
+#11 DONE 0.2s
+
+#24 [outbox-worker builder 4/6] COPY cmd ./cmd
+#24 CACHED
+
+#25 [outbox-worker builder 3/6] COPY go.mod go.sum go.work ./
+#25 CACHED
+
+#21 [outbox-worker builder 2/6] WORKDIR /src
+#21 CACHED
+
+#14 [web-peer internal] load build context
+#14 ...
+
+#12 [study-proxy internal] load build context
+#12 transferring context: 25.27kB 0.4s done
+#12 DONE 0.4s
+
+#26 [study-proxy builder 3/6] COPY go.mod go.sum go.work ./
+#26 CACHED
+
+#27 [study-proxy builder 4/6] COPY cmd/study-proxy ./cmd/study-proxy
+#27 CACHED
+
+#28 [study-proxy builder 5/6] COPY internal/platform/routing ./internal/platform/routing
+#28 CACHED
+
+#29 [study-proxy builder 6/6] RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/study-proxy ./cmd/study-proxy
+#29 CACHED
+
+#21 [study-proxy builder 2/6] WORKDIR /src
+#21 CACHED
+
+#30 [study-proxy stage-1 2/2] COPY --from=builder /out/study-proxy /usr/local/bin/study-proxy
+#30 CACHED
+
+#14 [web-peer internal] load build context
+#14 ...
+
+#31 [study-proxy] exporting to image
+#31 exporting layers done
+#31 exporting manifest sha256:12e188f796ebef2669eb42f75972eb9e75910d25b916f2e6f2ac09b069418261 done
+#31 exporting config sha256:7c12ecd941e15ddc30964ef357ba3d1ba9d5f4cb05044d286c908e0ebe4dca75 done
+#31 exporting attestation manifest sha256:7c590c1b4f1e7678a65682f94f4742821977d02cfb5837bb3dbc9a3247a9d289 0.0s done
+#31 exporting manifest list sha256:ab439786efc132841ca59488aeb3033aa076e5befc6a860e0669a247cf624396 0.0s done
+#31 naming to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-proxy:latest done
+#31 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-proxy:latest 0.1s done
+#31 DONE 0.2s
+
+#14 [web-peer internal] load build context
+#14 ...
+
+#32 [outbox-worker builder 5/6] COPY internal ./internal
+#32 DONE 0.6s
+
+#33 [api builder  6/10] COPY internal ./internal
+#33 DONE 0.7s
+
+#14 [web-peer internal] load build context
+#14 ...
+
+#34 [study-proxy] resolving provenance for metadata file
+#34 DONE 0.1s
+
+#14 [web-peer internal] load build context
+#14 transferring context: 37.77MB 3.8s done
+#14 DONE 3.8s
+
+#35 [web-peer builder 2/7] WORKDIR /app
+#35 CACHED
+
+#36 [web-peer builder 3/7] COPY web/package.json web/package-lock.json ./
+#36 CACHED
+
+#37 [web-peer builder 4/7] RUN npm ci
+#37 CACHED
+
+#38 [web builder 5/7] COPY contracts /contracts
+#38 DONE 0.1s
+
+#39 [web builder 6/7] COPY web ./
+#39 DONE 0.4s
+
+#40 [web-peer builder 7/7] RUN npm run build
+#40 2.355 
+#40 2.355 > ledgersync-web@0.1.0 build
+#40 2.355 > next build
+#40 2.355 
+#40 3.429 ▲ Next.js 16.3.2 (Turbopack)
+#40 3.822 ✓ Running next.config.ts took 392ms
+#40 3.846 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+#40 3.846 This information is used to shape Next.js' roadmap and prioritize features.
+#40 3.846 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#40 3.846 https://nextjs.org/telemetry
+#40 3.846 
+#40 3.873 
+#40 3.950   Creating an optimized production build ...
+#40 ...
+
+#41 [api builder  7/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+#41 3.478 go: downloading go.opentelemetry.io/otel v1.44.0
+#41 3.478 go: downloading go.opentelemetry.io/otel/sdk/metric v1.44.0
+#41 3.478 go: downloading github.com/aws/aws-sdk-go-v2 v1.45.1
+#41 3.478 go: downloading go.opentelemetry.io/otel/metric v1.44.0
+#41 3.478 go: downloading github.com/aws/aws-sdk-go-v2/config v1.33.1
+#41 3.478 go: downloading go.opentelemetry.io/otel/trace v1.44.0
+#41 3.478 go: downloading github.com/coreos/go-oidc/v3 v3.10.0
+#41 3.478 go: downloading github.com/redis/go-redis/v9 v9.7.3
+#41 3.478 go: downloading go.opentelemetry.io/otel/sdk v1.44.0
+#41 3.478 go: downloading github.com/jackc/pgx/v5 v5.9.2
+#41 3.479 go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.44.0
+#41 3.479 go: downloading github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.46.1
+#41 3.480 go: downloading github.com/google/uuid v1.6.0
+#41 3.480 go: downloading go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.44.0
+#41 3.693 go: downloading golang.org/x/oauth2 v0.36.0
+#41 3.693 go: downloading github.com/go-jose/go-jose/v4 v4.1.4
+#41 3.850 go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.44.0
+#41 4.721 go: downloading github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
+#41 4.721 go: downloading github.com/cespare/xxhash/v2 v2.3.0
+#41 4.801 go: downloading github.com/jackc/pgpassfile v1.0.0
+#41 4.801 go: downloading github.com/jackc/puddle/v2 v2.2.2
+#41 4.801 go: downloading github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
+#41 4.801 go: downloading golang.org/x/text v0.39.0
+#41 4.883 go: downloading golang.org/x/sync v0.21.0
+#41 4.957 go: downloading github.com/aws/smithy-go v1.28.1
+#41 4.957 go: downloading github.com/aws/aws-sdk-go-v2/service/sts v1.47.1
+#41 4.958 go: downloading github.com/aws/aws-sdk-go-v2/credentials v1.20.1
+#41 4.958 go: downloading github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.19.1
+#41 4.958 go: downloading github.com/aws/aws-sdk-go-v2/service/signin v1.7.1
+#41 4.958 go: downloading github.com/aws/aws-sdk-go-v2/service/ssooidc v1.40.1
+#41 4.958 go: downloading github.com/aws/aws-sdk-go-v2/service/sso v1.35.1
+#41 4.958 go: downloading github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.1
+#41 6.005 go: downloading github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.1
+#41 6.005 go: downloading golang.org/x/sys v0.46.0
+#41 6.005 go: downloading go.opentelemetry.io/proto/otlp v1.10.0
+#41 6.005 go: downloading google.golang.org/protobuf v1.36.11
+#41 6.127 go: downloading github.com/go-logr/logr v1.4.3
+#41 6.133 go: downloading github.com/go-logr/stdr v1.2.2
+#41 6.140 go: downloading go.opentelemetry.io/auto/sdk v1.2.1
+#41 6.147 go: downloading github.com/cenkalti/backoff/v5 v5.0.3
+#41 6.228 go: downloading google.golang.org/grpc v1.83.1
+#41 6.461 go: downloading github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.19
+#41 6.461 go: downloading github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.1
+#41 6.461 go: downloading github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.1
+#41 6.461 go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
+#41 7.684 go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa
+#41 8.089 go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa
+#41 8.089 go: downloading golang.org/x/net v0.56.0
+#41 ...
+
+#42 [outbox-worker builder 6/6] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/outbox-worker ./cmd/outbox-worker
+#42 3.523 go: downloading github.com/redis/go-redis/v9 v9.7.3
+#42 3.523 go: downloading github.com/aws/aws-sdk-go-v2 v1.45.1
+#42 3.523 go: downloading github.com/aws/aws-sdk-go-v2/config v1.33.1
+#42 3.523 go: downloading github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.46.1
+#42 3.523 go: downloading go.opentelemetry.io/otel v1.44.0
+#42 3.523 go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.44.0
+#42 3.523 go: downloading go.opentelemetry.io/otel/metric v1.44.0
+#42 3.523 go: downloading go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.44.0
+#42 3.524 go: downloading go.opentelemetry.io/otel/sdk/metric v1.44.0
+#42 3.524 go: downloading go.opentelemetry.io/otel/sdk v1.44.0
+#42 3.524 go: downloading go.opentelemetry.io/otel/trace v1.44.0
+#42 3.524 go: downloading github.com/google/uuid v1.6.0
+#42 3.524 go: downloading github.com/jackc/pgx/v5 v5.9.2
+#42 4.068 go: downloading github.com/jackc/pgpassfile v1.0.0
+#42 4.068 go: downloading github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
+#42 4.068 go: downloading github.com/jackc/puddle/v2 v2.2.2
+#42 4.068 go: downloading golang.org/x/text v0.39.0
+#42 4.172 go: downloading go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.44.0
+#42 4.191 go: downloading github.com/cespare/xxhash/v2 v2.3.0
+#42 4.191 go: downloading github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
+#42 4.910 go: downloading golang.org/x/sync v0.21.0
+#42 5.878 go: downloading github.com/aws/smithy-go v1.28.1
+#42 5.878 go: downloading github.com/aws/aws-sdk-go-v2/credentials v1.20.1
+#42 5.878 go: downloading github.com/aws/aws-sdk-go-v2/service/signin v1.7.1
+#42 5.879 go: downloading github.com/aws/aws-sdk-go-v2/service/sso v1.35.1
+#42 5.879 go: downloading github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.1
+#42 5.879 go: downloading github.com/aws/aws-sdk-go-v2/service/sts v1.47.1
+#42 5.879 go: downloading github.com/aws/aws-sdk-go-v2/service/ssooidc v1.40.1
+#42 5.880 go: downloading github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.19.1
+#42 8.737 go: downloading github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.1
+#42 8.941 go: downloading golang.org/x/sys v0.46.0
+#42 9.192 go: downloading go.opentelemetry.io/proto/otlp v1.10.0
+#42 9.346 go: downloading google.golang.org/protobuf v1.36.11
+#42 9.349 go: downloading github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.1
+#42 9.349 go: downloading github.com/go-logr/logr v1.4.3
+#42 9.351 go: downloading github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.19
+#42 9.351 go: downloading github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.1
+#42 9.680 go: downloading github.com/go-logr/stdr v1.2.2
+#42 9.714 go: downloading go.opentelemetry.io/auto/sdk v1.2.1
+#42 9.724 go: downloading google.golang.org/grpc v1.83.1
+#42 9.761 go: downloading github.com/cenkalti/backoff/v5 v5.0.3
+#42 10.06 go: downloading github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
+#42 13.25 go: downloading google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa
+#42 14.05 go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa
+#42 14.05 go: downloading golang.org/x/net v0.56.0
+#42 ...
+
+#40 [web-peer builder 7/7] RUN npm run build
+#40 17.57 ✓ Compiled successfully in 11.3s
+#40 18.51   Running TypeScript ...
+#40 ...
+
+#42 [outbox-worker builder 6/6] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/outbox-worker ./cmd/outbox-worker
+#42 DONE 45.3s
+
+#41 [api builder  7/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+#41 DONE 45.3s
+
+#43 [api stage-1 2/3] RUN apk upgrade --no-cache     && apk add --no-cache ca-certificates     && addgroup -S ledgersync     && adduser -S ledgersync -G ledgersync
+#43 CACHED
+
+#44 [api builder  8/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
+#44 ...
+
+#45 [outbox-worker stage-1 3/3] COPY --from=builder /out/outbox-worker /usr/local/bin/outbox-worker
+#45 DONE 0.4s
+
+#46 [outbox-worker] exporting to image
+#46 exporting layers
+#46 exporting layers 1.1s done
+#46 exporting manifest sha256:fd0ec4930d2619b038e398e5bbc4a975c19cb4cd44b63e5805dd335d1465f170 0.1s done
+#46 exporting config sha256:9dd3ed35c344c54c94a4903b6cd943d515a678d71ab42445cda9d02f705f2158 0.1s done
+#46 exporting attestation manifest sha256:f43600ec01f86eb27288347ed4c4a020c43f9c4b1d0b59063d90e1cb6c8f9a83 0.0s done
+#46 exporting manifest list sha256:d70c13920fd703550f8eda56a7a8d0cab80a52697d38707e173779a965883e48 0.0s done
+#46 naming to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-worker:latest done
+#46 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-worker:latest
+#46 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-worker:latest 0.3s done
+#46 DONE 1.6s
+
+#40 [web-peer builder 7/7] RUN npm run build
+#40 ...
+
+#47 [outbox-worker] resolving provenance for metadata file
+#47 DONE 0.1s
+
+#44 [api builder  8/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
+#44 ...
+
+#40 [web-peer builder 7/7] RUN npm run build
+#40 48.00   Finished TypeScript in 29.5s ...
+#40 ...
+
+#44 [migrate builder  8/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
+#44 DONE 6.4s
+
+#40 [web-peer builder 7/7] RUN npm run build
+#40 48.20   Collecting page data using 31 workers ...
+#40 52.00   Generating static pages using 31 workers (0/30) ...
+#40 52.04   Generating static pages using 31 workers (7/30) 
+#40 52.06   Generating static pages using 31 workers (14/30) 
+#40 52.08   Generating static pages using 31 workers (22/30) 
+#40 52.61 ✓ Generating static pages using 31 workers (30/30) in 610ms
+#40 ...
+
+#48 [migrate builder  9/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reconcile ./cmd/reconcile
+#48 DONE 4.5s
+
+#40 [web-peer builder 7/7] RUN npm run build
+#40 52.71   Finalizing page optimization ...
+#40 54.41 
+#40 54.41 Route (app)
+#40 54.41 ┌ ƒ /
+#40 54.41 ├ ƒ /_not-found
+#40 54.41 ├ ƒ /accounts
+#40 54.41 ├ ƒ /accounts/[accountId]
+#40 54.41 ├ ƒ /accounts/new
+#40 54.41 ├ ƒ /admin
+#40 54.41 ├ ƒ /api/accounts/[accountId]
+#40 54.41 ├ ƒ /api/accounts/[accountId]/balance
+#40 54.41 ├ ƒ /api/accounts/[accountId]/transactions
+#40 54.41 ├ ƒ /api/approvals
+#40 54.41 ├ ƒ /api/auth/callback
+#40 54.41 ├ ƒ /api/auth/sign-in
+#40 54.41 ├ ƒ /api/auth/sign-out
+#40 54.41 ├ ƒ /api/developer/distributed
+#40 54.41 ├ ƒ /api/developer/distributed/evidence
+#40 54.41 ├ ƒ /api/developer/metadata
+#40 54.41 ├ ƒ /api/developer/openapi
+#40 54.41 ├ ƒ /api/events
+#40 54.41 ├ ƒ /api/events/[eventId]
+#40 54.41 ├ ƒ /api/exports/accounts/[accountId]/transactions.csv
+#40 54.41 ├ ƒ /api/exports/reconciliation.csv
+#40 54.41 ├ ƒ /api/exports/transfers.csv
+#40 54.41 ├ ƒ /api/funding-events
+#40 54.41 ├ ƒ /api/funding-events/[fundingEventId]
+#40 54.41 ├ ƒ /api/funding-events/[fundingEventId]/approve
+#40 54.41 ├ ƒ /api/funding-events/[fundingEventId]/compensations
+#40 54.41 ├ ƒ /api/funding-events/[fundingEventId]/post
+#40 54.41 ├ ƒ /api/funding-events/[fundingEventId]/reconciliation
+#40 54.41 ├ ƒ /api/funding-events/[fundingEventId]/reject
+#40 54.41 ├ ƒ /api/funding-requests
+#40 54.41 ├ ƒ /api/investigation/live/rooms
+#40 54.41 ├ ƒ /api/investigation/live/rooms/[roomId]
+#40 54.41 ├ ƒ /api/investigation/live/rooms/[roomId]/[action]
+#40 54.41 ├ ƒ /api/investigation/live/rooms/[roomId]/presence
+#40 54.41 ├ ƒ /api/investigation/live/rooms/[roomId]/signals
+#40 54.41 ├ ƒ /api/investigation/live/rooms/join
+#40 54.41 ├ ƒ /api/investigation/live/status/[requestReference]
+#40 54.41 ├ ƒ /api/investigation/related/[recordType]/[recordId]
+#40 54.41 ├ ƒ /api/investigation/saved-views
+#40 54.41 ├ ƒ /api/investigation/saved-views/[savedViewId]
+#40 54.41 ├ ƒ /api/investigation/search
+#40 54.41 ├ ƒ /api/investigation/workspaces
+#40 54.41 ├ ƒ /api/investigation/workspaces/[investigationId]
+#40 54.41 ├ ƒ /api/investigation/workspaces/[investigationId]/[action]
+#40 54.41 ├ ƒ /api/investigation/workspaces/[investigationId]/evidence-bundle
+#40 54.41 ├ ƒ /api/local/diagnostics
+#40 54.41 ├ ƒ /api/local/orientation
+#40 54.41 ├ ƒ /api/local/orientation/preferences
+#40 54.41 ├ ƒ /api/me/accounts
+#40 54.41 ├ ƒ /api/reconciliation/runs
+#40 54.41 ├ ƒ /api/reconciliation/runs/[runId]
+#40 54.41 ├ ƒ /api/recovery/manifests
+#40 54.41 ├ ƒ /api/session
+#40 54.41 ├ ƒ /api/transfer-corrections
+#40 54.41 ├ ƒ /api/transfer-corrections/[correctionId]
+#40 54.41 ├ ƒ /api/transfer-corrections/[correctionId]/approve
+#40 54.41 ├ ƒ /api/transfer-corrections/[correctionId]/cancel
+#40 54.41 ├ ƒ /api/transfer-corrections/[correctionId]/post
+#40 54.41 ├ ƒ /api/transfer-corrections/[correctionId]/reject
+#40 54.41 ├ ƒ /api/transfers
+#40 54.41 ├ ƒ /api/transfers/[transferId]
+#40 54.41 ├ ƒ /api/transfers/[transferId]/corrections
+#40 54.41 ├ ƒ /api/transfers/[transferId]/explainability
+#40 54.41 ├ ƒ /api/transfers/recovery
+#40 54.41 ├ ƒ /api/transfers/recovery/[requestReference]
+#40 54.41 ├ ƒ /api/webhook-endpoints
+#40 54.41 ├ ƒ /api/webhook-endpoints/[endpointId]
+#40 54.41 ├ ƒ /api/webhook-endpoints/[endpointId]/deliveries/[attemptId]/replay
+#40 54.41 ├ ƒ /api/webhook-endpoints/[endpointId]/deliveries/[attemptId]/replay-approvals
+#40 54.41 ├ ƒ /approvals
+#40 54.41 ├ ƒ /corrections
+#40 54.41 ├ ƒ /corrections/[correctionId]
+#40 54.41 ├ ƒ /developer
+#40 54.41 ├ ƒ /events
+#40 54.41 ├ ƒ /events/[eventId]
+#40 54.41 ├ ƒ /funding
+#40 54.41 ├ ƒ /funding/[fundingEventId]
+#40 54.41 ├ ƒ /guide
+#40 54.41 ├ ƒ /investigations/[investigationId]
+#40 54.41 ├ ƒ /investigations/live
+#40 54.41 ├ ƒ /investigations/live/[roomId]
+#40 54.41 ├ ƒ /local-status
+#40 54.41 ├ ƒ /reconciliation
+#40 54.41 ├ ƒ /reconciliation/[runId]
+#40 54.41 ├ ƒ /recovery
+#40 54.41 ├ ƒ /search
+#40 54.41 ├ ƒ /sign-in
+#40 54.41 ├ ƒ /test-support/route-error
+#40 54.41 ├ ƒ /transfers
+#40 54.41 ├ ƒ /transfers/[transferId]
+#40 54.41 ├ ƒ /webhooks
+#40 54.41 └ ƒ /webhooks/[endpointId]
+#40 54.41 
+#40 54.41 
+#40 54.41 ƒ Proxy (Middleware)
+#40 54.41 
+#40 54.41 ƒ  (Dynamic)  server-rendered on demand
+#40 54.41 
+#40 54.79 npm notice
+#40 54.79 npm notice New major version of npm available! 11.17.0 -> 12.2.0
+#40 54.79 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+#40 54.79 npm notice To update run: npm install -g npm@12.2.0
+#40 54.79 npm notice
+#40 ...
+
+#49 [migrate builder 10/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reconciliation-scheduler ./cmd/reconciliation-scheduler
+#49 DONE 2.1s
+
+#50 [api builder  9/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reconcile ./cmd/reconcile
+#50 CACHED
+
+#21 [api builder 2/6] WORKDIR /src
+#21 CACHED
+
+#51 [api builder  3/10] COPY go.mod go.sum go.work ./
+#51 CACHED
+
+#52 [api builder  7/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+#52 CACHED
+
+#53 [api builder  8/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
+#53 CACHED
+
+#54 [api builder 10/10] RUN GODEBUG="tlsmlkem=0" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reconciliation-scheduler ./cmd/reconciliation-scheduler
+#54 CACHED
+
+#55 [api builder  5/10] COPY contracts ./contracts
+#55 CACHED
+
+#56 [api builder  4/10] COPY cmd ./cmd
+#56 CACHED
+
+#57 [api builder  6/10] COPY internal ./internal
+#57 CACHED
+
+#19 [migrate database-tooling 1/6] FROM docker.io/library/postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+#19 CACHED
+
+#58 [api stage-2 3/8] COPY --from=builder /out/api /usr/local/bin/api
+#58 DONE 0.1s
+
+#59 [migrate database-tooling 2/6] COPY --from=builder /out/migrate /usr/local/bin/migrate
+#59 DONE 0.1s
+
+#60 [migrate database-tooling 3/6] COPY --from=builder /out/reconcile /usr/local/bin/reconcile
+#60 ...
+
+#61 [api stage-2 4/8] COPY --from=builder /out/migrate /usr/local/bin/migrate
+#61 DONE 0.4s
+
+#60 [migrate database-tooling 3/6] COPY --from=builder /out/reconcile /usr/local/bin/reconcile
+#60 DONE 0.4s
+
+#62 [migrate database-tooling 4/6] COPY migrations /migrations
+#62 ...
+
+#63 [api stage-2 5/8] COPY --from=builder /out/reconcile /usr/local/bin/reconcile
+#63 DONE 0.2s
+
+#62 [migrate database-tooling 4/6] COPY migrations /migrations
+#62 DONE 0.2s
+
+#40 [web builder 7/7] RUN npm run build
+#40 DONE 55.8s
+
+#64 [api stage-2 6/8] COPY migrations /migrations
+#64 DONE 0.1s
+
+#65 [migrate database-tooling 5/6] COPY deploy/postgres /database-roles
+#65 DONE 0.1s
+
+#66 [migrate] exporting to image
+#66 exporting layers
+#66 ...
+
+#67 [api stage-2 7/8] COPY --from=builder /out/reconciliation-scheduler /usr/local/bin/reconciliation-scheduler
+#67 DONE 0.7s
+
+#68 [web stage-1 2/5] RUN apk upgrade --no-cache     && addgroup -S ledgersync     && adduser -S ledgersync -G ledgersync     && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v*     && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
+#68 CACHED
+
+#69 [web stage-1 3/5] WORKDIR /app
+#69 CACHED
+
+#70 [web stage-1 4/5] COPY --from=builder --chown=ledgersync:ledgersync /app/.next/standalone ./
+#70 ...
+
+#66 [migrate] exporting to image
+#66 exporting layers 1.0s done
+#66 exporting manifest sha256:84d38c0ff30f0a9b3e7f7336203eb4f4a3cb85025342335eec43be6b13259faa 0.0s done
+#66 exporting config sha256:da8d464406924447f86552fd1a2f3f78a3b12c941461ef368f94eeb025fa707e 0.0s done
+#66 exporting attestation manifest sha256:d66c442c69c9e411ee0a073db9b436c78fb3bf9bc2c3a05053eef02b21ec1edc 0.0s done
+#66 exporting manifest list sha256:c922f3803c0c86c538b18fcfddb11e18fa8ef70c28122e28d1e14fbdcf784067 0.0s done
+#66 naming to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-migrate:latest done
+#66 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-migrate:latest 0.5s done
+#66 DONE 1.7s
+
+#71 [api] exporting to image
+#71 exporting layers 1.5s done
+#71 exporting manifest sha256:1ace48db16bff87a8821c10493602b9d3527e5ccfe45c69b8f767ee9bcdd6703 0.0s done
+#71 exporting config sha256:e2076275095d60d2c4286ebe64d4d204dadddb7bcba05f8e7435649cba0959bb 0.0s done
+#71 exporting attestation manifest sha256:d1b8753eecaf2fad0a0132968cff9e93517d8b3249cbd2063aa0bb808c2d7648 0.0s done
+#71 exporting manifest list sha256:0a140d486932736442027bda4ed485455a36d55910d32a8f5b6ae40778e027b1
+#71 ...
+
+#72 [migrate] resolving provenance for metadata file
+#72 DONE 0.0s
+
+#71 [api] exporting to image
+#71 exporting manifest list sha256:0a140d486932736442027bda4ed485455a36d55910d32a8f5b6ae40778e027b1 0.0s done
+#71 naming to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-api:latest done
+#71 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-api:latest
+#71 ...
+
+#70 [web-peer stage-1 4/5] COPY --from=builder --chown=ledgersync:ledgersync /app/.next/standalone ./
+#70 DONE 1.8s
+
+#73 [web stage-1 5/5] COPY --from=builder --chown=ledgersync:ledgersync /app/.next/static ./.next/static
+#73 DONE 0.2s
+
+#74 [web] exporting to image
+#74 ...
+
+#71 [api] exporting to image
+#71 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-api:latest 0.7s done
+#71 DONE 2.3s
+
+#75 [api] resolving provenance for metadata file
+#75 DONE 0.0s
+
+#76 [web-peer] exporting to image
+#76 exporting layers 2.2s done
+#76 exporting manifest sha256:aefd3533d691a73650b448aba5792289a3c3a47ab3889092e8e1ca6dcfe1a005 0.0s done
+#76 exporting config sha256:4445a1be6ddd0aee07edaed7fa9615aa6781f9e2d7df221f0a98c0fdab513075 0.0s done
+#76 exporting attestation manifest sha256:30ff9283eea73572e26e6e1464bfab45012f5d829b2db89909bc80a2b922690c
+#76 exporting attestation manifest sha256:30ff9283eea73572e26e6e1464bfab45012f5d829b2db89909bc80a2b922690c 0.0s done
+#76 exporting manifest list sha256:5de38e86815d6eb6450544e0374e1165552e0ea5bdfb92f0212506d0683c6315 0.0s done
+#76 naming to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-web:latest done
+#76 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-web:latest
+#76 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-web:latest 0.9s done
+#76 DONE 3.3s
+
+#74 [web] exporting to image
+#74 exporting layers 2.2s done
+#74 exporting manifest sha256:49bc274aefbbb58f113b2ebdde7023200960aaefd6f7b0ade326c33dd656cfb4 0.0s done
+#74 exporting config sha256:5bb0037bebce950429ad3610cbeb1388acb6f2ffca9184ed0b493d2dab6eb5fc 0.0s done
+#74 exporting attestation manifest sha256:d9562457867fafff3c8c47a3aa21675cd7d06e8c0714df4f116cce9f0d62de2b 0.0s done
+#74 exporting manifest list sha256:d337645d53eeece84d6e121ff2fe7f2f0ec18d2ef2936071226b2e27ef21ffbc 0.0s done
+#74 naming to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-web:latest done
+#74 unpacking to docker.io/library/ledgersync-acceptance-20261011181234-8b695d3d-web:latest 0.9s done
+#74 DONE 3.2s
+
+#77 [web] resolving provenance for metadata file
+#77 DONE 0.1s
+
+#78 [web-peer] resolving provenance for metadata file
+#78 DONE 0.0s
+ Image ledgersync-acceptance-20261011181234-8b695d3d-migrate Built 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-api Built 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-proxy Built 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-web Built 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-web Built 
+ Image ledgersync-acceptance-20261011181234-8b695d3d-worker Built 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-redis-1 Running 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-postgres-1 Running 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-postgres-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-postgres-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Exited 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-redis-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-redis-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Exited 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-redis-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Exited 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-redis-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-postgres-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-redis-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-postgres-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-outbox-worker-2 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-redis-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-study-proxy-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-demo-seed-1 Exited 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-migrate-1 Exited 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-2 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-api-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-web-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-1 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-2 Recreate 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-1 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-2 Recreated 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-2 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-2 Started 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-1 Starting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-reconciliation-scheduler-1 Started 
+Study ready at http://127.0.0.1:3102. Project: ledgersync-acceptance-20261011181234-8b695d3d. Normal data was preserved.

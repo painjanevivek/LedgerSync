@@ -1,0 +1,230 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "BFF session established": {
+                    "name": "BFF session established",
+                    "path": "::BFF session established",
+                    "id": "9e91519b0c2da71bf03dbcacf476984d",
+                    "passes": 10,
+                    "fails": 0
+                },
+                "transfer command has a controlled result": {
+                    "name": "transfer command has a controlled result",
+                    "path": "::transfer command has a controlled result",
+                    "id": "b7c897ae6eea929d574e799e7a8408fe",
+                    "passes": 330,
+                    "fails": 0
+                },
+                "current exact balance returned": {
+                    "name": "current exact balance returned",
+                    "path": "::current exact balance returned",
+                    "id": "dff58d9045eef887378d436eb80120fb",
+                    "passes": 300,
+                    "fails": 0
+                },
+                "same-key retry replays one transfer": {
+                    "fails": 0,
+                    "name": "same-key retry replays one transfer",
+                    "path": "::same-key retry replays one transfer",
+                    "id": "e6dabeb8801c1898b24f0aa83fd8b034",
+                    "passes": 30
+                },
+                "account page available": {
+                    "name": "account page available",
+                    "path": "::account page available",
+                    "id": "8ca50497166f6a77a729dd3e6b31512e",
+                    "passes": 60,
+                    "fails": 0
+                },
+                "history page available": {
+                    "name": "history page available",
+                    "path": "::history page available",
+                    "id": "a5119956967d52c438b8b8e9a724f513",
+                    "passes": 60,
+                    "fails": 0
+                }
+            }
+    },
+    "metrics": {
+        "http_req_receiving": {
+            "p(50)": 0.0904835,
+            "p(95)": 0.22251859999999993,
+            "p(99)": 0.384695170000002,
+            "max": 1.390374,
+            "avg": 0.11077772179487189,
+            "min": 0.033277,
+            "med": 0.0904835
+        },
+        "ledgersync_same_key_replays": {
+            "count": 30,
+            "rate": 1.025424240860023
+        },
+        "ledgersync_technical_attempt_failures": {
+            "count": 0,
+            "rate": 0
+        },
+        "http_req_failed{journey:transfer}": {
+            "passes": 0,
+            "fails": 330,
+            "thresholds": {
+                "rate<0.001": false
+            },
+            "value": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(99)": 205.80388313000014,
+            "max": 242.497746,
+            "avg": 56.20198680769231,
+            "min": 2.876522,
+            "med": 28.958250999999997,
+            "p(50)": 28.958250999999997,
+            "p(95)": 178.00358294999992
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "iteration_duration": {
+            "min": 111.364164,
+            "med": 1000.6558285,
+            "p(50)": 1000.6558285,
+            "p(95)": 1001.4005982,
+            "p(99)": 1001.84843715,
+            "max": 1002.334332,
+            "avg": 973.0907345833336
+        },
+        "http_req_sending": {
+            "avg": 0.021214047435897436,
+            "min": 0.003484,
+            "med": 0.0099455,
+            "p(50)": 0.0099455,
+            "p(95)": 0.0446071,
+            "p(99)": 0.14069869000000113,
+            "max": 1.462541
+        },
+        "http_req_tls_handshaking": {
+            "p(50)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0
+        },
+        "checks": {
+            "passes": 790,
+            "fails": 0,
+            "value": 1
+        },
+        "iterations": {
+            "count": 300,
+            "rate": 10.25424240860023
+        },
+        "ledgersync_unexpected_outcomes": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_duration": {
+            "p(99)": 205.80388313000014,
+            "max": 242.497746,
+            "avg": 56.20198680769231,
+            "min": 2.876522,
+            "med": 28.958250999999997,
+            "p(50)": 28.958250999999997,
+            "p(95)": 178.00358294999992
+        },
+        "http_req_connecting": {
+            "p(99)": 0.20578935000000018,
+            "max": 0.66524,
+            "avg": 0.0042329358974358975,
+            "min": 0,
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0
+        },
+        "http_req_blocked": {
+            "avg": 0.007920101282051282,
+            "min": 0.000895,
+            "med": 0.002441,
+            "p(50)": 0.002441,
+            "p(95)": 0.0057797,
+            "p(99)": 0.2305835700000011,
+            "max": 0.694794
+        },
+        "ledgersync_balance_duration": {
+            "avg": 15.386107273333334,
+            "min": 4.871593,
+            "med": 8.8077675,
+            "p(50)": 8.8077675,
+            "p(95)": 51.40361870000001,
+            "p(99)": 86.88531674999999,
+            "max": 97.23854,
+            "thresholds": {
+                "p(95)<200": false
+            }
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 780,
+            "value": 0
+        },
+        "ledgersync_posted_commands": {
+            "count": 300,
+            "rate": 10.25424240860023
+        },
+        "vus": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "data_received": {
+            "count": 2181557,
+            "rate": 74567.38102059564
+        },
+        "ledgersync_transfer_iterations": {
+            "count": 300,
+            "rate": 10.25424240860023
+        },
+        "data_sent": {
+            "count": 1867404,
+            "rate": 63829.37763596568
+        },
+        "http_req_waiting": {
+            "avg": 56.06999503846149,
+            "min": 2.770007,
+            "med": 28.840463,
+            "p(50)": 28.840463,
+            "p(95)": 177.82756569999992,
+            "p(99)": 205.70674623000014,
+            "max": 242.345806
+        },
+        "ledgersync_business_rejections": {
+            "count": 0,
+            "rate": 0
+        },
+        "http_reqs": {
+            "rate": 26.661030262360597,
+            "count": 780
+        },
+        "ledgersync_transfer_duration": {
+            "med": 106.5,
+            "p(50)": 106.5,
+            "p(95)": 194.55,
+            "p(99)": 218.83999999999992,
+            "max": 243,
+            "avg": 108.60606060606061,
+            "min": 13,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        }
+    }
+}

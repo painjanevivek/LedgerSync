@@ -182,6 +182,15 @@ VALUES('00000000-0000-4000-8000-000000000932',$1,'00000000-0000-4000-8000-000000
 		t.Fatal(err)
 	}
 	defer func() { _ = safe.Rollback() }()
+	// Remove the later row policy and scheduler views in this rollback-only test.
+	if _, err = safe.ExecContext(ctx, `DROP POLICY tenant_scope ON ledger_postings`); err != nil {
+		t.Fatal(err)
+	}
+	// Remove the later scheduler views before testing an earlier schema contraction.
+	// This test transaction rolls back all schema changes.
+	if _, err = safe.ExecContext(ctx, readMigrationFile(t, "000043_reconciliation_scheduler.down.sql")); err != nil {
+		t.Fatalf("remove later scheduler dependencies: %v", err)
+	}
 	if _, err = safe.ExecContext(ctx, `SET LOCAL ledgersync.semantic_validation_rollback_reason='incident commander and ledger owner approved test rollback'`); err != nil {
 		t.Fatal(err)
 	}

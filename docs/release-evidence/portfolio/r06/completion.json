@@ -1,0 +1,434 @@
+{
+  "schema_version": 1,
+  "phase": "R06",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T10:59:34.768Z",
+  "summary": "The existing telemetry stack now links a bounded BFF private-context span to API/database work. Transaction-local diagnostic context becomes optional immutable outbox origin evidence. Redis publication, projection and webhook delivery attempts have separate linked spans. Event details expose only an authorized opaque trace ID. A same-origin viewer route rechecks record access and uses a fixed configured viewer. Historical or absent trace states remain explicit. Raw errors, framework spans, baggage, trace state, arbitrary resource attributes and financial values are excluded. API 3.6.0 documents the optional response field; generated clients and examples are aligned.",
+  "verification": {
+    "go_packages_passed": 43,
+    "vet": "passed",
+    "integration_passed_top_level": 136,
+    "integration_passed_subtests": 83,
+    "standalone_crash_helper": "intentional skip; parent passed",
+    "fault_passed": 6,
+    "final_affected_platform_checks": "passed",
+    "api_contract_checks": "passed",
+    "frontend_tests_passed": 220,
+    "developer_contract_tests_after_version_alignment": 7,
+    "typescript": "passed",
+    "targeted_eslint": "passed",
+    "operations_browser_tests_passed": 19,
+    "final_bff_browser_tests_passed": 3,
+    "production_build": "passed",
+    "telemetry_microbenchmark_repetitions": 3,
+    "operations_per_repetition": 10000,
+    "normal_financial_fingerprints_match": true,
+    "collector_configuration": "parsed; live compatibility R17"
+  },
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1666,
+    "original_manifest_sha256": "024733d35bf4c50d51ec30b213e0a286e8d22d462df54d0e46e4c7f29e77c4b5",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": "contracts/CHANGELOG.md",
+        "before_sha256": "a3f40c17f52b35e80c8f9368fa757fd66336e549a169138ecfafff77358809ef",
+        "sha256": "837cf954cde1edf1f0fbe196b3abed7763728ce5f07e64345aeddc07645282cf"
+      },
+      {
+        "path": "contracts/assets.go",
+        "before_sha256": "a50fc255b0d42bb31c3ffb2e77592fb30d6f0e305d7a92171e16568be9fb391a",
+        "sha256": "41cc562eebc39c69e302626a340d32c6173624c315f3b75f6343defba085822b"
+      },
+      {
+        "path": "contracts/demo/run-manifest.v1.example.json",
+        "before_sha256": "d1a20ff381265c0cb92af78efde6853ac0516c3799b8789456a393ae6825e51d",
+        "sha256": "145882783a5e1d9678e5ee040b43939102110b8688b587d8b694941d3a9b2ec7"
+      },
+      {
+        "path": "contracts/developer-examples.v1.json",
+        "before_sha256": "2b8271c872fd4f8eb8c47b8d3116e94debfd9e7757abf7d182669e1452fd3336",
+        "sha256": "d6d1fd408546144d5f8258899232a21dee8a0887ca4524efaf0d77246bd9da9b"
+      },
+      {
+        "path": "contracts/generated/go/ledgersync.go",
+        "before_sha256": "8664ece0f9f93a1d3086ec346777e516677ddd94f7197addb5d2a8ca5f22806b",
+        "sha256": "b6ef287e48500862c64fce1d8d612c9d4be699f18ecde159394d008348ca2c65"
+      },
+      {
+        "path": "contracts/generated/ledgersync.postman_collection.json",
+        "before_sha256": "8790928c8025d634cf4eb8735fe96b8c4c9fcaad9842cf63116d647d4d43200f",
+        "sha256": "bf6489bf2b49b8fb74dfc7f13a7d55310b898b5e69bbcdf579a0ff22d0a7fb4e"
+      },
+      {
+        "path": "contracts/generated/sdk-manifest.json",
+        "before_sha256": "3b56740f5b6772f33ff1fc45e457219def0621545613c010303478bbc84148ce",
+        "sha256": "53db96c85bd436e384000f01a03c7068499f2bb83af7da91a853b5514e23ab03"
+      },
+      {
+        "path": "contracts/generated/typescript/ledgersync.ts",
+        "before_sha256": "858befcf862b04b76e2252169c35e67800b6894b9ca249709518502c38709e97",
+        "sha256": "59b6fa328d8db170fc7ff53919a239644406d6fd729e7f6f59960f77538d44f4"
+      },
+      {
+        "path": "contracts/openapi.yaml",
+        "before_sha256": "a5bd0926859d5f21bb13a2788099b6a2304a049e4813bdb77a07a29c0bdfacff",
+        "sha256": "64030b0055a869fb976dabdf2783a1e33603befa64e892cd3b0e474bb85f1fcd"
+      },
+      {
+        "path": "deploy/observability/otel-collector.yaml",
+        "before_sha256": "b16decd83a5b55a09eaacc76be4275ceec09b050b33738d1f7a9cb57f3146ce1",
+        "sha256": "d2b1d38dfcb11df72c7178a028da7bb9ee124523b5583d184c8b22d17c1994ff"
+      },
+      {
+        "path": "docs/architecture/decisions/005-tracing-and-resource-bounds.md",
+        "before_sha256": "aa2e3d49db320c06a8dd5dde3b181592235f03e79ba9a645bc00225eb426c046",
+        "sha256": "878b16c2fa92624d40a957474a341f598365f36a34bc3825b3c2dd776e720730"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "37b1bad0b5de0eb36088eeb9b81d77f1a565ded7444e9986bd66a77004c6aec6",
+        "sha256": "6319320543ffed5486e74c0954a2820aae8c56d89d474ac5fc2eed2c60b99a88"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "1780382922f0d12fabc81c8285f7ae33c29f55bd413e1e4b033cfaf9ce64aad2",
+        "sha256": "4aa116088d8b54c7e61f5eb5575a2522f06e358049c2c8a2487d7e8e7dcd71fd"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "cb48f42329961e489998d93f206be163ca835feedbfd78f84e03527c8ef7ee6c",
+        "sha256": "9ab83ab68d7016761232507a231fa5daed241a70a9334334ef74b48b05113730"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "798259460ee85ae833ad33464ce3a963b5c10da45f03a0a6ec7b07849c4ee067",
+        "sha256": "c19732a7e20f111af5096ab15f75edc0111fc6dab12cf27027f8f4c1cc240dda"
+      },
+      {
+        "path": "internal/application/operations/events.go",
+        "before_sha256": "a1eb9f7b5b5495443fa7cb9bf1437e8472f65037239b30f851d8ca5a5c0ac91d",
+        "sha256": "5111ae63d482a4e5c9509cf4d828cf1ebe2044c8338d16393c389f1382f14f2d"
+      },
+      {
+        "path": "internal/application/outbox/worker.go",
+        "before_sha256": "918cf49eaae7b4eeba8e70e8c2896e20cbd2ceb42cf9c67a3e8f52239688046a",
+        "sha256": "8694703a0ee7d7f6182d1e4bdfdd950e5a6551ef92d85a3fd9979816c4033fe7"
+      },
+      {
+        "path": "internal/application/projection/balance_projector.go",
+        "before_sha256": "4b5b1992515bbd4810c0c8fea6ae5c55484bfbd2d42e836a4287e035979792d5",
+        "sha256": "e673d6f7134c2257edecc61f2e49dbd862973eebfcabb6a266e3057c6f1714ec"
+      },
+      {
+        "path": "internal/application/webhookdelivery/contracts.go",
+        "before_sha256": "1b48208e09f3eb54c4a184016ab409a0c03ffae70ac178bd40bc53b9b49447ad",
+        "sha256": "01f1d18f1a3523a85b92ce25af24fbe74faa9105f96f11aed223367d6df354dd"
+      },
+      {
+        "path": "internal/application/webhookdelivery/worker.go",
+        "before_sha256": "11c431cdb943cdc23ea9ca101e860fc41dea57da34a87683b80cfaf7a8abec04",
+        "sha256": "82e15e5d809d9b6edfb1b2a7b0a51108fc1a706602645582aa29b9a84ad74af7"
+      },
+      {
+        "path": "internal/bootstrap/worker.go",
+        "before_sha256": "3c4c74a6444b5753845893e2c579141a4283b6f970995cc0ede7e65b4cecc604",
+        "sha256": "308d7c6322cc3d5c8da89509c2185ba40b092604a9ec832fb453c7a16f4a33e3"
+      },
+      {
+        "path": "internal/platform/cache/balance_cache.go",
+        "before_sha256": "016a4d5a8ab28d873634363a8c5d4388dda6248f8ba0e263ed7c153c9db96c83",
+        "sha256": "3baa5db7b9c861c8ede1d6ce0ff66199690342bef9f885a059cc8731b9fa5b10"
+      },
+      {
+        "path": "internal/platform/db/logical_clock_repository.go",
+        "before_sha256": "9fa4145686fea649cab82d6ab7048f089d3a9cd95a92a252b3c1e3ee061b5d74",
+        "sha256": "e20a7c9723ed7fe8021439d985a9d8744f3e6716c9a99e4f438093cc93d291c7"
+      },
+      {
+        "path": "internal/platform/db/operations_repository.go",
+        "before_sha256": "61646d5da89a032f1da779d68de59804ee349e7d24503e41bfcfc8e539b815af",
+        "sha256": "0e99b0b9d47e510b14cfe518f185d8288b314b277bc3f3023e91d22976ecd81a"
+      },
+      {
+        "path": "internal/platform/db/reconciliation_command_repository.go",
+        "before_sha256": "cb8851969b963d9fa97b8ef14f385ea9c41f6f1978b6c48033b4686fc6761731",
+        "sha256": "f99261980c49d61d06b8d8afbb72a05cd0c1791a0ffedd94fe361e15337ad314"
+      },
+      {
+        "path": "internal/platform/db/reconciliation_repository.go",
+        "before_sha256": "af9eb37a665754a9df7fb51266dbc1964d18809b1d696981cbc833b92ca99364",
+        "sha256": "e91c98d238bae5812723ee353d093c4bf7027124d9d2b57adb63269498131980"
+      },
+      {
+        "path": "internal/platform/db/tenant_context.go",
+        "before_sha256": "607e936022e13af75c5efe7b7a1c8c9d0a76f4a60e90f0ff7bdc0a737c09f29d",
+        "sha256": "e7cd637ef959175fd6dab1ba161b2d460fc8b8cd2f55ca1abcd8df4e6a9a4a7c"
+      },
+      {
+        "path": "internal/platform/db/transfer_repository.go",
+        "before_sha256": "f2bbd4abb8d2b1c20d091d631b132a6f2304875ee8b2163acc25e68683103c64",
+        "sha256": "3f4601ee22dfeb3cb852458cb5639c33649a9578dc3ca076c039e7ed59c8bc03"
+      },
+      {
+        "path": "internal/platform/db/webhook_delivery_job_repository.go",
+        "before_sha256": "28426110b853052b52e7a5a26b23f93af7c7a391593d0e7b3e953ad3ec8d7573",
+        "sha256": "bf46327e0638f9956106d1cf4109e7651518b94820dd30afca13a35f0f2cb1d8"
+      },
+      {
+        "path": "internal/platform/events/redis_streams.go",
+        "before_sha256": "435414d34806e857046c08475fa407c4afb9e1e138b2ac5218bad7695801e487",
+        "sha256": "1913919a0b394b6cae66641f91e41eca98da19b3aba72620991df5693dfb6607"
+      },
+      {
+        "path": "internal/platform/observability/telemetry.go",
+        "before_sha256": "2aca132987a32931de014194d01b3d5ffb966c5b1c7261260f2d906e42271e08",
+        "sha256": "f2c1cbc5ce7a6639e816cd9c83ade5ee343ee80a8a087768d987505bd9d41157"
+      },
+      {
+        "path": "internal/platform/webhookdelivery/dispatcher.go",
+        "before_sha256": "516d3f8f2c030b7a9261caeb7f028583ead2865ee1d9848a59c1de0a6b0f2b97",
+        "sha256": "570dd28bf8d50fc6ec8d0d06b3bad804afd34c61dda11e01d3b7ec0afc663f75"
+      },
+      {
+        "path": "web/package-lock.json",
+        "before_sha256": "c9024e71c3d2ab73626c9afa7dfcd36b8025559fe20fde21c1f7929c2f080f21",
+        "sha256": "4d30fdaa49a3f52318f136e39bee377b8917d40085996e6719cf8ef1e5c0dddc"
+      },
+      {
+        "path": "web/package.json",
+        "before_sha256": "243afb54b152a2feb4bc14f81b9a564e9185a55601f9d18c2b0899ca25b100b8",
+        "sha256": "4d49e0008c9c7e8ea789ec83771b0924e7b27b2c7a9c02fbc5c6ac7790a25d8a"
+      },
+      {
+        "path": "web/playwright.config.ts",
+        "before_sha256": "2884f6b2e77a65bf17934a0e67eac605569a67aff67417a894830a49e692d3ac",
+        "sha256": "cdcecd748a91c410cfc0c66490ec78e1e0763e9b1941b809fc3ac444c0a24852"
+      },
+      {
+        "path": "web/src/app/api/events/[eventId]/route.ts",
+        "before_sha256": "ee8db766cfb0ad762b9265e9f5e59e4b332278bf9adc0b57f0d92bfeb49a9b90",
+        "sha256": "39091cb1fa0473505e01b4312af6806ba897def8253a40fbcb9186e673d6efdb"
+      },
+      {
+        "path": "web/src/features/operations/EventViews.tsx",
+        "before_sha256": "c1fa3e9a241790893b18a801057681250f6ed97f11274eeca9d0ab057186ac33",
+        "sha256": "dcbbd71c13ccd089a51b54a2258d796db73fe744ccef4ac623a7822f06a80691"
+      },
+      {
+        "path": "web/src/instrumentation.ts",
+        "before_sha256": "4c9c743fe5af14433919760948314926af583ea7cab09269faa4a39449379df3",
+        "sha256": "bf20ebc14b2a6317d493a52a3cf1d16a6cf06df269f664338a2e6f4e2bc97a2c"
+      },
+      {
+        "path": "web/src/lib/account-mutation-boundary.ts",
+        "before_sha256": "d556f202e3930161cbc7318b903f842d1843419ea2d01e1d332eb94c997d37d6",
+        "sha256": "220151ddab6145cc679ccec1d76b3338db64915b3aa7c5f81bf173a771ffd349"
+      },
+      {
+        "path": "web/src/lib/api/operations.ts",
+        "before_sha256": "2af9efc8451c16280db6583c6cfc245b0456637e72d94fc0928b3f583221f4ec",
+        "sha256": "488f5849dd603f1663b8c3e5b7a0746c5c84570e54152c39fbd3af00f8251aa6"
+      },
+      {
+        "path": "web/src/lib/private-api.ts",
+        "before_sha256": "5c316a829f68a2a14bee3f0b774cf9e6df3bb50856c155f56cf463c26418773e",
+        "sha256": "19854e0037412d415de8611f15c66d2a4033afaabef30245bfae92d3ae422091"
+      },
+      {
+        "path": "web/src/lib/reconciliation-mutation-boundary.ts",
+        "before_sha256": "a4b9aea92b10d6756710d4a6e80459bb258386b2aceacd3a69259b4446823082",
+        "sha256": "eee9451d91c704b29bbcf15c935b204d0d54a401d5e59a66ac8152c274fa7376"
+      },
+      {
+        "path": "web/src/lib/webhook-replay-boundary.ts",
+        "before_sha256": "879d2ea237bd422f5aed8e1e8e2c9073909e3559e670ae8be13061675004acf7",
+        "sha256": "2c5bad1cfc9868f1ac9c108d7d46d34cb3712898a17b2557b845bb064d4fd89d"
+      },
+      {
+        "path": "web/tests/security/operations-read.test.ts",
+        "before_sha256": "6a73a33ec9ea473e8093ae8e71afc696a3bdc100b8de9cc903abe77ce7d79670",
+        "sha256": "b6b09ae5fafcb33c60765ed2856ad37eeb8cba553ea3c82c41473dbcd566978e"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/tracing.md",
+        "sha256": "6ae0f20b27142db53b252c7eb3833bc11e894c7a6da86e1fc3b7740161da0002"
+      },
+      {
+        "path": "internal/platform/observability/trace_context_test.go",
+        "sha256": "1b1c5e0d66112106b56ecff7f50e7908caf7484f2e95270eb82308f6176ccf2d"
+      },
+      {
+        "path": "migrations/000061_event_diagnostic_context.down.sql",
+        "sha256": "ce3b5a862408a791a8b11323681139c45d34b7885a8e425db1df0316d9714f20"
+      },
+      {
+        "path": "migrations/000061_event_diagnostic_context.up.sql",
+        "sha256": "61697de81b71e7143f3cda2871bad0c4bf04eb402b5ec8f202abfa7190d76033"
+      },
+      {
+        "path": "tests/integration/diagnostic_context_test.go",
+        "sha256": "e7c5f0fea24bfe6539eab24d5fd2ce8a0c55fd0eb0f8b57b0d2e47eb74d6e2b0"
+      },
+      {
+        "path": "web/src/app/api/events/[eventId]/trace/route.ts",
+        "sha256": "ebfe4cbdf8f8f3648aa0249ae40f854cc49eb41fc3088f054d0ecefa8546a421"
+      },
+      {
+        "path": "web/src/features/operations/EventTraceEvidence.tsx",
+        "sha256": "a9af0f2396846323e33345a18ffad92bd11560d9842e7b597ca15db23fd90749"
+      },
+      {
+        "path": "web/src/lib/bff-telemetry.ts",
+        "sha256": "7617828e55beb7175fb55c52dccf362dcf178204dd5a53335bbda9dc678c9c97"
+      },
+      {
+        "path": "web/src/lib/bff-trace.ts",
+        "sha256": "14486dc04d0a0eadf33db541dbb9aaaea3bb5f5c39d6d16559796b33e9b889eb"
+      },
+      {
+        "path": "web/src/lib/diagnostic-trace.ts",
+        "sha256": "c5b294b2b865a72bd440ab5ef9d170d0fcc5d635c7cf61a4447aa61ec747cce9"
+      },
+      {
+        "path": "web/src/lib/trace-viewer.ts",
+        "sha256": "e66c1b5961dcf8068b01ea9e52930dbb56ad09d302fab1b9988755d037b7e26b"
+      },
+      {
+        "path": "web/tests/e2e/diagnostic-trace.spec.ts",
+        "sha256": "9d3745bf51686227c22cf06a1d2c934163cddfa72e3dcda8ef742afbcd3293a2"
+      },
+      {
+        "path": "web/tests/security/bff-telemetry.test.ts",
+        "sha256": "373a3ed61bf5541470f6b228562c819187c160080e43efc6bfbde8a2982333fa"
+      },
+      {
+        "path": "web/tests/security/diagnostic-trace.test.ts",
+        "sha256": "4de33b4340af080bc173b92ce137e88352fbeac5653d79b13a4dc8156476c97b"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r06-20261015/all-go.txt",
+      "sha256": "bcbb5b3de4195eef52d6f4328041feaaa9b7b63dae8e806955aa6ffe6ae72e8d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/backend-final.txt",
+      "sha256": "15f17165c51c264ce9e509c952106b04d9bd82acdb8c541f011da98141cc4101",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/contract-final.txt",
+      "sha256": "0d0b93f57857e60bbb3f6763bb59a77fc0d284fd4487132aef5fdfd9fc20ce57",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/vet.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/integration-final.txt",
+      "sha256": "9fbb8643d2882c6a0b24b7ca902174461f3a7cbf2141280d53646cebc635a700",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/fault-final.txt",
+      "sha256": "197988cf073331ce3c2faa75542e5454c3586e7ad05d11a141aae35b910f4dce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/telemetry-final.txt",
+      "sha256": "1eac5f047ace3265328d9693e9fe60e74fa582063dc69c93f7d48056a13b0737",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/web-unit-bff-final.txt",
+      "sha256": "491d529cbb4f32731c38808e1b30cfbcbe2c4731995cfb1385bc16145175f52a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/developer-contract-web.txt",
+      "sha256": "502492fa1878bad936d8f67bfce431155980ea4ca65780cc54b15528934bb850",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/typescript-bff.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/eslint.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/eslint-bff.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/browser-final.txt",
+      "sha256": "921aade3d2953a1311239928cb72a87ccd35857ba642b1a64ead45b521b7c754",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/browser-bff-final.txt",
+      "sha256": "264927b9f6c855e4dd873e08a4602f1e8f188351db96034c394278c67c3bf4d5",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/browser-startup-timeout.txt",
+      "sha256": "7d552d9642bd884135b795aa5ae130816d1344e3eea4c8181c1f160078c60d98",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/overhead.txt",
+      "sha256": "f6e0bb7dcdf5bc5fb825d00128206bbc8bbfd297440d368b4fa743b6c9d73954",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/collector-config-validation.json",
+      "sha256": "5781215060c029e86a3de507fb6b96881697c1bd7d1219c891579f5e5593a30b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/bff-telemetry-dependencies-final.txt",
+      "sha256": "259c4fa2f9f1d0afd8b4eb23f45f6fdf748b9475b5112992df5bbf33e078dcd4",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r06-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "d60b9d1b384b5d8d39431810fb9e7d53e25aa7442806947c0418db202daf0472"
+  },
+  "limits": [
+    "The BFF span measures private-context preparation, not the complete browser request.",
+    "Traces are sampled diagnostic evidence; sampling, retention and collector loss can remove them.",
+    "Collector configuration was parsed; live collector compatibility and a configured private viewer remain package/deployment checks.",
+    "Existing locked telemetry dependency versions were promoted without a version upgrade; R13 owns final dependency review.",
+    "Normal images remain preserved prior images. No normal cutover or managed-production qualification is claimed.",
+    "R07-R17 remain selected implementation work."
+  ]
+}

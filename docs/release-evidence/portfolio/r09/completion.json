@@ -1,0 +1,433 @@
+{
+  "schema_version": 1,
+  "phase": "R09",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T13:36:44.634Z",
+  "summary": "A guarded local capacity profile now drives fixed offered load through the real financial application service and a real native continuous worker. It measures hot and independent account pairs, two tenants, exact replay/rejection outcomes, authoritative reads, latency distributions, queue growth, pool/lock samples and bounded resources. Receipt storage reuses one scoped transaction for consecutive messages from the same tenant; every message retains its controlled function and Lamport checks. Publication preparation reads diagnostic origin in its existing query. Three same-source baseline calibrations and two three-run candidate cohorts retain favourable and limited results. Default batch 10 remains. Three final default runs qualify 10 offered commands per second for the stated component workload, followed by actual Redis interruption and worker process restart. A separate real signed slow TLS receiver check proves posting and lease renewal continue while HTTP waits.",
+  "verification": {
+    "go_packages_passed": 44,
+    "vet": "passed",
+    "integration_passed_top_level": 138,
+    "integration_passed_subtests": 88,
+    "additional_slow_receiver_integration": "passed",
+    "intentional_skips": [
+      "opt-in capacity test outside its guarded host profile",
+      "standalone crash helper; parent passed"
+    ],
+    "fault_tests_passed": 6,
+    "host_safety_tests_passed": 37,
+    "baseline_comparable_calibrations": 3,
+    "optimized_batch10_calibrations": 3,
+    "optimized_batch50_calibrations": 3,
+    "qualified_repeats": 3,
+    "offered_commands_per_second": 10,
+    "steady_requested_seconds": 300,
+    "steady_commands_per_repeat": 3000,
+    "steady_new_posted_per_repeat": 2640,
+    "steady_replayed_responses_per_repeat": 300,
+    "steady_new_rejected_per_repeat": 60,
+    "steady_rejected_responses_including_replays": 120,
+    "technical_failures": 0,
+    "driver_drops": 0,
+    "steady_command_p50_ms": [
+      15.1977,
+      17.8351
+    ],
+    "steady_command_p95_ms": [
+      27.2702,
+      27.6329
+    ],
+    "steady_command_p99_ms": [
+      33.7367,
+      95.1091
+    ],
+    "steady_sampled_oldest_seconds": [
+      0.405836,
+      2.103954
+    ],
+    "recovery_sampled_oldest_seconds": [
+      5.803192,
+      28.003516
+    ],
+    "journals_per_complete_run": 3168,
+    "total_balanced_synthetic_journals": 9504,
+    "integrity_artifacts_per_run": 28,
+    "real_worker_restart": "passed each run",
+    "real_redis_pause": "passed each run; actual durations retained",
+    "native_worker_cancellation": "passed with worker PID ownership and verified exit",
+    "normal_financial_fingerprints": "unchanged",
+    "historical_report_text": "preserved",
+    "quality_workflow": "parsed and wired locally"
+  },
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1706,
+    "original_manifest_sha256": "28da467a68c483fe13caefac5c1a0db99f38bfb36086bcb7945e7532b63369fa",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": ".github/workflows/quality.yml",
+        "before_sha256": "58fb047e130c5faddf95e0aecdcc3df27dd3e73fee96b1d4231052f561efa6a7",
+        "sha256": "c23d4475121661028d97e279181c09cf62934f0f813e303bae188648add7c222"
+      },
+      {
+        "path": "cmd/outbox-worker/health.go",
+        "before_sha256": "2e7d0aa4f9e8361fe936810f6035b42f451c1016523ca50a161e44378d84cd5b",
+        "sha256": "9203f8c82bb1b7c759fdcef994b9c9de6ea3601e23c235ce213e00bde3ac042e"
+      },
+      {
+        "path": "cmd/outbox-worker/health_test.go",
+        "before_sha256": "a3170dcd51e865352a25405775dc68f19da506cc44e20f84a97445c5ec7aa88a",
+        "sha256": "5bbfd61e5cc406ac2c4b64af9c8cde4dbe11e1066470bb6818bd98f973b0874d"
+      },
+      {
+        "path": "cmd/outbox-worker/main.go",
+        "before_sha256": "83ae3d4b2f49fea9b5d6f8dc652a87569c5dd8fa9879485939074c38df9234ca",
+        "sha256": "aee4365be393fb1d239972ac5f452807d5369a9529b59da44a913d28e3a7ad15"
+      },
+      {
+        "path": "docs/architecture/adr-0012-bounded-transfer-capacity.md",
+        "before_sha256": "43cb188aed1986461581757123965e540dac9a3b54631223895160b2d9e5da60",
+        "sha256": "62505074bd6bd06d63314e0fdac7d63a1e9e1a723bcf880e42acd5662e3b3820"
+      },
+      {
+        "path": "docs/performance-baseline.md",
+        "before_sha256": "03a6b94004c7569e4da01b05be5e0e50c525d7802a811a109e4b82e956dbf8c2",
+        "sha256": "abdad06b7d009853bbe97fa15dd096448f16af3faea790166ee4a75726557510"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "9f422dbc020d488236a7d91b82d027dc8084d08bc490a789ae17d549917c5f01",
+        "sha256": "a68570381962c4de5d5e74fbd1c5964345d71cb8e999ac8c7b69fcdc44c94180"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "91bed970b3a960f8c2c1289a1a70c949b38be6b74a1f60e26c1c9cb93377e011",
+        "sha256": "2df2dc4778ecbe7f98215ce25964e5339c5967a709067ce7aec99bccb85dbae1"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "5c0722a2b48e1bf34e4bd3142cd388072144da0098bbfd4221d72a98610e4b58",
+        "sha256": "285e8d74310bff0ab984a7f0c23d42252c3ba0dc950c91ee23c6a556e26927cf"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "a108b577b7df26e5bfc0981fc27460bd7ebbf76cf9b77d05c54cee29dc4879fd",
+        "sha256": "3141f697880c9a904deb61d6e7c73152f5801f19e7a1d96172094d4aeb8dcf4f"
+      },
+      {
+        "path": "docs/release-evidence/unit-3-unit-4/performance-report.md",
+        "before_sha256": "57b091faf5789acdc4a1339390c66ee37bd4e61e772173aca72212e013d4576c",
+        "sha256": "0d6f4f4c01aa1f7266ea32e3057f3def5c830650102826f2615e6ecb70cbf71c"
+      },
+      {
+        "path": "go.work.sum",
+        "before_sha256": "6f65a57f757aac9a753125c333d1631e9c5487864db376e116e0af9413358d15",
+        "sha256": "898e26cc076266af5f9c833ce27e756b08b3996f97e262bc058a434df7a5e4e8"
+      },
+      {
+        "path": "internal/bootstrap/worker.go",
+        "before_sha256": "308d7c6322cc3d5c8da89509c2185ba40b092604a9ec832fb453c7a16f4a33e3",
+        "sha256": "e5721bf2e8278b2556adc88147e8fbf2ce59320fd6c9b7a3fd1304a5de1c86db"
+      },
+      {
+        "path": "internal/platform/config/config.go",
+        "before_sha256": "fe8647d2fccc546f8db56f30d8afd39b36e8aa32ab4746f787daccc7f4b4ecc7",
+        "sha256": "60e4d6b92cec2fdee794a667d5a193f03565426737a1bbb40c21da3598772922"
+      },
+      {
+        "path": "internal/platform/config/config_test.go",
+        "before_sha256": "f4821929c166b5845cd6f7dde2e7153a98b55504a5d24d3e8fea232ce56670bd",
+        "sha256": "6eae2b2815cb5982c842a5db9dc683f93d470a328ca32e7cf923877a3ca21b21"
+      },
+      {
+        "path": "internal/platform/db/logical_clock_repository.go",
+        "before_sha256": "e20a7c9723ed7fe8021439d985a9d8744f3e6716c9a99e4f438093cc93d291c7",
+        "sha256": "e117e6a6979e169feb0002e975326e12128e44e9181e3725a8343d57a2359c65"
+      },
+      {
+        "path": "internal/platform/events/redis_streams.go",
+        "before_sha256": "1913919a0b394b6cae66641f91e41eca98da19b3aba72620991df5693dfb6607",
+        "sha256": "9f4fe7e08d4a38f6d3ca88768ac26ff2ae87bab08a6cc0945bbd96433a954982"
+      },
+      {
+        "path": "scripts/portfolio/demo-safety.mjs",
+        "before_sha256": "6d58e306d89576631521643d3dec7f3a7bacfe0a618b9001cfea70dd825e587e",
+        "sha256": "533a94e8099f3fc3e962a1a8e7af0387737aefe89e3347d3e3f7612e14cdc43c"
+      },
+      {
+        "path": "scripts/portfolio/demo-safety.test.mjs",
+        "before_sha256": "7b68ac419965305828cc554138d4873066059efbb11ca3fcfb099057d11e4337",
+        "sha256": "767c183598e21e44c6f66a207609b339a6d6e1b4e39831f76af4dfb6f69282f6"
+      },
+      {
+        "path": "scripts/portfolio/run-demo.mjs",
+        "before_sha256": "788e1e94f3bb4f05d1d4f3d51bd12190ad77212cc7de10963dfb17f8fae7aa37",
+        "sha256": "6df534c77c2333c79991c976a19101f0fd35c63df63ec17dec1d845302376b76"
+      },
+      {
+        "path": "scripts/portfolio/verify-demo.mjs",
+        "before_sha256": "06a762bcaf4b08f96de07f3c12e61121b9bdfae84c4c8633ed27079a9cc42d00",
+        "sha256": "0e751d6be8557e24b6e82ac16fc97102704d0f973163b14d962094dc911528e4"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/capacity.md",
+        "sha256": "e553d408876ec41b445676975de573754375fd0f6e764f86c2291b139a1904ad"
+      },
+      {
+        "path": "internal/platform/db/logical_clock_batch.go",
+        "sha256": "a30c1acfca5d4525cc2610365f90418927f477e061d5654c6c5c44e8573b956d"
+      },
+      {
+        "path": "internal/platform/events/receipt_batch_test.go",
+        "sha256": "8b003d12f80e0aff06168a193c82b72460fdaf6daa36e8acc5bd4b1cc25a82ab"
+      },
+      {
+        "path": "scripts/portfolio/capacity-options.mjs",
+        "sha256": "3b5a83704383f7101eaac255500251ab76e02ae174237d105c777c2939953faa"
+      },
+      {
+        "path": "scripts/portfolio/capacity-options.test.mjs",
+        "sha256": "25b8bc3b38c005bc38e631804c2c936230c4ed1ac3838cb1881b592d99cee32e"
+      },
+      {
+        "path": "scripts/portfolio/capacity-worker.mjs",
+        "sha256": "0b41dd99c85cfc49fe849251c18fdf3282dc77cff28e53593e8d4ae2ac35f348"
+      },
+      {
+        "path": "scripts/portfolio/capacity-worker.test.mjs",
+        "sha256": "a86845bcd1ae5e6b4f2bd76fc9895531848a40f22e4f968bec7c5cbcc85f0276"
+      },
+      {
+        "path": "scripts/portfolio/run-capacity.mjs",
+        "sha256": "5367e479d98b77132484a2ec8883a9bdc6c5a0761a8ff2ce7a3a397634387ed8"
+      },
+      {
+        "path": "scripts/portfolio/test-capacity-cancellation.mjs",
+        "sha256": "36d8d4baf732987481c50650d95b3bc80860f9e15e1ef6ec9373212c13c377d2"
+      },
+      {
+        "path": "tests/integration/batched_receipts_test.go",
+        "sha256": "688b25ccee06c7e1c014da31536f6e87feb2570cbd427c49b67253843f8078c7"
+      },
+      {
+        "path": "tests/integration/capacity_fixture_test.go",
+        "sha256": "a725b311afa72af1f3bdf6d38ff0ea52df78744f0be54e180e4375b8db9a444b"
+      },
+      {
+        "path": "tests/integration/capacity_load_test.go",
+        "sha256": "5066982f68e96e72a48dcd09bdfc0601562e8182e06a3c03c378294a44b422bc"
+      },
+      {
+        "path": "tests/integration/capacity_process_unix_test.go",
+        "sha256": "019f1ea59d4255184045de3eaffbb80372d2967c222f6cb29328ae6166d798ea"
+      },
+      {
+        "path": "tests/integration/capacity_process_windows_test.go",
+        "sha256": "91ad6d81016abe85466f28ab760f9a92c918f5c0268dfece9c6cbcab82ee562a"
+      },
+      {
+        "path": "tests/integration/capacity_test.go",
+        "sha256": "5e0448b744bb1301d064fe3952925b77a1872dd0d0f805b0c98e6fe16aa827fc"
+      },
+      {
+        "path": "tests/integration/slow_receiver_test.go",
+        "sha256": "59254f233562861f15df3a480bb2c649814cdf393614925805f61379289f4ee1"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r09-20261015/all-go.txt",
+      "sha256": "9d51d3f36a769ca2af831805877fd4779362ab6ea1363118d7b958c043958f4a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/vet.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/affected-go-unit.txt",
+      "sha256": "2235bbf57fd266a4abba35a82993e5889c520f1a97d62c20a57d6bd06d823a84",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/affected-integration-final.txt",
+      "sha256": "b7ee60b390b68e80386b94c354a8fc2361d9541a19477060128bdee34a542858",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/integration-full-final.txt",
+      "sha256": "d9a8f5875afc49d81c2ab36cec7956bb0e685ea333c5c170d1880d71b7926796",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/fault-final.txt",
+      "sha256": "1fda3540e1f125ad734096a86afd1fa7549a52a20f21a3acdb84d4a085cfe7d8",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/slow-receiver-final.txt",
+      "sha256": "8d0195419afed9a368f1c3b91f61e5fb976fd0190a920d2fe068d22f8945fcb5",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/runner-safety-closure.txt",
+      "sha256": "f9a5e2248a1094da8bf5ee5e35f11386c1b79ffd1cd9ff1edcd5a28eb6d3be6f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/batch-config-red.txt",
+      "sha256": "efff98ebf002aae9791412a8e4e72f9b6c2166fdae01862554399ec85e563b72",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/batch-health-green.txt",
+      "sha256": "53589b534e95be8d2bf50a388137650c26082e82412e4df823ffd4e1151d5c8e",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/batched-receipts-red.txt",
+      "sha256": "3855698b4d81aadc82f6d1609a32a5a8bcfa72c0304c414d028c53b8a295440b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/paused-metadata-red.txt",
+      "sha256": "bd78e38df1ec9b6eb74fcfef134e0190d9fbdc7cc18a00bebe54084d3a95b9ca",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/paused-metadata-green.txt",
+      "sha256": "dddc6e9df14230a893febc5d80aa817cb7177351d4cf3b47b9565e19902827cd",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/allocated-port-red.txt",
+      "sha256": "4e7bb23d43735f64080f0286c98cc4464795687f023f0321d53bcebcd3c6facf",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/worker-exit-regression.txt",
+      "sha256": "a7a685dc7c08cb548587ff2dc9fde18dd13e279da39a2bb6d2e01fd4670ed4b4",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/baseline-summary.json",
+      "sha256": "0eae9d03be75dcac73e53570e0dba476cc332ddea9cac6185f5da6830e92812a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/candidate-batch10-cohort.json",
+      "sha256": "1f365c6c9ff45cad8bc436ca6636f2dcc4dfe4c18e7c68140502048be96e1225",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/candidate-batch50-cohort.json",
+      "sha256": "bb1def2bedd9928b87b3e2536fd8e39525cf78a8172fec1a2a0eddd4edaae330",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/qualified-default-cohort.json",
+      "sha256": "dbd11665cf37ceb5cfde96936657046f9fc1ec4be3b60420c9906a56268148d8",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/qualified-artifact-verification.json",
+      "sha256": "7bf6d18feae93316440a0ace22d44ef2538ccf116d0d0b16323f208b0fb79455",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/qualified-rate10-repeat1.txt",
+      "sha256": "c50bd337b9de3c0ede1cb842067257e5f5907a5cbabf72e030770d9d8cf2961f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/qualified-rate10-repeat2.txt",
+      "sha256": "e519d3c19d98727f1a49efc9472f5dc96085a27676d97368fe7f5c6a15d45b88",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/qualified-rate10-repeat3.txt",
+      "sha256": "53b4ab83056a1770abe2f19b03a0b3e0a02cddb58e0b0b2977144537b9388cac",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/capacity-cancellation.txt",
+      "sha256": "e15a97565b32853c833e7b7c4957777430e854e3e04dda30ab31e3a09fcbda3a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/historical-report-preservation.json",
+      "sha256": "dd49fd8566fdb63cdfcbbb7dbf1cb8479c68ec4c4ee02663703bfcdc54a74114",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/quality-workflow.json",
+      "sha256": "653695eff4749b333b9d29c4a4551eceffe6aafbd349d0bd0a92c80dc2936bc0",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/../demo-runs/demo-20261015130819-c3dc94c1/run-manifest.json",
+      "sha256": "67fa77cc1e53c05386f30c559e3ce0f2f5c7fd0ab810cd1500ef5d54106a40a9",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/../demo-runs/demo-20261015131550-4e98aa15/run-manifest.json",
+      "sha256": "184097ceb188630e93d04ec4d0fccbcf53481b2a65415a1ddd7ea344a66a0581",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/../demo-runs/demo-20261015132320-5da99c95/run-manifest.json",
+      "sha256": "9b4b2bb0edea2f101d49d63048fbab0be02ef313b71755d90c95019c32dfcabf",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/../demo-runs/demo-20261015133252-08873fe3/run-manifest.json",
+      "sha256": "53a1ee37e7767b8ce202c1d226d9a9b8e9b3c83ea820e1dc40c9f36fe66f2084",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/../demo-runs/demo-20261015123610-517483c4/run-manifest.json",
+      "sha256": "b03c3ad371e9f75cca01b88fdd01fd099841b0743827cb4dbae9b742182988a7",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r09-20261015/../demo-runs/demo-20261015123610-517483c4/cleanup-repair.json",
+      "sha256": "2a2d7aa8992b7f1e678a2cec4f695e7ef6a5dd5052a22cb6a27995ec5bb7cba5",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "e36f80990d3adf699bfb0b0fc90bde4909151ec24464f740b697b316b152ae34"
+  },
+  "limits": [
+    "One local synthetic Go-service/native-worker component study. It does not measure HTTP/BFF throughput, candidate API images, multiple hosts, managed infrastructure or a production SLA.",
+    "Offered commands include replays and expected rejections. Rejected response counts overlap replay counts; the capacity note provides exclusive new-outcome counts.",
+    "20 offered commands per second remains unqualified. Short calibrations never qualify a five-minute interval. Batch 50 has no sustained capacity recommendation; default 10 remains.",
+    "Driver CPU/current heap and PostgreSQL/Redis resources are recorded. Native worker CPU/RSS are not measured here; R13 must inspect final service resources. Queue, connection and lock statistics are sampled.",
+    "The slow-receiver profile is a finite 12-command burst and one controlled TLS receiver with a test-only transport redirect. Production destination policy is unchanged.",
+    "The cancelled and early failed bundles are incomplete evidence, not successful financial qualifications. The early paused target was removed only after an independent exact-identity and original-port check.",
+    "The three measured bundles bind their exact dirty source and compiled binaries. Later PID-bound cancellation metadata, summary-profile checks, documentation and phase records do not relabel that measurement build. Production Go code is unchanged after the qualified measurements.",
+    "Normal runtime remains on preserved prior images. No normal cutover or cloud/commercial production approval is claimed. R10–R17 remain selected implementation work."
+  ]
+}

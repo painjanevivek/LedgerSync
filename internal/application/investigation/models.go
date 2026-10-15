@@ -2,6 +2,7 @@ package investigation
 
 import (
 	"context"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
 	"time"
 )
 
@@ -121,19 +122,20 @@ type TransferDetail struct {
 }
 
 type ReconciliationRun struct {
-	ID                  string                   `json:"run_id"`
-	Status              string                   `json:"status"`
-	CorrelationID       string                   `json:"correlation_id"`
-	Scope               string                   `json:"scope"`
-	LedgerWatermark     string                   `json:"ledger_watermark"`
-	ApplicationVersion  string                   `json:"application_version"`
-	SchemaVersion       string                   `json:"schema_version"`
-	CheckedAccountCount string                   `json:"checked_account_count"`
-	PostingCount        string                   `json:"posting_count"`
-	MismatchCount       string                   `json:"mismatch_count"`
-	StartedAt           time.Time                `json:"started_at"`
-	CompletedAt         time.Time                `json:"completed_at"`
-	Mismatches          []ReconciliationMismatch `json:"mismatches,omitempty"`
+	OutboxSnapshot      *reconciliation.OutboxSnapshot `json:"outbox_snapshot,omitempty"`
+	ID                  string                         `json:"run_id"`
+	Status              string                         `json:"status"`
+	CorrelationID       string                         `json:"correlation_id"`
+	Scope               string                         `json:"scope"`
+	LedgerWatermark     string                         `json:"ledger_watermark"`
+	ApplicationVersion  string                         `json:"application_version"`
+	SchemaVersion       string                         `json:"schema_version"`
+	CheckedAccountCount string                         `json:"checked_account_count"`
+	PostingCount        string                         `json:"posting_count"`
+	MismatchCount       string                         `json:"mismatch_count"`
+	StartedAt           time.Time                      `json:"started_at"`
+	CompletedAt         time.Time                      `json:"completed_at"`
+	Mismatches          []ReconciliationMismatch       `json:"mismatches,omitempty"`
 }
 
 type ReconciliationMismatch struct {
@@ -150,10 +152,10 @@ type ReconciliationMismatch struct {
 
 type Repository interface {
 	Search(ctx context.Context, tenantID, actorID string, filter SearchFilter) (SearchPage, error)
-	ListTransfers(ctx context.Context, tenantID string, filter TransferFilter) ([]TransferSummary, string, error)
-	GetTransfer(ctx context.Context, tenantID, transferID string) (TransferDetail, error)
-	ListReconciliationRuns(ctx context.Context, tenantID, cursor string, limit int) ([]ReconciliationRun, string, error)
-	GetReconciliationRun(ctx context.Context, tenantID, runID string) (ReconciliationRun, error)
+	ListTransfers(ctx context.Context, tenantID, actorID string, filter TransferFilter) ([]TransferSummary, string, error)
+	GetTransfer(ctx context.Context, tenantID, actorID, transferID string) (TransferDetail, error)
+	ListReconciliationRuns(ctx context.Context, tenantID, actorID, cursor string, limit int) ([]ReconciliationRun, string, error)
+	GetReconciliationRun(ctx context.Context, tenantID, actorID, runID string) (ReconciliationRun, error)
 }
 
 type RelationshipRepository interface {

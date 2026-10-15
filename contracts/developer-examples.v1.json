@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "3.3.0",
+  "contract_version": "3.6.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -39,6 +39,9 @@
       "operations": [
         { "operation_id": "listTransfers", "method": "GET", "path": "/transfers", "scope": "transfers:read" },
         { "operation_id": "createTransfer", "method": "POST", "path": "/transfers", "scope": "transfers:write" },
+        { "operation_id": "listTransferRecoveryRequests", "method": "GET", "path": "/transfers/recovery", "scope": "transfers:read" },
+        { "operation_id": "prepareTransferRecoveryRequest", "method": "POST", "path": "/transfers/recovery", "scope": "transfers:write" },
+        { "operation_id": "retryOriginalTransferRecoveryRequest", "method": "POST", "path": "/transfers/recovery/{requestReference}/retry", "scope": "transfers:write" },
         { "operation_id": "getTransfer", "method": "GET", "path": "/transfers/{transferId}", "scope": "transfers:read" }
       ]
     },
@@ -152,6 +155,7 @@
       "label": "Developer contracts",
       "operations": [
         { "operation_id": "getDeveloperMetadata", "method": "GET", "path": "/developer/metadata", "scope": "developer:read" },
+        { "operation_id": "getDistributedEvidence", "method": "GET", "path": "/developer/distributed", "scope": "developer:read" },
         { "operation_id": "downloadOpenAPI", "method": "GET", "path": "/openapi.yaml", "scope": "developer:read" }
       ]
     }

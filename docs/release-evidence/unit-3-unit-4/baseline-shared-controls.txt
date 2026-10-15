@@ -1,0 +1,15 @@
+=== RUN   TestBFFActorAssertionReplayIsRejectedAcrossAPIReplicas
+    bff_actor_assertion_replay_test.go:23: open test database: ping database: failed to connect to `user=ledgersync database=ledgersync_test`: 127.0.0.1:35432 (127.0.0.1): dial error: dial tcp 127.0.0.1:35432: connectex: No connection could be made because the target machine actively refused it.
+--- FAIL: TestBFFActorAssertionReplayIsRejectedAcrossAPIReplicas (0.01s)
+=== RUN   TestConcurrentSameKeyRequestsResolveToOneMovement
+    idempotency_test.go:48: open test database: ping database: failed to connect to `user=ledgersync database=ledgersync_test`: 127.0.0.1:35432 (127.0.0.1): dial error: dial tcp 127.0.0.1:35432: connectex: No connection could be made because the target machine actively refused it.
+--- FAIL: TestConcurrentSameKeyRequestsResolveToOneMovement (0.00s)
+=== RUN   TestRateLimitIsSharedByTenantPrincipalAndRoute
+    pilot_controls_test.go:17: open test database: ping database: failed to connect to `user=ledgersync database=ledgersync_test`: 127.0.0.1:35432 (127.0.0.1): dial error: dial tcp 127.0.0.1:35432: connectex: No connection could be made because the target machine actively refused it.
+--- FAIL: TestRateLimitIsSharedByTenantPrincipalAndRoute (0.00s)
+=== RUN   TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe
+    transfer_corrections_test.go:122: open test database: ping database: failed to connect to `user=ledgersync database=ledgersync_test`: 127.0.0.1:35432 (127.0.0.1): dial error: dial tcp 127.0.0.1:35432: connectex: No connection could be made because the target machine actively refused it.
+--- FAIL: TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe (0.00s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	0.597s
+FAIL

@@ -34,6 +34,13 @@ type LifecycleEvidence = Readonly<{
 
 let lifecycleEvidence: LifecycleEvidence | undefined;
 
+async function enterLocalWorkspace(page: Page) {
+  page.setDefaultTimeout(10_000);
+  await page.goto("/");
+  await page.getByRole("link", { name: "Log in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+}
+
 async function expectSafeCSV(response: APIResponse, family: "transfers" | "account-ledger" | "reconciliation", header: string, identifiers: string[]) {
   expect(response.status()).toBe(200);
   expect(response.headers()["cache-control"]).toContain("no-store");
@@ -114,6 +121,7 @@ async function postTransfer(page: Page, sourceAccountID: string, destinationAcco
 
 async function expectTransferInAccountHistory(page: Page, accountID: string, transferID: string) {
   await page.goto(`/accounts/${encodeURIComponent(accountID)}`);
+  await page.getByText("Transactions and export", { exact: true }).click();
   await expect(page.getByText(transferID, { exact: true }).first()).toBeVisible();
 }
 
@@ -261,6 +269,8 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     const displayName = `System lifecycle ${run.runID}`;
     const externalReference = `sys-${run.runID}`;
 
+    await enterLocalWorkspace(page);
+
     await page.goto("/accounts");
     await page.getByRole("link", { name: "Create account" }).click();
     await expect(page).toHaveURL(/\/accounts\/new(?:\?|$)/);
@@ -303,7 +313,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     expect(changedIntent.status()).toBe(409);
     expect(await changedIntent.json()).toMatchObject({ error: { code: "idempotency_conflict" } });
 
-    await result.getByRole("link", { name: "Fund account" }).click();
+    await result.getByRole("link", { name: "Transfer into account" }).click();
     await expect(page).toHaveURL(new RegExp(`destination=${createdAccountID}`));
     await expect(page.getByLabel("To account")).toHaveValue(createdAccountID);
     const fundingTransfer = await postTransfer(page, run.sourceAccountID, createdAccountID);
@@ -402,7 +412,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     // Each Playwright test receives a fresh browser context. Enter through the
     // real dashboard first so local demo mode establishes this context's
     // signed, scoped session before direct request-context assertions.
-    await page.goto("/");
+    await enterLocalWorkspace(page);
     await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
     const orientationResponse = await page.request.get(`${run.baseURL}/api/local/orientation`);
     expect(orientationResponse.status()).toBe(200);
@@ -414,7 +424,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
 
     await page.goto("/?guide=1");
     await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Follow one INR ledger record from intent to evidence" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Follow one INR ledger record from system health to recovery" })).toBeVisible();
     await expect(page.locator(".orientation-checklist > li")).toHaveCount(12);
     await expectAccessibleReflow(page, 320, 800);
 
@@ -422,7 +432,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     await expect(page.getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
     await expect(page.getByLabel("Search transfers")).toHaveValue(fundingTransfer.transferID);
     await expect(page.getByLabel("Status")).toHaveValue("posted");
-    await expect(page.getByText(fundingTransfer.transferID, { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: fundingTransfer.transferID, exact: true })).toBeVisible();
     await expect(page.getByText(returnTransfer.transferID, { exact: true })).toHaveCount(0);
     const exportReview = page.getByRole("dialog", { name: "Review transfer history export" });
     await page.getByRole("button", { name: "Export transfer details" }).click();
@@ -448,7 +458,8 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     expect(explainability.stages?.every((stage) => ["available", "missing", "unavailable"].includes(String(stage.state)))).toBe(true);
 
     await page.goto(`/transfers/${fundingTransfer.transferID}?return_to=${encodeURIComponent(`/transfers?q=${fundingTransfer.transferID}&status=posted`)}`);
-    await expect(page.getByRole("heading", { name: "Transfer detail", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
+    await page.getByText("Evidence timeline and delivery", { exact: true }).click();
     await expect(page.getByRole("heading", { name: "Stored evidence chain" })).toBeVisible();
     await expect(page.locator(".evidence-stage")).toHaveCount(7);
     await expectAccessibleReflow(page, 768, 1024);
@@ -471,20 +482,29 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     await expectAccessibleReflow(page, 1366, 768);
     await page.getByRole("link", { name: "Open event" }).first().click();
     await expect(page.getByRole("heading", { name: "Event detail", exact: true })).toBeVisible();
+    await page.getByText("Timeline and delivery attempts", { exact: true }).click();
     await expect(page.getByRole("heading", { name: "Event timeline" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Delivery attempts" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Delivery attempts", exact: true })).toBeVisible();
     await expectAccessibleReflow(page, 390, 844);
 
     const diagnosticsResponse = await page.request.get(`${run.baseURL}/api/local/diagnostics`);
+    const retainedManualRun = await page.request.get(`${run.baseURL}/api/reconciliation/runs/${reconciliation.runID}`);
+    expect(retainedManualRun.status()).toBe(200);
+    expect(await retainedManualRun.json()).toMatchObject({ run_id: reconciliation.runID, status: "matched", mismatch_count: "0" });
     expect(diagnosticsResponse.status()).toBe(200);
     expect(diagnosticsResponse.headers()["cache-control"]).toContain("no-store");
     expect(await diagnosticsResponse.json()).toMatchObject({
       overall_state: "ready",
-      financial_authority: { postgres: { state: "reachable" }, latest_reconciliation: { state: "available", status: "matched", run_id: reconciliation.runID } },
+      financial_authority: { postgres: { state: "reachable" }, latest_reconciliation: { state: "available", status: "matched", run_id: expect.stringMatching(/^[0-9a-f-]{36}$/i) } },
       delivery_cache: { outbox: { state: "reachable", dead_count: "0" }, redis: { state: "reachable", label: "disposable_cache" } },
     });
     await page.goto("/local-status");
     await expect(page.getByRole("heading", { name: "Local status", exact: true })).toBeVisible();
+    for (const id of ["local-postgres-status", "local-outbox-status", "local-redis-status"]) {
+      const details = page.locator(`#${id}`);
+      await expect(details).toBeVisible();
+      if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
+    }
     await expect(page.getByRole("heading", { name: "PostgreSQL ledger" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Transactional outbox" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Redis cache" })).toBeVisible();
@@ -492,7 +512,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
 
     await page.goto("/developer");
     await expect(page.getByRole("heading", { name: "Developer", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Authentication" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Authentication", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Exact request proofs" })).toBeVisible();
     const openAPI = await page.request.get(`${run.baseURL}/api/developer/openapi`);
     expect(openAPI.status()).toBe(200);

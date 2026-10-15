@@ -1,0 +1,340 @@
+{
+  "reconciliation": "matched",
+  "workload": {
+    "captured_at": "2026-10-11T19:07:23.049Z",
+    "accounts": {
+      "hot": "3c3c6b5c-3423-466d-a062-f610a43d4c72",
+      "target": "9b7f481e-7e1d-43dc-95a7-4ad5438f0d9d",
+      "opposite": "f5ae4461-2c71-4e32-9e8c-83adb6e39935"
+    },
+    "accepted_debits": 10,
+    "expected_rejections": 10,
+    "opposite_transfers": 10,
+    "same_key_transfer": "932b53a8-adac-4041-bfb4-aa285446b115",
+    "requests": [
+      {
+        "path": "/api/accounts",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 48.987843,
+        "outcome": "active"
+      },
+      {
+        "path": "/api/accounts",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 11.901313000000002,
+        "outcome": "active"
+      },
+      {
+        "path": "/api/accounts",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 9.585273,
+        "outcome": "active"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 15.361053999999996,
+        "outcome": "posted",
+        "transfer_id": "34704613-0a11-4485-ae29-b45eb1dbb587"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 10.666523999999995,
+        "outcome": "posted",
+        "transfer_id": "adabb01d-dec9-43bc-89e9-c0faa6deb75c"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 12.70717599999999,
+        "outcome": "posted",
+        "transfer_id": "efe1b2c9-4f6b-446e-a6d9-f3fbbf6b5f3d"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 49.350599999999986,
+        "outcome": "posted",
+        "transfer_id": "f5f0e762-a9d7-4d10-ad99-50654b6549c6"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 83.28835200000003,
+        "outcome": "posted",
+        "transfer_id": "a047e8e9-cba3-47cb-bc2c-a4a68d32f1ad"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 115.1275270000001,
+        "outcome": "posted",
+        "transfer_id": "96dfb67d-7c78-44cb-8c9b-53153bc61758"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 118.58505300000002,
+        "outcome": "posted",
+        "transfer_id": "30a85ca8-bcb4-4cb9-a8ba-4504b6452d76"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 118.22126400000002,
+        "outcome": "posted",
+        "transfer_id": "08d6a002-44f0-4e93-b44e-0e907ab42613"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 117.19671799999992,
+        "outcome": "posted",
+        "transfer_id": "d3ecfff0-1c1b-4689-901d-bc90a22c9fab"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 145.88768099999993,
+        "outcome": "posted",
+        "transfer_id": "8155c9dc-fdfe-478f-a6d0-5d6a7b304e33"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 144.12375100000008,
+        "outcome": "posted",
+        "transfer_id": "7fa27520-6ebd-4253-98df-6acbda74e789"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 144.07166300000017,
+        "outcome": "posted",
+        "transfer_id": "33ec7ed6-a2a6-483d-b2c1-16c69f567c11"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 153.317902,
+        "outcome": "posted",
+        "transfer_id": "890c396b-2b60-4179-885d-5f0657c201c9"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 155.45922499999983,
+        "outcome": "rejected",
+        "transfer_id": "11a8e21e-0afb-489c-aa8c-4fd8b07265f5"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 161.01557400000002,
+        "outcome": "rejected",
+        "transfer_id": "5a9655b4-f816-4288-9a06-322b9464ee69"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 161.89974000000007,
+        "outcome": "rejected",
+        "transfer_id": "22bdcafc-d033-4e76-9d08-08ea18253802"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 166.444751,
+        "outcome": "rejected",
+        "transfer_id": "5db0e20a-8b57-48b8-93fb-f7e0acadc7e9"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 171.54458899999986,
+        "outcome": "rejected",
+        "transfer_id": "68f26739-a53b-480b-9880-bec02f1cb400"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 175.2695369999999,
+        "outcome": "rejected",
+        "transfer_id": "18736a35-24ea-480f-b0d6-8a0a7d6c0d71"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 176.88594999999987,
+        "outcome": "rejected",
+        "transfer_id": "4baaa1cf-61d4-4ced-a9f6-e5d24fee6181"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 182.59372299999995,
+        "outcome": "rejected",
+        "transfer_id": "b1c319f1-0141-4a88-872a-d9d73d84ffb9"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 183.2402669999999,
+        "outcome": "rejected",
+        "transfer_id": "9b95329c-20aa-4bd5-adc7-e87f529c5532"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 186.368649,
+        "outcome": "rejected",
+        "transfer_id": "b1e59d79-7bc2-4e94-922c-30162d0090e4"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 53.083278000000064,
+        "outcome": "posted",
+        "transfer_id": "df45aa3d-516f-4817-bdbe-96a172ec4d9b"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 52.36763000000019,
+        "outcome": "posted",
+        "transfer_id": "4cc08e19-0e36-4d69-ba1f-ddde7d1b57b1"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 57.98132900000019,
+        "outcome": "posted",
+        "transfer_id": "1d101a59-f2de-487d-86a9-b144f0996b00"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 78.12772600000017,
+        "outcome": "posted",
+        "transfer_id": "036f32b6-363c-41de-b016-8c0c7aa7be57"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 86.53231599999981,
+        "outcome": "posted",
+        "transfer_id": "6e630248-616c-4f96-bfb9-3f4a2868f50b"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 108.78053399999999,
+        "outcome": "posted",
+        "transfer_id": "40a09941-f223-4a06-8756-a50c23a977b8"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 107.94710599999962,
+        "outcome": "posted",
+        "transfer_id": "7d599d0d-e88b-42e6-a74d-7151904dfc3c"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 128.20068999999967,
+        "outcome": "posted",
+        "transfer_id": "378106cb-d3c3-48af-b281-da8bec8ef951"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 133.28358200000002,
+        "outcome": "posted",
+        "transfer_id": "b81b3cf6-58bd-491a-8d72-d073001125e0"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 139.08346600000004,
+        "outcome": "posted",
+        "transfer_id": "844e395a-869c-4ffc-8019-7cec0376179c"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 11.904492000000118,
+        "outcome": "posted",
+        "transfer_id": "932b53a8-adac-4041-bfb4-aa285446b115"
+      },
+      {
+        "path": "/api/transfers",
+        "status": 201,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 14.489066000000093,
+        "outcome": "posted",
+        "transfer_id": "932b53a8-adac-4041-bfb4-aa285446b115"
+      },
+      {
+        "path": "/api/reconciliation/runs",
+        "status": 409,
+        "node": "ledgersync/api/27c5101b162d",
+        "elapsed_ms": 9.945659999999862,
+        "outcome": "reconciliation_already_running",
+        "run_id": "56134995-9016-415a-8546-a92ee31037b3"
+      },
+      {
+        "path": "/api/reconciliation/runs",
+        "status": 201,
+        "node": "ledgersync/api/e15288d2d24d",
+        "elapsed_ms": 11.105853000000025,
+        "outcome": "matched",
+        "run_id": "56134995-9016-415a-8546-a92ee31037b3"
+      }
+    ]
+  },
+  "database": {
+    "hot_posted": 10,
+    "unbalanced": 0,
+    "hot_balance": "0",
+    "same_key_journals": 1
+  }
+}

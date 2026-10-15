@@ -59,7 +59,7 @@ func main() {
 	router := http.NewServeMux()
 	if configuration.DatabaseURL != "" {
 		database, err := startup.Open(startupContext, "postgresql", startupConfig, func(ctx context.Context) (*sql.DB, error) {
-			return db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL})
+			return db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.DatabaseURL, MaxOpenConns: configuration.DatabaseMaxOpenConns, ApplicationName: configuration.NodeIdentity("api")})
 		})
 		if err != nil {
 			slog.Error("database initialization failed", "error", err)
@@ -186,6 +186,7 @@ func main() {
 				os.Exit(1)
 			}
 			transferHandler := handlers.NewTransferHandler(service, provider, issuer).
+				WithRecoveryRepository(repository).
 				WithConsistencyBalanceReader(balanceRepository).
 				WithCommittedResponseObserver(telemetry)
 			balanceHandler := handlers.NewBalanceHandler(balanceReader, provider)
@@ -290,6 +291,7 @@ func main() {
 				os.Exit(1)
 			}
 			if err := registerDeveloperRoutes(router, developerRouteConfig{
+				Database: database, StudyEnabled: configuration.Environment == "development" && os.Getenv("LEDGERSYNC_STUDY_ENABLED") == "true",
 				Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
 				RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
 			}); err != nil {
@@ -335,6 +337,9 @@ func main() {
 				os.Exit(1)
 			}
 			router.Handle("POST /api/transfers", transferHandler)
+			router.HandleFunc("POST /api/transfers/recovery", transferHandler.PrepareRecovery)
+			router.HandleFunc("GET /api/transfers/recovery", transferHandler.ListRecovery)
+			router.HandleFunc("POST /api/transfers/recovery/{requestReference}/retry", transferHandler.Recover)
 			router.Handle("GET /api/accounts/{accountID}/balance", balanceHandler)
 			router.Handle("GET /api/me/accounts", accountsHandler)
 			router.Handle("GET /api/accounts/{accountID}", accountsHandler)
@@ -386,7 +391,11 @@ func main() {
 		}
 	}
 	router.Handle("/", httptransport.NewHealthHandler(readiness))
-	identifierAwareRouter := httptransport.WithIdentifierObserver(router, telemetry)
+	nodeRouter := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-LedgerSync-Node", configuration.NodeIdentity("api"))
+		router.ServeHTTP(w, r)
+	})
+	identifierAwareRouter := httptransport.WithIdentifierObserver(nodeRouter, telemetry)
 	handler := middleware.Correlation(middleware.Contract(configuration.Environment, telemetry.HTTP(identifierAwareRouter)))
 	server := &http.Server{
 		Addr: configuration.HTTPAddress, Handler: handler,

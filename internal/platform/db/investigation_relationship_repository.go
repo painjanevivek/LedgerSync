@@ -13,10 +13,15 @@ import (
 // copies amounts, balances, payloads, notes, or free-form evidence into the
 // navigation response.
 func (r *InvestigationRepository) Related(ctx context.Context, tenantID, actorID string, filter investigation.RelationshipFilter) (investigation.RelationshipPage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.RelationshipPage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	if filter.Limit < 1 || filter.Limit > 20 || !relationshipSourceAllowed(filter.SourceType, filter.Access) {
 		return investigation.RelationshipPage{}, ErrInvestigationNotFound
 	}
-	exists, err := r.authorizedRelationshipSource(ctx, tenantID, actorID, filter.SourceType, filter.SourceID)
+	exists, err := authorizedRelationshipSourceWithQuerier(ctx, tx, tenantID, actorID, filter.SourceType, filter.SourceID)
 	if err != nil {
 		return investigation.RelationshipPage{}, err
 	}
@@ -24,7 +29,7 @@ func (r *InvestigationRepository) Related(ctx context.Context, tenantID, actorID
 		return investigation.RelationshipPage{}, ErrInvestigationNotFound
 	}
 	query, args := relationshipQuery(filter, tenantID, actorID)
-	rows, err := r.database.QueryContext(ctx, query, args...)
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return investigation.RelationshipPage{}, fmt.Errorf("read related investigation evidence: %w", err)
 	}
@@ -73,7 +78,12 @@ func relationshipSourceAllowed(sourceType string, access investigation.Relations
 }
 
 func (r *InvestigationRepository) authorizedRelationshipSource(ctx context.Context, tenantID, actorID, sourceType, sourceID string) (bool, error) {
-	return authorizedRelationshipSourceWithQuerier(ctx, r.database, tenantID, actorID, sourceType, sourceID)
+	tx, err := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	return authorizedRelationshipSourceWithQuerier(ctx, tx, tenantID, actorID, sourceType, sourceID)
 }
 
 type relationshipSourceQuerier interface {

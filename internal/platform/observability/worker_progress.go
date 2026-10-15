@@ -36,6 +36,8 @@ type WorkerProgressReport struct {
 	ProgressAge     time.Duration
 	LastItemHash    string
 	Active          bool
+	HasCompleted    bool
+	LastRunFailed   bool
 }
 
 type WorkerProgressObserver interface {
@@ -48,6 +50,8 @@ type workerProgressState struct {
 	lastCompletedAt time.Time
 	lastFailureAt   time.Time
 	lastItemHash    string
+	hasCompleted    bool
+	lastRunFailed   bool
 }
 
 // WorkerProgressMonitor emits from its own goroutine, so a blocked queue loop
@@ -104,6 +108,8 @@ func (monitor *WorkerProgressMonitor) MarkCompleted(queue string, failed bool) e
 	now := monitor.clock().UTC()
 	state.active = false
 	state.lastCompletedAt = now
+	state.hasCompleted = true
+	state.lastRunFailed = failed
 	if failed {
 		state.lastFailureAt = now
 	}
@@ -143,6 +149,8 @@ func (monitor *WorkerProgressMonitor) Emit(ctx context.Context) {
 			ProgressAge:     nonNegativeDuration(now.Sub(progressAnchor)),
 			LastItemHash:    state.lastItemHash,
 			Active:          state.active,
+			HasCompleted:    state.hasCompleted,
+			LastRunFailed:   state.lastRunFailed,
 		}
 		if !state.lastFailureAt.IsZero() {
 			failureAge := nonNegativeDuration(now.Sub(state.lastFailureAt))

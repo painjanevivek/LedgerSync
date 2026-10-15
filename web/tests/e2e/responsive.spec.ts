@@ -10,7 +10,7 @@ for(const viewport of viewports){
     await expect(page.getByRole("heading",{name:"Overview"})).toBeVisible();
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);expect(overflow).toBe(false);
     if(viewport.width<761){await page.getByRole("button",{name:/menu/i}).click();}
-    await page.getByRole("link",{name:"Accounts"}).click();
+    await page.getByRole("navigation",{name:"Primary navigation"}).getByRole("link",{name:"Accounts",exact:true}).click();
     await expect(page.locator("strong").filter({hasText:"Operating Reserve"}).first()).toBeVisible();
     await page.goto(`/accounts/${sourceAccount.account_id}`); await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible();
     await page.goto(`/transfers/${transfer.transfer_id}`); await expect(page.getByText("Money is posted; delivery is retrying")).toBeVisible();
@@ -88,7 +88,7 @@ test("funding explains why its four inputs are required", async ({ page }) => {
     await expect(field).toHaveAttribute("required", "");
   }
   await expect(page.getByText("Why all four?", { exact: true })).toBeVisible();
-  await expect(page.getByText("Another operator needs them to check the record before your balance can change.")).toBeVisible();
+  await expect(page.getByText("They support review before a balance can change. The server applies the approval policy.", { exact: false })).toBeVisible();
 });
 
 test("shared field labels show the server-backed required or optional state", async ({ page }) => {

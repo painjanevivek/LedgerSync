@@ -51,15 +51,18 @@ type fakeOutboxStore struct {
 func (f *fakeOutboxStore) Claim(context.Context, string, int, time.Duration) ([]outbox.Event, error) {
 	return f.events, nil
 }
-func (f *fakeOutboxStore) MarkPublished(_ context.Context, _ string, eventID string, _ time.Time) error {
+func (f *fakeOutboxStore) RenewClaim(context.Context, string, string, int64, time.Duration) error {
+	return nil
+}
+func (f *fakeOutboxStore) MarkPublished(_ context.Context, _ string, eventID string, _ time.Time, _ int64) error {
 	f.published = eventID
 	return nil
 }
-func (f *fakeOutboxStore) Reschedule(_ context.Context, _ string, eventID string, _ time.Time, _ string) error {
+func (f *fakeOutboxStore) Reschedule(_ context.Context, _ string, eventID string, _ time.Time, _ string, _ int64) error {
 	f.rescheduled = eventID
 	return f.persistErr
 }
-func (f *fakeOutboxStore) MarkDead(_ context.Context, _ string, eventID string, _ time.Time, _ string) error {
+func (f *fakeOutboxStore) MarkDead(_ context.Context, _ string, eventID string, _ time.Time, _ string, _ int64) error {
 	f.dead = eventID
 	return f.persistErr
 }

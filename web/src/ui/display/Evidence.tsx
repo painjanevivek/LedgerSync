@@ -12,7 +12,7 @@ export function EvidenceFreshness(props: EvidenceFreshnessProps) {
     : props.state === "refreshing"
       ? timestamp ? `Refreshing; prior ${label.toLowerCase()} verified ${timestamp} UTC` : `Loading ${label.toLowerCase()}`
       : `${label} not refreshed; last verified ${timestamp} UTC${props.reason ? `. ${props.reason}` : ""}`;
-  return <p className={`evidence-freshness ${props.state}`} role="status">{icon}<span>{copy}</span></p>;
+  return <p className={`evidence-freshness ${props.state}`} role="status" title={copy}>{icon}<span>{copy}</span></p>;
 }
 
 export function EvidenceStepMarker({ sequence, state }: Readonly<{ sequence: number; state: "available" | "bounded" | "missing" | "unavailable" }>) {

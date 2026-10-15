@@ -52,6 +52,10 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
+      # Build-time TLS compatibility for Docker Desktop proxies. Certificate and
+      # module checksum checks stay enabled; this does not set runtime GODEBUG.
+      args:
+        GO_BUILD_GODEBUG: ${LEDGERSYNC_GO_BUILD_GODEBUG-tlsmlkem=0}
     environment:
       LEDGERSYNC_ENV: development
       LEDGERSYNC_HTTP_ADDR: :8080
@@ -102,6 +106,8 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/outbox-worker.Dockerfile
+      args:
+        GO_BUILD_GODEBUG: ${LEDGERSYNC_GO_BUILD_GODEBUG-tlsmlkem=0}
     environment:
       LEDGERSYNC_ENV: development
       LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_worker:${LEDGERSYNC_WORKER_DATABASE_PASSWORD:?Local worker database secret is required}@postgres:5432/ledgersync?sslmode=disable
@@ -110,7 +116,7 @@ services:
       LEDGERSYNC_STARTUP_INITIAL_BACKOFF: 250ms
       LEDGERSYNC_STARTUP_MAX_BACKOFF: 5s
     depends_on:
-      migrate:
+      demo-seed:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
@@ -118,11 +124,11 @@ services:
     stop_grace_period: 30s
     init: true
     healthcheck:
-      test: ["CMD-SHELL", "ps | grep -q '[o]utbox-worker'"]
+      test: ["CMD", "/usr/local/bin/outbox-worker", "--healthcheck"]
       interval: 5s
       timeout: 3s
-      start_period: 5s
-      retries: 30
+      start_period: 90s
+      retries: 3
     networks: [private]
     read_only: true
     tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
@@ -210,11 +216,13 @@ services:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
       target: database-tooling
+      args:
+        GO_BUILD_GODEBUG: ${LEDGERSYNC_GO_BUILD_GODEBUG-tlsmlkem=0}
     entrypoint: ["sh", "-ec"]
     command:
       - >-
         /usr/local/bin/migrate &&
-        exec psql -v ON_ERROR_STOP=1 -h postgres -U ledgersync -d ledgersync
+        exec psql --single-transaction -v ON_ERROR_STOP=1 -h postgres -U ledgersync -d ledgersync
         -f /database-roles/roles.sql -f /database-roles/local-workload-logins.sql
     environment:
       LEDGERSYNC_ENV: development

@@ -32,7 +32,7 @@ type DatabaseFacts struct {
 }
 
 type DiagnosticRepository interface {
-	Facts(context.Context, string) (DatabaseFacts, error)
+	Facts(context.Context, string, string) (DatabaseFacts, error)
 }
 
 type DependencyProbe interface {
@@ -52,6 +52,7 @@ type ReconciliationStatus struct {
 }
 
 type OutboxStatus struct {
+	SampledAt         time.Time  `json:"sampled_at"`
 	State             string     `json:"state"`
 	PendingCount      string     `json:"pending_count,omitempty"`
 	DeadCount         string     `json:"dead_count,omitempty"`
@@ -61,8 +62,9 @@ type OutboxStatus struct {
 }
 
 type RedisStatus struct {
-	State string `json:"state"`
-	Label string `json:"label"`
+	SampledAt time.Time `json:"sampled_at"`
+	State     string    `json:"state"`
+	Label     string    `json:"label"`
 }
 
 type DiagnosticSnapshot struct {
@@ -119,29 +121,36 @@ func CurrentBuildFacts(environment string) BuildFacts {
 	return facts
 }
 
-func (s *DiagnosticService) Snapshot(ctx context.Context, tenantID string) DiagnosticSnapshot {
+func (s *DiagnosticService) Snapshot(ctx context.Context, tenantID, actorID string) DiagnosticSnapshot {
 	now := s.clock().UTC()
 	result := DiagnosticSnapshot{OverallState: "ready", GeneratedAt: now, Application: s.build}
 	result.FinancialAuthority.PostgreSQL.State = "unavailable"
 	result.FinancialAuthority.LatestReconciliation.State = "unavailable"
 	result.DeliveryCache.Outbox = OutboxStatus{State: "unavailable", WorkerProgress: "unknown"}
 	result.DeliveryCache.Redis = RedisStatus{State: "unavailable", Label: "disposable_cache"}
+	result.DeliveryCache.Redis.SampledAt = now
+	result.DeliveryCache.Outbox.SampledAt = now
 
 	type databaseResult struct {
-		facts DatabaseFacts
-		err   error
+		facts     DatabaseFacts
+		err       error
+		sampledAt time.Time
+	}
+	type cacheResult struct {
+		err       error
+		sampledAt time.Time
 	}
 	databaseChannel := make(chan databaseResult, 1)
-	cacheChannel := make(chan error, 1)
+	cacheChannel := make(chan cacheResult, 1)
 	databaseContext, cancelDatabase := context.WithTimeout(ctx, s.timeout)
 	defer cancelDatabase()
 	cacheContext, cancelCache := context.WithTimeout(ctx, s.timeout)
 	defer cancelCache()
 	go func() {
-		facts, err := s.repository.Facts(databaseContext, tenantID)
-		databaseChannel <- databaseResult{facts, err}
+		facts, err := s.repository.Facts(databaseContext, tenantID, actorID)
+		databaseChannel <- databaseResult{facts: facts, err: err, sampledAt: s.clock().UTC()}
 	}()
-	go func() { cacheChannel <- s.cache.Ping(cacheContext) }()
+	go func() { err := s.cache.Ping(cacheContext); cacheChannel <- cacheResult{err, s.clock().UTC()} }()
 
 	database := databaseResult{err: context.DeadlineExceeded}
 	cacheErr := error(context.DeadlineExceeded)
@@ -158,7 +167,9 @@ func (s *DiagnosticService) Snapshot(ctx context.Context, tenantID string) Diagn
 		}
 		if cachePending {
 			select {
-			case cacheErr = <-cacheChannel:
+			case observed := <-cacheChannel:
+				cacheErr = observed.err
+				result.DeliveryCache.Redis.SampledAt = observed.sampledAt
 				cachePending = false
 			default:
 			}
@@ -169,7 +180,9 @@ func (s *DiagnosticService) Snapshot(ctx context.Context, tenantID string) Diagn
 		select {
 		case database = <-databaseChannel:
 			databasePending = false
-		case cacheErr = <-cacheChannel:
+		case observed := <-cacheChannel:
+			cacheErr = observed.err
+			result.DeliveryCache.Redis.SampledAt = observed.sampledAt
 			cachePending = false
 		case <-timer.C:
 			if databasePending {
@@ -191,6 +204,7 @@ func (s *DiagnosticService) Snapshot(ctx context.Context, tenantID string) Diagn
 	}
 	if database.err == nil {
 		applyDatabaseFacts(&result, database.facts, now)
+		result.DeliveryCache.Outbox.SampledAt = database.sampledAt
 	} else {
 		result.OverallState = "unavailable"
 	}

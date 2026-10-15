@@ -39,12 +39,14 @@ function unknownOutcome(reference: string): TransferOutcome {
 
 function isDefinitiveRejection(status: number, code?: string): boolean {
   if (["insufficient_funds", "transfer_policy_denied", "account_inactive", "idempotency_conflict", "validation_failed", "csrf_failed", "forbidden", "unauthorized"].includes(code ?? "")) return true;
-  return status >= 400 && status < 500 && status !== 408 && status !== 429 && code !== "idempotency_in_progress";
+  return status >= 400 && status < 500 && status !== 408 && status !== 429 && !["idempotency_in_progress", "request_in_progress"].includes(code ?? "");
 }
 
 export function useTransferSubmission(tenantId: string, csrfToken: string, onPosted: () => Promise<void>) {
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
+  const volatileIntent = useRef<StoredTransferIntent | null>(null);
+  const [fallbackIntent, setFallbackIntent] = useState<StoredTransferIntent | null>(null);
   const [outcome, setOutcome] = useState<TransferOutcome>(null);
   const storageKey = transferIntentStorageKey(tenantId);
   const subscribe = useCallback((notify: () => void) => {
@@ -58,7 +60,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       window.removeEventListener("ledgersync-transfer-intent", notify);
     };
   }, [storageKey]);
-  const getSnapshot = useCallback(() => sessionStorage.getItem(storageKey), [storageKey]);
+  const getSnapshot = useCallback(() => { try { return sessionStorage.getItem(storageKey); } catch { return null; } }, [storageKey]);
   const rawStoredIntent = useSyncExternalStore(subscribe, getSnapshot, () => null);
   const storedIntent = useMemo(() => parseStoredTransferIntent(rawStoredIntent), [rawStoredIntent]);
 
@@ -67,12 +69,16 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
   }
 
   function saveIntent(intent: StoredTransferIntent) {
-    sessionStorage.setItem(storageKey, JSON.stringify(intent));
+    volatileIntent.current = intent;
+    setFallbackIntent(intent);
+    try { sessionStorage.setItem(storageKey, JSON.stringify(intent)); } catch { /* Server intent is the durable recovery authority. */ }
     notifyIntentChanged();
   }
 
   function clearIntent() {
-    sessionStorage.removeItem(storageKey);
+    volatileIntent.current = null;
+    setFallbackIntent(null);
+    try { sessionStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ }
     notifyIntentChanged();
   }
 
@@ -91,7 +97,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     if (pending || inFlight.current) return false;
     inFlight.current = true;
 
-    const persisted = parseStoredTransferIntent(sessionStorage.getItem(storageKey)) ?? storedIntent;
+    const persisted = parseStoredTransferIntent(getSnapshot()) ?? storedIntent ?? volatileIntent.current;
     if (persisted && !storedIntentMatches(persisted, prepared)) {
       setOutcome({
         kind: "unknown",
@@ -113,6 +119,16 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     let response: Response;
     let payload: (TransferResult & TransferErrorPayload) | TransferErrorPayload;
     try {
+      const saved = await fetch("/api/transfers/recovery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken, "Idempotency-Key": intent.idempotencyKey, "X-LedgerSync-Request-Reference": requestReference },
+        body: JSON.stringify({ sourceAccountId: intent.sourceAccountId, destinationAccountId: intent.destinationAccountId, amount: { currency: intent.currency, minorUnits: intent.amountMinor } }),
+      });
+      const proof = await saved.json().catch(() => ({})) as { request_reference?: string; state?: string };
+      if (!saved.ok || proof.request_reference !== requestReference || proof.state !== "saved") {
+        setOutcome({ kind: "unknown", requestReference, message: "The saved request could not be verified. No posting command was sent in this attempt. Refresh saved requests, or retry this exact intent." });
+        setPending(false); inFlight.current = false; return false;
+      }
       response = await fetch("/api/transfers", {
         method: "POST",
         headers: {
@@ -136,6 +152,11 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       return false;
     }
 
+    if (response.ok && "transfer_id" in payload && payload.transfer_id && payload.status === "rejected") {
+      clearIntent();
+      setOutcome({ kind: "error", requestReference, message: "The original transfer was rejected. No money moved. Its saved outcome remains available under saved transfer requests." });
+      setPending(false); inFlight.current = false; return false;
+    }
     if (response.ok && "transfer_id" in payload && payload.transfer_id && payload.status === "posted") {
       clearIntent();
       const balances = Object.values(payload.balances ?? {});
@@ -188,13 +209,13 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     return false;
   }
 
-  const visibleOutcome = outcome ?? (storedIntent ? {
+  const visibleOutcome = outcome ?? (!pending && storedIntent ? {
     kind: "unknown" as const,
     requestReference: storedIntent.requestReference,
     message: "An unconfirmed transfer was restored after navigation or reload. Editing is locked; retry this exact intent with its original key.",
   } : null);
 
-  return { outcome: visibleOutcome, pending, setOutcome, storedIntent, submit };
+  return { outcome: visibleOutcome, pending, setOutcome, storedIntent: storedIntent ?? fallbackIntent, submit };
 }
 
 export type { PreparedTransfer } from "@/features/transfers/transferIntent";

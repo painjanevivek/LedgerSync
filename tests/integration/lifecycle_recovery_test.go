@@ -24,7 +24,9 @@ func TestRetentionIsBoundedAndProtectsFinalEvidence(t *testing.T) {
 	if _, err := database.ExecContext(ctx, `INSERT INTO api_rate_limit_windows(tenant_id,principal_hash,route_key,window_started_at,request_count)VALUES($1,decode('0011','hex'),'POST /transfers','2026-08-18T10:00:00Z',1)`, testTenantID); err != nil {
 		t.Fatal(err)
 	}
-	repository, err := db.NewRetentionRepository(database, func() time.Time { return time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC) })
+	requireWorkloadRoles(t, database)
+	maintenance := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_maintenance")
+	repository, err := db.NewRetentionRepository(maintenance.db, func() time.Time { return time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,11 +85,16 @@ func TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation(t *testing.T) {
 	if err = database.QueryRowContext(ctx, `UPDATE outbox_events SET dead_at='2026-08-18T10:00:00Z',last_error_code='redis_unavailable' WHERE tenant_id=$1 RETURNING id`, testTenantID).Scan(&eventID); err != nil {
 		t.Fatal(err)
 	}
-	outbox, err := db.NewOutboxReplayRepository(database, func() time.Time { return time.Date(2026, 8, 18, 11, 0, 0, 0, time.UTC) })
+	requireWorkloadRoles(t, database)
+	api := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_api")
+	if _, err := database.Exec(`INSERT INTO tenant_subject_roles(tenant_id,subject_id,role) VALUES($1,'approver','operator'),($1,'executor','operator')`, testTenantID); err != nil {
+		t.Fatal(err)
+	}
+	outbox, err := db.NewOutboxReplayRepository(api.db, func() time.Time { return time.Date(2026, 8, 18, 11, 0, 0, 0, time.UTC) })
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = outbox.Inspect(ctx, testTenantID, eventID); err != nil {
+	if _, err = outbox.Inspect(ctx, testTenantID, testActorID, eventID); err != nil {
 		t.Fatal(err)
 	}
 	correlation := "00000000-0000-0000-0000-000000000211"
@@ -122,7 +129,7 @@ func TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation(t *testing.T) {
 	if _, err = database.ExecContext(ctx, `INSERT INTO delivery_attempts(id,tenant_id,transfer_id,outbox_event_id,delivery_kind,endpoint_reference,attempt_number,status,sanitized_error_code,due_at,completed_at)VALUES($1,$2,$3,$4,'webhook',$5,1,'dead','timeout','2026-08-18T10:00:00Z','2026-08-18T10:01:00Z')`, deadAttemptID, testTenantID, result.Result.TransferID, transferWebhookEventID, webhookID); err != nil {
 		t.Fatal(err)
 	}
-	delivery, err := db.NewDeliveryReplayRepository(database, func() time.Time { return time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC) })
+	delivery, err := db.NewDeliveryReplayRepository(api.db, func() time.Time { return time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,14 +166,14 @@ func TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation(t *testing.T) {
 func TestPartnerProvisioningIsAuditedIdempotentAndRollbackSafe(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	ctx := context.Background()
-	configuration := provisioning.Config{
-		TenantID: "00000000-0000-0000-0000-000000000301", ExternalReference: "design-partner-301", Currency: "USD",
-		MinimumTransferMinor: "1", MaximumTransferMinor: "100000", ActorRolling24hMinor: "500000", SourceRolling24hMinor: "500000", TenantRolling24hMinor: "1000000",
-		Subjects:    []provisioning.Subject{{ID: "partner-operator", Roles: []string{"operator", "finance"}}},
-		Credentials: []provisioning.Credential{{Reference: "idp://pilot/client-301", Audience: "ledgersync-api", Scopes: []string{"accounts:read", "transfers:write"}, ExpiresAt: "2035-01-01T00:00:00Z"}},
-		Accounts:    []provisioning.Account{{ID: "00000000-0000-0000-0000-000000000311", DisplayName: "Partner operating", Category: "operating", OpeningMinor: "0", ReadSubjects: []string{"partner-operator"}, DebitSubjects: []string{"partner-operator"}, CreditSubjects: []string{"partner-operator"}}},
+	configuration := partnerProvisioningFixture()
+	requireWorkloadRoles(t, database)
+	workload := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_provisioning")
+	if _, err := database.Exec(`REVOKE UPDATE ON accounts FROM ledgersync_provisioning`); err != nil {
+		t.Fatal(err)
 	}
-	repository, err := db.NewProvisioningRepository(database, func() time.Time { return time.Date(2026, 8, 18, 13, 0, 0, 0, time.UTC) })
+	t.Cleanup(func() { provisionLiveMigrationRoles(t, database) })
+	repository, err := db.NewProvisioningRepository(workload.db, func() time.Time { return time.Date(2026, 8, 18, 13, 0, 0, 0, time.UTC) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,5 +203,15 @@ func TestPartnerProvisioningIsAuditedIdempotentAndRollbackSafe(t *testing.T) {
 	}
 	if countRows(t, database, `SELECT count(*) FROM accounts WHERE tenant_id=$1 AND status='closed'`, configuration.TenantID) != 1 || countRows(t, database, `SELECT count(*) FROM partner_credential_events WHERE tenant_id=$1`, configuration.TenantID) != 2 {
 		t.Fatal("rollback did not close accounts and append credential revocation")
+	}
+}
+
+func partnerProvisioningFixture() provisioning.Config {
+	return provisioning.Config{
+		TenantID: "00000000-0000-0000-0000-000000000301", ExternalReference: "design-partner-301", Currency: "USD",
+		MinimumTransferMinor: "1", MaximumTransferMinor: "100000", ActorRolling24hMinor: "500000", SourceRolling24hMinor: "500000", TenantRolling24hMinor: "1000000",
+		Subjects:    []provisioning.Subject{{ID: "partner-operator", Roles: []string{"operator", "finance"}}},
+		Credentials: []provisioning.Credential{{Reference: "idp://pilot/client-301", Audience: "ledgersync-api", Scopes: []string{"accounts:read", "transfers:write"}, ExpiresAt: "2035-01-01T00:00:00Z"}},
+		Accounts:    []provisioning.Account{{ID: "00000000-0000-0000-0000-000000000311", DisplayName: "Partner operating", Category: "operating", OpeningMinor: "0", ReadSubjects: []string{"partner-operator"}, DebitSubjects: []string{"partner-operator"}, CreditSubjects: []string{"partner-operator"}}},
 	}
 }

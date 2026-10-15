@@ -140,6 +140,9 @@ export async function mockOperatorConsole(page: Page, { sessionDelayMilliseconds
   await page.route("**/api/accounts/*/transactions?*", (route) => json(route, { transactions: [{ transfer_id: "transfer-existing", direction: "credit", amount: "500", currency: "INR", status: "posted", occurred_at: "2026-08-19T11:00:00Z" }] }));
   await page.route("**/api/transfers?*", (route) => json(route, { transfers:[transfer],next_cursor:"" }));
   await page.route("**/api/transfers/*", (route) => json(route, { ...transfer,actor_subject_id:"operator-1",postings:[{posting_id:"posting-1",account_id:sourceAccount.account_id,direction:"debit",amount_minor:"500",currency:"INR",occurred_at:transfer.completed_at},{posting_id:"posting-2",account_id:destinationAccount.account_id,direction:"credit",amount_minor:"500",currency:"INR",occurred_at:transfer.completed_at}],timeline:[] }));
+  await page.route("**/api/transfers/recovery", (route) => route.request().method() === "POST"
+    ? json(route, { request_reference: route.request().headers()["x-ledgersync-request-reference"], state: "saved" }, 201)
+    : json(route, { requests: [] }));
   await page.route("**/api/funding-events?*", (route) => json(route, { events:[fundingEvent],next_cursor:"" }));
   await page.route("**/api/funding-events/*", (route) => json(route, fundingEvent));
   await page.route("**/api/approvals?*", (route) => json(route, { items:approvalItems,page_count:approvalItems.length,next_cursor:"approval-page-2" }));

@@ -1,0 +1,28 @@
+sequenceDiagram
+  actor Requester
+  actor Approver
+  participant API as Proposed payout API
+  participant PG as PostgreSQL
+  participant Worker as Proposed provider dispatcher
+  participant Provider as Contracted provider
+  Requester->>API: Request payout with stable key
+  API->>PG: Validate beneficiary and reserve approved amount
+  PG-->>API: Commit reservation and approval request, no journal settlement
+  Approver->>API: Approve with recent verified authentication
+  API->>PG: Check distinct approver, limits and approval expiry
+  PG-->>API: Commit durable dispatch job
+  Worker->>PG: Lease approved provider command
+  Worker->>Provider: Submit with stable provider idempotency reference
+  Provider-->>Worker: Accepted, pending, failed or unknown
+  Worker->>PG: Persist provider attempt, unknown remains unresolved
+  Provider->>API: Authenticated result webhook or settlement evidence
+  API->>PG: Deduplicate evidence and validate state transition
+  alt Authenticated settlement is confirmed
+    PG->>PG: Write immutable settlement and reviewed fee journals
+  else Definitive failure, cancellation or expiry
+    PG->>PG: Release reservation through controlled event
+  else Outcome remains unknown
+    PG->>PG: Keep reservation and schedule status/reconciliation work
+  end
+  Worker->>Provider: Fetch authoritative status or settlement records
+  Worker->>PG: Compare and persist reconciliation evidence

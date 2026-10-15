@@ -1,0 +1,1 @@
+Both APIs served requests. The failure drill resolved all commands and reconciliation matched.

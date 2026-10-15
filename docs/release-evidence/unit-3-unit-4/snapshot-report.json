@@ -1,0 +1,41 @@
+{
+  "redis_loss": "primary_balance_preserved",
+  "database_loss_status": 503,
+  "recovery": "matched",
+  "service_observations": {
+    "outbox": {
+      "sampled_at": "2026-10-11T19:16:20.751610239Z",
+      "state": "reachable",
+      "pending_count": "0",
+      "dead_count": "0",
+      "worker_progress": "idle",
+      "latest_published_at": "2026-10-11T19:07:23.27786Z"
+    },
+    "redis": {
+      "state": "reachable",
+      "label": "disposable_cache",
+      "sampled_at": "2026-10-11T19:16:20.750780466Z"
+    }
+  },
+  "snapshot": {
+    "outbox_snapshot": {
+      "isolation": "repeatable_read",
+      "sampled_at": "2026-10-11T19:16:20.714968Z",
+      "pending_count": "0",
+      "published_count": "586",
+      "dead_count": "0"
+    },
+    "run_id": "1df939cf-8c2e-4737-b9c5-925dd85fb1cd",
+    "status": "matched",
+    "correlation_id": "ddee4922-7fab-48f2-85f7-973c62a9ba62",
+    "scope": "tenant_all_accounts",
+    "ledger_watermark": "5686:5686:",
+    "application_version": "(devel)",
+    "schema_version": "000042_lamport_event_metadata.up.sql",
+    "checked_account_count": "27",
+    "posting_count": "386",
+    "mismatch_count": "0",
+    "started_at": "2026-10-11T19:16:20.713061Z",
+    "completed_at": "2026-10-11T19:16:20.71862Z"
+  }
+}

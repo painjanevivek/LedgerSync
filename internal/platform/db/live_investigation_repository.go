@@ -18,13 +18,18 @@ import (
 )
 
 func (r *InvestigationRepository) TransferRequestStatus(ctx context.Context, tenantID, actorID, reference string) (investigation.TransferRequestStatus, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.TransferRequestStatus{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	reference, err := investigation.NormalizeRequestReference(reference)
 	if err != nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" {
 		return investigation.TransferRequestStatus{}, investigation.ErrLiveRoomNotFound
 	}
 	var state, response, transferStatus string
 	var expires time.Time
-	err = r.database.QueryRowContext(ctx, `SELECT request.state,COALESCE(request.response_body::text,''),request.expires_at,COALESCE(transfer.status,'') FROM idempotency_requests request LEFT JOIN transfers transfer ON transfer.tenant_id=request.tenant_id AND transfer.id=CASE WHEN request.response_body ? 'transfer_id' AND request.response_body->>'transfer_id' ~ '^[0-9a-f-]{36}$' THEN (request.response_body->>'transfer_id')::uuid ELSE NULL END WHERE request.tenant_id=$1 AND request.actor_subject_id=$2 AND request.operation='transfers.create.v1' AND request.request_reference=$3`, tenantID, actorID, reference).Scan(&state, &response, &expires, &transferStatus)
+	err = tx.QueryRowContext(ctx, `SELECT request.state,COALESCE(request.response_body::text,''),request.expires_at,COALESCE(transfer.status,'') FROM idempotency_requests request LEFT JOIN transfers transfer ON transfer.tenant_id=request.tenant_id AND transfer.id=CASE WHEN request.response_body ? 'transfer_id' AND request.response_body->>'transfer_id' ~ '^[0-9a-f-]{36}$' THEN (request.response_body->>'transfer_id')::uuid ELSE NULL END WHERE request.tenant_id=$1 AND request.actor_subject_id=$2 AND request.operation='transfers.create.v1' AND request.request_reference=$3`, tenantID, actorID, reference).Scan(&state, &response, &expires, &transferStatus)
 	if errors.Is(err, sql.ErrNoRows) {
 		return investigation.TransferRequestStatus{}, investigation.ErrLiveRoomNotFound
 	}
@@ -114,7 +119,15 @@ func (r *InvestigationRepository) GetLiveRoom(ctx context.Context, tenantID, act
 	if err != nil {
 		return investigation.LiveRoom{}, investigation.ErrLiveRoomNotFound
 	}
-	return r.readLiveRoom(ctx, r.database, tenantID, actorID, roomID, time.Now().UTC())
+	var room investigation.LiveRoom
+	// Existing room reads can expire a room and record its audit event. Preserve
+	// that behaviour in a scoped write transaction, not a read-only transaction.
+	err = WithTenantTransaction(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID}, nil, func(tx *sql.Tx) error {
+		var readErr error
+		room, readErr = r.readLiveRoom(ctx, tx, tenantID, actorID, roomID, time.Now().UTC())
+		return readErr
+	})
+	return room, err
 }
 
 func (r *InvestigationRepository) IssueLiveRoomInvite(ctx context.Context, tenantID, actorID, roomID string, when time.Time) (investigation.LiveInvite, error) {
@@ -130,9 +143,9 @@ func (r *InvestigationRepository) IssueLiveRoomInvite(ctx context.Context, tenan
 	token := base64.RawURLEncoding.EncodeToString(tokenBytes)
 	digest := sha256.Sum256([]byte(token))
 	result := investigation.LiveInvite{RoomID: roomID, Token: token, ExpiresAt: when.Add(investigation.LiveInviteLifetime)}
-	err = WithSerializableSequence(ctx, r.database, "live-room:"+tenantID+":"+roomID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID}, "live-room:"+tenantID+":"+roomID, 3, func(tx *sql.Tx) error {
 		var version int64
-		err := tx.QueryRowContext(ctx, `UPDATE investigation_live_rooms SET invite_token_hash=$4,invite_expires_at=$5,version=version+1 WHERE tenant_id=$1 AND id=$2 AND owner_subject_id=$3 AND status IN ('waiting','active') AND expires_at>$6 RETURNING version`, tenantID, roomID, actorID, digest[:], result.ExpiresAt, when).Scan(&version)
+		err := tx.QueryRowContext(ctx, `UPDATE investigation_live_rooms SET invite_token_hash=$4,invite_expires_at=LEAST($5,expires_at),version=version+1 WHERE tenant_id=$1 AND id=$2 AND owner_subject_id=$3 AND status IN ('waiting','active') AND expires_at>$6 RETURNING version,invite_expires_at`, tenantID, roomID, actorID, digest[:], result.ExpiresAt, when).Scan(&version, &result.ExpiresAt)
 		if errors.Is(err, sql.ErrNoRows) {
 			return investigation.ErrLiveRoomNotFound
 		}
@@ -182,7 +195,7 @@ func (r *InvestigationRepository) LeaveLiveRoom(ctx context.Context, command inv
 	}
 	when := liveTime(command.OccurredAt)
 	result := investigation.LiveRoomReceipt{RoomID: roomID, Outcome: "left", OccurredAt: when}
-	err = WithSerializableSequence(ctx, r.database, "investigation-live-room:"+command.TenantID+":"+roomID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorID}, "investigation-live-room:"+command.TenantID+":"+roomID, 3, func(tx *sql.Tx) error {
 		var owner, peer, status string
 		var version int64
 		err := tx.QueryRowContext(ctx, `SELECT owner_subject_id,COALESCE(peer_subject_id,''),status,version FROM investigation_live_rooms WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, command.TenantID, roomID).Scan(&owner, &peer, &status, &version)
@@ -393,7 +406,7 @@ func (r *InvestigationRepository) withLiveOperation(ctx context.Context, tenantI
 		}
 	}
 	digest := sha256.Sum256([]byte(key))
-	return WithSerializableSequence(ctx, r.database, "live-op:"+tenantID+":"+actorID+":"+operation+":"+hex.EncodeToString(digest[:]), 3, func(tx *sql.Tx) error {
+	return WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID}, "live-op:"+tenantID+":"+actorID+":"+operation+":"+hex.EncodeToString(digest[:]), 3, func(tx *sql.Tx) error {
 		var storedFingerprint, body []byte
 		err := tx.QueryRowContext(ctx, `SELECT request_fingerprint,response_body FROM investigation_live_room_operations WHERE tenant_id=$1 AND actor_subject_id=$2 AND operation=$3 AND idempotency_key_hash=$4`, tenantID, actorID, operation, digest[:]).Scan(&storedFingerprint, &body)
 		if err == nil {
@@ -448,7 +461,7 @@ func insertLiveAudit(ctx context.Context, tx liveQuerier, tenantID, actorID, roo
 		return err
 	}
 	metadata, _ := json.Marshal(map[string]string{"status": status, "version": strconv.FormatInt(version, 10)})
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'investigation_live_room',$5,'succeeded',$6,$7,$8)`, id, tenantID, actorID, event, roomID, correlationID, metadata, when)
+	_, err = tx.ExecContext(ctx, `SELECT public.controlled_append_audit_v1($1,$2,$3,$4,'investigation_live_room',$5,'succeeded',$6,$7,$8)`, id, tenantID, actorID, event, roomID, correlationID, metadata, when)
 	return err
 }
 func liveTime(value time.Time) time.Time {

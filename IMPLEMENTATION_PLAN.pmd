@@ -1,0 +1,668 @@
+# LedgerSync Comprehensive Implementation Plan
+
+## Document control
+
+| Field | Value |
+|---|---|
+| Source requirements | `PRD.pmd` version 1.0-draft |
+| Planning baseline | Repository commit `5b4654b` on `codex/progressive-disclosure` |
+| Plan date | 2026-09-08 |
+| Plan owner | `[TBD — product owner]` |
+| Release owner | `[TBD — engineering/release owner]` |
+| Status | Draft for owner assignment and schedule approval |
+| Schedule convention | `D0` is the approved kickoff date; business-day offsets are binding only after owners and capacity are assigned |
+
+## 1. Overview
+
+This plan turns the requirements in `PRD.pmd` into an execution sequence that first produces a fully qualified local MVP and then, only through explicit gates, prepares LedgerSync for a managed environment, a controlled design-partner pilot, and a production decision.
+
+The plan does not add product scope. Existing functionality is preserved and reverified. Optional capabilities already identified in the PRD remain separate, conditional tracks.
+
+### Current baseline
+
+- Required local product capabilities are implemented across authentication, overview, accounts, funding, transfers, approvals, corrections, reconciliation, investigations, live WebRTC rooms, events, webhooks, developer guidance, exports, recovery, local status, help, and responsive/accessibility foundations.
+- The current commit is not an approved MVP release candidate because the latest full Playwright run failed 52 of 206 scenarios.
+- Financial, Go, migration, integration, race, frontend unit/security, build, performance, artifact, and local WebRTC smoke evidence is positive but must be rerun and bound to the exact candidate.
+- Managed identity, managed infrastructure, provider-backed recovery, legal/finance approvals, physical-device review, named operational ownership, partner evidence, and production authority remain open gates.
+
+### Delivery objectives
+
+1. Close every current browser and visual release failure without weakening assertions.
+2. Requalify the complete local MVP against one exact commit.
+3. Finish the API-first developer, operator information architecture, and design/accessibility milestones already marked active or partial.
+4. Prepare the managed environment only after owners, legal/finance decisions, budget, and access are approved.
+5. Run a controlled design-partner pilot before any production release decision.
+
+### Planning rules
+
+- PostgreSQL remains financial authority; Redis remains disposable or ephemeral.
+- Exact-money, double-entry, idempotency, authorization, read-your-writes, migration, and unknown-outcome guarantees are stop-ship invariants.
+- Historical evidence cannot certify changed code.
+- No snapshot, assertion, security rule, or failure state may be weakened to make a gate pass.
+- No cloud resource, provider integration, secret, budget, or production deployment is authorized by this plan.
+- Public-site and provider-led payout work may start only through the gates stated in the PRD.
+
+## 2. Milestone summary
+
+| ID | Milestone | Start | End | Exit decision |
+|---|---|---|---|---|
+| M0 | Candidate baseline and failure ownership | D0 | D0 + 2 business days | Every current failure and requirement has an owner, classification, and proof target. |
+| M1 | Functional browser remediation | D0 + 3 | D0 + 12 business days | All non-visual Playwright failures pass without relaxed assertions. |
+| M2 | Visual, responsive, accessibility, and usability qualification | D0 + 13 | D0 + 22 business days | Approved visuals and automated/manual accessibility evidence pass. |
+| M3 | Exact-commit local MVP release qualification | D0 + 23 | D0 + 27 business days | Complete automated and real-stack gates pass for one exact commit. |
+| M4 | Active product milestone completion | D0 + 28 | D0 + 47 business days | API-first developer, operator IA, and modular design milestones meet documented exits. |
+| M5 | Managed-environment preparation and proof | `[TBD — after M4 and external approvals]` | `[TBD]` | Managed identity, infrastructure, security, observability, and recovery gates pass. |
+| M6 | Controlled design-partner pilot | `[TBD — after M5]` | `[TBD — approved observation window]` | Partner evidence supports graduate, extend, remediate, or stop. |
+| M7 | Production release decision | `[TBD — after M6]` | `[TBD]` | Named authorities record a go/no-go decision from complete evidence. |
+| O1 | Optional separate public website | `[TBD — after its PRD gates]` | `[TBD]` | Evidence-backed public site passes legal, privacy, accessibility, abuse, and monitoring gates. |
+| O2 | Optional provider-led INR payouts | `[TBD — after provider program gates]` | `[TBD]` | Separately modeled payout product passes provider, finance, legal, security, and operations gates. |
+
+Calendar dates remain `[TBD]` because the PRD provides no kickoff date, named staffing allocation, budget approval, external-review dates, or partner observation window. The relative local-MVP sequence is specific and may be converted to dates by setting `D0` without changing dependencies.
+
+## 3. Milestone M0 — Candidate baseline and failure ownership
+
+**Start:** D0  
+**End:** D0 + 2 business days
+
+### Objective
+
+Create one controlled candidate baseline and a complete execution ledger before changing implementation.
+
+### Tasks
+
+- **M0-T01 — Assign accountable owners**
+  - Name product, release, backend, frontend, QA, finance, security, operations, accessibility, and legal owners.
+  - Record decision authority and escalation path for each stop-ship area.
+  - Keep absent external owners as explicit blockers.
+- **M0-T02 — Freeze one candidate**
+  - Select the exact commit from which remediation begins.
+  - Record branch, SHA, toolchain, dependency lockfiles, migration level, generated-contract version, and local runtime profile.
+  - Prevent unrelated feature work from entering the candidate until M3 exits.
+- **M0-T03 — Inventory requirements**
+  - Map every required capability in PRD section 5.1 to source modules, BFF/API routes, tests, operational evidence, and owning role.
+  - Mark optional PRD section 5.2 items as out of the local-MVP critical path.
+  - Confirm all PRD non-goals remain absent or disabled.
+- **M0-T04 — Triage the 52 Playwright failures**
+  - Classify each failure as product defect, stale fixture, intentional visual change, environment issue, or test defect.
+  - Record exact spec/test, affected journey, severity, owner, reproduction command, expected behavior, and exit test.
+  - Treat unexplained failures as product defects until proven otherwise.
+- **M0-T05 — Establish evidence storage**
+  - Create the exact-commit qualification checklist and result location.
+  - Define artifact naming for logs, screenshots, traces, database fingerprints, migration state, and service health.
+  - Exclude secrets, tokens, cookies, invite fragments, SDP/ICE, raw financial payloads, and personal data.
+
+### Exit criteria
+
+- Every PRD requirement maps to implementation and verification evidence.
+- Every failing Playwright scenario has one classification and owner.
+- Candidate SHA and supported local runtime are frozen.
+- No unresolved scope ambiguity remains inside the local MVP.
+
+### Required resources
+
+- Product/release owner, frontend engineer, backend engineer, and QA owner.
+- Git, existing test reports, repository specifications, and master delivery register.
+- Budget: internal engineering allocation `[TBD]`; no external spend required.
+
+## 4. Milestone M1 — Functional browser remediation
+
+**Start:** D0 + 3 business days  
+**End:** D0 + 12 business days
+
+### Objective
+
+Repair all functional browser failures before reviewing visual baselines.
+
+### Tasks
+
+- **M1-T01 — Repair account-command failures**
+  - Reproduce account closure, zero-balance, reason, typed-reference, optimistic-version, and retry behavior.
+  - Preserve freeze, reactivate, and permanent-close authorization and idempotency.
+  - Verify independent account, balance, and history failure states.
+- **M1-T02 — Repair onboarding and orientation failures**
+  - Verify new local user orientation, guide evidence graph, stored evidence, manual confirmations, and reset wording.
+  - Ensure unavailable or incomplete evidence cannot create a false completion claim.
+  - Preserve direct dashboard entry and server-controlled local mode.
+- **M1-T03 — Repair reconciliation failures**
+  - Fix run creation, current-run conflict, stable run identity, preserved history, return context, and URL-reproducible filters.
+  - Keep match/mismatch/running/unavailable states authoritative.
+  - Verify an absent response never produces a global all-clear.
+- **M1-T04 — Repair search and investigation failures**
+  - Restore keyboard navigation from search result to canonical detail.
+  - Verify saved-view maintenance, tenant/operator scoping, related evidence, and workspace return context.
+  - Preserve strict query bounds and non-disclosing authorization errors.
+- **M1-T05 — Repair session-boundary failures**
+  - Exercise absent, valid, expired, malformed, oversized, and unavailable sessions across console route families.
+  - Verify cookie budget, CSRF, origin, rotation/deletion behavior, capability mapping, and safe sign-in return.
+- **M1-T06 — Repair read-concurrency and pagination failures**
+  - Cancel superseded reads and reject late responses.
+  - Remove page overlap and duplicate records under rapid account/history requests.
+  - Preserve cursor, filter, and return state.
+- **M1-T07 — Regress core financial journeys after every fix group**
+  - Run focused transfer, funding, approval, correction, reconciliation, and unknown-outcome suites.
+  - Confirm exact integer money, idempotency, authorization, balanced postings, and read-your-writes remain unchanged.
+  - Do not update visual snapshots in M1.
+
+### Exit criteria
+
+- Every non-visual Playwright failure passes in isolation and in the full functional suite.
+- No assertion is removed, broadened, skipped, or downgraded without an approved requirement change.
+- Core financial unit, security, and integration suites remain green.
+- No new migration, contract, or generated-artifact drift is present.
+
+### Required resources
+
+- Frontend engineer, QA/SDET, backend engineer for BFF/API boundary defects, finance reviewer for financial-state questions.
+- Playwright traces/screenshots, Next.js development server, Go API, disposable PostgreSQL/Redis stack.
+- Budget: engineering allocation `[TBD]`; no vendor spend required.
+
+## 5. Milestone M2 — Visual, responsive, accessibility, and usability qualification
+
+**Start:** D0 + 13 business days  
+**End:** D0 + 22 business days
+
+### Objective
+
+Approve intentional UI changes, fix visual defects, and prove the required journeys remain understandable and operable.
+
+### Tasks
+
+- **M2-T01 — Review every visual difference**
+  - Compare account, transfer, funding, approval, reconciliation, investigation, event, webhook, recovery, developer, local-status, error, empty, loading, denied, offline, and unknown-outcome states.
+  - Fix unintended spacing, clipping, alignment, hierarchy, stale-data, or unavailable-action defects.
+  - Replace a baseline only after a named reviewer records why the new rendering is correct.
+- **M2-T02 — Execute the responsive matrix**
+  - Test 320, 360, 390, 768, 1024, 1280, 1440, and 1920 CSS-pixel widths.
+  - Test representative phone landscape and short-laptop heights.
+  - Include long account names, large exact amounts, validation errors, expanded evidence, empty registers, filters, pagination, and live-room states.
+  - Reject page-level horizontal overflow, truncated money, hidden controls, and global overflow clipping.
+- **M2-T03 — Execute automated accessibility checks**
+  - Run axe/WCAG AA checks, keyboard flows, focus restoration, semantic labels, announcements, and landmark checks.
+  - Verify 200% zoom, 400% reflow, increased text spacing, forced colors, and reduced motion.
+  - Verify 44×44 CSS-pixel touch targets and typography floors.
+- **M2-T04 — Execute physical-device and assistive-technology review**
+  - Test an approved phone, tablet, laptop, and desktop/browser set.
+  - Test with `[TBD — named screen reader and browser combinations]`.
+  - Record device, OS, browser, assistive technology, tester, defects, and retest outcome.
+- **M2-T05 — Conduct moderated operator sessions**
+  - Recruit `[TBD — representative operator sample]`.
+  - Test sign-in, finding usable balance/freshness, recording funding, completing/recovering a transfer, processing a review, and finding technical evidence.
+  - Require all participants to avoid unsafe duplication after an uncertain transfer.
+  - Resolve repeated confusion according to the PRD success criteria.
+- **M2-T06 — Obtain financial-language approval**
+  - Review balance, aggregation, funding, correction, reconciliation, posting, delivery, and unknown-outcome language with named finance/product authorities.
+  - Record approved wording, date, evidence, and review expiry.
+
+### Exit criteria
+
+- Full visual-regression suite passes against deliberately approved baselines.
+- Required viewport, zoom, reflow, text-spacing, forced-color, reduced-motion, keyboard, and screen-reader checks pass.
+- No unavailable action lacks a visible reason and recovery path where applicable.
+- No urgent financial state is hidden or visually downgraded.
+- Moderated usability and financial-language thresholds are recorded or remain explicit blockers.
+
+### Required resources
+
+- Product designer, frontend engineer, QA/SDET, accessibility specialist/reviewer, finance/product reviewer, representative operators.
+- Browser/device matrix, screen-reader tools, Playwright/axe, screenshot comparison workflow.
+- Budget: device/reviewer and participant budget `[TBD]`.
+
+## 6. Milestone M3 — Exact-commit local MVP release qualification
+
+**Start:** D0 + 23 business days  
+**End:** D0 + 27 business days
+
+### Objective
+
+Produce one complete, reproducible release result for the exact local-MVP candidate.
+
+### Tasks
+
+- **M3-T01 — Freeze the release candidate**
+  - Record SHA, dependency locks, migrations, generated artifacts, container digests, runtime configuration keys, and supported operating boundary.
+  - Verify the working tree contains no unintended source, secret, test artifact, or user document.
+- **M3-T02 — Run complete frontend gates**
+  - Run lint, TypeScript, unit/security/UI, full Playwright, visual, performance, production build, configuration, and artifact checks.
+  - Enforce 350 KB chunk, 2 MB total JavaScript, 160 KB individual font, and 320 KB total font limits.
+- **M3-T03 — Run complete Go and data gates**
+  - Run formatting, vet, unit, authorization, contract, integration, migration compatibility, race, fault, retention, and recovery suites.
+  - Verify ordered forward migrations and the no-runtime-DDL boundary.
+  - Confirm public generated artifacts exclude private session and live-room signalling contracts.
+- **M3-T04 — Run clean Linux/container gates**
+  - Execute clean dependency installation and production API/web/worker image builds.
+  - Verify read-only/runtime hardening, private networking, health checks, capability restrictions, and reproducible startup.
+- **M3-T05 — Run isolated real-stack financial smoke**
+  - Use disposable PostgreSQL/Redis data.
+  - Exercise sign-in, account creation, funding request/review/posting, transfer completion/rejection/uncertainty, approval, correction, reconciliation, events, exports, and recovery evidence.
+  - Verify exact balances, journals, postings, versions, outbox records, audits, and idempotency outcomes.
+- **M3-T06 — Run fault and recovery smoke**
+  - Exercise response loss after commit, double submission, reload during uncertainty, stale balances, permission changes, session expiry, browser-storage failure, Redis loss, partial reads, and primary dependency loss.
+  - Run backup/restore, cache rebuild, and zero-unexplained-mismatch reconciliation.
+- **M3-T07 — Run two-operator WebRTC smoke**
+  - Use two isolated authenticated principals against the same disposable stack.
+  - Verify unresolved status, room creation, single-use invite, third-user denial, bidirectional bounded text, reconnect, authoritative resolution, valid structured finding, and expiry/end.
+  - Verify camera/microphone remain disabled and no transcript/signalling data enters PostgreSQL or audit metadata.
+- **M3-T08 — Publish exact-commit evidence**
+  - Record commands, timestamps, results, screenshots, fingerprints, limitations, and cleanup.
+  - Update the master delivery register and local-MVP gate status for the exact SHA.
+  - Obtain named product and engineering approval for local-only release.
+
+### Exit criteria
+
+- Every mandatory automated and real-stack gate passes for one exact commit.
+- Unexpected skips, ignored snapshots, partial suites, or unexplained failures count as failures.
+- Disposable test data is removed and normal local data remains unchanged.
+- The local runtime is healthy after qualification.
+- Exact-commit evidence and known limitations are reviewable.
+
+### Required resources
+
+- Release owner, frontend/backend engineers, QA/SDET, security reviewer, operations/recovery owner, finance reviewer.
+- Supported Windows host, Docker, clean Linux container environment, PostgreSQL, Redis, Playwright, security scanners, artifact generator.
+- Budget: engineering/release allocation `[TBD]`; external scan budget `[TBD if required]`.
+
+## 7. Milestone M4 — Active product milestone completion
+
+**Start:** D0 + 28 business days  
+**End:** D0 + 47 business days
+
+### Objective
+
+Complete only the active/partial product work already defined in the PRD and master register.
+
+### Workstream A — API-first developer product
+
+- **M4-T01 — Complete integration recipes**
+  - Add and test the documented supported-language examples.
+  - Cover exact money, idempotency, correlation, errors, pagination, events, webhook verification, and safe retries.
+- **M4-T02 — Complete bounded bulk provisioning**
+  - Implement only the already-approved provisioning scope.
+  - Enforce authorization, strict input bounds, deterministic results, partial-failure reporting, idempotency, and audit.
+- **M4-T03 — Complete shared replay protection and endpoint verification**
+  - Enforce server-owned verification, bounded nonce/timestamp/replay rules, and audited endpoint lifecycle.
+  - Exercise rotation, rollback, compromise, and failure runbooks.
+- **M4-T04 — Requalify developer artifacts**
+  - Regenerate OpenAPI, SDK catalogues, Postman collection, and examples.
+  - Verify no private BFF/session/signalling interfaces are published.
+
+### Workstream B — Operator information architecture
+
+- **M4-T05 — Complete the bounded approval inbox**
+  - Verify all supported funding/correction/replay approval sources, urgency, filters, canonical links, separation of duties, coverage, and unavailable states.
+- **M4-T06 — Complete the webhook workspace**
+  - Standardize endpoint, delivery, verification, replay-review, replay-result, and failure evidence.
+  - Keep delivery state separate from financial posting.
+- **M4-T07 — Standardize operational lists**
+  - Apply consistent server-backed search, filters, sorting, result counts, pagination, URL state, saved views, evidence, and exports across supported domains.
+  - Preserve deep links and return context.
+- **M4-T08 — Keep administration unreleased**
+  - Verify the route remains hidden and server-denied until a separate privileged contract and approval exist.
+
+### Workstream C — Design/accessibility modularization
+
+- **M4-T09 — Split remaining hotspots**
+  - Decompose large client views into list, detail, entry, review, result, and evidence modules.
+  - Co-locate responsive rules and preserve one semantic component tree across devices.
+- **M4-T10 — Consolidate shared UI contracts**
+  - Reuse page headers, registers, responsive records, money, time, identities, evidence, result summaries, guided reviews, and action availability.
+  - Keep domain wording in presentation adapters rather than independent components.
+- **M4-T11 — Remove obsolete code safely**
+  - Audit candidates first.
+  - Delete only items approved under the repository cleanup protocol and only after proportional tests prove behavior unchanged.
+- **M4-T12 — Qualify M4 as one release candidate**
+  - Repeat M3 gates for the exact M4 commit and update the master register.
+
+### Exit criteria
+
+- Master milestones for API-first developer product, operator IA, and unified design/accessibility meet their documented exits.
+- Administration remains absent and protected.
+- No public financial contract or financial invariant changes without versioned review.
+- Complete exact-commit qualification passes after modularization.
+
+### Required resources
+
+- Developer-platform engineer, frontend engineer, backend engineer, product designer, accessibility reviewer, QA/SDET, security reviewer.
+- Existing contract generator, test stacks, design system, and documentation tooling.
+- Budget: engineering/design allocation `[TBD]`.
+
+## 8. Milestone M5 — Managed-environment preparation and proof
+
+**Start:** `[TBD — only after M4 and required approvals]`  
+**End:** `[TBD]`
+
+### Objective
+
+Prove LedgerSync in an approved managed environment without starting partner traffic.
+
+### Tasks
+
+- **M5-T01 — Close product, finance, and legal decisions**
+  - Approve jurisdiction, legal entity, initial currency, non-custodial wording, prohibited uses, tenant/account limits, negative-balance rule, destination policy, retention/deletion, and pause authority.
+  - Record named authorities, evidence, effective date, and review expiry.
+- **M5-T02 — Approve environment and budget**
+  - Approve cloud account, region, DNS, budget ceiling, billing owner, access method, and destruction/exit process.
+  - Keep credentials and secrets outside Git, chat, and documentation.
+- **M5-T03 — Implement and prove managed identity**
+  - Configure approved OIDC, MFA, PKCE where applicable, tenant/operator mapping, workload credentials, scopes, grants, renewal, revocation, and rotation.
+  - Verify production demo identity fails closed.
+- **M5-T04 — Implement reviewed infrastructure**
+  - Create approved network, compute, PostgreSQL, Redis, secret/key, backup, logging, and observability resources through reviewed infrastructure code.
+  - Keep data services private and restrict workload egress.
+- **M5-T05 — Bind security and privacy controls**
+  - Complete threat-model updates, least-privilege roles, managed secrets, retention, audit access, supply-chain evidence, and independent security review.
+  - Resolve all critical/high findings before traffic.
+- **M5-T06 — Bind observability and incident operations**
+  - Define SLOs, alert thresholds, paging, dashboards, customer/status communication, ownership, and escalation.
+  - Exercise database, Redis, outbox, identity, webhook, reconciliation, and secret-compromise runbooks with named participants.
+- **M5-T07 — Prove managed backup and recovery**
+  - Approve RPO/RTO.
+  - Run provider-backed point-in-time restore in isolation, rebuild Redis, and reconcile with zero unexplained difference.
+- **M5-T08 — Qualify production WebRTC dependencies if enabled**
+  - Select approved ephemeral TURN-credential provider and shared Redis namespace/configuration.
+  - Verify fail-closed behavior, network privacy, expiry, abuse limits, and collaboration-failure isolation.
+  - Leave the feature disabled if any requirement is unavailable.
+- **M5-T09 — Run exact-release managed qualification**
+  - Repeat functional, security, fault, capacity, accessibility, migration, and recovery gates against the deployed signed SHA.
+
+### Exit criteria
+
+- All managed-environment, identity, security, legal, finance, operations, observability, and restore gates pass.
+- No critical/high security finding remains open.
+- The exact deployed SHA and artifacts are traceable.
+- Partner traffic remains disabled until M6 authorization.
+
+### Required resources
+
+- Product, finance, legal/compliance, platform, security, SRE/operations, backend/frontend, QA, and accessibility owners.
+- Approved cloud/identity/observability providers and security-review capability.
+- Budget: cloud, identity, TURN/Redis, observability, security, legal, and recovery-test budgets `[TBD and explicitly approved]`.
+
+## 9. Milestone M6 — Controlled design-partner pilot
+
+**Start:** `[TBD — after M5]`  
+**End:** `[TBD — approved observation window]`
+
+### Objective
+
+Collect real product, financial, reliability, security, support, and usability evidence under signed limits.
+
+### Tasks
+
+- **M6-T01 — Select and contract the first partner**
+  - Confirm permitted use case, tenant, accounts, currency, limits, support contacts, data boundary, incident contacts, pause/offboarding procedure, and consent.
+- **M6-T02 — Provision deterministically**
+  - Use bounded, audited provisioning and least-privilege credentials.
+  - Dry-run rollback and offboarding before granting traffic.
+- **M6-T03 — Start at the approved envelope**
+  - Enforce the documented limit of no more than 25 TPS or the lower signed partner limit.
+  - Keep feature flags and privileged functions disabled unless explicitly approved.
+- **M6-T04 — Operate and measure**
+  - Track transfer outcomes/latency, balance reads, duplicate handling, reconciliation, authorization, outbox/webhooks, support cases, investigation time, incidents, and recovery signals.
+  - Preserve redacted daily/weekly evidence.
+- **M6-T05 — Enforce stop conditions**
+  - Pause affected movement for duplicate movement, unexplained mismatch, authorization breach, stale-current balance, unacceptable recovery, or unresolved critical/high security issue.
+- **M6-T06 — Complete graduation scorecard**
+  - Record actual evidence for safety, reliability, recovery, security, accessibility, operations, legal/finance, and product value.
+  - Obtain named graduate, extend, remediate, or stop decisions.
+- **M6-T07 — Add partners only after evidence permits**
+  - Do not expand beyond the first partner until the approved first-partner evidence supports it.
+
+### Exit criteria
+
+- One approved observation window is complete.
+- Zero duplicate movements, unauthorized disclosures, stale-current claims, and unexplained reconciliation mismatches occurred.
+- Named authorities sign the graduation scorecard.
+- The outcome is graduate, extend, remediate, or stop; no undocumented conditional pass is allowed.
+
+### Required resources
+
+- Partner owner, product, support, finance, security, SRE/on-call, engineering, legal/compliance, and release authority.
+- Approved managed environment, support/incident tooling, evidence storage, and partner communication channel.
+- Budget: partner support, on-call, managed services, incident response, and review budget `[TBD]`.
+
+## 10. Milestone M7 — Production release decision
+
+**Start:** `[TBD — after M6]`  
+**End:** `[TBD]`
+
+### Objective
+
+Make an evidence-based production decision and, only if approved, execute a controlled release.
+
+### Tasks
+
+- **M7-T01 — Assemble release dossier**
+  - Include exact SHA, artifacts, SBOM/provenance, migrations, contracts, test results, managed recovery evidence, security findings, legal/finance approvals, partner scorecard, and known limitations.
+- **M7-T02 — Conduct go/no-go review**
+  - Require named product, engineering, finance, security, operations, legal/compliance, and partner authorities.
+  - Reject release if any stop-ship evidence is missing, expired, blocked, or failed.
+- **M7-T03 — Execute staged release only after approval**
+  - Deploy the signed candidate using reviewed migration and rollback procedures.
+  - Validate health, identity, authorization, balances, transfers, reconciliation, delivery, alerts, and recovery readiness before increasing traffic.
+- **M7-T04 — Establish ongoing controls**
+  - Schedule access reviews, secret rotation, restore drills, security scans, reconciliation review, capacity review, dependency updates, and incident exercises.
+
+### Exit criteria
+
+- A signed go/no-go decision exists.
+- If approved, the deployed artifact matches the signed candidate and staged verification passes.
+- Ongoing owners, SLOs, reviews, and pause authority are active.
+
+### Required resources
+
+- All named product, engineering, finance, security, operations, legal/compliance, and release authorities.
+- Managed deployment, observability, recovery, security, and evidence tooling.
+- Budget: production operating and review budget `[TBD and approved]`.
+
+## 11. Optional track O1 — Separate public website
+
+**Start:** `[TBD — after separate public-site approval]`  
+**End:** `[TBD]`
+
+This track is not required for the local MVP.
+
+### Tasks
+
+- Define evidence-backed public positioning from approved product boundaries.
+- Build a separate public surface without importing financial authority or protected workspace data.
+- Add only approved pilot-request, trust, legal/privacy, and accessibility content.
+- Implement required abuse controls, monitoring, caching, metadata, and non-personalized delivery.
+- Complete legal, privacy, accessibility, performance, and security review before publication.
+
+### Exit criteria
+
+- No unsupported banking, custody, settlement, customer, certification, or production-readiness claim appears.
+- Public pages cannot request or cache protected workspace data.
+- All links, forms, accessibility, abuse controls, and monitoring pass.
+
+### Resources and budget
+
+- Product/marketing, design, frontend, legal/privacy, accessibility, security, and operations.
+- Budget: `[TBD]`.
+
+## 12. Optional track O2 — Provider-led INR payouts
+
+**Start:** `[TBD — after provider-program gates]`  
+**End:** `[TBD]`
+
+This track is not part of the current MVP and must use the existing separate payout specification.
+
+### Tasks
+
+- Select and contract a licensed provider before enabling a live adapter.
+- Obtain approved beneficiary, clearing-account, fee, limit, retention, legal, security, and operations decisions.
+- Implement the separate payout domain with exact INR minor units, reservation, two-person approval, durable dispatch, authenticated callbacks, settlement, release, and reconciliation states.
+- Verify idempotency, replay protection, requester/approver separation, fee truth, reservation safety, provider timeout, callback reordering/duplication, settlement evidence, and mismatch handling.
+- Use a deterministic fake sandbox adapter until all live-provider gates pass.
+
+### Exit criteria
+
+- Provider activity cannot post ledger value without authenticated provider settlement evidence.
+- Non-settled terminal outcomes release reservation exactly once without editing history.
+- Operators can explain request, approval, dispatch, provider, fee, settlement, ledger, and reconciliation state without database access.
+
+### Resources and budget
+
+- Provider integration, financial engineering, finance, security, legal/compliance, operations, QA, and partner support.
+- Provider, sandbox, security, legal, and operational budget `[TBD]`.
+
+## 13. Cross-cutting implementation requirements
+
+### Financial correctness
+
+- Keep integer minor-unit money and explicit currency across API, database, UI, exports, logs, tests, and examples.
+- Preserve balanced immutable postings and atomic transfer/funding/correction outcomes.
+- Preserve stable account locking, balance versions, limits, and no-overdraft rules.
+
+### Security and privacy
+
+- Enforce tenant, subject, role, scope, object, CSRF, origin, size, timeout, rate, and correlation controls at server boundaries.
+- Keep secrets, credentials, session data, consistency requirements, invite tokens, SDP/ICE, full balances, and personal data out of logs and generated public artifacts.
+- Fail closed when required production protections are unavailable.
+
+### Reliability
+
+- Preserve idempotent commands and exact retry intent through unknown outcomes.
+- Keep financial posting, cache, delivery, and collaboration states independent.
+- Prefer truthful unavailability over stale or inferred financial state.
+
+### Data and migrations
+
+- Use ordered forward migrations, explicit deployment steps, compatibility tests, and no runtime production DDL.
+- Preserve append-only financial/audit evidence and approved retention controls.
+
+### UX and accessibility
+
+- Maintain Outcome → Explanation → Evidence hierarchy.
+- Use Details → Review → Result for financial commands.
+- Preserve exact amount, currency, identity, timestamps, provenance, and actions at every viewport.
+- Use shared semantic components and visible unavailable reasons.
+
+### Evidence
+
+- Bind every completion claim to an exact commit, environment, timestamp, command/result, and named owner where required.
+- Treat missing, expired, skipped, partial, or unexplained evidence as not passed.
+
+## 14. Dependency sequence
+
+```text
+M0 baseline
+  → M1 functional browser remediation
+    → M2 visual/accessibility/usability qualification
+      → M3 exact-commit local MVP qualification
+        → M4 active product milestone completion
+          → M5 managed-environment proof
+            → M6 controlled partner pilot
+              → M7 production decision
+
+O1 public website: separate approval → independent implementation/review
+O2 payouts: provider + finance + legal + security gates → separate implementation/review
+```
+
+M1 and M2 may not be reversed: visual baselines cannot be approved while functional behavior is still unexplained. M5–M7 may not start from local-only evidence.
+
+## 15. Resource summary
+
+### Personnel
+
+- Product/release owner: `[TBD]`
+- Backend/platform engineer: `[TBD]`
+- Frontend engineer: `[TBD]`
+- QA/SDET: `[TBD]`
+- Product designer: `[TBD]`
+- Accessibility reviewer: `[TBD]`
+- Finance/ledger authority: `[TBD]`
+- Security engineer/reviewer: `[TBD]`
+- SRE/operations/on-call owner: `[TBD]`
+- Legal/compliance authority: `[TBD]`
+- Partner/support owner: `[TBD]`
+
+### Tools
+
+- Existing Git/GitHub workflows and repository evidence structure.
+- Go, Node.js, Next.js, TypeScript, ESLint, Playwright, and axe.
+- Docker Compose, PostgreSQL, Redis, migration and artifact tooling.
+- Existing dependency, secret, source, image, and infrastructure scanners.
+- Approved physical devices, browsers, and screen readers `[TBD]`.
+- Managed cloud, identity, observability, backup, security, and TURN services only after approval.
+
+### Budget register
+
+| Category | Required by | Approved amount | Owner/status |
+|---|---|---:|---|
+| Local engineering and QA | M0–M4 | `[TBD]` | `[TBD]` |
+| Product design/accessibility devices and reviewers | M2/M4 | `[TBD]` | `[TBD]` |
+| Moderated operator research | M2 | `[TBD]` | `[TBD]` |
+| Managed cloud/database/cache | M5–M7 | `[TBD]` | Not authorized |
+| Identity provider | M5–M7 | `[TBD]` | Not authorized |
+| TURN/shared Redis for production collaboration | M5 | `[TBD]` | Not authorized |
+| Observability/on-call | M5–M7 | `[TBD]` | Not authorized |
+| Security review/penetration test | M5/M7 | `[TBD]` | `[TBD]` |
+| Legal/compliance | M5–M7/O1/O2 | `[TBD]` | `[TBD]` |
+| Partner onboarding/support | M6 | `[TBD]` | `[TBD]` |
+| Payout provider program | O2 | `[TBD]` | Not authorized |
+
+## 16. Risk controls
+
+| Risk | Control | Stop-ship condition |
+|---|---|---|
+| Current browser failures | M0 triage, M1 fixes, M2 review, M3 full rerun | Any unexplained failure remains. |
+| False exact-commit claim | Candidate freeze and evidence manifest | Evidence SHA differs from release SHA. |
+| Duplicate or conflicting financial movement | Idempotency, canonical fingerprints, locking, immutable postings | Any duplicate movement or unexplained conflict. |
+| Stale balance shown as current | Version requirement, bounded wait, PostgreSQL fallback | Any stale-current result. |
+| Cross-tenant disclosure | Server authorization and non-disclosing errors | Any unauthorized disclosure. |
+| Misleading financial/delivery state | Separate state dimensions and approved copy | Any UI or API conflation that can cause unsafe action. |
+| WebRTC data or command leakage | Ephemeral bounded channel, no commands/transcript, strict audits, TURN gate | Any persisted/logged signalling/chat or command path. |
+| Migration incompatibility | Forward migration and compatibility suite | Any supported upgrade failure or history rewrite. |
+| Unproven accessibility | Automated plus named physical/assistive review | Critical journey cannot be completed. |
+| Unproven managed recovery | Provider PITR plus reconciliation | RPO/RTO or zero-mismatch evidence absent. |
+| Missing legal/finance authority | Signed decisions before managed use | Required decision absent or expired. |
+
+## 17. Requirement coverage matrix
+
+| PRD area | Plan coverage |
+|---|---|
+| Executive readiness blockers | M0–M3 |
+| Authentication/session | M1, M3, M5 |
+| Overview/accounts/funding/transfers | M1–M3 |
+| Approvals/corrections/reconciliation | M1, M3, M4 |
+| Search/workspaces/saved views | M1, M3, M4 |
+| Text-only live rooms | M3, M5 |
+| Events/webhooks/developer | M3, M4 |
+| Recovery/local status | M3, M5 |
+| Responsive/accessibility/usability | M2, M3, M4 |
+| Technical/security/data requirements | M1–M5 and cross-cutting section 13 |
+| Performance/capacity | M3, M5, M6 |
+| Managed/pilot/production gates | M5–M7 |
+| Separate public website | O1 |
+| Provider-led payouts | O2 |
+| Non-goals | M0 inventory and all milestone stop conditions |
+| Resources/budget/placeholders | Sections 3–12 and 15 |
+
+## 18. Completion checklist
+
+- [ ] Every PRD required feature maps to an owner, implementation location, and passing proof.
+- [ ] All 52 current Playwright failures are resolved and the complete suite passes.
+- [ ] Visual changes are individually reviewed; no blanket snapshot approval is used.
+- [ ] Responsive, accessibility, physical-device, and moderated-usability evidence is complete.
+- [ ] Full frontend, Go, security, migration, container, performance, artifact, real-stack, fault, and recovery gates pass.
+- [ ] Exact-commit local-MVP evidence is published and approved.
+- [ ] Active API-first, operator IA, and design/accessibility milestones are completed and requalified.
+- [ ] Managed environment is not created before owners, budget, legal/finance decisions, and access are approved.
+- [ ] Pilot traffic is not started before managed identity, security, observability, operations, and recovery gates pass.
+- [ ] Production is not released without a signed evidence-based go/no-go decision.
+- [ ] Optional public-site and payout tracks remain separate and gated.
+
+## 19. Immediate next actions
+
+1. Product owner sets `D0` and assigns the M0 owner table.
+2. Release owner freezes the candidate SHA and publishes the 52-failure triage register.
+3. Frontend/QA begin M1 in the order: account commands, onboarding/orientation, reconciliation, search, session, pagination.
+4. Finance owner resolves any behavior/copy question before implementation changes financial meaning.
+5. Product, engineering, and QA schedule the M2 device, accessibility, and moderated-review resources before M1 ends.
+
+## 20. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0-draft | 2026-09-08 | Initial implementation plan derived from `PRD.pmd`. |

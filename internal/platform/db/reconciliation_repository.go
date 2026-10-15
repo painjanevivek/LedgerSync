@@ -43,21 +43,21 @@ func NewReconciliationRepository(database *sql.DB, telemetry ...*observability.T
 func (r *ReconciliationRepository) Reconcile(ctx context.Context, tenantID string, startedAt time.Time) (result reconciliation.Result, err error) {
 	started := time.Now()
 	ctx, span := r.start(ctx, "db.reconciliation.run")
-	defer func() { span.End(); r.observe(ctx, started, err) }()
+	defer func() { r.observe(ctx, started, err); span.End() }()
 
-	tx, err := r.database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+	tx, err := beginTenantTransaction(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: "system:reconciliation"}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	if err != nil {
 		return reconciliation.Result{}, fmt.Errorf("begin reconciliation snapshot: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	locked, err := acquireReconciliationLock(ctx, tx, tenantID)
+	locked, err := acquireReconciliationLock(ctx, tx.Tx, tenantID)
 	if err != nil {
 		return reconciliation.Result{}, err
 	}
 	if !locked {
 		return reconciliation.Result{}, reconciliation.ErrAlreadyRunning
 	}
-	result, err = r.reconcileTx(ctx, tx, tenantID, "", "", "", startedAt)
+	result, err = r.reconcileTx(ctx, tx.Tx, tenantID, "", "", "", startedAt)
 	if err != nil {
 		return reconciliation.Result{}, err
 	}
@@ -70,6 +70,10 @@ func (r *ReconciliationRepository) Reconcile(ctx context.Context, tenantID strin
 func (r *ReconciliationRepository) reconcileTx(ctx context.Context, tx *sql.Tx, tenantID, actorID, correlationID, runID string, startedAt time.Time) (reconciliation.Result, error) {
 
 	var watermark, schemaVersion string
+	snapshot := &reconciliation.OutboxSnapshot{Isolation: "repeatable_read"}
+	if err := tx.QueryRowContext(ctx, `SELECT transaction_timestamp(),count(*) FILTER(WHERE published_at IS NULL AND dead_at IS NULL)::text,count(*) FILTER(WHERE published_at IS NOT NULL)::text,count(*) FILTER(WHERE dead_at IS NOT NULL)::text FROM outbox_events WHERE tenant_id=$1`, tenantID).Scan(&snapshot.SampledAt, &snapshot.PendingCount, &snapshot.PublishedCount, &snapshot.DeadCount); err != nil {
+		return reconciliation.Result{}, fmt.Errorf("read snapshot delivery counts: %w", err)
+	}
 	if err := tx.QueryRowContext(ctx, `SELECT txid_current_snapshot()::text, COALESCE((SELECT max(version) FROM schema_migrations), 'unknown')`).Scan(&watermark, &schemaVersion); err != nil {
 		return reconciliation.Result{}, fmt.Errorf("read reconciliation watermark: %w", err)
 	}
@@ -145,28 +149,18 @@ ORDER BY a.id`, tenantID)
 		status = reconciliation.StatusMismatch
 	}
 	applicationVersion := buildVersion()
-	details, _ := json.Marshal(map[string]any{"comparison": "opening_baseline_plus_immutable_postings_to_projection", "scope": reconciliationScope, "ledger_watermark": watermark, "application_version": applicationVersion, "schema_version": schemaVersion, "posting_count": strconv.Itoa(postingCount)})
-	if _, err := tx.ExecContext(ctx, `INSERT INTO reconciliation_runs (id,tenant_id,status,checked_account_count,mismatch_count,correlation_id,started_at,completed_at,details,scope,ledger_watermark,application_version,schema_version,posting_count) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, runID, tenantID, status, checked, len(mismatches), correlationID, startedAt, completedAt, details, reconciliationScope, watermark, applicationVersion, schemaVersion, postingCount); err != nil {
-		return reconciliation.Result{}, fmt.Errorf("persist reconciliation run: %w", err)
+	details, _ := json.Marshal(map[string]any{"comparison": "opening_baseline_plus_immutable_postings_to_projection", "scope": reconciliationScope, "ledger_watermark": watermark, "application_version": applicationVersion, "schema_version": schemaVersion, "posting_count": strconv.Itoa(postingCount), "outbox_snapshot": snapshot})
+	if mismatches == nil {
+		mismatches = []reconciliationMismatch{}
 	}
-	for index := range mismatches {
-		if err := persistMismatch(ctx, tx, runID, tenantID, completedAt, &mismatches[index]); err != nil {
-			return reconciliation.Result{}, err
-		}
-	}
-	outcome := "succeeded"
-	if status != reconciliation.StatusMatched {
-		outcome = "failed"
-	}
-	auditDetails, _ := json.Marshal(map[string]any{"status": status, "scope": reconciliationScope, "checked_account_count": checked, "posting_count": postingCount, "mismatch_count": len(mismatches), "ledger_watermark": watermark})
-	auditID, err := newUUID()
+	encodedMismatches, err := json.Marshal(mismatches)
 	if err != nil {
-		return reconciliation.Result{}, err
+		return reconciliation.Result{}, fmt.Errorf("encode reconciliation mismatches: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.completed','reconciliation_run',$4,$5,$6,$7,$8)`, auditID, tenantID, nullableString(actorID), runID, outcome, correlationID, auditDetails, completedAt); err != nil {
-		return reconciliation.Result{}, fmt.Errorf("persist reconciliation audit: %w", err)
+	if _, err := tx.ExecContext(ctx, `SELECT public.controlled_record_reconciliation_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, runID, tenantID, nullableString(actorID), checked, postingCount, correlationID, startedAt, completedAt, details, watermark, applicationVersion, schemaVersion, encodedMismatches); err != nil {
+		return reconciliation.Result{}, fmt.Errorf("persist controlled reconciliation evidence: %w", err)
 	}
-	return reconciliation.Result{ID: runID, TenantID: tenantID, CorrelationID: correlationID, Scope: reconciliationScope, LedgerWatermark: watermark, ApplicationVersion: applicationVersion, SchemaVersion: schemaVersion, Status: status, CheckedAccountCount: checked, PostingCount: postingCount, MismatchCount: len(mismatches), StartedAt: startedAt, CompletedAt: completedAt}, nil
+	return reconciliation.Result{OutboxSnapshot: snapshot, ID: runID, TenantID: tenantID, CorrelationID: correlationID, Scope: reconciliationScope, LedgerWatermark: watermark, ApplicationVersion: applicationVersion, SchemaVersion: schemaVersion, Status: status, CheckedAccountCount: checked, PostingCount: postingCount, MismatchCount: len(mismatches), StartedAt: startedAt, CompletedAt: completedAt}, nil
 }
 
 func acquireReconciliationLock(ctx context.Context, tx *sql.Tx, tenantID string) (bool, error) {
@@ -251,19 +245,6 @@ HAVING count(p.id)<2 OR COALESCE(SUM(CASE WHEN p.direction='credit' THEN p.amoun
 	return result, rows.Err()
 }
 
-func persistMismatch(ctx context.Context, tx *sql.Tx, runID, tenantID string, createdAt time.Time, mismatch *reconciliationMismatch) error {
-	id, err := newUUID()
-	if err != nil {
-		return err
-	}
-	mismatch.ID = id
-	details, _ := json.Marshal(mismatch.Details)
-	if _, err := tx.ExecContext(ctx, `INSERT INTO reconciliation_mismatches (id,run_id,tenant_id,account_id,transfer_id,classification,currency,expected_minor,observed_minor,observed_available_minor,balance_version,sanitized_details,created_at) VALUES ($1,$2,$3,$4::uuid,$5::uuid,$6,$7,$8,$9,$10,$11,$12,$13)`, id, runID, tenantID, nullableUUID(mismatch.AccountID), nullableUUID(mismatch.TransferID), mismatch.Classification, nullableString(mismatch.Currency), mismatch.ExpectedMinor, mismatch.ObservedMinor, mismatch.ObservedAvailableMinor, mismatch.BalanceVersion, details, createdAt); err != nil {
-		return fmt.Errorf("persist reconciliation mismatch: %w", err)
-	}
-	return nil
-}
-
 func nullableUUID(value string) any {
 	if value == "" {
 		return nil
@@ -281,9 +262,6 @@ func buildVersion() string {
 }
 
 func (r *ReconciliationRepository) start(ctx context.Context, name string) (context.Context, trace.Span) {
-	if r.telemetry == nil {
-		return ctx, trace.SpanFromContext(ctx)
-	}
 	return r.telemetry.Start(ctx, name)
 }
 

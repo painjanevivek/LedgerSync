@@ -56,7 +56,7 @@ func TestControlledAccountFunctionForcesZeroAndRejectsSpoofing(t *testing.T) {
 		[]string{testActorID}, []string{testActorID}, []string{testActorID}, correlationID, now,
 	}
 	var replayed, conflicted bool
-	if err := api.db.QueryRowContext(ctx, `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, args...).Scan(&replayed, &conflicted); err != nil || replayed || conflicted {
+	if err := tenantTestRow(ctx, api.db, testTenantID, testActorID, `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, args...).Scan(&replayed, &conflicted); err != nil || replayed || conflicted {
 		t.Fatalf("API controlled account replayed=%t conflicted=%t error=%v", replayed, conflicted, err)
 	}
 	if countRows(t, database, `
@@ -68,18 +68,18 @@ WHERE account.id=$1 AND account.tenant_id=$2 AND balance.available_minor=0
   AND balance.ledger_minor=0 AND opening.opening_ledger_minor=0`, accountID, testTenantID) != 1 {
 		t.Fatal("controlled account did not create an exact zero opening state")
 	}
-	if err := api.db.QueryRowContext(ctx, `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, args...).Scan(&replayed, &conflicted); err != nil || !replayed || conflicted {
+	if err := tenantTestRow(ctx, api.db, testTenantID, testActorID, `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, args...).Scan(&replayed, &conflicted); err != nil || !replayed || conflicted {
 		t.Fatalf("controlled account replay replayed=%t conflicted=%t error=%v", replayed, conflicted, err)
 	}
 	changed := append([]any(nil), args...)
 	changed[4] = "Changed account"
-	if err := api.db.QueryRowContext(ctx, `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, changed...).Scan(&replayed, &conflicted); err != nil || replayed || !conflicted {
+	if err := tenantTestRow(ctx, api.db, testTenantID, testActorID, `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, changed...).Scan(&replayed, &conflicted); err != nil || replayed || !conflicted {
 		t.Fatalf("changed duplicate replayed=%t conflicted=%t error=%v", replayed, conflicted, err)
 	}
 	spoofed := append([]any(nil), args...)
 	spoofed[2] = "00000000-0000-4000-8000-000000008704"
 	spoofed[1] = "spoofed-operator"
-	if _, err := api.db.ExecContext(ctx, `SELECT * FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, spoofed...); sqlState(err) != "42501" {
+	if _, err := tenantTestExec(ctx, api.db, testTenantID, testActorID, `SELECT * FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, spoofed...); sqlState(err) != "42501" {
 		t.Fatalf("spoofed actor SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
 	}
 	if _, err := support.db.ExecContext(ctx, `SELECT * FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, args...); sqlState(err) != "42501" {
@@ -91,7 +91,7 @@ WHERE account.id=$1 AND account.tenant_id=$2 AND balance.available_minor=0
 	provisioningArgs[2] = provisioningAccountID
 	provisioningArgs[4] = "Provisioning account"
 	provisioningArgs[6] = "controlled-account-002"
-	if err := provisioning.db.QueryRowContext(ctx, `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, provisioningArgs...).Scan(&replayed, &conflicted); err != nil || replayed || conflicted {
+	if err := tenantTestRow(ctx, provisioning.db, testTenantID, "platform-provisioner", `SELECT replayed,conflicted FROM public.controlled_provision_account_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, provisioningArgs...).Scan(&replayed, &conflicted); err != nil || replayed || conflicted {
 		t.Fatalf("provisioning controlled account replayed=%t conflicted=%t error=%v", replayed, conflicted, err)
 	}
 
@@ -100,6 +100,9 @@ WHERE account.id=$1 AND account.tenant_id=$2 AND balance.available_minor=0
 		t.Fatal(err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec("SELECT set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true)", testTenantID, testActorID); err != nil {
+		t.Fatal(err)
+	}
 	if _, err = tx.Exec(`CREATE TEMP TABLE accounts(id uuid); SET LOCAL search_path=pg_temp,public`); err != nil {
 		t.Fatal(err)
 	}

@@ -11,6 +11,7 @@ export type LocalDiagnostics = Readonly<{
   }>;
   delivery_cache: Readonly<{
     outbox: Readonly<{
+      sampled_at?: string;
       state: DependencyState;
       pending_count?: string;
       dead_count?: string;
@@ -18,7 +19,7 @@ export type LocalDiagnostics = Readonly<{
       latest_published_at?: string;
       oldest_pending_at?: string;
     }>;
-    redis: Readonly<{ state: DependencyState; label: "disposable_cache" }>;
+    redis: Readonly<{ state: DependencyState; label: "disposable_cache"; sampled_at?: string }>;
   }>;
 }>;
 
@@ -90,10 +91,45 @@ export type DeliveryEvent = Readonly<{
 }>;
 
 export type DeliveryEventDetail = DeliveryEvent & Readonly<{
+  diagnostic_trace_id?: string;
+  trace_viewer_available?: boolean;
+  event_order?: Readonly<{ node_id: string; logical_timestamp: string; parent_reference?: string }>;
+  publication_attempts?: ReadonlyArray<PublicationEvidence>;
+  publication_attempts_truncated?: boolean;
+  receipts?: ReadonlyArray<ReceiptEvidence>;
+  receipts_truncated?: boolean;
   delivery_attempts: DeliveryAttempt[];
   delivery_attempts_truncated: boolean;
   timeline: EventTimelineItem[];
 }>;
+
+export type PublicationEvidence = Readonly<{ generation: string; worker_id: string; state: string; started_at: string; lease_until: string; completed_at?: string; receive_counter?: string; send_counter?: string }>;
+export type ReceiptEvidence = Readonly<{ node_id: string; sender_node_id?: string; send_counter?: string; receive_counter: string; received_at: string }>;
+
+function causalEvidence(value: Record<string, unknown>): Record<string, unknown> | null {
+  const node = (item: unknown): item is string => typeof item === "string" && /^[A-Za-z0-9/_.:-]{1,128}$/.test(item);
+  const clock = (item: unknown): item is string => typeof item === "string" && /^[1-9][0-9]{0,18}$/.test(item) && BigInt(item) <= 9223372036854775807n;
+  const result: Record<string, unknown> = {};
+  if (value.event_order !== undefined) {
+    const order = value.event_order;
+    if (!isRecord(order) || !keysAllowed(order, ["node_id", "logical_timestamp", "parent_reference"]) || !node(order.node_id) || !clock(order.logical_timestamp) || order.parent_reference !== undefined && !node(order.parent_reference)) return null;
+    result.event_order = { ...order };
+  }
+  for (const name of ["publication_attempts", "receipts"] as const) {
+    const entries = value[name];
+    if (entries === undefined) continue; // Older API responses remain valid.
+    if (!Array.isArray(entries) || entries.length > 25 || typeof value[`${name}_truncated`] !== "boolean") return null;
+    for (const entry of entries) {
+      if (!isRecord(entry)) return null;
+      if (name === "publication_attempts") {
+        if (!keysAllowed(entry, ["generation", "worker_id", "state", "started_at", "lease_until", "completed_at", "receive_counter", "send_counter"]) || !clock(entry.generation) || !node(entry.worker_id) || !["claimed", "expired", "published", "retrying", "dead"].includes(String(entry.state)) || !timestamp(entry.started_at) || !timestamp(entry.lease_until) || !optionalTimestamp(entry.completed_at) || entry.receive_counter !== undefined && !clock(entry.receive_counter) || entry.send_counter !== undefined && (!clock(entry.send_counter) || !clock(entry.receive_counter) || BigInt(entry.send_counter) <= BigInt(entry.receive_counter))) return null;
+      } else if (!keysAllowed(entry, ["node_id", "sender_node_id", "send_counter", "receive_counter", "received_at"]) || !node(entry.node_id) || !clock(entry.receive_counter) || !timestamp(entry.received_at) || entry.sender_node_id !== undefined && !node(entry.sender_node_id) || (entry.sender_node_id === undefined) !== (entry.send_counter === undefined) || entry.send_counter !== undefined && (!clock(entry.send_counter) || BigInt(entry.receive_counter) <= BigInt(entry.send_counter))) return null;
+    }
+    result[name] = entries.map((entry) => ({ ...entry }));
+    result[`${name}_truncated`] = value[`${name}_truncated`];
+  }
+  return result;
+}
 
 export type EventPage = Readonly<{ events: DeliveryEvent[]; next_cursor: string }>;
 
@@ -202,13 +238,13 @@ function diagnostics(value: unknown, publicOrigin?: string): LocalDiagnostics | 
     || reconciliation.status !== undefined && (typeof reconciliation.status !== "string" || !reconciliationStatuses.has(reconciliation.status))
     || reconciliation.run_id !== undefined && !safeUUID(reconciliation.run_id)
     || !optionalTimestamp(reconciliation.completed_at)
-    || !keysAllowed(outbox, ["state", "pending_count", "dead_count", "worker_progress", "latest_published_at", "oldest_pending_at"])
+    || !keysAllowed(outbox, ["state", "pending_count", "dead_count", "worker_progress", "latest_published_at", "oldest_pending_at", "sampled_at"]) || !optionalTimestamp(outbox.sampled_at)
     || typeof outbox.state !== "string" || !dependencyStates.has(outbox.state)
     || outbox.state === "reachable" && (pending === null || dead === null)
     || outbox.state === "unavailable" && (outbox.pending_count !== undefined && pending === null || outbox.dead_count !== undefined && dead === null)
     || typeof outbox.worker_progress !== "string" || !workerStates.has(outbox.worker_progress)
     || !optionalTimestamp(outbox.latest_published_at) || !optionalTimestamp(outbox.oldest_pending_at)
-    || !keysAllowed(redis, ["state", "label"])
+    || !keysAllowed(redis, ["state", "label", "sampled_at"]) || !optionalTimestamp(redis.sampled_at)
     || typeof redis.state !== "string" || !dependencyStates.has(redis.state)
     || redis.label !== "disposable_cache") return null;
   if (reconciliation.state === "available" && (reconciliation.status === undefined || reconciliation.run_id === undefined || reconciliation.completed_at === undefined)) return null;
@@ -235,6 +271,7 @@ function diagnostics(value: unknown, publicOrigin?: string): LocalDiagnostics | 
     },
     delivery_cache: {
       outbox: {
+        ...(outbox.sampled_at === undefined ? {} : { sampled_at: outbox.sampled_at }),
         state: outbox.state as DependencyState,
         ...(pending === null ? {} : { pending_count: pending }),
         ...(dead === null ? {} : { dead_count: dead }),
@@ -242,7 +279,7 @@ function diagnostics(value: unknown, publicOrigin?: string): LocalDiagnostics | 
         ...(outbox.latest_published_at === undefined ? {} : { latest_published_at: outbox.latest_published_at }),
         ...(outbox.oldest_pending_at === undefined ? {} : { oldest_pending_at: outbox.oldest_pending_at }),
       },
-      redis: { state: redis.state as DependencyState, label: "disposable_cache" },
+      redis: { state: redis.state as DependencyState, label: "disposable_cache", ...(redis.sampled_at === undefined ? {} : { sampled_at: redis.sampled_at }) },
     },
   };
 }
@@ -362,14 +399,18 @@ export function sanitizeEventPage(status: number, value: unknown): SanitizedOper
 
 export function sanitizeEventDetail(status: number, value: unknown): SanitizedOperationsResponse {
   if (status < 200 || status >= 300) return sanitizeError(status, value);
-  if (!isRecord(value) || !keysAllowed(value, ["event_id", "event_type", "state", "aggregate_type", "aggregate_id", "aggregate_version", "attempt_count", "occurred_at", "available_at", "transfer_id", "account_id", "correlation_id", "claimed_until", "published_at", "dead_at", "last_error_code", "delivery_attempts", "delivery_attempts_truncated", "timeline"])) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
-  const { delivery_attempts, delivery_attempts_truncated, timeline, ...baseValue } = value;
+  if (!isRecord(value) || !keysAllowed(value, ["event_id", "event_type", "state", "aggregate_type", "aggregate_id", "aggregate_version", "attempt_count", "occurred_at", "available_at", "transfer_id", "account_id", "correlation_id", "claimed_until", "published_at", "dead_at", "last_error_code", "delivery_attempts", "delivery_attempts_truncated", "timeline", "event_order", "publication_attempts", "publication_attempts_truncated", "receipts", "receipts_truncated", "diagnostic_trace_id"])) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  if (value.diagnostic_trace_id !== undefined && (typeof value.diagnostic_trace_id !== "string" || !/^[a-f0-9]{32}$/.test(value.diagnostic_trace_id) || value.diagnostic_trace_id === "0".repeat(32))) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  const causal = causalEvidence(value);
+  if (!causal) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
+  const { delivery_attempts, delivery_attempts_truncated, timeline } = value;
+  const baseValue = Object.fromEntries(Object.entries(value).filter(([key]) => !["delivery_attempts", "delivery_attempts_truncated", "timeline", "event_order", "publication_attempts", "publication_attempts_truncated", "receipts", "receipts_truncated", "diagnostic_trace_id"].includes(key)));
   const base = event(baseValue);
   if (!base || !Array.isArray(delivery_attempts) || delivery_attempts.length > 25 || typeof delivery_attempts_truncated !== "boolean" || !Array.isArray(timeline) || timeline.length > 32) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
   const attempts = delivery_attempts.map(attempt);
   const items = timeline.map(timelineItem);
   if (attempts.some((item) => item === null) || items.some((item) => item === null)) return { status: 503, body: { error: { code: "evidence_unavailable" } } };
-  return { status: 200, body: { ...base, delivery_attempts: attempts, delivery_attempts_truncated, timeline: items } };
+  return { status: 200, body: { ...base, ...causal, ...(value.diagnostic_trace_id === undefined ? {} : { diagnostic_trace_id: value.diagnostic_trace_id }), delivery_attempts: attempts, delivery_attempts_truncated, timeline: items } };
 }
 
 export function sanitizeWebhookEndpointPage(status: number, value: unknown): SanitizedOperationsResponse {

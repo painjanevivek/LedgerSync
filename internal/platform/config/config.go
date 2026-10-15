@@ -15,6 +15,8 @@ import (
 
 type Config struct {
 	Environment                string
+	NodeID                     string
+	DatabaseMaxOpenConns       int
 	HTTPAddress                string
 	StartupTimeout             time.Duration
 	StartupInitialBackoff      time.Duration
@@ -30,6 +32,7 @@ type Config struct {
 	WriteRateLimitPerMinute    int
 	WriteCapacityPerSecond     int
 	RedisStreamMaxLength       int64
+	OutboxBatchSize            int
 	DatabaseURL                string
 	RedisAddress               string
 	ConsistencySigningKey      string
@@ -144,6 +147,18 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	poolLimit, err := positiveInt("LEDGERSYNC_DATABASE_MAX_OPEN_CONNS", 4)
+	if err != nil || poolLimit > 64 {
+		return Config{}, fmt.Errorf("LEDGERSYNC_DATABASE_MAX_OPEN_CONNS must be between 1 and 64")
+	}
+	outboxBatch, err := positiveInt("LEDGERSYNC_OUTBOX_BATCH_SIZE", 10)
+	if err != nil || outboxBatch > 100 {
+		return Config{}, fmt.Errorf("LEDGERSYNC_OUTBOX_BATCH_SIZE must be between 1 and 100")
+	}
+	nodeID, err := configuredNodeID()
+	if err != nil {
+		return Config{}, err
+	}
 	telemetryEnabled, err := parseBool("LEDGERSYNC_TELEMETRY_ENABLED", false)
 	if err != nil {
 		return Config{}, err
@@ -154,6 +169,8 @@ func Load() (Config, error) {
 	}
 	config := Config{
 		Environment:                environment,
+		NodeID:                     nodeID,
+		DatabaseMaxOpenConns:       poolLimit,
 		HTTPAddress:                httpAddress,
 		StartupTimeout:             startupTimeout,
 		StartupInitialBackoff:      startupInitialBackoff,
@@ -169,6 +186,7 @@ func Load() (Config, error) {
 		WriteRateLimitPerMinute:    writeRate,
 		WriteCapacityPerSecond:     writeCapacity,
 		RedisStreamMaxLength:       int64(streamMaxLength),
+		OutboxBatchSize:            outboxBatch,
 		DatabaseURL:                os.Getenv("LEDGERSYNC_DATABASE_URL"),
 		RedisAddress:               os.Getenv("LEDGERSYNC_REDIS_ADDR"),
 		ConsistencySigningKey:      os.Getenv("LEDGERSYNC_CONSISTENCY_SIGNING_KEY"),

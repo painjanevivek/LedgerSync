@@ -1,0 +1,12 @@
+=== RUN   TestLamportStorageSendAndReceiveRules
+--- PASS: TestLamportStorageSendAndReceiveRules (0.45s)
+=== RUN   TestLamportConcurrencyRestartRollbackAndOverflow
+--- PASS: TestLamportConcurrencyRestartRollbackAndOverflow (0.46s)
+=== RUN   TestLamportEnvelopeRetryAndLegacyReceipt
+--- PASS: TestLamportEnvelopeRetryAndLegacyReceipt (0.48s)
+=== RUN   TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth
+--- PASS: TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth (0.49s)
+=== RUN   TestEventEvidenceRedactsHostileCodesAndNeverReturnsPayloadOrEndpoint
+--- PASS: TestEventEvidenceRedactsHostileCodesAndNeverReturnsPayloadOrEndpoint (0.45s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	3.058s

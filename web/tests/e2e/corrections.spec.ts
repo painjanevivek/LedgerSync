@@ -151,6 +151,7 @@ test("a sensitive correction request turns step-up failure into a safe return pa
     (route) => json(route, { error: { code: "step_up_required" } }, 428),
   );
   await page.goto(`/transfers/${transfer.transfer_id}`);
+  await page.getByText("Corrections and recovery", { exact: true }).click();
   await page.getByText("Start correction request").click();
   await page
     .getByLabel("Verified operator note")

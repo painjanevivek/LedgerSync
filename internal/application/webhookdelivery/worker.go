@@ -3,6 +3,7 @@ package webhookdelivery
 import (
 	"context"
 	"errors"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/lease"
 	"strings"
 	"time"
 )
@@ -28,6 +29,8 @@ type Job struct {
 	EndpointURL, SigningKeyReference, SigningKeyID     string
 	Payload                                            []byte
 	AttemptNumber                                      int
+	ClaimGeneration                                    int64
+	DiagnosticTraceParent                              string
 }
 
 // Completion atomically advances the mutable job and appends its immutable
@@ -35,6 +38,7 @@ type Job struct {
 type Completion struct {
 	JobID, WorkerID, ResponseClass, ErrorCode string
 	AttemptNumber                             int
+	ClaimGeneration                           int64
 	Status                                    Status
 	CompletedAt                               time.Time
 	RetryAt                                   *time.Time
@@ -43,6 +47,7 @@ type Completion struct {
 type Store interface {
 	Claim(context.Context, string, int, time.Duration) ([]Job, error)
 	Complete(context.Context, Completion) error
+	RenewClaim(context.Context, string, string, int64, time.Duration) error
 }
 
 type Sender interface {
@@ -76,7 +81,10 @@ func NewWorker(store Store, sender Sender, clock func() time.Time, cfg Config) (
 		clock = time.Now
 	}
 	if cfg.BatchSize <= 0 {
-		cfg.BatchSize = 25
+		cfg.BatchSize = 5
+	}
+	if cfg.BatchSize > 100 {
+		return nil, errors.New("webhook batch exceeds 100 jobs")
 	}
 	if cfg.ClaimLease <= 0 {
 		cfg.ClaimLease = 30 * time.Second
@@ -101,11 +109,23 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 			w.onItem(job.ID)
 		}
 		now := w.clock().UTC()
-		completion := Completion{JobID: job.ID, WorkerID: w.workerID, AttemptNumber: job.AttemptNumber, CompletedAt: now}
+		completion := Completion{JobID: job.ID, WorkerID: w.workerID, AttemptNumber: job.AttemptNumber, CompletedAt: now, ClaimGeneration: job.ClaimGeneration}
 		if strings.TrimSpace(job.EndpointURL) == "" || strings.TrimSpace(job.SigningKeyReference) == "" || strings.TrimSpace(job.SigningKeyID) == "" {
 			completion.Status, completion.ResponseClass, completion.ErrorCode = StatusDead, "endpoint_inactive", "endpoint_inactive"
 		} else {
-			outcome, sendErr := w.sender.Dispatch(ctx, Delivery{ID: job.ID, EventID: job.EventID, EventType: job.EventType, EndpointURL: job.EndpointURL, SigningKeyReference: job.SigningKeyReference, SigningKeyID: job.SigningKeyID, Payload: job.Payload})
+			var outcome Outcome
+			sendErr := lease.Run(ctx, w.claimLease, func(c context.Context) error {
+				return w.store.RenewClaim(c, w.workerID, job.ID, job.ClaimGeneration, w.claimLease)
+			}, func(c context.Context) error {
+				var err error
+				outcome, err = w.sender.Dispatch(c, Delivery{ID: job.ID, EventID: job.EventID, EventType: job.EventType, EndpointURL: job.EndpointURL, SigningKeyReference: job.SigningKeyReference, SigningKeyID: job.SigningKeyID, Payload: job.Payload, DiagnosticTraceParent: job.DiagnosticTraceParent})
+				return err
+			})
+			if errors.Is(sendErr, lease.ErrLost) {
+				return 0, sendErr
+			}
+			now = w.clock().UTC()
+			completion.CompletedAt = now
 			completion.ResponseClass = outcome.ResponseClass
 			if completion.ResponseClass == "" {
 				completion.ResponseClass = "dispatch_error"

@@ -1,0 +1,22 @@
+{
+  "containers": [
+    "f12c37bd15f6",
+    "e38a1c28b348"
+  ],
+  "reconciliation": "matched",
+  "captured_at": "2026-10-11T18:44:03.3440192Z",
+  "publication": {
+    "dead": 0,
+    "pending": 0,
+    "workers": [
+      {
+        "published": 92,
+        "worker_id": "ledgersync/worker/e38a1c28b348-7"
+      },
+      {
+        "published": 88,
+        "worker_id": "ledgersync/worker/f12c37bd15f6-7"
+      }
+    ]
+  }
+}

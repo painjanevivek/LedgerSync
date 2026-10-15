@@ -1,0 +1,548 @@
+{
+  "schema_version": 1,
+  "phase": "R02",
+  "status": "verified_local",
+  "recorded_at": "2026-10-14T22:04:22.887Z",
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1594,
+    "original_manifest_sha256": "aec9f5b41e8d3f4066a895baf6df19498af52eb45ba83a11347ad3daddca619a",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": "cmd/replay-delivery/main.go",
+        "before_sha256": "7fdc47e040aa3a0a27112cee4520919e9e215d8ea8584cf8ac3bab8ecd9a0f5c",
+        "sha256": "faba3ed15e2d029d9567f27e8f8ed7057e3b31c22da9843252b09d8cd6a4466d"
+      },
+      {
+        "path": "cmd/replay-outbox/main.go",
+        "before_sha256": "c81c288f194f25d396f15ebb550ff4c817eb507e267c1dd5c19f724e5776120a",
+        "sha256": "dfceb9141e52456bbf93b42bd8eb59753adff7acbb091412b66234a945b4aebf"
+      },
+      {
+        "path": "deploy/postgres/roles.sql",
+        "before_sha256": "d58209967c10618e443b7710b337b574340343351117df140d356967c664e27d",
+        "sha256": "c93e406c4a2396b6325efb855fb0a8baad9756c331650498296bf95d35e9b337"
+      },
+      {
+        "path": "docs/architecture/decisions/002-tenant-context-and-controlled-writes.md",
+        "before_sha256": "35d1b1a6abaaf129b7affb57424ac9c02dc867c2a31cb134173444d19609964a",
+        "sha256": "1fbd5a16a3877c1a046fc62b5251db33e744ca8fae31cf9ce68f4fb81e778092"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "9c4437891fb8db739c7692fba1239ae792304b2c1482162e97abdc0dab25bb2c",
+        "sha256": "429f3cce766ee980f70ad232cee6b762cc3106da5b1ca09bae874b5cc0ad6acc"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "1a657f08c5741746f0c78f6a5439f3255a001f09d279eec6707deff9ae4b42ac",
+        "sha256": "5e3d8b562c5194d923b629d3ddc09b30feebded38bdf128b3c29bec5d2825d97"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "10594beab69036c8b50845f772a8636a776bb71d9814c34f80c3f4adfe2cb7a0",
+        "sha256": "5e59b1b4a0c0bf93681d00864f2becb398f30d3c8c3f3da08d826851b2264952"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "cd2146c3c2067f67fac90299a46fd8c0d7a619c6c6d1b17726c14de5007d0d2e",
+        "sha256": "1164373a5a03db6d94b23bfa7064a70751935d31f396739f144104d501937c17"
+      },
+      {
+        "path": "docs/security/database-capability-matrix.md",
+        "before_sha256": "b01d2e0a83797477836d262fe50cc4a037956a184ea623b51a88799672ea7e28",
+        "sha256": "dfdf876e040bade0bba3d38a449ebabc98bb759f3c80cdebfe767142ec035c2d"
+      },
+      {
+        "path": "docs/security/tenant-context-adoption.md",
+        "before_sha256": "cb4a1f7945d98a13b66010c3de45e955705d62aad348118337a8a41a15c37ed9",
+        "sha256": "01f544d6ef7a13921cef9416eaf7d7e8ef315f772a7af4c90f8ffc375fa1ff96"
+      },
+      {
+        "path": "internal/application/developerplatform/webhooks.go",
+        "before_sha256": "0c660b126000650ae843133c9fc9dddbb507e01adfa131a6a1dbfda49dc29f52",
+        "sha256": "5ec2eda8346dcab34708ceea9bdba7698c3a4c96136336c3e7bab636b8bb7bb8"
+      },
+      {
+        "path": "internal/application/exports/service.go",
+        "before_sha256": "f83f9d0b71d66db810a9ed5bd3f7394df701ecda7f5be784613db3f7754c08e7",
+        "sha256": "67efc458f19639b5eedfc37da96a23d22759feb8a3d25d9e130e68d2649b66c0"
+      },
+      {
+        "path": "internal/application/exports/service_test.go",
+        "before_sha256": "a7a7e6c9aa895c4de07d014e27c645df89094e735dbd9a38aed8e97943872687",
+        "sha256": "6c0b071f8f658c4a5d51c7b90616c0a7ea1b8a9b6ce590882239dbcebaa388e6"
+      },
+      {
+        "path": "internal/application/investigation/models.go",
+        "before_sha256": "3c0979e13ab45c3a874e7b7f3f69ee10ccb5f1a8902dd2a93d852feefade314c",
+        "sha256": "0141b7a3b8798748e43b0bbb5f9007d6688b9cc22d17d17620f9b5cbc53ba9ce"
+      },
+      {
+        "path": "internal/application/operations/diagnostics.go",
+        "before_sha256": "b892202869d19093019cf086c658c9a6343da36f03860562ca21ba1c131e9a01",
+        "sha256": "19a68404303c7fb2faa079915b28a8c4057e5766a8c4a0c7fe7314406611d68d"
+      },
+      {
+        "path": "internal/application/operations/diagnostics_test.go",
+        "before_sha256": "12da74bf9a9563fcad786f117354b637f8836e757cebc476e03a27e530bf1d4e",
+        "sha256": "58d5bb18be59251081289378ba99b2493930915b1d48eeac809639fcebf6a5b7"
+      },
+      {
+        "path": "internal/platform/db/audit_repository.go",
+        "before_sha256": "13c5598b3130cfa0ea888217b17b95e3ff524b6a633a7c1327374c61951d2641",
+        "sha256": "ea7291d82668a850214ef47a7496067d500eb61255a3d79986d3e1223508f99c"
+      },
+      {
+        "path": "internal/platform/db/balance_repository.go",
+        "before_sha256": "f34dc5bfab4ab18d16ae45be54c7c23248de2f6fbce49311c41afab22a9a9ff2",
+        "sha256": "8679223c68c5286aff7679611d0c757f53943b1d4ebff0fd35a7b8712354f55c"
+      },
+      {
+        "path": "internal/platform/db/delivery_replay_repository.go",
+        "before_sha256": "5f77796f40c0c02866938f4b0c39527bfe34f00882c62987753af1429f90c513",
+        "sha256": "19f2dcaeef9f477c91b9ebea429071a7a995f17300236207bb207efedca65a91"
+      },
+      {
+        "path": "internal/platform/db/delivery_repository.go",
+        "before_sha256": "4d7bb86e82c6b3104c03b9dd1fe637926bcbf94afe1ed991811bca8ec3a8f7fe",
+        "sha256": "6dbf9d3b89efa435caa7b238e2886339b491647d9aac9dabe25ba5034355a2ff"
+      },
+      {
+        "path": "internal/platform/db/developer_credential_repository.go",
+        "before_sha256": "879dcad3f8451f5d91933355fa6ed92834414873bdb7d1ea32293c2b18b772d9",
+        "sha256": "e34923a8abb945f1d9f3c3a6a6eda293bc0c36cb609d77246b4d9ed289d11191"
+      },
+      {
+        "path": "internal/platform/db/distributed_evidence.go",
+        "before_sha256": "c6b575a92b4e0f69670988c39e34e004d6f7f5ef0c39583e40d6d81768c20742",
+        "sha256": "71851b321e3be2e19cc14d1a0804d65125a7f113e2a15c2fcc2d360556c5caa4"
+      },
+      {
+        "path": "internal/platform/db/distributed_evidence_test.go",
+        "before_sha256": "c87e7112e4299c80202ad7567244783bf9eed3e72e551c1e9ea4bc15d1f93464",
+        "sha256": "c5c9942cbc8205ea75b21ad79e69f25761ece029edb281fa9021f81bb498dce5"
+      },
+      {
+        "path": "internal/platform/db/export_repository.go",
+        "before_sha256": "00bb70228e36a90a23625f9f6cdbd34d38c3728bf7eb15e6381f8e2288c5d0c0",
+        "sha256": "4d52aeafde0c5bab3a1cf1b5142540ae1a49c93e01c45214b436c1dc3042b6c1"
+      },
+      {
+        "path": "internal/platform/db/investigation_repository.go",
+        "before_sha256": "0ce9ca0edadca21865fcb6bae6a68623f4eb0303d85d20e5b920ed513004dc76",
+        "sha256": "14e82cdac0aad94a42722438447cd24ee7aa9202e32181715909d891d6880dd3"
+      },
+      {
+        "path": "internal/platform/db/logical_clock_repository.go",
+        "before_sha256": "059514f92c1804aac30d5d7eed89d5530ad2820a242ac3d3a6f58d236e111d53",
+        "sha256": "44c5b2048aee7c9a520917c29d897b576f11511a5ffc16f0fb9ffd10fd1a7ad7"
+      },
+      {
+        "path": "internal/platform/db/operations_repository.go",
+        "before_sha256": "761993d9d031f85099c7ca21a46b1e6c4b66e4e86eab7a5b71838899389ca8e8",
+        "sha256": "61646d5da89a032f1da779d68de59804ee349e7d24503e41bfcfc8e539b815af"
+      },
+      {
+        "path": "internal/platform/db/outbox_replay_repository.go",
+        "before_sha256": "108b1c2e92798487569653f4c50179c44de9d3611ff648f0df821a005ac36b64",
+        "sha256": "7240e07378346df4eb6002403095bcd03b7a9f69344f0c3033ab89f7973e883c"
+      },
+      {
+        "path": "internal/platform/db/outbox_repository.go",
+        "before_sha256": "4f682f22e9a6a4ddca4f666a55874ff20bc55b6ef0d66a4ebfc72dad0a88b91f",
+        "sha256": "6945b2d841efbc30cb0c18a2566929fb0d219d45d5863367427301788a7c82a7"
+      },
+      {
+        "path": "internal/platform/db/pilot_currency.go",
+        "before_sha256": "87c8fffbcf39cb9028184fc4a798e8346ed58aacf69200250ba2789c4e8de543",
+        "sha256": "564bd1e0883bd364f8f1a06ea6508b25f07ce36f3fa9dab8c37325a607c04d53"
+      },
+      {
+        "path": "internal/platform/db/provisioning_repository.go",
+        "before_sha256": "37446879039ca7841d9f275ebcdc54dab24857a16d9f0acf557c030c037d9af2",
+        "sha256": "f030dc647ba0c3897eff8f3342e00ca219a40909809ebb94e11ef5c48a1c14ca"
+      },
+      {
+        "path": "internal/platform/db/rate_limit_repository.go",
+        "before_sha256": "a5494d6d694cff925e2b5156366f684a0362aaab97f67d296b160b7a979ddde3",
+        "sha256": "ed9458b19bcf765525a7c7954f78c40eb97a12e4374ef07c437396b145c5d42e"
+      },
+      {
+        "path": "internal/platform/db/reconciliation_command_repository.go",
+        "before_sha256": "7d97ea629c7e99c31357337b824697ad90ec64b3752c7aea80879907fa6adb08",
+        "sha256": "d6a364b7d7c59a5ca5b6abc25fd38eb3ef550dd879b776c08fb891cdbd76e7d8"
+      },
+      {
+        "path": "internal/platform/db/reconciliation_repository.go",
+        "before_sha256": "784ca55e53f2fa25674935813a56a066ad6e1b46409102c1c3afedc590e1a786",
+        "sha256": "8e19ae83abb40e9598080384b2e67a6c54ed2a1f4aafb6f19725aac78daeb84d"
+      },
+      {
+        "path": "internal/platform/db/retention_repository.go",
+        "before_sha256": "c40b77002a4cad368fecdd0a68fa991418330af19dcf13949d3f930d5b6a14b4",
+        "sha256": "88b4356129295486be0cd463d08e867708033091b6ba6e438a35336c2955f9a0"
+      },
+      {
+        "path": "internal/platform/db/tenant_context.go",
+        "before_sha256": "6d2f0a0267900af648e7731d64fb84c061b9974e990bd0810890d4b1e6408e57",
+        "sha256": "607e936022e13af75c5efe7b7a1c8c9d0a76f4a60e90f0ff7bdc0a737c09f29d"
+      },
+      {
+        "path": "internal/platform/db/transfer_repository.go",
+        "before_sha256": "3bcf458023d767b160133ebc1767e7a08ef3877f0e8d1efa3a6c7987be0554aa",
+        "sha256": "99547f55786bcd4de59e569a87f885817847f458f306925653711ca1b07f6ae7"
+      },
+      {
+        "path": "internal/platform/db/webhook_delivery_job_repository.go",
+        "before_sha256": "f13e9340d4e53678577815fb1f8ef2fdd130d54e020122e68c50097339864570",
+        "sha256": "3171f1c83deee362ce254de4c8e669c56310bf84c48ca71a79aaa2d9adb2faaf"
+      },
+      {
+        "path": "internal/platform/db/webhook_verification_job_repository.go",
+        "before_sha256": "4a8ba15c9fc94e84de112f5f5d6120e455b054a50a6e0a10f0a863a87eb325a0",
+        "sha256": "55341ca6391fd7f9be94420cbec1806274f50f98042cf84155dd9f6efe54f034"
+      },
+      {
+        "path": "internal/platform/identity/credential_usage.go",
+        "before_sha256": "c2d979cdd8108100e7d4937a1d6e7c0439a689fa7f1aee6695539387575d77ae",
+        "sha256": "cba755d351e70e5909474c014b241221228e9b224873b9f3bce734762ff870cf"
+      },
+      {
+        "path": "internal/platform/identity/credential_usage_test.go",
+        "before_sha256": "408837d5beee4a9d607ed6f7f5811d6d257f407a98b602c7b88bd0914c6a68c2",
+        "sha256": "0dd3c7d2be39a7c0feaadc1fa3a9b4689375c697c306a353e2ece17551b0d24b"
+      },
+      {
+        "path": "internal/transport/http/handlers/developer_contracts.go",
+        "before_sha256": "d9454c97c34f2ca9bbf48151b383c6bc23196f1d5a58296e2118e976b8536dd8",
+        "sha256": "0adf63b08b5458824a044b10f76cbc454ed68cbba5236221cc638f1414cf5957"
+      },
+      {
+        "path": "internal/transport/http/handlers/developer_contracts_test.go",
+        "before_sha256": "4d7780cd6c0ab98a2775a4fd2f868eff2daf9738e5b1b63353abce8b4ee40e26",
+        "sha256": "490a1663a27b11d66517f6aac72c9d4b8549bdeaea3b66660bac5750b454e5e3"
+      },
+      {
+        "path": "internal/transport/http/handlers/developer_webhooks_test.go",
+        "before_sha256": "46c07dc1d0ef3e9fc45aa4a6cc6ffc8cba021d95de7126c7b9058b8371ffbf54",
+        "sha256": "041815d31714e9091bee34484dc7c02a9cac1732396be8a90fe36be3f766be87"
+      },
+      {
+        "path": "internal/transport/http/handlers/investigation.go",
+        "before_sha256": "7c1ce66ec1594b16a53368566f7a9f75c88a5cfc95562d16b1af5367e4d03b35",
+        "sha256": "34644acd7a333ac7c3282b1bb53d5ca79912195a24fba6024c0d74f570a06bca"
+      },
+      {
+        "path": "internal/transport/http/handlers/investigation_authorization_test.go",
+        "before_sha256": "6ada33f5ba352d44fbb59ef37c348dc2f232e732ee8e7e0d19b47523d5e21baf",
+        "sha256": "c6751414e1fbab77f371035ea16b226604979d1b452a8a442c86f503bef2c3f7"
+      },
+      {
+        "path": "internal/transport/http/handlers/operations.go",
+        "before_sha256": "c5dc3ea39bfb6dee972d9d691dc1fca8ba48523aa7f5a74cffe90eab85f54559",
+        "sha256": "49eabfb288029603eb24d8ab6d5d9118c8be4a1ff2e3f91431a12b6bac90a005"
+      },
+      {
+        "path": "internal/transport/http/handlers/operations_test.go",
+        "before_sha256": "119f7ea48c6c320c11de97fa5ccf79d373ba8b9bb86b127d451de917c3a905f3",
+        "sha256": "6d9cedf767e330305fbac1293cfa2483ff5d227d03aedf34e856df90bda275d9"
+      },
+      {
+        "path": "internal/transport/http/handlers/recovery_exports.go",
+        "before_sha256": "8b01b24b5cd16f2dc5ac3726c176d7b0edc93a9e400bb546e3f51d23403694c0",
+        "sha256": "b4c42fa362a3766b14b160ba1f26fbbd156903ff1e26bc7245cc357e36934e84"
+      },
+      {
+        "path": "internal/transport/http/handlers/recovery_exports_test.go",
+        "before_sha256": "59b0f1841f534ab983744d651d5a062898b22895b2d2f39e52e58665b64c0695",
+        "sha256": "b444f398e3313d21e5e11ea95634193b2bbc6a4bf0172b6a9772e472c43c7dbe"
+      },
+      {
+        "path": "tests/contract/phase5_operations_security_contract_test.go",
+        "before_sha256": "582730a6fcc236bfb55f0c24f05ed4c4c2f84c402c989683c77ba870b53607c0",
+        "sha256": "8e26a8a07dc6f51ed911c26d02a050280606b040472723e59aaf46048e32fa49"
+      },
+      {
+        "path": "tests/integration/controlled_account_provisioning_test.go",
+        "before_sha256": "f18e0c7eeab9b25876b6867f9c7f3384aa8074bd7be2cda8dfe4cf2921ef042c",
+        "sha256": "9356fd09e78cf4690ced261888b2cd26a2742077be2d62c9e5cb89dfe0f36523"
+      },
+      {
+        "path": "tests/integration/controlled_financial_commands_test.go",
+        "before_sha256": "f8b44bd3c6245966f1b5f27466a242b484fdaef2956610d9534b952643c975eb",
+        "sha256": "8eb3bf285606fcd5b8db49d405e8287cafe029079b56ab43fe74d068d9eaedf2"
+      },
+      {
+        "path": "tests/integration/controlled_funding_commands_test.go",
+        "before_sha256": "c1c52a9525ba14bb817892a8f08c495454c8e46dbeaeac6203dbc70d8080c3b0",
+        "sha256": "64edcf38a4baccba0982635cf203c6a37a760bcf7166d73778cfd1966d0b1d8e"
+      },
+      {
+        "path": "tests/integration/database_role_capabilities_test.go",
+        "before_sha256": "609d983b2a9a2485f0da721dc6ecd37ae4e9a8e2668cfdb5b94316e206fbdf8c",
+        "sha256": "074866cb65d810a84c4df87382c0a1bfed64a6009f94df06d7e621ac8aea706a"
+      },
+      {
+        "path": "tests/integration/developer_credentials_test.go",
+        "before_sha256": "a62d2d0de31d06c4b7ad98046aec6b66aaf071fc38c811d35527be244293417b",
+        "sha256": "becdfee222eea0cb5dadd221c55d07d568ca65e88691fd7d84cbaa8d57b85123"
+      },
+      {
+        "path": "tests/integration/developer_webhooks_test.go",
+        "before_sha256": "a63a3685208ce1d88c6547512f876c2ef0a25ac69907c0a0f7e9edf586f0f204",
+        "sha256": "8b47ec5fe197d586edc0dc17aec0f2da33be33278ec9463d07710b8f851bf413"
+      },
+      {
+        "path": "tests/integration/evidence_truth_test.go",
+        "before_sha256": "5d680affa3fb7e3716b045df170a4df1ba31f6d6b89fdd5de4dacbc982c7b58c",
+        "sha256": "391e9bd44097ce5abbfe1e6cc631fd66965ca6f0ffe402dc269af752b0099ae0"
+      },
+      {
+        "path": "tests/integration/exports_test.go",
+        "before_sha256": "48a7e960c4bcaaef155615b5fbae78b24e3c777ffcb83142099891a17c7a0014",
+        "sha256": "3fbdcf0a040cd65dcf670088376221d111e4aae545a075257e79287fd1427260"
+      },
+      {
+        "path": "tests/integration/investigation_filters_test.go",
+        "before_sha256": "1bc6ca6db8f896833f7e395d37416ad1875a531a96904696110394a0738da382",
+        "sha256": "d6274daafa10df2f3a32751c43f22e5c0613e59b97cfacd11b64986351efbe39"
+      },
+      {
+        "path": "tests/integration/ledger_semantic_keys_test.go",
+        "before_sha256": "01ddb7c40bc634eb0beabd6239dec69aff73de8786fdf2579954bc3180403d0a",
+        "sha256": "85276310f25b59ae019effb83136af68cda7aa21674808073068bd0dc67efbf6"
+      },
+      {
+        "path": "tests/integration/lifecycle_recovery_test.go",
+        "before_sha256": "85cafc023c552b38b4130f57140cf66304a0157610c7b8019960260a598db91f",
+        "sha256": "1e79c24542a602cee28e6180d5ae42d5556082b03bcbd55f1c97e4f2cc228045"
+      },
+      {
+        "path": "tests/integration/live_room_migration_compatibility_test.go",
+        "before_sha256": "f447d42618d8565a356012cccf0e3109419b61566253d7e191579fa63fd93bd4",
+        "sha256": "e11cdc94119668836d5f1a60a463e487a8fdc0946842ad72722cbb08f63247e9"
+      },
+      {
+        "path": "tests/integration/logical_clock_test.go",
+        "before_sha256": "b553fec950573b28c92d7c08cfe01175ffbfa04346001f1d25c2fe8ddc107ea0",
+        "sha256": "12120eb4546eba219fe18ad8a0721c3e74c942c889e56036a46303942a11f824"
+      },
+      {
+        "path": "tests/integration/operations_test.go",
+        "before_sha256": "e2af82c37a7c0a251a4a63b94f86577b0ee1564daae35936c3a6efb8570b8507",
+        "sha256": "95fd97a6f8ce30f691b89daae4705ceeb8bea831f65f25ba28e70a38e0b67d07"
+      },
+      {
+        "path": "tests/integration/tenant_context_test.go",
+        "before_sha256": "19e70ce947dd3accd2e9a10cfcf8209dffe0ad2530147d42d54e1f03692534b7",
+        "sha256": "29002c967df830d53e6a300d61486898837e82d934fe4b5013712b0baebb6666"
+      },
+      {
+        "path": "tests/integration/tenant_developer_context_test.go",
+        "before_sha256": "dc0e35178d49f5f2a2f8c8c71c63ef2622af78718f1700f19c183723ca120ffa",
+        "sha256": "cab7ab7c321759701b995a053e38f4b1a13787e48fa5ee6943ceb449390e69c1"
+      },
+      {
+        "path": "tests/integration/tenant_guidance_context_test.go",
+        "before_sha256": "a4a43ea0baeb2ae56304c83c25c4cd3e9490948cdf12a83deed8f7710d15345e",
+        "sha256": "51002387f97086e46176b2a2427c5b27c6392239446067d51cfa7a2fc81f816e"
+      },
+      {
+        "path": "tests/integration/transfer_corrections_test.go",
+        "before_sha256": "f6222cc850799fe0442288b879c737f833198cbafdebdea4e04f88896f80de95",
+        "sha256": "24cfd4bffa2a847bf6f7ea42d58978f6ef9a9b8f4197e7457587a38e995887ed"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/security/database-access-r02-final.json",
+        "sha256": "92986f3d585f7fa8ad8d49388e58faa0881b1c15e53435e927a89826145d617c"
+      },
+      {
+        "path": "docs/security/tenant-context-cutover.md",
+        "sha256": "b6990bbaca5df064936b42d14d84870b77a76048fb3537432902e272ef041c24"
+      },
+      {
+        "path": "internal/platform/db/worker_tenant_context.go",
+        "sha256": "acb97564b4079b4933f2b96cde2814455f3303c4ad77dd7221ec65c894f71aba"
+      },
+      {
+        "path": "migrations/000044_scoped_worker_claims.down.sql",
+        "sha256": "3d59ffad5cb5060ee627fc6840bd72edc2130397772fd6a6a12a6fb48af5fb62"
+      },
+      {
+        "path": "migrations/000044_scoped_worker_claims.up.sql",
+        "sha256": "4a6cc8c97f55c8b6af1b0f78dc4e77bf35e909de0c1933973cedd2ca8c92627c"
+      },
+      {
+        "path": "migrations/000045_tenant_row_policies.down.sql",
+        "sha256": "3efc6a3c9ac96aef4861e3ad774209ec0efcfa07fa4a41f8f5ce1436f68805cb"
+      },
+      {
+        "path": "migrations/000045_tenant_row_policies.up.sql",
+        "sha256": "1ef551f677aa19a5f9a0250ab99f8916c87f3cda4ffba948cbc0483a2b88d73c"
+      },
+      {
+        "path": "migrations/000046_controlled_webhook_verification.down.sql",
+        "sha256": "8a776e87457e312ffcabd40ebf1c8126d141ae05cd1573c4377a0750e0bec321"
+      },
+      {
+        "path": "migrations/000046_controlled_webhook_verification.up.sql",
+        "sha256": "2d0f29ac93573a53064e0c8683b5eaafe4ab5ac2b92a1dbd9c1e72e2050c3748"
+      },
+      {
+        "path": "tests/integration/tenant_evidence_context_test.go",
+        "sha256": "372c2e0959f7391ad531a0df5d1427bd75c8c48dc28e0db6b0a2dff17c0975c3"
+      },
+      {
+        "path": "tests/integration/tenant_policy_test.go",
+        "sha256": "e21898a597317ee0fdd3e41a2f251a15c3cb8a87835a7f56a92c10071ade232a"
+      },
+      {
+        "path": "tests/integration/tenant_role_boundary_test.go",
+        "sha256": "a2079eea8c4ae67798afe2745b38efb49bffdc3a5dc9059de42bf4ef541fd065"
+      },
+      {
+        "path": "tests/integration/tenant_sql_test.go",
+        "sha256": "1686c312940317b6b09c16a50ae2f9e96cdcd15e799dcda0b48a1d6a3eb5c38b"
+      }
+    ]
+  },
+  "verification": {
+    "integration": {
+      "passed_top_level": 119,
+      "passed_subtests": 81,
+      "skipped": [
+        "--- SKIP: TestOutboxCrashHelper (0.00s)"
+      ],
+      "skip_explanation": "Standalone process helper; parent process-crash test passed."
+    },
+    "fault": {
+      "passed_top_level": 6
+    },
+    "go_packages_passed": 41,
+    "vet": "passed",
+    "fresh_and_populated_upgrades": "passed",
+    "forced_tenant_tables": 53,
+    "race": "not_run_CGO_disabled_no_C_compiler_detected",
+    "browser_images_restore": "deferred_to_R10_R13"
+  },
+  "preservation": {
+    "fresh_turn_entry_fingerprints_match": true,
+    "normal_counts": {
+      "accounts": 8,
+      "transfers": 5,
+      "ledger_postings": 20,
+      "migrations": 45
+    },
+    "normal_migrations_seeds_financial_commands_run": false,
+    "normal_services": "existing services healthy; no image rebuild",
+    "normal_volumes_used_by_tests": false
+  },
+  "test_target": {
+    "state_sha256": "a9b31c072abbcf3966a3b80f6c0378706551a231b35f8032af1b2bb05792af8f",
+    "isolation": "Verified temporary local PostgreSQL/Redis containers on separate loopback ports; no normal volume mounts"
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r02-20261015/red-evidence-context.txt",
+      "sha256": "d6ba424a5978dd2aee744ce555f4a0fcf59c96483d7fd0aa4af076f6133b7a0a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/red-permanent-policies.txt",
+      "sha256": "65fc14f5a8caf87daa6b03e327a8c87d614f056cf51697922a2d100c556c1130",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/red-restricted-verification.txt",
+      "sha256": "7713cad7a5a44975fd122c040dc0b59ae65af5120c51cf38eb64a1bfe69fbdec",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/red-restricted-delivery.txt",
+      "sha256": "2b9de78221adfa4437a889118b6bde4c8b8a65cbe1973fe3d469de23f9a614fb",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/full-policy-first.txt",
+      "sha256": "5af8fc4c2460b9e07d4c963257bef493592f6ff33305c7b95adcf5be182fb46b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/policy-fixture-repair-first.txt",
+      "sha256": "de05de0a6c886ee0d5eb05d03aaaee47694dbc9e4345a7b604257238003e5725",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/integration-final.txt",
+      "sha256": "fda2a434e6fbdf6ca2c72756bff06c6b68f4c17d42c217e7d62658fc0c4c1d35",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/fault-final.txt",
+      "sha256": "049a50a1cb01eb6377e1e4fe19a14bd1818fbca83e9f4d458f2b09f7f9024be0",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/all-go-final.txt",
+      "sha256": "1dd229c71704ba9ceb361bbac38ac53ffb95a0ecccd6232858828fc809cc6684",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/vet-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/capability-report.json",
+      "sha256": "f157e0e7ae0a2ccc804803a7c1c8d0754e48077ffa1048a041176bdad9d0c877",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/database-access-final.json",
+      "sha256": "92986f3d585f7fa8ad8d49388e58faa0881b1c15e53435e927a89826145d617c",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/normal-financial-before.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r02-20261015/normal-financial-after.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    }
+  ],
+  "migrations": [
+    {
+      "path": "migrations/000044_scoped_worker_claims.up.sql",
+      "sha256": "4a6cc8c97f55c8b6af1b0f78dc4e77bf35e909de0c1933973cedd2ca8c92627c"
+    },
+    {
+      "path": "migrations/000045_tenant_row_policies.up.sql",
+      "sha256": "1ef551f677aa19a5f9a0250ab99f8916c87f3cda4ffba948cbc0483a2b88d73c"
+    },
+    {
+      "path": "migrations/000046_controlled_webhook_verification.up.sql",
+      "sha256": "2d0f29ac93573a53064e0c8683b5eaafe4ab5ac2b92a1dbd9c1e72e2050c3748"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "2144a5a7e7dd03843ff75a99a53c939288c3f0a91bc2396583bd4e64bd4a04b4"
+  },
+  "limits": [
+    "Shared workload settings do not authenticate a fully compromised workload client",
+    "R03 direct financial/audit DML revocation remains open",
+    "No normal runtime cutover or full release qualification",
+    "Old binaries must stop before schema cutover; no mixed-version deployment",
+    "R04-R17 remain selected implementation work"
+  ]
+}

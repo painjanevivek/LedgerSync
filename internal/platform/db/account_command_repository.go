@@ -41,7 +41,7 @@ func (r *AccountCommandRepository) Create(ctx context.Context, command accounts.
 	}
 	envelope := commandEnvelope{command.TenantID, command.ActorSubjectID, command.CorrelationID, command.IdempotencyKey, accounts.CreateOperation, command.OccurredAt.UTC()}
 	var committedDenial error
-	err = WithSerializableSequence(ctx, r.database, "account-create|"+strings.ToLower(command.TenantID), 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "account-create|"+strings.ToLower(command.TenantID), 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, envelope.TenantID, envelope.ActorID); err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (r *AccountCommandRepository) UpdateMetadata(ctx context.Context, command a
 	}
 	envelope := commandEnvelope{command.TenantID, command.ActorSubjectID, command.CorrelationID, command.IdempotencyKey, accounts.UpdateOperation, command.OccurredAt.UTC()}
 	var committedDenial error
-	err = WithSerializableSequence(ctx, r.database, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, envelope.TenantID, envelope.ActorID); err != nil {
 			return err
 		}
@@ -110,16 +110,10 @@ func (r *AccountCommandRepository) UpdateMetadata(ctx context.Context, command a
 		if err := aggregate.UpdateMetadata(accountdomain.Metadata{DisplayName: command.DisplayName, ExternalReference: command.Reference, Category: command.Category}, command.ExpectedVersion, envelope.OccurredAt); err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_metadata_update", command.AccountID, err, &committedDenial)
 		}
-		if err := updateAccountRow(ctx, tx, aggregate, command.ExpectedVersion); err != nil {
+		if err := updateAccountRow(ctx, tx, aggregate, command.ExpectedVersion, envelope, ""); err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_metadata_update", command.AccountID, err, &committedDenial)
 		}
 		result = accountCommandResult(aggregate, available, ledger)
-		if err := insertAccountAudit(ctx, tx, envelope, aggregate.ID, "account.metadata_updated", "succeeded", map[string]string{"status": string(aggregate.Status), "category": aggregate.Category}); err != nil {
-			return err
-		}
-		if err := insertAccountOutbox(ctx, tx, envelope, aggregate, "account.metadata.updated.v1"); err != nil {
-			return err
-		}
 		if err := storeAccountOutcome(ctx, tx, envelope, result, 200); err != nil {
 			return err
 		}
@@ -138,7 +132,7 @@ func (r *AccountCommandRepository) ChangeStatus(ctx context.Context, command acc
 	}
 	envelope := commandEnvelope{command.TenantID, command.ActorSubjectID, command.CorrelationID, command.IdempotencyKey, accounts.UpdateOperation, command.OccurredAt.UTC()}
 	var committedDenial error
-	err = WithSerializableSequence(ctx, r.database, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "account-update|"+strings.ToLower(command.TenantID)+"|"+strings.ToLower(command.AccountID), 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, envelope.TenantID, envelope.ActorID); err != nil {
 			return err
 		}
@@ -172,16 +166,10 @@ func (r *AccountCommandRepository) ChangeStatus(ctx context.Context, command acc
 		if err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial, map[string]string{"reason": command.Reason})
 		}
-		if err := updateAccountRow(ctx, tx, aggregate, command.ExpectedVersion); err != nil {
+		if err := updateAccountRow(ctx, tx, aggregate, command.ExpectedVersion, envelope, command.Reason); err != nil {
 			return persistAccountDenial(ctx, tx, envelope, "account_status_change", command.AccountID, err, &committedDenial, map[string]string{"reason": command.Reason})
 		}
 		result = accountCommandResult(aggregate, available, ledger)
-		if err := insertAccountAudit(ctx, tx, envelope, aggregate.ID, "account.status_changed", "succeeded", map[string]string{"status": string(aggregate.Status), "reason": command.Reason}); err != nil {
-			return err
-		}
-		if err := insertAccountOutbox(ctx, tx, envelope, aggregate, "account.status.changed.v1", map[string]string{"reason": command.Reason}); err != nil {
-			return err
-		}
 		if err := storeAccountOutcome(ctx, tx, envelope, result, 200); err != nil {
 			return err
 		}

@@ -10,12 +10,19 @@ processors:
     limit_mib: 256
   batch:
     timeout: 5s
+    send_batch_size: 64
+    send_batch_max_size: 128
 
 exporters:
   prometheus:
     endpoint: 0.0.0.0:9464
   otlphttp/traces:
     endpoint: ${env:LEDGERSYNC_TRACE_BACKEND_ENDPOINT}
+    timeout: 1s
+    sending_queue:
+      queue_size: 512
+    retry_on_failure:
+      enabled: false
     tls:
       insecure: false
 

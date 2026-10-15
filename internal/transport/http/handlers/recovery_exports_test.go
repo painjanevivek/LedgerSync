@@ -34,7 +34,7 @@ type exportRepositoryStub struct {
 	accountErr  error
 }
 
-func (s exportRepositoryStub) ListTransfers(context.Context, string, investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
+func (s exportRepositoryStub) ListTransfers(context.Context, string, string, investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
 	if s.transferErr != nil {
 		return nil, "", s.transferErr
 	}
@@ -54,11 +54,11 @@ func (s exportRepositoryStub) ListAccountHistory(context.Context, string, string
 	return []transactions.Entry{{TransferID: "70000000-0000-4000-8000-000000000002", Direction: "credit", Amount: "12550", Currency: "INR", Status: "posted", OccurredAt: time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)}}, "", nil
 }
 
-func (exportRepositoryStub) ListReconciliationRuns(context.Context, string, appexports.ReconciliationFilter) ([]investigation.ReconciliationRun, string, error) {
+func (exportRepositoryStub) ListReconciliationRuns(context.Context, string, string, appexports.ReconciliationFilter) ([]investigation.ReconciliationRun, string, error) {
 	return nil, "", nil
 }
 
-func (exportRepositoryStub) ListReconciliationMismatches(context.Context, string, string, string, int) ([]investigation.ReconciliationMismatch, string, error) {
+func (exportRepositoryStub) ListReconciliationMismatches(context.Context, string, string, string, string, int) ([]investigation.ReconciliationMismatch, string, error) {
 	return nil, "", nil
 }
 

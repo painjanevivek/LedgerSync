@@ -1,5 +1,7 @@
 # Performance baseline and capacity report
 
+Historical candidate evidence: retain this report for its recorded source and workload. It does not qualify the R09 source. See [the current local component study](portfolio/capacity.md) for its measured scope and limits.
+
 This is the repeatable pilot measurement protocol, not a claim that a target
 has already been achieved. Do not run it against production funds or a shared
 pilot tenant without written approval and isolated load-test accounts.

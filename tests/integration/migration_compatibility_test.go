@@ -28,8 +28,8 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 38 {
-		t.Fatalf("migration versions=%d, want 38", versions)
+	if want := len(liveMigrationSource(t, false)); versions != want {
+		t.Fatalf("migration versions=%d, want %d", versions, want)
 	}
 	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "investigation_live_rooms", "investigation_live_room_findings", "investigation_live_room_operations", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
 		var exists bool
@@ -294,7 +294,7 @@ GROUP BY journal.id`, legacyJournalID).Scan(&sourceType, &sourceID, &journalTena
 	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
 		t.Fatalf("apply post-upgrade database roles: %v", err)
 	}
-	verifyDatabaseRoleCapabilities(
+	upgradeCapabilities := verifyDatabaseRoleCapabilities(
 		t,
 		upgradeDatabase,
 		parsed.String(),
@@ -302,6 +302,9 @@ GROUP BY journal.id`, legacyJournalID).Scan(&sourceType, &sourceID, &journalTena
 		"00000000-0000-4000-8000-000000000806",
 		legacyTenant,
 	)
+	if reportPath := os.Getenv("LEDGERSYNC_CAPABILITY_UPGRADE_REPORT_PATH"); reportPath != "" {
+		writeCapabilityReport(t, reportPath, upgradeCapabilities)
+	}
 	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
@@ -311,8 +314,9 @@ SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
        has_table_privilege('ledgersync_api','bff_actor_assertion_replays','INSERT'),
        has_table_privilege('ledgersync_api','bff_actor_assertion_replays','DELETE'),
        has_table_privilege('ledgersync_api','webhook_endpoint_verification_jobs','INSERT'),
-       has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','SELECT')
-         AND has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy, &canPersistAssertionReplay, &canDeleteAssertionReplay, &canInsertVerificationJob, &workerCanClaimVerificationJob); err != nil {
+       has_function_privilege('ledgersync_worker','controlled_claim_webhook_verification_v1(double precision,integer,text)','EXECUTE')
+         AND has_function_privilege('ledgersync_worker','controlled_complete_webhook_verification_v1(uuid,text,bigint,text,timestamptz,timestamptz,text,text)','EXECUTE')
+         AND NOT has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy, &canPersistAssertionReplay, &canDeleteAssertionReplay, &canInsertVerificationJob, &workerCanClaimVerificationJob); err != nil {
 		t.Fatal(err)
 	}
 	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy || !canPersistAssertionReplay || !canDeleteAssertionReplay || !canInsertVerificationJob || !workerCanClaimVerificationJob {

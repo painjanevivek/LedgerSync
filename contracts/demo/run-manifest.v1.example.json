@@ -1,0 +1,42 @@
+{
+  "schema_version": "ledgersync-demo-run/v1",
+  "purpose": "contract-fixture",
+  "run_id": "schema-example",
+  "started_at": "2026-10-14T00:00:00Z",
+  "completed_at": "2026-10-14T00:00:00Z",
+  "source": {
+    "commit": "0000000000000000000000000000000000000000",
+    "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "dirty": true
+  },
+  "images": [
+    {
+      "service": "api",
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "migration": {
+    "latest": "synthetic-example-only",
+    "count": 0,
+    "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "api_contract_version": "3.6.0",
+  "isolated_project": "ledgersync-acceptance-20261014000000-00000000",
+  "limits": {
+    "duration_seconds": 60,
+    "concurrency": 1,
+    "operations": 1
+  },
+  "scenarios": [
+    {
+      "id": "conservation",
+      "status": "skipped",
+      "reason": "Contract fixture only. No scenario was executed.",
+      "checks": []
+    }
+  ],
+  "artifacts": [],
+  "limitations": [
+    "Synthetic contract example. No runtime, financial, restore, or performance result is claimed."
+  ]
+}

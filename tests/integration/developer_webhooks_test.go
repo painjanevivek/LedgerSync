@@ -42,7 +42,10 @@ func TestDeveloperWebhookLifecycleIsVerifiedVersionedAndAppendOnly(t *testing.T)
 	if err != nil || !replayed.Replayed || replayed.Webhook.ID != created.Webhook.ID {
 		t.Fatalf("replayed=%#v err=%v", replayed, err)
 	}
-	verificationStore, err := db.NewWebhookVerificationJobRepository(database, func() time.Time { return now })
+	requireWorkloadRoles(t, database)
+	workerSession := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_worker")
+	workerSession.db.SetMaxOpenConns(1)
+	verificationStore, err := db.NewWebhookVerificationJobRepository(workerSession.db, func() time.Time { return now })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +56,7 @@ func TestDeveloperWebhookLifecycleIsVerifiedVersionedAndAppendOnly(t *testing.T)
 	if processed, err := verificationWorker.RunOnce(ctx); err != nil || processed != 1 {
 		t.Fatalf("processed=%d err=%v", processed, err)
 	}
-	verified, err := service.Get(ctx, testTenantID, created.Webhook.ID)
+	verified, err := service.Get(ctx, testTenantID, testActorID, created.Webhook.ID)
 	if err != nil || verified.Status != "active" || verified.Version != "2" {
 		t.Fatalf("verified=%#v err=%v", verified, err)
 	}

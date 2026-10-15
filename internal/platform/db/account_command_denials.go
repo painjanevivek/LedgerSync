@@ -41,12 +41,7 @@ func (r *AccountCommandRepository) classifyUncommittedError(ctx context.Context,
 	}
 	code, safe := accountDenialCode(err)
 	if safe {
-		auditErr := func() error {
-			tx, beginErr := r.database.BeginTx(ctx, nil)
-			if beginErr != nil {
-				return beginErr
-			}
-			defer func() { _ = tx.Rollback() }()
+		auditErr := WithTenantTransaction(ctx, r.database, TenantScope{TenantID: envelope.TenantID, ActorID: envelope.ActorID}, nil, func(tx *sql.Tx) error {
 			var tenantExists bool
 			if queryErr := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenants WHERE id=$1)`, envelope.TenantID).Scan(&tenantExists); queryErr != nil || !tenantExists {
 				return queryErr
@@ -56,8 +51,8 @@ func (r *AccountCommandRepository) classifyUncommittedError(ctx context.Context,
 			if insertErr := insertAccountAudit(ctx, tx, envelope, accountID, "account.command_denied", "denied", metadata); insertErr != nil {
 				return insertErr
 			}
-			return tx.Commit()
-		}()
+			return nil
+		})
 		if auditErr != nil {
 			return fmt.Errorf("persist required account denial audit: %w", auditErr)
 		}

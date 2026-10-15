@@ -1,0 +1,51 @@
+{
+  "final": {
+    "lease": {
+      "active": true,
+      "owner_id": "ledgersync/scheduler/84616e2b228c",
+      "expires_at": "2026-10-12T01:35:26.909989+05:30",
+      "generation": "8"
+    },
+    "completed": 108,
+    "mismatches": 0,
+    "duplicate_intervals": 0
+  },
+  "captured_at": "2026-10-11T20:05:23.7792608Z",
+  "manual_reconciliation": "matched",
+  "drills": [
+    {
+      "after": {
+        "active": true,
+        "owner_id": "ledgersync/scheduler/7017da2fc172",
+        "expires_at": "2026-10-12T01:35:13.440101+05:30",
+        "generation": "7"
+      },
+      "mode": "stop",
+      "takeover_ms": 4901,
+      "before": {
+        "active": true,
+        "owner_id": "ledgersync/scheduler/84616e2b228c",
+        "expires_at": "2026-10-12T01:35:08.430492+05:30",
+        "generation": "6"
+      },
+      "stale_owner_rejected": true
+    },
+    {
+      "after": {
+        "active": true,
+        "owner_id": "ledgersync/scheduler/84616e2b228c",
+        "expires_at": "2026-10-12T01:35:20.910344+05:30",
+        "generation": "8"
+      },
+      "mode": "pause",
+      "takeover_ms": 5025,
+      "before": {
+        "active": true,
+        "owner_id": "ledgersync/scheduler/7017da2fc172",
+        "expires_at": "2026-10-12T01:35:16.431452+05:30",
+        "generation": "7"
+      },
+      "stale_owner_rejected": true
+    }
+  ]
+}

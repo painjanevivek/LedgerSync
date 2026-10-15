@@ -1,0 +1,30 @@
+flowchart TB
+  Browser[Host browser] -->|127.0.0.1:3000| Web[web: Next.js on container port 3000]
+  Browser -.->|Optional 127.0.0.1:3001| Peer[web-peer: collaboration profile]
+  subgraph Private[Compose private network: internal]
+    API[api: Go on port 8080]
+    Worker[outbox-worker: continuous processors]
+    Probe[Worker probe: queue poll success and bounded progress]
+    PG[(postgres:16, ledger and immutable recovery intents, named volume)]
+    Redis[(redis:7.4 and named redis-data volume)]
+    Migrate[migrate: one-shot schema and roles]
+    Seed[demo-seed: local bootstrap and optional demo records]
+    API --> PG
+    API --> Redis
+    Worker --> PG
+    Worker --> Redis
+    Worker -->|Private temporary heartbeat, every 5 seconds| Probe
+    Migrate --> PG
+    Seed --> PG
+  end
+  Web --> API
+  Peer --> API
+  Evidence[Host sanitized recovery index] -->|Read-only exact file mount| API
+  PG -->|Healthy before| Migrate
+  Migrate -->|Successful before| Seed
+  Seed -->|Successful before| API
+  API -->|Healthy before| Web
+  API -->|Healthy before| Peer
+  Seed -->|Successful before| Worker
+  Redis -->|Healthy before| API
+  Redis -->|Healthy before| Worker

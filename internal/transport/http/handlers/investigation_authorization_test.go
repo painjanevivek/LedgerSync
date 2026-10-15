@@ -29,7 +29,7 @@ func (r *investigationRepositoryStub) Search(_ context.Context, _, _ string, fil
 	return investigation.SearchPage{Results: []investigation.SearchResult{}}, nil
 }
 
-func (r *investigationRepositoryStub) ListTransfers(_ context.Context, _ string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
+func (r *investigationRepositoryStub) ListTransfers(_ context.Context, _, _ string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
 	r.called = true
 	r.filter = filter
 	return nil, "", nil
@@ -69,15 +69,15 @@ func TestInvestigationTransferFiltersAreStrictBoundedAndServerSide(t *testing.T)
 		})
 	}
 }
-func (r *investigationRepositoryStub) GetTransfer(context.Context, string, string) (investigation.TransferDetail, error) {
+func (r *investigationRepositoryStub) GetTransfer(context.Context, string, string, string) (investigation.TransferDetail, error) {
 	r.called = true
 	return investigation.TransferDetail{}, nil
 }
-func (r *investigationRepositoryStub) ListReconciliationRuns(context.Context, string, string, int) ([]investigation.ReconciliationRun, string, error) {
+func (r *investigationRepositoryStub) ListReconciliationRuns(context.Context, string, string, string, int) ([]investigation.ReconciliationRun, string, error) {
 	r.called = true
 	return nil, "", nil
 }
-func (r *investigationRepositoryStub) GetReconciliationRun(context.Context, string, string) (investigation.ReconciliationRun, error) {
+func (r *investigationRepositoryStub) GetReconciliationRun(context.Context, string, string, string) (investigation.ReconciliationRun, error) {
 	r.called = true
 	return investigation.ReconciliationRun{}, nil
 }

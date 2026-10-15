@@ -1,0 +1,20 @@
+erDiagram
+  TENANTS ||--o{ ACCOUNTS : owns
+  ACCOUNTS ||--o{ ACCOUNT_OWNERS : authorizes
+  ACCOUNTS ||--|| ACCOUNT_BALANCE_PROJECTIONS : has
+  ACCOUNTS ||--|| ACCOUNT_OPENING_BALANCES : starts_from
+  TENANTS ||--o{ TRANSFERS : contains
+  TRANSFERS ||--o| JOURNAL_TRANSACTIONS : posts
+  JOURNAL_TRANSACTIONS ||--|{ LEDGER_POSTINGS : balances
+  ACCOUNTS ||--o{ LEDGER_POSTINGS : receives
+  TENANTS ||--o{ IDEMPOTENCY_REQUESTS : retains_outcomes
+  TENANTS ||--o{ TRANSFER_RECOVERY_INTENTS : retains_confirmed_intent
+  ACCOUNTS ||--o{ TRANSFER_RECOVERY_INTENTS : scopes_original_route
+  TRANSFERS ||--o{ OUTBOX_EVENTS : emits
+  OUTBOX_EVENTS ||--o{ WEBHOOK_DELIVERY_JOBS : schedules
+  WEBHOOK_DELIVERY_JOBS ||--o{ DELIVERY_ATTEMPTS : records
+  TENANTS ||--o{ FUNDING_EVENTS : records
+  FUNDING_EVENTS ||--o{ APPROVAL_RECORDS : requires
+  TENANTS ||--o{ RECONCILIATION_RUNS : checks
+  RECONCILIATION_RUNS ||--o{ RECONCILIATION_MISMATCHES : reports
+  TENANTS ||--o{ AUDIT_EVENTS : records_actions

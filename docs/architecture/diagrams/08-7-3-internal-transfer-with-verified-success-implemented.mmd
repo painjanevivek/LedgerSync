@@ -1,0 +1,52 @@
+sequenceDiagram
+  actor Operator
+  participant UI as Transfer screen
+  participant BFF
+  participant API as Go API
+  participant PG as PostgreSQL
+  Operator->>UI: Review source, destination and exact amount
+  UI->>UI: Keep original key and reference when browser storage permits
+  UI->>BFF: Save confirmed intent before posting with CSRF and original identity
+  BFF->>API: Authenticated prepare recovery request
+  API->>PG: Validate stored authority, retain immutable intent
+  PG-->>UI: Saved acknowledgment via API and BFF
+  Note over UI,PG: No posting command until durable save is acknowledged
+  UI->>BFF: POST /api/transfers with CSRF, key and reference
+  BFF->>BFF: Validate session, origin and bounded exact amount
+  BFF->>API: Workload credential, fresh actor assertion and command
+  API->>API: Verify scope, tenant capacity and rate limit
+  API->>PG: Acquire tenant sequence lock, begin SERIALIZABLE
+  PG->>PG: Validate stored actor and reserve fingerprint
+  alt Matching completed key
+    PG-->>API: Original stored result, no new journal
+  else New intent
+    PG->>PG: Lock accounts in stable order, validate permissions and limits
+    alt Insufficient funds
+      PG->>PG: Stage rejected transfer, audit and stored outcome
+      PG-->>API: Rejected result within the open transaction, no postings
+    else Valid new intent
+      PG->>PG: Write transfer, balanced journal and postings
+      PG->>PG: Update primary balances and versions
+      PG->>PG: Append audit, outbox, webhook jobs and stored response
+      PG-->>API: Posted result within the open transaction
+    end
+  end
+  opt Request reference is supplied
+    API->>PG: Attach original reference with the exact key and fingerprint
+    alt Identical reference is already attached
+      PG-->>API: Verified match, no UPDATE
+    else Original finalized transfer has no reference
+      PG->>PG: Attach reference only, keep every other outcome field unchanged
+      PG-->>API: Reference attached, or error that rolls back the transaction
+    end
+  end
+  API->>PG: Commit transaction only after reference attachment succeeds
+  PG-->>API: Durable posted or rejected result
+  API->>API: Add permitted signed consistency metadata
+  API-->>BFF: Final outcome and metadata status
+  BFF->>BFF: Add bounded consistency requirements to session when possible
+  BFF-->>UI: Final response and request reference
+  UI->>UI: Clear intent only after a definitive outcome
+  UI->>BFF: Refresh detail and primary balance evidence
+  BFF-->>UI: Authorized receipt, journal and balances
+  UI-->>Operator: Show outcome and the next follow-up action

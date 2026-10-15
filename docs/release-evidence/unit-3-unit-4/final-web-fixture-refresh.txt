@@ -1,0 +1,244 @@
+
+> ledgersync-web@0.1.0 test:e2e
+> playwright test --grep-invert @performance tests/e2e/visual-regression.spec.ts tests/e2e/accessibility.spec.ts tests/e2e/session-boundary.spec.ts tests/e2e/transfer.spec.ts --update-snapshots --workers=2
+
+[WebServer] (node:287928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:287928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:401032) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:403612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:306260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:138292) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:330224) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:471580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:450720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:305080) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:455840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:299772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:413852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:311424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:302864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:455200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:365820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:475852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:470420) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:234840) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:467176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:456652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:302000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:302664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:365740) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:443272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:473376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:439276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:424860) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:318472) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:238060) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:311892) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:456796) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:479172) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 72 tests using 2 workers
+
+(node:476212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:304076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  2 [chromium] › tests\e2e\accessibility.spec.ts:14:5 › compact navigation opens, closes with Escape, and restores focus (11.1s)
+  ok  1 [chromium] › tests\e2e\accessibility.spec.ts:6:5 › the operator console has no automatically detectable accessibility violations (15.0s)
+  ok  3 [chromium] › tests\e2e\accessibility.spec.ts:19:5 › forced colors and reduced motion preserve operable financial evidence (6.9s)
+  ok  4 [chromium] › tests\e2e\accessibility.spec.ts:29:5 › 320 CSS-pixel reflow, equivalent to 400% desktop zoom, keeps evidence available (3.4s)
+  ok  5 [chromium] › tests\e2e\accessibility.spec.ts:48:5 › 200% desktop zoom preserves the exact-value table and its primary action (3.4s)
+  ok  6 [chromium] › tests\e2e\accessibility.spec.ts:63:5 › copy controls announce completion without hiding the full identifier (3.5s)
+  ok  7 [chromium] › tests\e2e\accessibility.spec.ts:68:5 › visually shortened transfer routes retain their complete accessible account identifiers (3.5s)
+  ok  8 [chromium] › tests\e2e\accessibility.spec.ts:75:5 › account balance and ledger history report independent truth states (3.4s)
+  ok  9 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /accounts has no automatically detectable WCAG A or AA violation (5.9s)
+  ok 10 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /accounts/11111111-1111-4111-8111-111111111111 has no automatically detectable WCAG A or AA violation (5.9s)
+  ok 11 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /funding has no automatically detectable WCAG A or AA violation (5.4s)
+  ok 12 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /approvals has no automatically detectable WCAG A or AA violation (5.5s)
+  ok 13 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /transfers has no automatically detectable WCAG A or AA violation (6.1s)
+  ok 14 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /transfers/33333333-3333-4333-8333-333333333333 has no automatically detectable WCAG A or AA violation (6.0s)
+  ok 15 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /reconciliation has no automatically detectable WCAG A or AA violation (5.7s)
+  ok 16 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /reconciliation/55555555-5555-4555-8555-555555555555 has no automatically detectable WCAG A or AA violation (5.8s)
+  ok 18 [chromium] › tests\e2e\accessibility.spec.ts:110:5 › keyboard-only transfer review announces an unknown result and preserves the retry key (3.6s)
+  ok 17 [chromium] › tests\e2e\accessibility.spec.ts:96:5 › compact approval evidence reflows through a keyboard-scrollable labelled region (5.4s)
+  ok 19 [chromium] › tests\e2e\accessibility.spec.ts:138:5 › exact-money input survives phone rotation and retains maximum signed-64-bit evidence (4.0s)
+  ok 20 [chromium] › tests\e2e\accessibility.spec.ts:153:5 › WCAG text-spacing overrides preserve compact evidence and controls (3.4s)
+  ok 21 [chromium] › tests\e2e\accessibility.spec.ts:169:5 › compact primary actions and navigation meet the 44 CSS-pixel touch target (3.4s)
+  ok 22 [chromium] › tests\e2e\session-boundary.spec.ts:5:5 › session and connectivity authority persist across console route families (4.4s)
+  x  23 [chromium] › tests\e2e\session-boundary.spec.ts:32:5 › failed sign-out keeps the proven session visible and exposes a retryable error (3.7s)
+(node:477436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 24 [chromium] › tests\e2e\session-boundary.spec.ts:57:5 › confirmed sign-out clears the shared session and returns to the login layer (3.6s)
+  ok 26 [chromium] › tests\e2e\transfer.spec.ts:15:5 › an authorized operator retries a lost response with the same idempotency key (5.3s)
+  ok 25 [chromium] › tests\e2e\transfer.spec.ts:5:5 › an unauthenticated visitor sees the login layer and no invented financial data (6.0s)
+  ok 27 [chromium] › tests\e2e\transfer.spec.ts:39:5 › rapid repeated activation dispatches only one transfer request (4.7s)
+  ok 28 [chromium] › tests\e2e\transfer.spec.ts:55:5 › an unknown transfer survives reload with its exact intent and only the same-key retry action (5.1s)
+  ok 29 [chromium] › tests\e2e\transfer.spec.ts:84:5 › a final rejection clears its key before a genuinely new intent (4.7s)
+  ok 30 [chromium] › tests\e2e\transfer.spec.ts:106:5 › a posted confirmation exposes journal, UTC, and committed balance-version evidence (3.8s)
+  ok 31 [chromium] › tests\e2e\transfer.spec.ts:153:5 › a malformed exact-money amount is rejected before it reaches the API (5.0s)
+  ok 32 [chromium] › tests\e2e\transfer.spec.ts:169:5 › an insufficient-funds outcome clearly states that no movement occurred (4.9s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\overview-populated-1440x900.png is re-generated, writing actual.
+  ok 33 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › overview-populated has a reviewed desktop baseline (4.3s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\accounts-populated-1440x900.png is re-generated, writing actual.
+  ok 34 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › accounts-populated has a reviewed desktop baseline (4.3s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\account-detail-populated-1440x900.png is re-generated, writing actual.
+  ok 35 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › account-detail-populated has a reviewed desktop baseline (4.8s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\funding-records-populated-1440x900.png is re-generated, writing actual.
+  ok 36 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › funding-records-populated has a reviewed desktop baseline (4.4s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\approvals-populated-1440x900.png is re-generated, writing actual.
+  ok 37 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › approvals-populated has a reviewed desktop baseline (4.9s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\transfers-populated-1440x900.png is re-generated, writing actual.
+  ok 38 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › transfers-populated has a reviewed desktop baseline (4.9s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-populated-1440x900.png is re-generated, writing actual.
+  ok 40 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › reconciliation-populated has a reviewed desktop baseline (4.5s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\transfer-detail-posted-delivery-retrying-1440x900.png is re-generated, writing actual.
+  ok 39 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › transfer-detail-posted-delivery-retrying has a reviewed desktop baseline (5.9s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-detail-populated-1440x900.png is re-generated, writing actual.
+  ok 41 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › reconciliation-detail-populated has a reviewed desktop baseline (4.6s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\local-status-degraded-1440x900.png is re-generated, writing actual.
+  ok 42 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › local-status-degraded has a reviewed desktop baseline (5.2s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\events-populated-1440x900.png is re-generated, writing actual.
+  ok 43 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › events-populated has a reviewed desktop baseline (4.7s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\event-detail-retrying-1440x900.png is re-generated, writing actual.
+  ok 44 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › event-detail-retrying has a reviewed desktop baseline (5.0s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\webhooks-populated-1440x900.png is re-generated, writing actual.
+  ok 45 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › webhooks-populated has a reviewed desktop baseline (4.7s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\webhook-detail-dead-1440x900.png is re-generated, writing actual.
+  ok 46 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › webhook-detail-dead has a reviewed desktop baseline (4.9s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\recovery-evidence-1440x900.png is re-generated, writing actual.
+  ok 48 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › recovery-evidence has a reviewed desktop baseline (5.8s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\developer-contract-1440x900.png is re-generated, writing actual.
+  ok 47 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › developer-contract has a reviewed desktop baseline (10.1s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\investigation-search-populated-1440x900.png is re-generated, writing actual.
+  ok 49 [chromium] › tests\e2e\visual-regression.spec.ts:62:7 › investigation-search-populated has a reviewed desktop baseline (5.7s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\funding-records-populated-ultrawide-2560x1440.png is re-generated, writing actual.
+  ok 50 [chromium] › tests\e2e\visual-regression.spec.ts:71:5 › funding records use the reviewed contextual rail on ultrawide screens (5.1s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\funding-intake-desktop-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\funding-intake-ultrawide-2560x1440.png is re-generated, writing actual.
+  ok 51 [chromium] › tests\e2e\visual-regression.spec.ts:78:5 › funding intake keeps its financial controls readable from desktop to ultrawide (6.0s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\accounts-populated-compact-390x844.png is re-generated, writing actual.
+  ok 52 [chromium] › tests\e2e\visual-regression.spec.ts:87:5 › compact account directory preserves the selected information hierarchy (4.0s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\investigation-search-populated-compact-390x844.png is re-generated, writing actual.
+  ok 53 [chromium] › tests\e2e\visual-regression.spec.ts:94:5 › compact exact search preserves locator evidence without page overflow (4.5s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\developer-contract-compact-390x844.png is re-generated, writing actual.
+  ok 54 [chromium] › tests\e2e\visual-regression.spec.ts:102:5 › compact developer contract preserves code and retry hierarchy (6.0s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\transfer-export-review-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\transfer-export-review-compact-390x844.png is re-generated, writing actual.
+  ok 55 [chromium] › tests\e2e\visual-regression.spec.ts:109:5 › transfer export review preserves the exact evidence hierarchy (5.6s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\accounts-loading-768x1024.png is re-generated, writing actual.
+  ok 56 [chromium] › tests\e2e\visual-regression.spec.ts:118:5 › loading state does not imply empty account evidence (4.0s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\accounts-empty-390x844.png is re-generated, writing actual.
+  ok 57 [chromium] › tests\e2e\visual-regression.spec.ts:126:5 › empty account scope is explicit (4.1s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\accounts-error-768x1024.png is re-generated, writing actual.
+  ok 58 [chromium] › tests\e2e\visual-regression.spec.ts:134:5 › account dependency failure does not render stale balances (4.2s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\accounts-permission-denied-390x844.png is re-generated, writing actual.
+  ok 59 [chromium] › tests\e2e\visual-regression.spec.ts:142:5 › permission denial remains distinct from an empty directory (3.8s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\accounts-offline-390x844.png is re-generated, writing actual.
+  ok 60 [chromium] › tests\e2e\visual-regression.spec.ts:150:5 › offline state preserves already verified evidence and disables writes (4.1s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\account-detail-independent-failures-1440x900.png is re-generated, writing actual.
+  ok 61 [chromium] › tests\e2e\visual-regression.spec.ts:161:5 › account detail separates balance failure from history permission (4.7s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\transfer-unknown-outcome-390x844.png is re-generated, writing actual.
+  ok 62 [chromium] › tests\e2e\visual-regression.spec.ts:171:5 › unknown transfer outcome keeps the exact intent and safe retry action (5.6s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-mismatch-390x844.png is re-generated, writing actual.
+  ok 63 [chromium] › tests\e2e\visual-regression.spec.ts:184:5 › reconciliation mismatch is visually stop-ship (4.0s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\shell-permission-denied-768x1024.png is re-generated, writing actual.
+  ok 64 [chromium] › tests\e2e\visual-regression.spec.ts:193:5 › missing session renders the login layer with no financial evidence (4.1s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\transfers-read-only-capability-1440x900.png is re-generated, writing actual.
+  ok 65 [chromium] › tests\e2e\visual-regression.spec.ts:200:5 › read-only transfer role explains why posting is disabled (4.7s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\overview-mixed-currency-error-1440x900.png is re-generated, writing actual.
+  ok 66 [chromium] › tests\e2e\visual-regression.spec.ts:211:5 › mixed-currency overview refuses a false aggregate (4.2s)
+[WebServer] ⨯ Error: confidential-render-probe-must-never-reach-the-browser
+[WebServer]     at h (D:\Work\Project\Dev\LedgerSync\web\.next\standalone\.next\server\chunks\ssr\_0ikjg1m._.js:1:24528) {
+[WebServer]   digest: '2754451910'
+[WebServer] }
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\route-unavailable-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\route-unavailable-compact-390x844.png is re-generated, writing actual.
+  ok 67 [chromium] › tests\e2e\visual-regression.spec.ts:220:5 › an unavailable route has a reviewed non-disclosing baseline (4.3s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\route-render-error-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\route-render-error-compact-390x844.png is re-generated, writing actual.
+  ok 68 [chromium] › tests\e2e\visual-regression.spec.ts:229:5 › a render interruption has a reviewed safe-retry baseline (4.5s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\account-create-review-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\account-create-review-compact-390x844.png is re-generated, writing actual.
+  ok 69 [chromium] › tests\e2e\visual-regression.spec.ts:238:5 › account create review has a Windows local-console baseline (5.3s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\account-freeze-confirmation-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\account-freeze-confirmation-compact-390x844.png is re-generated, writing actual.
+  ok 70 [chromium] › tests\e2e\visual-regression.spec.ts:252:5 › account lifecycle guard has a Windows local-console baseline (5.1s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-command-review-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-command-review-compact-390x844.png is re-generated, writing actual.
+  ok 71 [chromium] › tests\e2e\visual-regression.spec.ts:274:5 › reconciliation command review has a Windows local-console baseline (5.4s)
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-command-running-1440x900.png is re-generated, writing actual.
+D:\Work\Project\Dev\LedgerSync\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-command-running-compact-390x844.png is re-generated, writing actual.
+  ok 72 [chromium] › tests\e2e\visual-regression.spec.ts:284:5 › reconciliation running control has a Windows local-console baseline (5.7s)
+
+
+  1) [chromium] › tests\e2e\session-boundary.spec.ts:32:5 › failed sign-out keeps the proven session visible and exposes a retryable error 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('alert')
+    Expected substring: "Sign-out was not confirmed (503). The current workspace remains signed in."
+    Error: strict mode violation: getByRole('alert') resolved to 2 elements:
+        1) <p role="alert" id="topbar-sign-out-error" class="session-action-error topbar-signout-error">Sign-out was not confirmed (503). The current wor…</p> aka getByText('Sign-out was not confirmed (')
+        2) <div role="alert" aria-live="assertive" id="__next-route-announcer__"></div> aka locator('[id="__next-route-announcer__"]')
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('alert')
+
+
+      47 |   await signOut.dblclick();
+      48 |
+    > 49 |   await expect(page.getByRole("alert")).toContainText(
+         |                                         ^
+      50 |     "Sign-out was not confirmed (503). The current workspace remains signed in.",
+      51 |   );
+      52 |   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\session-boundary.spec.ts:49:41
+
+    Error Context: test-results\e2e\session-boundary-failed-si-689b0-d-exposes-a-retryable-error-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\e2e\session-boundary-failed-si-689b0-d-exposes-a-retryable-error-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\e2e\session-boundary-failed-si-689b0-d-exposes-a-retryable-error-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests\e2e\session-boundary.spec.ts:32:5 › failed sign-out keeps the proven session visible and exposes a retryable error 
+  71 passed (3.7m)

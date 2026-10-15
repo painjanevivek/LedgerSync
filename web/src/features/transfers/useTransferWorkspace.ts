@@ -26,9 +26,11 @@ export function useTransferWorkspace(filters: TransferFilters = emptyTransferFil
   const [detailLoading, setDetailLoading] = useState(false);
   const [explainabilityLoading, setExplainabilityLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [explainabilityError, setExplainabilityError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string>();
   const [verifiedAt, setVerifiedAt] = useState<string>();
+  const [detailVerifiedAt, setDetailVerifiedAt] = useState<string>();
   const listRequests = useRef(createEvidenceRequestCoordinator());
   const detailRequests = useRef(createEvidenceRequestCoordinator());
   const explainabilityRequests = useRef(createEvidenceRequestCoordinator());
@@ -65,15 +67,20 @@ export function useTransferWorkspace(filters: TransferFilters = emptyTransferFil
   const loadDetail = useCallback(async (transferId: string) => {
     const request = beginEvidenceRequest(detailRequests.current, `transfer:${transferId}`);
     if (!request) return;
-    if (!request.sameResource) setDetail(null);
+    if (!request.sameResource) {
+      setDetail(null);
+      setDetailError(null);
+      setDetailVerifiedAt(undefined);
+    }
     setDetailLoading(true);
     const response = await readJSON<TransferDetail>(`/api/transfers/${encodeURIComponent(transferId)}`);
     if (!isEvidenceRequestCurrent(detailRequests.current, request.token)) return;
     if (response.ok && response.data.transfer_id) {
       setDetail(response.data);
-      setError(null);
+      setDetailError(null);
+      setDetailVerifiedAt(new Date().toISOString());
     } else {
-      setError(unavailableMessage(response.status, "transfer details", response.requestReference));
+      setDetailError(unavailableMessage(response.status, "transfer details", response.requestReference));
     }
     if (finishEvidenceRequest(detailRequests.current, request.token)) setDetailLoading(false);
   }, []);
@@ -106,9 +113,11 @@ export function useTransferWorkspace(filters: TransferFilters = emptyTransferFil
     detailLoading,
     explainabilityLoading,
     error,
+    detailError,
     explainabilityError,
     nextCursor,
     verifiedAt,
+    detailVerifiedAt,
     loadList,
     loadDetail,
     loadExplainability,

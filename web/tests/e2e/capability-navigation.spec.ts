@@ -37,7 +37,7 @@ function captureAPIPaths(page: Page) {
   return paths;
 }
 
-test("local finance operator sees grouped work, investigation, platform, and environment navigation", async ({ page }) => {
+test("local finance operator sees grouped work, investigation, operations, and developer navigation", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
@@ -45,13 +45,13 @@ test("local finance operator sees grouped work, investigation, platform, and env
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(navigation.getByText("Work", { exact: true })).toBeVisible();
   await expect(navigation.getByText("Investigate", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("Platform", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("Environment", { exact: true })).toBeVisible();
+  await expect(navigation.locator("summary").filter({ hasText: "Developer" })).toBeVisible();
+  await expect(navigation.getByText("Operations", { exact: true })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Approvals" })).toBeVisible();
-  await navigation.getByText("Investigate", { exact: true }).click();
+  await navigation.getByText("Operations", { exact: true }).click();
   await expect(navigation.getByRole("link", { name: "Events & webhooks" })).toBeVisible();
-  await navigation.getByText("Environment", { exact: true }).click();
   await expect(navigation.getByRole("link", { name: "Local status" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Recovery" })).toBeVisible();
 });
 
 test("production read role sees only relevant navigation and never local status", async ({ page }) => {
@@ -62,13 +62,13 @@ test("production read role sees only relevant navigation and never local status"
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(navigation.getByRole("link", { name: "Accounts" })).toBeVisible();
-  await navigation.getByText("Investigate", { exact: true }).click();
+  await navigation.getByText("Operations", { exact: true }).click();
   await expect(navigation.getByRole("link", { name: "Events & webhooks" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Approvals" })).toHaveCount(0);
   await expect(navigation.getByRole("link", { name: "Local status" })).toHaveCount(0);
   await expect(navigation.getByRole("link", { name: "Developer" })).toHaveCount(0);
-  await expect(navigation.getByText("Platform", { exact: true })).toHaveCount(0);
-  await expect(navigation.getByText("Environment", { exact: true })).toHaveCount(0);
+  await expect(navigation.locator("summary").filter({ hasText: "Developer" })).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "Recovery" })).toHaveCount(0);
 });
 
 test("production direct local-status access is denied without requesting diagnostics", async ({ page }) => {

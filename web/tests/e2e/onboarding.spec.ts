@@ -42,20 +42,20 @@ test("a new local user sees an actionable zero-data dashboard and guide", async 
 
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Start with four simple steps" }),
+    page.getByRole("heading", { name: "Start with an account" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Create your first account" }),
   ).toHaveAttribute("href", "/accounts/new");
-  await expect(page.getByRole("link", { name: /Add a funding record/ })).toHaveAttribute("href", "/funding");
-  await expect(page.getByRole("link", { name: /Make a transfer/ })).toHaveAttribute("href", "/transfers");
+  await expect(page.getByRole("link", { name: /Record funding/ })).toHaveAttribute("href", "/funding");
+  await expect(page.getByRole("link", { name: /Make transfer/ })).toHaveAttribute("href", "/transfers");
 
   await page.getByRole("link", { name: "Guide", exact: true }).click();
   await expect(page).toHaveURL(/\/guide$/);
   await expect(
-    page.getByRole("heading", { name: "Use LedgerSync step by step" }),
+    page.getByRole("heading", { name: "Get started" }),
   ).toBeVisible();
-  await page.getByText("Reference: the six-step operating path", { exact: true }).click();
+  await page.getByText("Full operating path", { exact: true }).click();
   await expect(page.getByText("Create an account", { exact: true })).toBeVisible();
-  await expect(page.getByText("Check your records", { exact: true })).toBeVisible();
+  await expect(page.getByText("Check ledger balances", { exact: true })).toBeVisible();
 });

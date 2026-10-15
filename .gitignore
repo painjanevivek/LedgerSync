@@ -36,6 +36,11 @@ data/
 .tools/
 .cache/
 .tmp/
+.playwright-mcp/
+web/chunks/
+web/*/_buildManifest.js
+web/*/_clientMiddlewareManifest.js
+web/*/_ssgManifest.js
 
 # Local Codex/agent instructions are machine-local and must never be committed.
 .agents/

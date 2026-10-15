@@ -61,9 +61,15 @@ type EventTimelineItem struct {
 
 type EventDetail struct {
 	EventEvidence
-	DeliveryAttempts          []DeliveryEvidence  `json:"delivery_attempts"`
-	DeliveryAttemptsTruncated bool                `json:"delivery_attempts_truncated"`
-	Timeline                  []EventTimelineItem `json:"timeline"`
+	DiagnosticTraceID            string                `json:"diagnostic_trace_id,omitempty"`
+	EventOrder                   *EventOrder           `json:"event_order,omitempty"`
+	PublicationAttempts          []PublicationEvidence `json:"publication_attempts"`
+	PublicationAttemptsTruncated bool                  `json:"publication_attempts_truncated"`
+	Receipts                     []ReceiptEvidence     `json:"receipts"`
+	ReceiptsTruncated            bool                  `json:"receipts_truncated"`
+	DeliveryAttempts             []DeliveryEvidence    `json:"delivery_attempts"`
+	DeliveryAttemptsTruncated    bool                  `json:"delivery_attempts_truncated"`
+	Timeline                     []EventTimelineItem   `json:"timeline"`
 }
 
 type EventRepository interface {

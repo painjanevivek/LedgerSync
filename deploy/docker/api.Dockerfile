@@ -1,12 +1,14 @@
 FROM golang:1.26.6-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83 AS builder
+ARG GO_BUILD_GODEBUG=""
 WORKDIR /src
 COPY go.mod go.sum go.work ./
 COPY cmd ./cmd
 COPY contracts ./contracts
 COPY internal ./internal
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reconcile ./cmd/reconcile
+RUN GODEBUG="$GO_BUILD_GODEBUG" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
+RUN GODEBUG="$GO_BUILD_GODEBUG" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
+RUN GODEBUG="$GO_BUILD_GODEBUG" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reconcile ./cmd/reconcile
+RUN GODEBUG="$GO_BUILD_GODEBUG" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reconciliation-scheduler ./cmd/reconciliation-scheduler
 
 FROM postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777 AS database-tooling
 COPY --from=builder /out/migrate /usr/local/bin/migrate
@@ -28,4 +30,5 @@ COPY --from=builder /out/reconcile /usr/local/bin/reconcile
 WORKDIR /
 COPY migrations /migrations
 EXPOSE 8080
+COPY --from=builder /out/reconciliation-scheduler /usr/local/bin/reconciliation-scheduler
 ENTRYPOINT ["/usr/local/bin/api"]

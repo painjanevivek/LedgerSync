@@ -1,0 +1,59 @@
+
+> ledgersync-web@0.1.0 test:e2e:real-stack
+> playwright test --config playwright.real-stack.config.ts --workers=1
+
+
+Running 5 tests using 1 worker
+
+(node:321056) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  1 tests\system\account-lifecycle.real-stack.spec.ts:267:7 › @real-stack account product lifecycle › creates, replays, funds, freezes, reactivates, returns to zero, and closes through normal commands (7.8s)
+  -  2 tests\system\account-lifecycle.real-stack.spec.ts:405:7 › @real-stack account product lifecycle › investigates the accepted records across filters, exports, local tools, and responsive accessibility
+(node:323532) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Journey: funding reference recorded; balance still zero.
+Journey: local approval recorded; journal still separate.
+Journey: one funding journal posted and verified.
+  ok 3 tests\system\funding-transfer-journey.real-stack.spec.ts:35:5 › @real-stack first account, controlled funding, lost-response transfer, exact retry, and follow-up (14.9s)
+  ok 4 tests\system\investigation-handoff.real-stack.spec.ts:23:5 › @real-stack saved filters, audited bundle, and reauthorized peer handoff (18.4s)
+  ok 5 tests\system\transfer-recovery.real-stack.spec.ts:11:5 › @real-stack clean-device recovery survives lost request and lost committed response without duplicate money (27.7s)
+
+
+  1) tests\system\account-lifecycle.real-stack.spec.ts:267:7 › @real-stack account product lifecycle › creates, replays, funds, freezes, reactivates, returns to zero, and closes through normal commands 
+
+    Error: real-stack lifecycle tests require a seeded source account UUID
+
+       at real-stack.ts:96
+
+      94 |   const boundary = requireIsolatedJourney();
+      95 |   const sourceAccountID = process.env.LEDGERSYNC_SYSTEM_SEEDED_SOURCE_ACCOUNT_ID ?? "";
+    > 96 |   if (!uuid.test(sourceAccountID)) throw new Error("real-stack lifecycle tests require a seeded source account UUID");
+         |                                          ^
+      97 |   return { ...boundary, sourceAccountID };
+      98 | }
+      99 |
+        at requireIsolatedRealStack (D:\Work\Project\Dev\LedgerSync\web\tests\system\real-stack.ts:96:42)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\system\account-lifecycle.real-stack.spec.ts:268:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-887a7-ses-through-normal-commands\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-887a7-ses-through-normal-commands\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\real-stack\account-lifecycle.real-sta-887a7-ses-through-normal-commands\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-887a7-ses-through-normal-commands\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\real-stack\account-lifecycle.real-sta-887a7-ses-through-normal-commands\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests\system\account-lifecycle.real-stack.spec.ts:267:7 › @real-stack account product lifecycle › creates, replays, funds, freezes, reactivates, returns to zero, and closes through normal commands 
+  1 did not run
+  3 passed (1.3m)

@@ -110,13 +110,13 @@ type WebhookRepository interface {
 	VerifyWebhook(context.Context, VerifyWebhookCommand, [sha256.Size]byte, [sha256.Size]byte) (WebhookSubmission, error)
 	RotateWebhook(context.Context, RotateWebhookCommand, [sha256.Size]byte) (WebhookSubmission, error)
 	DisableWebhook(context.Context, DisableWebhookCommand, [sha256.Size]byte) (WebhookSubmission, error)
-	GetWebhook(context.Context, string, string) (Webhook, error)
-	ListWebhooks(context.Context, string, WebhookQuery) (WebhookPage, error)
-	ListWebhookDeliveries(context.Context, string, string, DeliveryQuery) (DeliveryPage, error)
+	GetWebhook(context.Context, string, string, string) (Webhook, error)
+	ListWebhooks(context.Context, string, string, WebhookQuery) (WebhookPage, error)
+	ListWebhookDeliveries(context.Context, string, string, string, DeliveryQuery) (DeliveryPage, error)
 }
 
 type DeliveryReplayRepository interface {
-	Inspect(context.Context, string, string) (recovery.DeadDelivery, error)
+	Inspect(context.Context, string, string, string) (recovery.DeadDelivery, error)
 	Approve(context.Context, recovery.DeliveryApproval) (recovery.DeliveryApprovalResult, error)
 	Replay(context.Context, recovery.DeliveryReplay) (recovery.DeliveryReplayResult, error)
 }
@@ -187,41 +187,41 @@ func (s *WebhookService) Disable(ctx context.Context, command DisableWebhookComm
 	return s.repository.DisableWebhook(ctx, command, fingerprint(DisableWebhookOperation, command.WebhookID, command.ExpectedVersion, command.Reason))
 }
 
-func (s *WebhookService) Get(ctx context.Context, tenantID, webhookID string) (Webhook, error) {
+func (s *WebhookService) Get(ctx context.Context, tenantID, actorID, webhookID string) (Webhook, error) {
 	tenantID, webhookID = strings.TrimSpace(tenantID), strings.ToLower(strings.TrimSpace(webhookID))
-	if tenantID == "" || !canonicalUUID.MatchString(webhookID) {
+	if tenantID == "" || strings.TrimSpace(actorID) == "" || len(actorID) > 256 || !canonicalUUID.MatchString(webhookID) {
 		return Webhook{}, ErrInvalidCommand
 	}
-	return s.repository.GetWebhook(ctx, tenantID, webhookID)
+	return s.repository.GetWebhook(ctx, tenantID, actorID, webhookID)
 }
 
-func (s *WebhookService) List(ctx context.Context, tenantID string, query WebhookQuery) (WebhookPage, error) {
+func (s *WebhookService) List(ctx context.Context, tenantID, actorID string, query WebhookQuery) (WebhookPage, error) {
 	tenantID, query.Status, query.Cursor = strings.TrimSpace(tenantID), strings.ToLower(strings.TrimSpace(query.Status)), strings.TrimSpace(query.Cursor)
 	if query.Limit == 0 {
 		query.Limit = 50
 	}
-	if tenantID == "" || query.Limit < 1 || query.Limit > 100 || query.Status != "" && !slices.Contains([]string{"pending_verification", "active", "disabled"}, query.Status) || len(query.Cursor) > 512 {
+	if tenantID == "" || strings.TrimSpace(actorID) == "" || len(actorID) > 256 || query.Limit < 1 || query.Limit > 100 || query.Status != "" && !slices.Contains([]string{"pending_verification", "active", "disabled"}, query.Status) || len(query.Cursor) > 512 {
 		return WebhookPage{}, ErrInvalidCommand
 	}
-	return s.repository.ListWebhooks(ctx, tenantID, query)
+	return s.repository.ListWebhooks(ctx, tenantID, actorID, query)
 }
 
-func (s *WebhookService) Deliveries(ctx context.Context, tenantID, webhookID string, query DeliveryQuery) (DeliveryPage, error) {
+func (s *WebhookService) Deliveries(ctx context.Context, tenantID, actorID, webhookID string, query DeliveryQuery) (DeliveryPage, error) {
 	tenantID, webhookID, query.Status, query.Cursor = strings.TrimSpace(tenantID), strings.ToLower(strings.TrimSpace(webhookID)), strings.ToLower(strings.TrimSpace(query.Status)), strings.TrimSpace(query.Cursor)
 	if query.Limit == 0 {
 		query.Limit = 50
 	}
-	if tenantID == "" || !canonicalUUID.MatchString(webhookID) || query.Limit < 1 || query.Limit > 100 || query.Status != "" && !slices.Contains([]string{"pending", "retrying", "delivered", "dead"}, query.Status) || len(query.Cursor) > 512 {
+	if tenantID == "" || strings.TrimSpace(actorID) == "" || len(actorID) > 256 || !canonicalUUID.MatchString(webhookID) || query.Limit < 1 || query.Limit > 100 || query.Status != "" && !slices.Contains([]string{"pending", "retrying", "delivered", "dead"}, query.Status) || len(query.Cursor) > 512 {
 		return DeliveryPage{}, ErrInvalidCommand
 	}
-	return s.repository.ListWebhookDeliveries(ctx, tenantID, webhookID, query)
+	return s.repository.ListWebhookDeliveries(ctx, tenantID, actorID, webhookID, query)
 }
 
 func (s *WebhookService) ApproveReplay(ctx context.Context, tenantID, webhookID, attemptID, actorID, reason, correlationID, idempotencyKey string) (recovery.DeliveryApprovalResult, error) {
 	if s.replay == nil {
 		return recovery.DeliveryApprovalResult{}, errors.New("delivery replay repository is required")
 	}
-	item, err := s.inspectDelivery(ctx, tenantID, webhookID, attemptID)
+	item, err := s.inspectDelivery(ctx, tenantID, actorID, webhookID, attemptID)
 	if err != nil {
 		return recovery.DeliveryApprovalResult{}, err
 	}
@@ -235,7 +235,7 @@ func (s *WebhookService) ReplayDelivery(ctx context.Context, tenantID, webhookID
 	if s.replay == nil {
 		return recovery.DeliveryReplayResult{}, errors.New("delivery replay repository is required")
 	}
-	item, err := s.inspectDelivery(ctx, tenantID, webhookID, attemptID)
+	item, err := s.inspectDelivery(ctx, tenantID, actorID, webhookID, attemptID)
 	if err != nil {
 		return recovery.DeliveryReplayResult{}, err
 	}
@@ -246,12 +246,12 @@ func (s *WebhookService) ReplayDelivery(ctx context.Context, tenantID, webhookID
 	return s.replay.Replay(ctx, recovery.DeliveryReplay{TenantID: tenantID, AttemptID: item.AttemptID, ApprovalID: approvalID, ActorSubjectID: actorID, CorrelationID: correlationID, IdempotencyKey: idempotencyKey})
 }
 
-func (s *WebhookService) inspectDelivery(ctx context.Context, tenantID, webhookID, attemptID string) (recovery.DeadDelivery, error) {
+func (s *WebhookService) inspectDelivery(ctx context.Context, tenantID, actorID, webhookID, attemptID string) (recovery.DeadDelivery, error) {
 	tenantID, webhookID, attemptID = strings.TrimSpace(tenantID), strings.ToLower(strings.TrimSpace(webhookID)), strings.ToLower(strings.TrimSpace(attemptID))
 	if tenantID == "" || !canonicalUUID.MatchString(webhookID) || !canonicalUUID.MatchString(attemptID) {
 		return recovery.DeadDelivery{}, ErrInvalidCommand
 	}
-	item, err := s.replay.Inspect(ctx, tenantID, attemptID)
+	item, err := s.replay.Inspect(ctx, tenantID, actorID, attemptID)
 	if err != nil {
 		return item, err
 	}

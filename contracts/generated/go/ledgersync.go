@@ -3,7 +3,7 @@
 
 package ledgersync
 
-const APIVersion = "3.3.0"
+const APIVersion = "3.6.0"
 
 type Operation struct {
 	ID, Method, Path, Scope string
@@ -33,6 +33,7 @@ var Operations = []Operation{
 	{ID: "getDeveloperCredential", Method: "GET", Path: "/developer/credentials/{credentialId}", Scope: "credentials:read", Idempotent: false},
 	{ID: "getDeveloperMetadata", Method: "GET", Path: "/developer/metadata", Scope: "developer:read", Idempotent: false},
 	{ID: "getDeveloperWebhook", Method: "GET", Path: "/developer/webhooks/{webhookId}", Scope: "webhooks:read", Idempotent: false},
+	{ID: "getDistributedEvidence", Method: "GET", Path: "/developer/distributed", Scope: "developer:read", Idempotent: false},
 	{ID: "getEventEvidence", Method: "GET", Path: "/events/{eventId}", Scope: "events:read", Idempotent: false},
 	{ID: "getFundingEvent", Method: "GET", Path: "/funding-events/{fundingEventId}", Scope: "funding:read", Idempotent: false},
 	{ID: "getInvestigationWorkspace", Method: "GET", Path: "/investigation/workspaces/{investigationId}", Scope: "investigation:read", Idempotent: false},
@@ -58,10 +59,12 @@ var Operations = []Operation{
 	{ID: "listReconciliationRuns", Method: "GET", Path: "/reconciliation/runs", Scope: "reconciliation:read", Idempotent: false},
 	{ID: "listSavedInvestigationViews", Method: "GET", Path: "/investigation/saved-views", Scope: "investigation:read", Idempotent: false},
 	{ID: "listTransferCorrections", Method: "GET", Path: "/transfer-corrections", Scope: "corrections:read", Idempotent: false},
+	{ID: "listTransferRecoveryRequests", Method: "GET", Path: "/transfers/recovery", Scope: "transfers:read", Idempotent: false},
 	{ID: "listTransfers", Method: "GET", Path: "/transfers", Scope: "transfers:read", Idempotent: false},
 	{ID: "listWebhookEndpointEvidence", Method: "GET", Path: "/webhook-endpoints", Scope: "webhooks:read", Idempotent: false},
 	{ID: "postFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/post", Scope: "funding:write", Idempotent: true},
 	{ID: "postTransferCorrection", Method: "POST", Path: "/transfer-corrections/{correctionId}/post", Scope: "corrections:approve", Idempotent: true},
+	{ID: "prepareTransferRecoveryRequest", Method: "POST", Path: "/transfers/recovery", Scope: "transfers:write", Idempotent: true},
 	{ID: "reconcileFundingEvent", Method: "GET", Path: "/funding-events/{fundingEventId}/reconciliation", Scope: "funding:read", Idempotent: false},
 	{ID: "registerDeveloperWebhook", Method: "POST", Path: "/developer/webhooks", Scope: "webhooks:write", Idempotent: true},
 	{ID: "rejectFundingEvent", Method: "POST", Path: "/funding-events/{fundingEventId}/reject", Scope: "funding:approve", Idempotent: false},
@@ -72,6 +75,7 @@ var Operations = []Operation{
 	{ID: "requestFunding", Method: "POST", Path: "/funding-requests", Scope: "funding:write", Idempotent: true},
 	{ID: "requestFundingCompensation", Method: "POST", Path: "/funding-events/{fundingEventId}/compensations", Scope: "funding:write", Idempotent: true},
 	{ID: "requestTransferCorrection", Method: "POST", Path: "/transfers/{transferId}/corrections", Scope: "corrections:write", Idempotent: true},
+	{ID: "retryOriginalTransferRecoveryRequest", Method: "POST", Path: "/transfers/recovery/{requestReference}/retry", Scope: "transfers:write", Idempotent: false},
 	{ID: "revokeDeveloperCredential", Method: "POST", Path: "/developer/credentials/{credentialId}/revocations", Scope: "credentials:write", Idempotent: true},
 	{ID: "rotateDeveloperCredential", Method: "POST", Path: "/developer/credentials/{credentialId}/rotations", Scope: "credentials:write", Idempotent: true},
 	{ID: "rotateDeveloperWebhookSignature", Method: "POST", Path: "/developer/webhooks/{webhookId}/signature-rotations", Scope: "webhooks:write", Idempotent: true},

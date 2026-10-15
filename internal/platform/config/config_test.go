@@ -5,6 +5,30 @@ import (
 	"testing"
 )
 
+func TestOutboxBatchConfigurationIsBounded(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("PORT", "")
+	for _, test := range []struct {
+		value string
+		want  int
+		bad   bool
+	}{{"", 10, false}, {"1", 1, false}, {"50", 50, false}, {"100", 100, false}, {"0", 0, true}, {"101", 0, true}, {"-1", 0, true}, {"unbounded", 0, true}} {
+		t.Run(test.value, func(t *testing.T) {
+			t.Setenv("LEDGERSYNC_OUTBOX_BATCH_SIZE", test.value)
+			got, err := Load()
+			if test.bad {
+				if err == nil {
+					t.Fatal("invalid worker batch accepted")
+				}
+				return
+			}
+			if err != nil || got.OutboxBatchSize != test.want {
+				t.Fatalf("batch=%d error=%v want=%d", got.OutboxBatchSize, err, test.want)
+			}
+		})
+	}
+}
+
 func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	t.Setenv("LEDGERSYNC_ENV", "development")
 	t.Setenv("PORT", "")

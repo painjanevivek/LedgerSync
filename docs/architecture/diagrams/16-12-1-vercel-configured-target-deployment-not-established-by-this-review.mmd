@@ -1,0 +1,12 @@
+flowchart LR
+  Browser[Operator browser] --> Frontend[Frontend project: web root]
+  Frontend -->|OIDC sign in and workload renewal| IdP[Configured identity provider]
+  Frontend -->|Cross-instance rate limit| Limit[(Isolated BFF Redis REST resource)]
+  Frontend -->|Workload token and actor assertion| Backend[Backend project: Go API]
+  Cron[Configured one-minute authenticated cron] -->|GET /internal/cron/drain| Backend
+  Backend --> PG[(Managed PostgreSQL with approved pooling mode)]
+  Backend --> Redis[(Managed backend Redis with TLS)]
+  Backend --> Secrets[Configured AWS Secrets Manager for webhook keys]
+  Backend -.-> Receiver[Verified HTTPS webhook receiver]
+  Release[Controlled migration job] --> PG
+  Recovery[Durable recovery evidence adapter: still required] -.-> Backend

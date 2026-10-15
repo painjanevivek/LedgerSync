@@ -1,24 +1,27 @@
 # Provider-led payout production program
 
-**Status:** `ACTIVE — engineering foundation only`
+**Status:** `DEFERRED — design retained for a separate scope decision on 2026-09-27`
 **Recorded:** 2026-08-29
 **Authority:** [Master delivery register](ledgersync-master-progress.md) and the approved production-completion plan.
 **Applies to:** the first provider-led outbound-payout program. It does not replace the existing closed-loop ledger until the gates below pass.
 
 ## Product boundary
 
-LedgerSync is an India-first B2B ledger and payout-orchestration product. It
-records the customer's instruction, reserves the customer's available INR
-balance, enforces two-person approval, and records a provider-confirmed result.
-A separately contracted, licensed provider performs the external movement of
-money.
+This document describes a possible future India-first B2B payout program.
+LedgerSync does not currently accept payout instructions, reserve balances for
+payouts, dispatch to a provider, or record provider-confirmed settlement. The
+current product remains an internal same-currency ledger. Customer discovery,
+database boundary hardening, and a separate approval are required before this
+program resumes.
 
-LedgerSync is not the payment provider and does not directly hold bank
-credentials, customer funds, or a settlement float. It must never describe a
-provider attempt as settled until the provider's authenticated evidence is
-recorded and reconciliation has completed.
+If approved, a separately contracted, licensed provider would perform the
+external movement of money.
 
-### Locked v1 rules
+LedgerSync would not be the payment provider or directly hold bank credentials,
+customer funds, or a settlement float. A provider attempt could be described
+as settled only after authenticated evidence and reconciliation.
+
+### Proposed rules if this program resumes
 
 | Topic | Rule |
 |---|---|

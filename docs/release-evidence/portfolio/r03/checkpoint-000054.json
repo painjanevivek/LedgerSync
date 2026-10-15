@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "phase": "R03",
+  "status": "in_progress",
+  "checkpoint": "through_000054",
+  "recorded_at": "2026-10-15T09:11:28.763Z",
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1608,
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": "deploy/postgres/roles.sql",
+        "before_sha256": "c93e406c4a2396b6325efb855fb0a8baad9756c331650498296bf95d35e9b337",
+        "sha256": "c3f3d3f91f8e32e3a854dbba422ee39826af8336cb8b4517b5a669f09c6ca3c0"
+      },
+      {
+        "path": "internal/platform/db/account_command_repository.go",
+        "before_sha256": "839b159e0fab236afbf0997356c1af65b49177b98e89ea04f21de191edae19b6",
+        "sha256": "9441494ab6911dbc22ecf1f10aa6db37f52acb7f80a717493d4ae32b6a188fd7"
+      },
+      {
+        "path": "internal/platform/db/account_command_store.go",
+        "before_sha256": "b2970f8e9a3758c8b5197341729b8274219d5106aa5d89e57ca9cf24f3469db7",
+        "sha256": "0a794df10910c5263ed9fa54913e683bd1f8db0cf8167eb2e3bca8b46f2ca548"
+      },
+      {
+        "path": "internal/platform/db/audit_repository.go",
+        "before_sha256": "ea7291d82668a850214ef47a7496067d500eb61255a3d79986d3e1223508f99c",
+        "sha256": "5a16405a2ae436fc6a4b6fd40f2d45377d73be67d866a8ccad2d3e252c99b7bd"
+      },
+      {
+        "path": "internal/platform/db/delivery_replay_repository.go",
+        "before_sha256": "19f2dcaeef9f477c91b9ebea429071a7a995f17300236207bb207efedca65a91",
+        "sha256": "76c4590da2827ae128bbf4d7a6c00c4a3ecb1cf7944f94a39fe739d5663facf4"
+      },
+      {
+        "path": "internal/platform/db/funding_repository.go",
+        "before_sha256": "6579de943e7c3643b3c9163c583e0af4d0e8907a0d7dc4cf85ddef62a5133c9a",
+        "sha256": "e7296c43dc4b646688518bf2f5c8a83b17dc5307674ebbc56235a7da209cc89e"
+      },
+      {
+        "path": "internal/platform/db/investigation_saved_view_repository.go",
+        "before_sha256": "db200c7b9c74204e41474a4b7521683eb1e8ed63a57710616b73282bbdc0d351",
+        "sha256": "5c37de0f088ddcdcbd2c0e59cd6df0415f5f6c1bab0bf7ad7ef7e5552887ac53"
+      },
+      {
+        "path": "internal/platform/db/investigation_workspace_repository.go",
+        "before_sha256": "a274089f1eb45e1e4bdfa345db49a35691d4951119ba2c9f2e1d4a5de0219494",
+        "sha256": "3be9c3cfce7c507632e225cdfe2164a252ac8d74ac1843010476aa41f964367b"
+      },
+      {
+        "path": "internal/platform/db/live_investigation_repository.go",
+        "before_sha256": "a2e991e1530ec08415705fbdc494093261cbf0c66c93d400a4b49dd4d2239347",
+        "sha256": "1fef3ea11f0476fd29f4a8b4bf51a80b5c39371255ffe9b26e6d39aa05395c95"
+      },
+      {
+        "path": "internal/platform/db/logical_clock_repository.go",
+        "before_sha256": "44c5b2048aee7c9a520917c29d897b576f11511a5ffc16f0fb9ffd10fd1a7ad7",
+        "sha256": "9fa4145686fea649cab82d6ab7048f089d3a9cd95a92a252b3c1e3ee061b5d74"
+      },
+      {
+        "path": "internal/platform/db/outbox_replay_repository.go",
+        "before_sha256": "7240e07378346df4eb6002403095bcd03b7a9f69344f0c3033ab89f7973e883c",
+        "sha256": "1d54f62b739bcf3188050f075d0975865409d274cb34754eb616081c7f0255de"
+      },
+      {
+        "path": "internal/platform/db/outbox_repository.go",
+        "before_sha256": "6945b2d841efbc30cb0c18a2566929fb0d219d45d5863367427301788a7c82a7",
+        "sha256": "3e59a206a58241ccfbe51144cef3c8e5cd5e55b7a185b12ee73ee54f074974a7"
+      },
+      {
+        "path": "internal/platform/db/provisioning_repository.go",
+        "before_sha256": "f030dc647ba0c3897eff8f3342e00ca219a40909809ebb94e11ef5c48a1c14ca",
+        "sha256": "25be057324a37d1c2141a4d6c5744f94ceb17e5a763cd910b37b96a858151a96"
+      },
+      {
+        "path": "internal/platform/db/reconciliation_command_repository.go",
+        "before_sha256": "d6a364b7d7c59a5ca5b6abc25fd38eb3ef550dd879b776c08fb891cdbd76e7d8",
+        "sha256": "cb8851969b963d9fa97b8ef14f385ea9c41f6f1978b6c48033b4686fc6761731"
+      },
+      {
+        "path": "internal/platform/db/reconciliation_repository.go",
+        "before_sha256": "8e19ae83abb40e9598080384b2e67a6c54ed2a1f4aafb6f19725aac78daeb84d",
+        "sha256": "91260e2939711ced232a864af4d86928cc58435e2998d208d50a8b26601a88a6"
+      },
+      {
+        "path": "internal/platform/db/retention_repository.go",
+        "before_sha256": "88b4356129295486be0cd463d08e867708033091b6ba6e438a35336c2955f9a0",
+        "sha256": "658e42e5d6b2563c904d010773d661146f8eaa97ecd7767f49eaa8e4544b20ea"
+      },
+      {
+        "path": "internal/platform/db/transfer_correction_repository.go",
+        "before_sha256": "f2f27e1175482011393015c1d805769f2f0e62daf73c7f12a17785d781cd411f",
+        "sha256": "c1637029c985c248fef078eb2b22b95d5f7468614df5aeeb9b7e5b73367f528c"
+      },
+      {
+        "path": "internal/platform/db/transfer_repository.go",
+        "before_sha256": "99547f55786bcd4de59e569a87f885817847f458f306925653711ca1b07f6ae7",
+        "sha256": "f2bbd4abb8d2b1c20d091d631b132a6f2304875ee8b2163acc25e68683103c64"
+      },
+      {
+        "path": "internal/platform/db/webhook_delivery_job_repository.go",
+        "before_sha256": "3171f1c83deee362ce254de4c8e669c56310bf84c48ca71a79aaa2d9adb2faaf",
+        "sha256": "28426110b853052b52e7a5a26b23f93af7c7a391593d0e7b3e953ad3ec8d7573"
+      },
+      {
+        "path": "internal/platform/db/webhook_verification_job_repository.go",
+        "before_sha256": "55341ca6391fd7f9be94420cbec1806274f50f98042cf84155dd9f6efe54f034",
+        "sha256": "11a97a9491c7973d134e5c820b5b70c84af8593a6be26bd770a610d97eb0fc00"
+      },
+      {
+        "path": "internal/platform/db/worker_tenant_context.go",
+        "before_sha256": "acb97564b4079b4933f2b96cde2814455f3303c4ad77dd7221ec65c894f71aba",
+        "sha256": "3cb4e0d5152aa4fdb7859cbff974f766716b7c5d2e6f813f1d9d6dc69bfc2f1c"
+      },
+      {
+        "path": "tests/integration/database_role_capabilities_test.go",
+        "before_sha256": "074866cb65d810a84c4df87382c0a1bfed64a6009f94df06d7e621ac8aea706a",
+        "sha256": "834e4901a869962374cfc033030d5060c61f280309dde476e5055013f5db4321"
+      },
+      {
+        "path": "tests/integration/database_role_privileges_test.go",
+        "before_sha256": "53b0cb2d7cee8297a657b5f2d8ef578d1af0153e33f8ff8b313b03e84b30db43",
+        "sha256": "af0817ce9160f5f70cae362414230de9afece1017c258c0997413487ae64e62b"
+      },
+      {
+        "path": "tests/integration/funding_test.go",
+        "before_sha256": "d78fa52b0bfbd79aa50c0af3467272c28619304dd08717651df1f4767551c72a",
+        "sha256": "19760fae9976ccc142f32c9503c5a2cdd7f8f8add4caac2d3785fcdfcd38a69f"
+      },
+      {
+        "path": "tests/integration/lifecycle_recovery_test.go",
+        "before_sha256": "1e79c24542a602cee28e6180d5ae42d5556082b03bcbd55f1c97e4f2cc228045",
+        "sha256": "a875aad637cf129278d0f58c032623018e68c014b8bd3e7ac7400cc03cc137ad"
+      },
+      {
+        "path": "tests/integration/live_room_migration_compatibility_test.go",
+        "before_sha256": "e11cdc94119668836d5f1a60a463e487a8fdc0946842ad72722cbb08f63247e9",
+        "sha256": "880d402289381b2b7db366a5daab4d72db5076c8739745f278ff57f464bd1aa7"
+      },
+      {
+        "path": "tests/integration/migration_compatibility_test.go",
+        "before_sha256": "aedd6303ed21d177421c2d4bc6c8feb1baf223c43406c77aca2d62d17bbf99c0",
+        "sha256": "70511fb092bc5ac903d836375890e391c57b15f5a263c8bf7fa6c0dc43a7f0fd"
+      },
+      {
+        "path": "tests/integration/tenant_policy_test.go",
+        "before_sha256": "e21898a597317ee0fdd3e41a2f251a15c3cb8a87835a7f56a92c10071ade232a",
+        "sha256": "f0311b3921a3f3cf4bd5cb6885b3210a389bcc481afcd1a4f22a20ebedeeaa2d"
+      },
+      {
+        "path": "tests/integration/transfer_corrections_test.go",
+        "before_sha256": "24cfd4bffa2a847bf6f7ea42d58978f6ef9a9b8f4197e7457587a38e995887ed",
+        "sha256": "caf6087876396018536d5420d135820beaf451677cd7f415f6493bba97059325"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/security/financial-writer-cutover.md",
+        "sha256": "06589a6fcef5c9485cca209c7cd0911a6d729da08e359ea02af86f6e27a8fdc2"
+      },
+      {
+        "path": "docs/security/financial-writer-inventory.json",
+        "sha256": "09211884b202463239b9be5ac2b83468e62db00752ba2a83ff6cfd59d7306e97"
+      },
+      {
+        "path": "migrations/000047_controlled_funding_account.down.sql",
+        "sha256": "7ee2bd671b51bd6664bcdefe8f0cbea5a1a5581d023d76e1cda7a4bd4e15bd5c"
+      },
+      {
+        "path": "migrations/000047_controlled_funding_account.up.sql",
+        "sha256": "e875df6863efddbf95c7fabe2fd3e16ef9c91a2ab7c1108b82ca06ed4e2022fc"
+      },
+      {
+        "path": "migrations/000048_controlled_account_lifecycle.down.sql",
+        "sha256": "73c9d12ae93ca71605d0b6c323cd6c24b051729020194880def00281fffbb368"
+      },
+      {
+        "path": "migrations/000048_controlled_account_lifecycle.up.sql",
+        "sha256": "ceb3786dd6505b59eda28331c8da3246f88ba0b5bbb126c40c1155a9c76245a3"
+      },
+      {
+        "path": "migrations/000049_controlled_lock_result_types.down.sql",
+        "sha256": "ffa1b962b9c9aa252540dbe83ac6ef7db113ab24110b06f5bf7c53f838923193"
+      },
+      {
+        "path": "migrations/000049_controlled_lock_result_types.up.sql",
+        "sha256": "032ca0643a9607b20cd7840f5a05bf1855d9aee93a3718eb2623ec8e00227ab1"
+      },
+      {
+        "path": "migrations/000050_controlled_partner_provisioning.down.sql",
+        "sha256": "0a58003979b32a660b10b698a621bc1b331c88c0977b54f018f5d6c35786ce49"
+      },
+      {
+        "path": "migrations/000050_controlled_partner_provisioning.up.sql",
+        "sha256": "1bb3a98793d7aba2a4eea12d3df8262fabe425faf29499dc4ef71d527833ef87"
+      },
+      {
+        "path": "migrations/000051_controlled_audit_append.down.sql",
+        "sha256": "d527b78ab8623efd34eec0002c194dcbd19910935e24726106fdd6ca3bd11cbc"
+      },
+      {
+        "path": "migrations/000051_controlled_audit_append.up.sql",
+        "sha256": "cb088f799aa6bc501a12dcdd0bcb923db3edd35e5275d32a21ff88f3c3818a01"
+      },
+      {
+        "path": "migrations/000052_controlled_funding_requests.down.sql",
+        "sha256": "45225455624fd3e806ffa72e8b3bd218038ab3fd43a3ea176dcb82cdcefa800f"
+      },
+      {
+        "path": "migrations/000052_controlled_funding_requests.up.sql",
+        "sha256": "e4140bc18bffdfd307d847262ec3dadf122380f26b6db9be98c264dac51f07c9"
+      },
+      {
+        "path": "migrations/000053_controlled_correction_requests.down.sql",
+        "sha256": "87d0bc7dd527228d769ad7fab444bd9fa588093382926d54b84fe87a2d99c0c0"
+      },
+      {
+        "path": "migrations/000053_controlled_correction_requests.up.sql",
+        "sha256": "a06407cd11a77516b2ce68fc5d46be1d4d3ef42f1655ce6c6e5a9f57946b967c"
+      },
+      {
+        "path": "migrations/000054_controlled_worker_completion.down.sql",
+        "sha256": "441de51d7b86c1629dd3c3a0f80137e68517386773a6a4693386e521751f3e72"
+      },
+      {
+        "path": "migrations/000054_controlled_worker_completion.up.sql",
+        "sha256": "92bed8b2aed7377e39940e3a623a697ac9ad5c743b462dd00daf8b6f331b59bc"
+      },
+      {
+        "path": "tests/integration/controlled_account_lifecycle_test.go",
+        "sha256": "988d4c817c8a601443aa5bd1b23f3aa19108799b006ea8bf8822aaf00865b761"
+      },
+      {
+        "path": "tests/integration/controlled_audit_test.go",
+        "sha256": "7a44873c8162159f1aaae2f40e30c7c0a7d7a46abecdf8aaa6a766ed45fac0de"
+      },
+      {
+        "path": "tests/integration/controlled_funding_account_test.go",
+        "sha256": "755ae6a2d3a8e4aff37e365d5872fe0bace04067689fed7de602be6427d9d6f0"
+      },
+      {
+        "path": "tests/integration/controlled_provisioning_test.go",
+        "sha256": "a8167e1d0717eeee37bde770c4c40065a6c258b51763f1a3689589c221d94e17"
+      }
+    ]
+  },
+  "verification": {
+    "integration_passed_top_level": 124,
+    "integration_passed_subtests": 81,
+    "skipped": [
+      "--- SKIP: TestOutboxCrashHelper (0.00s)"
+    ],
+    "skip_explanation": "Standalone process helper; parent process-crash test passed.",
+    "fault_passed_top_level": 6,
+    "go_packages_passed": 41,
+    "vet": "passed",
+    "fresh_and_populated_upgrades": "passed",
+    "race": "not_yet_qualified"
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match_r02_exit": true,
+    "normal_counts": {
+      "accounts": 8,
+      "transfers": 5,
+      "ledger_postings": 20,
+      "migrations": 45
+    },
+    "normal_services": "existing services healthy",
+    "normal_database_migrated": false,
+    "normal_volumes_used_by_tests": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r03-20261015/integration-through-000054.txt",
+      "sha256": "ac44ccbe7e17786e54a7a75bfb384380c567bd855d9b1fbb8986b82cb822c7ae",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r03-20261015/fault-through-000054.txt",
+      "sha256": "29a4da5d8d8c131a6a9e439825d67be6c739f5316dc0607694d4d66cf468aae9",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r03-20261015/go-through-000054.txt",
+      "sha256": "b8d5371c44adff382ce0a72b2fd03d92157117bc83f66019e19762b4e0aaaa94",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r03-20261015/vet-through-000054.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    }
+  ],
+  "migrations": [
+    {
+      "path": "migrations/000047_controlled_funding_account.up.sql",
+      "sha256": "e875df6863efddbf95c7fabe2fd3e16ef9c91a2ab7c1108b82ca06ed4e2022fc"
+    },
+    {
+      "path": "migrations/000048_controlled_account_lifecycle.up.sql",
+      "sha256": "ceb3786dd6505b59eda28331c8da3246f88ba0b5bbb126c40c1155a9c76245a3"
+    },
+    {
+      "path": "migrations/000049_controlled_lock_result_types.up.sql",
+      "sha256": "032ca0643a9607b20cd7840f5a05bf1855d9aee93a3718eb2623ec8e00227ab1"
+    },
+    {
+      "path": "migrations/000050_controlled_partner_provisioning.up.sql",
+      "sha256": "1bb3a98793d7aba2a4eea12d3df8262fabe425faf29499dc4ef71d527833ef87"
+    },
+    {
+      "path": "migrations/000051_controlled_audit_append.up.sql",
+      "sha256": "cb088f799aa6bc501a12dcdd0bcb923db3edd35e5275d32a21ff88f3c3818a01"
+    },
+    {
+      "path": "migrations/000052_controlled_funding_requests.up.sql",
+      "sha256": "e4140bc18bffdfd307d847262ec3dadf122380f26b6db9be98c264dac51f07c9"
+    },
+    {
+      "path": "migrations/000053_controlled_correction_requests.up.sql",
+      "sha256": "a06407cd11a77516b2ce68fc5d46be1d4d3ef42f1655ce6c6e5a9f57946b967c"
+    },
+    {
+      "path": "migrations/000054_controlled_worker_completion.up.sql",
+      "sha256": "92bed8b2aed7377e39940e3a623a697ac9ad5c743b462dd00daf8b6f331b59bc"
+    }
+  ],
+  "remaining": [
+    "Recovery approval and replay controlled functions",
+    "Reconciliation evidence and maintenance authority review",
+    "Additional negative and concurrent database-boundary tests",
+    "Final writer inventory, role matrix evidence and phase acceptance",
+    "R04-R17 selected implementation remains"
+  ]
+}

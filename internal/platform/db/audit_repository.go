@@ -47,7 +47,14 @@ func (r *AuditRepository) Record(ctx context.Context, event AuditEvent) error {
 	if err != nil {
 		return fmt.Errorf("generate audit event ID: %w", err)
 	}
-	_, err = r.database.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,NULLIF($3,''),$4,$5,NULLIF($6,''),$7,$8,$9,$10)`, id, event.TenantID, event.ActorSubjectID, event.EventType, event.TargetType, event.TargetID, event.Outcome, event.CorrelationID, metadata, when.UTC())
+	actorID := event.ActorSubjectID
+	if actorID == "" {
+		actorID = "system:audit"
+	}
+	err = WithTenantTransaction(ctx, r.database, TenantScope{TenantID: event.TenantID, ActorID: actorID}, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `SELECT public.controlled_append_audit_v1($1,$2,NULLIF($3,''),$4,$5,NULLIF($6,''),$7,$8,$9,$10)`, id, event.TenantID, event.ActorSubjectID, event.EventType, event.TargetType, event.TargetID, event.Outcome, event.CorrelationID, metadata, when.UTC())
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("record audit event: %w", err)
 	}

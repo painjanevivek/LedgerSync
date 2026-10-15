@@ -40,10 +40,10 @@ type ReconciliationFilter struct {
 }
 
 type Repository interface {
-	ListTransfers(context.Context, string, investigation.TransferFilter) ([]investigation.TransferSummary, string, error)
+	ListTransfers(context.Context, string, string, investigation.TransferFilter) ([]investigation.TransferSummary, string, error)
 	ListAccountHistory(context.Context, string, string, string, string, int) ([]transactions.Entry, string, error)
-	ListReconciliationRuns(context.Context, string, ReconciliationFilter) ([]investigation.ReconciliationRun, string, error)
-	ListReconciliationMismatches(context.Context, string, string, string, int) ([]investigation.ReconciliationMismatch, string, error)
+	ListReconciliationRuns(context.Context, string, string, ReconciliationFilter) ([]investigation.ReconciliationRun, string, error)
+	ListReconciliationMismatches(context.Context, string, string, string, string, int) ([]investigation.ReconciliationMismatch, string, error)
 }
 
 type Service struct {
@@ -74,10 +74,13 @@ func NewService(repository Repository, maxRows, pageSize int) (*Service, error) 
 	return &Service{repository: repository, maxRows: maxRows, pageSize: pageSize}, nil
 }
 
-func (s *Service) StreamTransfers(ctx context.Context, tenantID string, filter investigation.TransferFilter, requestedRows int, destination io.Writer) (Result, error) {
+func (s *Service) StreamTransfers(ctx context.Context, tenantID, actorID string, filter investigation.TransferFilter, requestedRows int, destination io.Writer) (Result, error) {
 	limit, err := s.validate(ctx, tenantID, requestedRows, destination)
 	if err != nil {
 		return Result{}, err
+	}
+	if strings.TrimSpace(actorID) == "" {
+		return Result{}, ErrInvalidRequest
 	}
 	writer := newQuotedCSVWriter(destination)
 	if err := writer.Row([]string{"schema_version", "transfer_id", "source_account_id", "destination_account_id", "amount_minor", "currency", "financial_status", "delivery_status", "created_at_utc", "completed_at_utc", "journal_transaction_id", "rejection_code", "correction_id", "correction_status", "correction_role", "original_transfer_id", "compensation_transfer_id", "original_journal_id", "compensation_journal_id"}); err != nil {
@@ -90,7 +93,7 @@ func (s *Service) StreamTransfers(ctx context.Context, tenantID string, filter i
 			return result, err
 		}
 		filter.Limit = min(s.pageSize, limit-result.Rows)
-		items, next, listErr := s.repository.ListTransfers(ctx, tenantID, filter)
+		items, next, listErr := s.repository.ListTransfers(ctx, tenantID, actorID, filter)
 		if listErr != nil {
 			return result, fmt.Errorf("%w: list transfers", ErrUnavailable)
 		}
@@ -156,10 +159,13 @@ func (s *Service) StreamAccountLedger(ctx context.Context, tenantID, actorID, ac
 	return result, nil
 }
 
-func (s *Service) StreamReconciliation(ctx context.Context, tenantID string, filter ReconciliationFilter, requestedRows int, destination io.Writer) (Result, error) {
+func (s *Service) StreamReconciliation(ctx context.Context, tenantID, actorID string, filter ReconciliationFilter, requestedRows int, destination io.Writer) (Result, error) {
 	limit, err := s.validate(ctx, tenantID, requestedRows, destination)
 	if err != nil {
 		return Result{}, err
+	}
+	if strings.TrimSpace(actorID) == "" {
+		return Result{}, ErrInvalidRequest
 	}
 	writer := newQuotedCSVWriter(destination)
 	header := []string{"schema_version", "record_type", "run_id", "status", "correlation_id", "scope", "ledger_watermark", "application_version", "database_schema_version", "checked_account_count", "posting_count", "mismatch_count", "started_at_utc", "completed_at_utc", "mismatch_id", "account_id", "classification", "currency", "expected_minor", "observed_minor", "observed_available_minor", "balance_version", "created_at_utc"}
@@ -170,7 +176,7 @@ func (s *Service) StreamReconciliation(ctx context.Context, tenantID string, fil
 	filter.Cursor = ""
 	for result.Rows < limit {
 		filter.Limit = min(s.pageSize, limit-result.Rows)
-		runs, next, listErr := s.repository.ListReconciliationRuns(ctx, tenantID, filter)
+		runs, next, listErr := s.repository.ListReconciliationRuns(ctx, tenantID, actorID, filter)
 		if listErr != nil {
 			return result, fmt.Errorf("%w: list reconciliation runs", ErrUnavailable)
 		}
@@ -188,7 +194,7 @@ func (s *Service) StreamReconciliation(ctx context.Context, tenantID string, fil
 			result.Rows++
 			mismatchCursor := ""
 			for result.Rows < limit {
-				mismatches, mismatchNext, mismatchErr := s.repository.ListReconciliationMismatches(ctx, tenantID, run.ID, mismatchCursor, min(s.pageSize, limit-result.Rows))
+				mismatches, mismatchNext, mismatchErr := s.repository.ListReconciliationMismatches(ctx, tenantID, actorID, run.ID, mismatchCursor, min(s.pageSize, limit-result.Rows))
 				if mismatchErr != nil {
 					return result, fmt.Errorf("%w: list reconciliation mismatches", ErrUnavailable)
 				}

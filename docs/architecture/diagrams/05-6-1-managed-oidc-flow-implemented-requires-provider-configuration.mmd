@@ -1,0 +1,26 @@
+sequenceDiagram
+  actor Operator
+  participant Browser
+  participant BFF as Next.js BFF
+  participant IdP as OIDC provider
+  participant API as Go API
+  participant PG as PostgreSQL
+  Operator->>Browser: Select Sign in
+  Browser->>BFF: GET /api/auth/sign-in with safe return path
+  BFF->>IdP: Read verified discovery metadata
+  BFF-->>Browser: Signed transaction cookie and authorization redirect
+  Browser->>IdP: Authorization request with PKCE, state and nonce
+  IdP-->>Browser: Redirect with code and state
+  Browser->>BFF: GET /api/auth/callback
+  BFF->>IdP: Exchange code with original verifier
+  BFF->>IdP: Resolve signing keys
+  BFF->>BFF: Verify claims, nonce, state and invited subject mapping
+  BFF-->>Browser: HttpOnly session with CSRF token, safe return redirect
+  Browser->>BFF: Read authorized workspace
+  BFF->>IdP: Obtain or renew workload token when needed
+  BFF->>API: Workload token and new signed actor assertion
+  API->>API: Verify workload, actor, scopes and tenant binding
+  API->>PG: Consume assertion replay ID and read scoped evidence
+  PG-->>API: Authorized records
+  API-->>BFF: Evidence response
+  BFF-->>Browser: No-store workspace data

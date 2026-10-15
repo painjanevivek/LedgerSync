@@ -1,0 +1,14 @@
+flowchart TD
+  Scope[Record target, owners, budget and permitted product scope] --> Build[Produce immutable build and source revision]
+  Build --> Checks[Run contract, security, UI and financial checks]
+  Checks --> Migrate[Controlled compatible schema migration]
+  Migrate --> Preview[Deploy isolated preview]
+  Preview --> Smoke[Verify identity, safe replay, primary reads and worker progress]
+  Smoke --> Restore[Verify isolated restore and reconciliation]
+  Restore --> Review[Review current evidence and external decisions]
+  Review --> Deploy[Deploy approved exact build]
+  Deploy --> Observe[Observe alerts, limits and operating evidence]
+  Observe --> Decision{Evidence remains acceptable?}
+  Decision -->|Yes| Continue[Continue within approved limits]
+  Decision -->|No| Stop[Stop affected commands and start incident procedure]
+  Stop --> Repair[Repair, recheck and record restart decision]

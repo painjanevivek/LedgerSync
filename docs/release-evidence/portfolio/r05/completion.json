@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "phase": "R05",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T10:31:45.107Z",
+  "summary": "Navigation now groups health, events and recovery under Operations. Work and Investigate retain their routes and permissions. Developer retains its reference workspace. Help stays in the existing Guide utility to avoid duplicate links. The Overview requires a destination account before suggesting a first transfer. The Guide explains two accounts, independent review, posting, exact money, unknown outcomes and reconciliation limits. Existing visual primitives and high-risk controls remain.",
+  "verification": {
+    "frontend_tests_passed": 214,
+    "browser_tests_passed": 56,
+    "production_build": "passed",
+    "typescript": "passed",
+    "targeted_eslint": "passed",
+    "browser_backend": "mocked; normal API unreachable",
+    "visual_baselines_updated": false
+  },
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1663,
+    "original_manifest_sha256": "73143c4c696c0261c0bf45062a4156a655dd981822cb2625c809c777eae181e0",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "339e1bfbf3a8a377bbc9626c839d79a350385188cfb4b123e236404a42132e76",
+        "sha256": "37b1bad0b5de0eb36088eeb9b81d77f1a565ded7444e9986bd66a77004c6aec6"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "cf52a7991e56a469d1ea60ff6af0505b33f65c700221468bf7e6b8481f70cb28",
+        "sha256": "cb48f42329961e489998d93f206be163ca835feedbfd78f84e03527c8ef7ee6c"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "a626dec19ec4cff64da05e1080eef970a7584508c6da3ce443db97411f9470ed",
+        "sha256": "798259460ee85ae833ad33464ce3a963b5c10da45f03a0a6ec7b07849c4ee067"
+      },
+      {
+        "path": "web/src/features/console/ConsoleShell.tsx",
+        "before_sha256": "ea024c3100caa056423667e1cc0a83c38c87bf9ef4be3ef4e75124f7e2b70d55",
+        "sha256": "81c4b946b04c0ae208c87ef2ae8e45806b3a26dfc73aae1d310627d2d723fd4e"
+      },
+      {
+        "path": "web/src/features/guide/GuideView.tsx",
+        "before_sha256": "94b5ffeda6efaa937d2a63f9ac3175ebb6c45f263d9095aeacbd32507569dc06",
+        "sha256": "b9e87918c5fa7d479d5775781b14209e21f4684d1d4019c191e7d8734433152f"
+      },
+      {
+        "path": "web/src/features/overview/OverviewView.tsx",
+        "before_sha256": "ffe50dcb7b8ceaca996faee62b2178e02152f856b2b6784e0352a9d2883db0a0",
+        "sha256": "5498120426c7247dad42f93b5058446b9a6c39a9534aaa1e350d2135b0b926dc"
+      },
+      {
+        "path": "web/tests/e2e/capability-navigation.spec.ts",
+        "before_sha256": "bdf2416460c0bae1776a35aa4e8936be3938f9cd17654a9c94273d4c7d221422",
+        "sha256": "7626ae0319e2b5691ad63c45c335532b0cfa52d661c401c47b79705ad630bfdc"
+      },
+      {
+        "path": "web/tests/e2e/convergence.spec.ts",
+        "before_sha256": "fde8e8d4b15c338ccb9ec71893afced9be4a7de812f2f440f51c870dee6e427f",
+        "sha256": "d1aa206d4bccd3f298f8a859240f378e8837613b6f8ad3de2525a056ea038a23"
+      },
+      {
+        "path": "web/tests/e2e/session-boundary.spec.ts",
+        "before_sha256": "99933da6627c2f872cb7ddbf85fc09c9e64134d8aa3491e9ad0953e864f883b9",
+        "sha256": "86deb4cbd6074b1f0a0ba50738b7effea4025fe4a2f19a9103fbf7af0346c17d"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/user-journey.md",
+        "sha256": "dd6cff25fb5c0bcda2ba8b2b0fdd69e41ebc1002d8eaf7876406def3ebc32216"
+      },
+      {
+        "path": "web/tests/e2e/portfolio-first-run.spec.ts",
+        "sha256": "45f4bc108f25a029e53e6f0892729f0dd138ac55aba21188f3c2204d8e9cf45a"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r05-20261015/web-unit.txt",
+      "sha256": "eb75282c042a7ae32770e781d23a5ffc628ef074b415d2128f82f0683e2e7568",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r05-20261015/typescript.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r05-20261015/eslint.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r05-20261015/browser.txt",
+      "sha256": "80dd456a1797663e7d9d705828700c319817929a0a62d59c554050210a3db85d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r05-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "53894292fa8a4e96ae2224b0e4bcb5f7bdff7f739cf62ac643dae3669d739bdb"
+  },
+  "limits": [
+    "No physical-device or human assistive-technology acceptance claim.",
+    "The existing Guide utility represents Help; duplicate sidebar links were not added.",
+    "The normal images are preserved prior images; candidate image qualification remains R13.",
+    "R06-R17 remain selected implementation work."
+  ]
+}

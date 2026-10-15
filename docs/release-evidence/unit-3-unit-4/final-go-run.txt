@@ -1,0 +1,1457 @@
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-postgres-1 Running 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-redis-1 Running 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-postgres-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-redis-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-redis-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-postgres-1 Healthy 
+=== RUN   TestCreateCommandNormalizesOnlySemanticCaseInsensitiveFields
+--- PASS: TestCreateCommandNormalizesOnlySemanticCaseInsensitiveFields (0.00s)
+=== RUN   TestAccountCommandFingerprintsConflictOnChangedIntent
+--- PASS: TestAccountCommandFingerprintsConflictOnChangedIntent (0.00s)
+=== RUN   TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode
+=== RUN   TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/unicode
+=== RUN   TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/missing
+=== RUN   TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/control
+=== RUN   TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/too_long
+--- PASS: TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode (0.00s)
+    --- PASS: TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/unicode (0.00s)
+    --- PASS: TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/missing (0.00s)
+    --- PASS: TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/control (0.00s)
+    --- PASS: TestLifecycleReasonIsRequiredBoundedTrimmedValidUnicode/too_long (0.00s)
+=== RUN   TestAccountServiceClassifiesRepositoryFailureAsUnavailable
+--- PASS: TestAccountServiceClassifiesRepositoryFailureAsUnavailable (0.00s)
+=== RUN   TestAccountServicePreservesSafeRepositoryOutcomes
+--- PASS: TestAccountServicePreservesSafeRepositoryOutcomes (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/accounts	0.694s
+=== RUN   TestListRejectsUnauthorizedAndCrossDomainQueries
+--- PASS: TestListRejectsUnauthorizedAndCrossDomainQueries (0.00s)
+=== RUN   TestListValidatesTypedStatusesAndBounds
+--- PASS: TestListValidatesTypedStatusesAndBounds (0.00s)
+=== RUN   TestListNormalizesAndDelegatesAuthorizedQuery
+--- PASS: TestListNormalizesAndDelegatesAuthorizedQuery (0.00s)
+=== RUN   TestStepUpRecencyIsBounded
+--- PASS: TestStepUpRecencyIsBounded (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/approvals	0.904s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/consistency	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/corrections	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/delivery	[no test files]
+=== RUN   TestCredentialServiceNormalizesMetadataWithoutSecretMaterial
+--- PASS: TestCredentialServiceNormalizesMetadataWithoutSecretMaterial (0.00s)
+=== RUN   TestCredentialServiceRejectsUnsafeOrUnboundedMetadata
+=== RUN   TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/expired
+=== RUN   TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/too_distant
+=== RUN   TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/short_retry_key
+=== RUN   TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/secret-like_whitespace
+=== RUN   TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/unknown_scope
+--- PASS: TestCredentialServiceRejectsUnsafeOrUnboundedMetadata (0.00s)
+    --- PASS: TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/expired (0.00s)
+    --- PASS: TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/too_distant (0.00s)
+    --- PASS: TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/short_retry_key (0.00s)
+    --- PASS: TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/secret-like_whitespace (0.00s)
+    --- PASS: TestCredentialServiceRejectsUnsafeOrUnboundedMetadata/unknown_scope (0.00s)
+=== RUN   TestWebhookRegistrationEnforcesEnvironmentAndStoresDigestOnly
+--- PASS: TestWebhookRegistrationEnforcesEnvironmentAndStoresDigestOnly (0.00s)
+=== RUN   TestWebhookRegistrationRejectsQueryCredentialsAndUnknownEvents
+--- PASS: TestWebhookRegistrationRejectsQueryCredentialsAndUnknownEvents (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/developerplatform	0.203s
+=== RUN   TestTransferExportPaginatesQuotesExactFieldsAndNeutralizesFormulaCorpus
+--- PASS: TestTransferExportPaginatesQuotesExactFieldsAndNeutralizesFormulaCorpus (0.00s)
+=== RUN   TestAccountAndReconciliationExportsPreserveMinorStrings
+--- PASS: TestAccountAndReconciliationExportsPreserveMinorStrings (0.00s)
+=== RUN   TestExportStopsOnCancellationAndBoundsRows
+--- PASS: TestExportStopsOnCancellationAndBoundsRows (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/exports	0.656s
+=== RUN   TestServiceCanonicalizesRequestAndOwnsDemoPolicy
+--- PASS: TestServiceCanonicalizesRequestAndOwnsDemoPolicy (0.00s)
+=== RUN   TestServiceRejectsInvalidFundingBeforeRepository
+--- PASS: TestServiceRejectsInvalidFundingBeforeRepository (0.00s)
+=== RUN   TestServiceRejectsUnknownPolicyMode
+--- PASS: TestServiceRejectsUnknownPolicyMode (0.00s)
+=== RUN   TestServiceRejectsUnknownFundingStatusBeforeRepository
+--- PASS: TestServiceRejectsUnknownFundingStatusBeforeRepository (0.00s)
+=== RUN   TestServiceRequiresAndCanonicalizesPostIdempotency
+--- PASS: TestServiceRequiresAndCanonicalizesPostIdempotency (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/funding	0.816s
+=== RUN   TestOrientationDistinguishesCompletedActionsFromAvailableInspectionEvidence
+--- PASS: TestOrientationDistinguishesCompletedActionsFromAvailableInspectionEvidence (0.00s)
+=== RUN   TestOrientationKeepsMissingAndUnavailableEvidenceExplicit
+--- PASS: TestOrientationKeepsMissingAndUnavailableEvidenceExplicit (0.00s)
+=== RUN   TestOrientationPreferencesAreVersionedServerStateAndCannotBypassEvidence
+--- PASS: TestOrientationPreferencesAreVersionedServerStateAndCannotBypassEvidence (0.00s)
+=== RUN   TestTimelineUsesSemanticStageOrderAndSortsOutOfOrderEvidence
+--- PASS: TestTimelineUsesSemanticStageOrderAndSortsOutOfOrderEvidence (0.00s)
+=== RUN   TestTimelineCallsJournalWithoutPostingsMissingAndNeverAcceptsArbitraryID
+--- PASS: TestTimelineCallsJournalWithoutPostingsMissingAndNeverAcceptsArbitraryID (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/guidance	0.862s
+=== RUN   TestOperationNamespaceAndLengthDelimitedFingerprint
+--- PASS: TestOperationNamespaceAndLengthDelimitedFingerprint (0.00s)
+=== RUN   TestResolveReplayConflictAndInProgress
+--- PASS: TestResolveReplayConflictAndInProgress (0.00s)
+=== RUN   FuzzFingerprintFieldBoundaries
+=== RUN   FuzzFingerprintFieldBoundaries/seed#0
+--- PASS: FuzzFingerprintFieldBoundaries (0.00s)
+    --- PASS: FuzzFingerprintFieldBoundaries/seed#0 (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/idempotency	0.940s
+=== RUN   TestGenerateEvidenceBundleIsBoundedHashedAndRedacted
+--- PASS: TestGenerateEvidenceBundleIsBoundedHashedAndRedacted (0.00s)
+=== RUN   TestGenerateEvidenceBundleRejectsMalformedEvidence
+--- PASS: TestGenerateEvidenceBundleRejectsMalformedEvidence (0.00s)
+=== RUN   TestLiveRoomValidationAndFindingEligibility
+--- PASS: TestLiveRoomValidationAndFindingEligibility (0.00s)
+=== RUN   TestNormalizeLiveSignalRejectsMalformedAndOversizedEnvelopes
+--- PASS: TestNormalizeLiveSignalRejectsMalformedAndOversizedEnvelopes (0.00s)
+=== RUN   TestSavedViewDefinitionsAreVersionedAllowlistedAndCanonical
+--- PASS: TestSavedViewDefinitionsAreVersionedAllowlistedAndCanonical (0.00s)
+=== RUN   TestSavedViewNamesAndAccessAreBounded
+--- PASS: TestSavedViewNamesAndAccessAreBounded (0.00s)
+=== RUN   TestWorkspaceCreateAcceptsOnlySafeAuthorizedContext
+--- PASS: TestWorkspaceCreateAcceptsOnlySafeAuthorizedContext (0.00s)
+=== RUN   TestWorkspaceIdentifiersVersionsAndPathsAreBounded
+--- PASS: TestWorkspaceIdentifiersVersionsAndPathsAreBounded (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation	0.691s
+=== RUN   TestRenewalCancelsWorkOnLoss
+--- PASS: TestRenewalCancelsWorkOnLoss (0.01s)
+=== RUN   TestRenewalChecksBeforeWork
+--- PASS: TestRenewalChecksBeforeWork (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/lease	0.863s
+=== RUN   TestDiagnosticsPreservesFinancialAndDisposableDependencyDistinction
+--- PASS: TestDiagnosticsPreservesFinancialAndDisposableDependencyDistinction (0.00s)
+=== RUN   TestDiagnosticsReturnsWhenProbeIgnoresCancellation
+--- PASS: TestDiagnosticsReturnsWhenProbeIgnoresCancellation (0.01s)
+=== RUN   TestBuildFactsRedactUnboundedOrControlValues
+--- PASS: TestBuildFactsRedactUnboundedOrControlValues (0.00s)
+=== RUN   TestEventServiceRedactsEndpointPathAndCredentials
+--- PASS: TestEventServiceRedactsEndpointPathAndCredentials (0.00s)
+=== RUN   TestEventServiceValidatesFiltersBeforeRepository
+--- PASS: TestEventServiceValidatesFiltersBeforeRepository (0.00s)
+=== RUN   TestWebhookEndpointServiceReturnsOnlySafeEndpointEvidence
+--- PASS: TestWebhookEndpointServiceReturnsOnlySafeEndpointEvidence (0.00s)
+=== RUN   TestWebhookEndpointServiceRejectsUnboundedFilters
+=== RUN   TestWebhookEndpointServiceRejectsUnboundedFilters/status
+=== RUN   TestWebhookEndpointServiceRejectsUnboundedFilters/event
+=== RUN   TestWebhookEndpointServiceRejectsUnboundedFilters/limit
+--- PASS: TestWebhookEndpointServiceRejectsUnboundedFilters (0.00s)
+    --- PASS: TestWebhookEndpointServiceRejectsUnboundedFilters/status (0.00s)
+    --- PASS: TestWebhookEndpointServiceRejectsUnboundedFilters/event (0.00s)
+    --- PASS: TestWebhookEndpointServiceRejectsUnboundedFilters/limit (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/operations	0.665s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/outbox	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/payouts	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/pilotgate	[no test files]
+=== RUN   TestLifecycleOutboxEventAdvancesBalanceConsumerWithoutProjectionMutation
+--- PASS: TestLifecycleOutboxEventAdvancesBalanceConsumerWithoutProjectionMutation (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/projection	0.772s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/provisioning	[no test files]
+=== RUN   TestCommandServiceNormalizesAndNamespacesRetryIntent
+--- PASS: TestCommandServiceNormalizesAndNamespacesRetryIntent (0.00s)
+=== RUN   TestCommandServiceRejectsIncompleteEnvelopeAndInvalidKey
+--- PASS: TestCommandServiceRejectsIncompleteEnvelopeAndInvalidKey (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation	0.826s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/recovery	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/retention	[no test files]
+=== RUN   TestRenewalLossStopsSchedulerWork
+--- PASS: TestRenewalLossStopsSchedulerWork (0.33s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/scheduler	1.021s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transactions	[no test files]
+=== RUN   TestSubmitValidatesAndNormalizesOptionalRequestReference
+--- PASS: TestSubmitValidatesAndNormalizesOptionalRequestReference (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/transfers	0.813s
+=== RUN   TestDispatcherSignsBoundedWebhookRequest
+--- PASS: TestDispatcherSignsBoundedWebhookRequest (0.00s)
+=== RUN   TestValidateDeliveryRejectsPrivateOrInsecureEndpoint
+--- PASS: TestValidateDeliveryRejectsPrivateOrInsecureEndpoint (0.00s)
+=== RUN   TestCachedKeyResolverEvictsLeastRecentlyUsedEntryAtCapacity
+--- PASS: TestCachedKeyResolverEvictsLeastRecentlyUsedEntryAtCapacity (0.00s)
+=== RUN   TestCachedKeyResolverConcurrentSaturationCompletes
+--- PASS: TestCachedKeyResolverConcurrentSaturationCompletes (0.00s)
+=== RUN   TestCachedKeyResolverExpiresAndReloadsKey
+--- PASS: TestCachedKeyResolverExpiresAndReloadsKey (0.00s)
+=== RUN   TestCachedKeyResolverDoesNotCacheUpstreamError
+--- PASS: TestCachedKeyResolverDoesNotCacheUpstreamError (0.00s)
+=== RUN   TestCachedKeyResolverHonorsCancellationAndRecovers
+--- PASS: TestCachedKeyResolverHonorsCancellationAndRecovers (0.00s)
+=== RUN   TestWorkerRecordsDeliveredAttempt
+--- PASS: TestWorkerRecordsDeliveredAttempt (0.00s)
+=== RUN   TestWorkerSchedulesRetryForRetryableFailure
+--- PASS: TestWorkerSchedulesRetryForRetryableFailure (0.00s)
+=== RUN   TestWorkerDeadLettersNonRetryableOrExhaustedDelivery
+--- PASS: TestWorkerDeadLettersNonRetryableOrExhaustedDelivery (0.00s)
+=== RUN   TestWorkerDeadLettersInactiveWebhookWithoutDispatch
+--- PASS: TestWorkerDeadLettersInactiveWebhookWithoutDispatch (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/webhookdelivery	0.274s
+=== RUN   TestDispatcherRequiresSignedEndpointProof
+--- PASS: TestDispatcherRequiresSignedEndpointProof (0.01s)
+=== RUN   TestDispatcherRejectsMissingProof
+--- PASS: TestDispatcherRejectsMissingProof (0.01s)
+=== RUN   TestWorkerActivatesOnlyOnVerifiedProof
+--- PASS: TestWorkerActivatesOnlyOnVerifiedProof (0.00s)
+=== RUN   TestWorkerMarksInvalidProofDeadAndNetworkFailureRetryable
+=== RUN   TestWorkerMarksInvalidProofDeadAndNetworkFailureRetryable/invalid_proof
+=== RUN   TestWorkerMarksInvalidProofDeadAndNetworkFailureRetryable/network_failure
+--- PASS: TestWorkerMarksInvalidProofDeadAndNetworkFailureRetryable (0.00s)
+    --- PASS: TestWorkerMarksInvalidProofDeadAndNetworkFailureRetryable/invalid_proof (0.00s)
+    --- PASS: TestWorkerMarksInvalidProofDeadAndNetworkFailureRetryable/network_failure (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/webhookverification	0.309s
+=== RUN   TestWorkerRunnerAttemptsEveryIndependentProcessor
+--- PASS: TestWorkerRunnerAttemptsEveryIndependentProcessor (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/bootstrap	0.552s
+=== RUN   TestNewDraftIsCompleteAndValidAsDraft
+--- PASS: TestNewDraftIsCompleteAndValidAsDraft (0.00s)
+=== RUN   TestNewDraftRejectsPlaceholderReviewerAndCredentialURL
+--- PASS: TestNewDraftRejectsPlaceholderReviewerAndCredentialURL (0.00s)
+=== RUN   TestCompleteValidationRejectsOpenHighDefect
+--- PASS: TestCompleteValidationRejectsOpenHighDefect (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/deviceevidence	0.696s
+=== RUN   TestLifecycleTransitionMatrix
+=== RUN   TestLifecycleTransitionMatrix/active_to_frozen
+=== RUN   TestLifecycleTransitionMatrix/frozen_to_active
+=== RUN   TestLifecycleTransitionMatrix/active_to_closed
+=== RUN   TestLifecycleTransitionMatrix/frozen_to_closed
+--- PASS: TestLifecycleTransitionMatrix (0.00s)
+    --- PASS: TestLifecycleTransitionMatrix/active_to_frozen (0.00s)
+    --- PASS: TestLifecycleTransitionMatrix/frozen_to_active (0.00s)
+    --- PASS: TestLifecycleTransitionMatrix/active_to_closed (0.00s)
+    --- PASS: TestLifecycleTransitionMatrix/frozen_to_closed (0.00s)
+=== RUN   TestClosedIsTerminalAndIdentityRemainsImmutable
+--- PASS: TestClosedIsTerminalAndIdentityRemainsImmutable (0.00s)
+=== RUN   TestCloseRequiresConsistentExactZeroFinancialState
+=== RUN   TestCloseRequiresConsistentExactZeroFinancialState/unavailable
+=== RUN   TestCloseRequiresConsistentExactZeroFinancialState/available_non-zero
+=== RUN   TestCloseRequiresConsistentExactZeroFinancialState/ledger_non-zero
+--- PASS: TestCloseRequiresConsistentExactZeroFinancialState (0.00s)
+    --- PASS: TestCloseRequiresConsistentExactZeroFinancialState/unavailable (0.00s)
+    --- PASS: TestCloseRequiresConsistentExactZeroFinancialState/available_non-zero (0.00s)
+    --- PASS: TestCloseRequiresConsistentExactZeroFinancialState/ledger_non-zero (0.00s)
+=== RUN   TestMetadataValidationPreservesUnicodeAndNormalizesReference
+--- PASS: TestMetadataValidationPreservesUnicodeAndNormalizesReference (0.00s)
+=== RUN   FuzzNormalizeMetadataStable
+=== RUN   FuzzNormalizeMetadataStable/seed#0
+=== RUN   FuzzNormalizeMetadataStable/seed#1
+--- PASS: FuzzNormalizeMetadataStable (0.00s)
+    --- PASS: FuzzNormalizeMetadataStable/seed#0 (0.00s)
+    --- PASS: FuzzNormalizeMetadataStable/seed#1 (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/account	0.803s
+=== RUN   TestProductionFundingRequiresIndependentApprovalBeforePosting
+--- PASS: TestProductionFundingRequiresIndependentApprovalBeforePosting (0.00s)
+=== RUN   TestLocalDemoApprovalIsExplicitAndCannotMasqueradeAsProduction
+--- PASS: TestLocalDemoApprovalIsExplicitAndCannotMasqueradeAsProduction (0.00s)
+=== RUN   TestPostedFundingIsImmutableAndCorrectionIsAdditive
+--- PASS: TestPostedFundingIsImmutableAndCorrectionIsAdditive (0.00s)
+=== RUN   TestFundingRequestRejectsMissingEvidenceAndNonPositiveAmount
+--- PASS: TestFundingRequestRejectsMissingEvidenceAndNonPositiveAmount (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/funding	0.897s
+=== RUN   TestParseCanonicalizesOnlyCanonicalShapeUUIDs
+=== PAUSE TestParseCanonicalizesOnlyCanonicalShapeUUIDs
+=== RUN   TestCanonicalUUIDsCollapseMapKeys
+--- PASS: TestCanonicalUUIDsCollapseMapKeys (0.00s)
+=== RUN   TestParseRejectsAmbiguousAndMalformedUUIDText
+=== PAUSE TestParseRejectsAmbiguousAndMalformedUUIDText
+=== CONT  TestParseCanonicalizesOnlyCanonicalShapeUUIDs
+=== RUN   TestParseCanonicalizesOnlyCanonicalShapeUUIDs/lowercase
+=== PAUSE TestParseCanonicalizesOnlyCanonicalShapeUUIDs/lowercase
+=== RUN   TestParseCanonicalizesOnlyCanonicalShapeUUIDs/mixed_case
+=== PAUSE TestParseCanonicalizesOnlyCanonicalShapeUUIDs/mixed_case
+=== CONT  TestParseCanonicalizesOnlyCanonicalShapeUUIDs/lowercase
+=== CONT  TestParseRejectsAmbiguousAndMalformedUUIDText
+=== CONT  TestParseCanonicalizesOnlyCanonicalShapeUUIDs/mixed_case
+--- PASS: TestParseCanonicalizesOnlyCanonicalShapeUUIDs (0.00s)
+    --- PASS: TestParseCanonicalizesOnlyCanonicalShapeUUIDs/lowercase (0.00s)
+    --- PASS: TestParseCanonicalizesOnlyCanonicalShapeUUIDs/mixed_case (0.00s)
+--- PASS: TestParseRejectsAmbiguousAndMalformedUUIDText (0.00s)
+=== RUN   FuzzParseNeverAcceptsNonCanonicalShape
+=== RUN   FuzzParseNeverAcceptsNonCanonicalShape/seed#0
+=== RUN   FuzzParseNeverAcceptsNonCanonicalShape/seed#1
+=== RUN   FuzzParseNeverAcceptsNonCanonicalShape/seed#2
+--- PASS: FuzzParseNeverAcceptsNonCanonicalShape (0.00s)
+    --- PASS: FuzzParseNeverAcceptsNonCanonicalShape/seed#0 (0.00s)
+    --- PASS: FuzzParseNeverAcceptsNonCanonicalShape/seed#1 (0.00s)
+    --- PASS: FuzzParseNeverAcceptsNonCanonicalShape/seed#2 (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/identifier	0.864s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/ledger	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/money	[no test files]
+=== RUN   TestPayoutRequiresINRExactFeeAndDualControl
+--- PASS: TestPayoutRequiresINRExactFeeAndDualControl (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/payout	0.852s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/domain/transfer	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/cache	[no test files]
+=== RUN   TestLoadProvidesBoundedHTTPAndPilotDefaults
+--- PASS: TestLoadProvidesBoundedHTTPAndPilotDefaults (0.00s)
+=== RUN   TestLoadUsesVercelPortWhenProvided
+--- PASS: TestLoadUsesVercelPortWhenProvided (0.00s)
+=== RUN   TestLoadRejectsInvalidVercelPort
+--- PASS: TestLoadRejectsInvalidVercelPort (0.00s)
+=== RUN   TestLoadRejectsWeakCronSecret
+--- PASS: TestLoadRejectsWeakCronSecret (0.00s)
+=== RUN   TestLoadRequiresGeneratedCredentialForDevelopmentIdentity
+--- PASS: TestLoadRequiresGeneratedCredentialForDevelopmentIdentity (0.00s)
+=== RUN   TestLoadRejectsInvalidStartupRetryOrder
+--- PASS: TestLoadRejectsInvalidStartupRetryOrder (0.00s)
+=== RUN   TestLoadRejectsUnsafeWriteCapacity
+--- PASS: TestLoadRejectsUnsafeWriteCapacity (0.00s)
+=== RUN   TestParseOIDCClientTenantMap
+=== RUN   TestParseOIDCClientTenantMap/empty
+=== RUN   TestParseOIDCClientTenantMap/blank_client
+=== RUN   TestParseOIDCClientTenantMap/blank_tenant
+=== RUN   TestParseOIDCClientTenantMap/array
+--- PASS: TestParseOIDCClientTenantMap (0.00s)
+    --- PASS: TestParseOIDCClientTenantMap/empty (0.00s)
+    --- PASS: TestParseOIDCClientTenantMap/blank_client (0.00s)
+    --- PASS: TestParseOIDCClientTenantMap/blank_tenant (0.00s)
+    --- PASS: TestParseOIDCClientTenantMap/array (0.00s)
+=== RUN   TestLoadRejectsInvalidPilotCurrency
+--- PASS: TestLoadRejectsInvalidPilotCurrency (0.00s)
+=== RUN   TestLoadRequiresExplicitPilotCurrencyOutsideDevelopment
+--- PASS: TestLoadRequiresExplicitPilotCurrencyOutsideDevelopment (0.00s)
+=== RUN   TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot
+--- PASS: TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot (0.00s)
+=== RUN   TestLiveInvestigationIsDisabledByDefaultAndRequiresRedisWhenEnabled
+--- PASS: TestLiveInvestigationIsDisabledByDefaultAndRequiresRedisWhenEnabled (0.00s)
+=== RUN   TestReplicaIdentityAndPoolBudget
+--- PASS: TestReplicaIdentityAndPoolBudget (0.00s)
+=== RUN   TestParseWebhookSigningKeysAcceptsBoundedBase64Values
+--- PASS: TestParseWebhookSigningKeysAcceptsBoundedBase64Values (0.00s)
+=== RUN   TestParseWebhookSigningKeysRejectsShortOrMalformedValues
+--- PASS: TestParseWebhookSigningKeysRejectsShortOrMalformedValues (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/config	1.073s
+=== RUN   TestApprovalCursorRoundTripsStableOldestFirstPosition
+--- PASS: TestApprovalCursorRoundTripsStableOldestFirstPosition (0.00s)
+=== RUN   TestApprovalItemDecorationPrioritizesSafeStops
+=== RUN   TestApprovalItemDecorationPrioritizesSafeStops/self_approval
+=== RUN   TestApprovalItemDecorationPrioritizesSafeStops/missing_evidence
+=== RUN   TestApprovalItemDecorationPrioritizesSafeStops/step_up
+=== RUN   TestApprovalItemDecorationPrioritizesSafeStops/review
+--- PASS: TestApprovalItemDecorationPrioritizesSafeStops (0.00s)
+    --- PASS: TestApprovalItemDecorationPrioritizesSafeStops/self_approval (0.00s)
+    --- PASS: TestApprovalItemDecorationPrioritizesSafeStops/missing_evidence (0.00s)
+    --- PASS: TestApprovalItemDecorationPrioritizesSafeStops/step_up (0.00s)
+    --- PASS: TestApprovalItemDecorationPrioritizesSafeStops/review (0.00s)
+=== RUN   TestAuditMetadataPreservesBoundedUnicodeReasonAndRejectsUnsafeValues
+--- PASS: TestAuditMetadataPreservesBoundedUnicodeReasonAndRejectsUnsafeValues (0.00s)
+=== RUN   TestScanWebhookDecodesDatabaseArrayProjection
+--- PASS: TestScanWebhookDecodesDatabaseArrayProjection (0.00s)
+=== RUN   TestScanWebhookRejectsMalformedDatabaseArrayProjection
+--- PASS: TestScanWebhookRejectsMalformedDatabaseArrayProjection (0.00s)
+=== RUN   TestTransferCursorIsBoundToCanonicalFilters
+--- PASS: TestTransferCursorIsBoundToCanonicalFilters (0.00s)
+=== RUN   TestRelatedEvidenceRequiresSourceScopeAndUsesBoundedMetadataQueries
+--- PASS: TestRelatedEvidenceRequiresSourceScopeAndUsesBoundedMetadataQueries (0.00s)
+=== RUN   TestRelationshipSourceAuthorizationUsesContiguousTypedParameters
+--- PASS: TestRelationshipSourceAuthorizationUsesContiguousTypedParameters (0.00s)
+=== RUN   TestRelationshipQueriesDeclareStableProjectionColumns
+--- PASS: TestRelationshipQueriesDeclareStableProjectionColumns (0.00s)
+=== RUN   TestEventCursorBindsEveryFilterAndLimit
+--- PASS: TestEventCursorBindsEveryFilterAndLimit (0.00s)
+=== RUN   TestEvidenceCodeUsesSemanticAllowlist
+--- PASS: TestEvidenceCodeUsesSemanticAllowlist (0.00s)
+=== RUN   TestScanWebhookEndpointEvidenceDecodesPortableArrayProjection
+--- PASS: TestScanWebhookEndpointEvidenceDecodesPortableArrayProjection (0.00s)
+=== RUN   TestScanWebhookEndpointEvidenceRejectsMalformedArrayProjection
+--- PASS: TestScanWebhookEndpointEvidenceRejectsMalformedArrayProjection (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db	0.429s
+=== RUN   TestCausalMetadataAcceptsLegacyAndRejectsInvalidPairs
+--- PASS: TestCausalMetadataAcceptsLegacyAndRejectsInvalidPairs (0.00s)
+=== RUN   TestNewLiveInvestigationSignalsRejectsUnsafeNamespace
+--- PASS: TestNewLiveInvestigationSignalsRejectsUnsafeNamespace (0.00s)
+=== RUN   TestRedisStreamCursorContract
+--- PASS: TestRedisStreamCursorContract (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/events	0.405s
+=== RUN   TestUsageTrackingRecordsOnlyOAuthClientReference
+--- PASS: TestUsageTrackingRecordsOnlyOAuthClientReference (0.00s)
+=== RUN   TestUsageTrackingFailsClosedWhenEvidenceCannotAdvance
+--- PASS: TestUsageTrackingFailsClosedWhenEvidenceCannotAdvance (0.00s)
+=== RUN   TestAllowedSetDropsUnknownRolesAndScopes
+--- PASS: TestAllowedSetDropsUnknownRolesAndScopes (0.00s)
+=== RUN   TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping
+=== RUN   TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/unmapped_client
+=== RUN   TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/missing_client_id
+=== RUN   TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/id_token
+=== RUN   TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/wrong_audience
+--- PASS: TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping (0.00s)
+    --- PASS: TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/unmapped_client (0.00s)
+    --- PASS: TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/missing_client_id (0.00s)
+    --- PASS: TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/id_token (0.00s)
+    --- PASS: TestCognitoAccessTokenRequiresPurposeAudienceAndServerClientMapping/wrong_audience (0.00s)
+=== RUN   TestBFFActorAssertionSeparatesReplayStoreOutageFromInvalidCredentials
+--- PASS: TestBFFActorAssertionSeparatesReplayStoreOutageFromInvalidCredentials (0.00s)
+=== RUN   TestBFFActorAssertionRequiresSignedShortLivedActorContext
+--- PASS: TestBFFActorAssertionRequiresSignedShortLivedActorContext (0.00s)
+=== RUN   TestBFFActorAssertionPreservesCompleteBoundedOperatorScopes
+--- PASS: TestBFFActorAssertionPreservesCompleteBoundedOperatorScopes (0.00s)
+=== RUN   TestBFFActorAssertionRejectsTenantDifferentFromWorkload
+--- PASS: TestBFFActorAssertionRejectsTenantDifferentFromWorkload (0.00s)
+=== RUN   TestBFFWorkloadCannotActWithoutActorAssertion
+--- PASS: TestBFFWorkloadCannotActWithoutActorAssertion (0.00s)
+=== RUN   TestBFFActorAssertionRejectsWrongAudienceAndOverScopedActor
+=== RUN   TestBFFActorAssertionRejectsWrongAudienceAndOverScopedActor/wrong_audience
+=== RUN   TestBFFActorAssertionRejectsWrongAudienceAndOverScopedActor/unknown_scope
+--- PASS: TestBFFActorAssertionRejectsWrongAudienceAndOverScopedActor (0.00s)
+    --- PASS: TestBFFActorAssertionRejectsWrongAudienceAndOverScopedActor/wrong_audience (0.00s)
+    --- PASS: TestBFFActorAssertionRejectsWrongAudienceAndOverScopedActor/unknown_scope (0.00s)
+=== RUN   TestBFFActorAssertionAcceptsPreviousKeyDuringRotation
+--- PASS: TestBFFActorAssertionAcceptsPreviousKeyDuringRotation (0.00s)
+=== RUN   TestMemoryReplayGuardExpiresIncrementallyAndEnforcesCapacity
+--- PASS: TestMemoryReplayGuardExpiresIncrementallyAndEnforcesCapacity (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity	1.205s
+=== RUN   TestPerformanceRouteOperationIsBoundedAndNeverUsesRawObjectPaths
+--- PASS: TestPerformanceRouteOperationIsBoundedAndNeverUsesRawObjectPaths (0.00s)
+=== RUN   TestWorkerProgressMonitorReportsStallOutsideBlockedWork
+--- PASS: TestWorkerProgressMonitorReportsStallOutsideBlockedWork (0.00s)
+=== RUN   TestWorkerProgressMonitorRecordsCompletionAndFailure
+--- PASS: TestWorkerProgressMonitorRecordsCompletionAndFailure (0.00s)
+=== RUN   TestWorkerProgressMonitorRejectsUnknownQueue
+--- PASS: TestWorkerProgressMonitorRejectsUnknownQueue (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability	0.365s
+=== RUN   TestManifestIndexReadsOnlyFixedContainedSanitizedV1File
+--- PASS: TestManifestIndexReadsOnlyFixedContainedSanitizedV1File (0.01s)
+=== RUN   TestManifestIndexAcceptsInitializedEmptyEvidenceIndex
+--- PASS: TestManifestIndexAcceptsInitializedEmptyEvidenceIndex (0.00s)
+=== RUN   TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles
+=== RUN   TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/malformed
+=== RUN   TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/unknown
+=== RUN   TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/incomplete
+=== RUN   TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/oversized
+--- PASS: TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles (0.02s)
+    --- PASS: TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/malformed (0.00s)
+    --- PASS: TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/unknown (0.00s)
+    --- PASS: TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/incomplete (0.00s)
+    --- PASS: TestManifestIndexRejectsMalformedUnknownIncompleteAndOversizedFiles/oversized (0.00s)
+=== RUN   TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues
+=== RUN   TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/unverified_digest
+=== RUN   TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/failed_validation
+=== RUN   TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/restore_mismatch
+=== RUN   TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/changed_project
+=== RUN   TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/arbitrary_backup_id
+--- PASS: TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues (0.02s)
+    --- PASS: TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/unverified_digest (0.00s)
+    --- PASS: TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/failed_validation (0.00s)
+    --- PASS: TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/restore_mismatch (0.00s)
+    --- PASS: TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/changed_project (0.01s)
+    --- PASS: TestManifestIndexRejectsNonFinalOrUnsafeEvidenceValues/arbitrary_backup_id (0.00s)
+=== RUN   TestManifestIndexRejectsSymlinkOrReparsePointFile
+    manifest_index_test.go:97: symlink creation unavailable: symlink C:\Users\ASUS\AppData\Local\Temp\TestManifestIndexRejectsSymlinkOrReparsePointFile2338808270\002\recovery-evidence-index.json C:\Users\ASUS\AppData\Local\Temp\TestManifestIndexRejectsSymlinkOrReparsePointFile2338808270\001\recovery-evidence-index.json: A required privilege is not held by the client.
+--- SKIP: TestManifestIndexRejectsSymlinkOrReparsePointFile (0.00s)
+=== RUN   TestManifestIndexHonorsCancellation
+--- PASS: TestManifestIndexHonorsCancellation (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/recovery	0.953s
+=== RUN   TestOptionsAcceptsLocalAddress
+--- PASS: TestOptionsAcceptsLocalAddress (0.00s)
+=== RUN   TestOptionsParsesManagedTLSURL
+--- PASS: TestOptionsParsesManagedTLSURL (0.00s)
+=== RUN   TestOptionsRejectsEmptyAddress
+--- PASS: TestOptionsRejectsEmptyAddress (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/redisconn	0.861s
+=== RUN   TestStudyProxyDiscoversReplacementsAndPreservesRequests
+--- PASS: TestStudyProxyDiscoversReplacementsAndPreservesRequests (0.01s)
+=== RUN   TestStudyProxyBalancesAndFlushesStreams
+--- PASS: TestStudyProxyBalancesAndFlushesStreams (0.01s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/routing	0.301s
+=== RUN   TestAWSSecretsManagerResolvesBase64AndBinaryKeys
+=== RUN   TestAWSSecretsManagerResolvesBase64AndBinaryKeys/binary
+=== RUN   TestAWSSecretsManagerResolvesBase64AndBinaryKeys/string
+--- PASS: TestAWSSecretsManagerResolvesBase64AndBinaryKeys (0.00s)
+    --- PASS: TestAWSSecretsManagerResolvesBase64AndBinaryKeys/binary (0.00s)
+    --- PASS: TestAWSSecretsManagerResolvesBase64AndBinaryKeys/string (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/secrets	0.880s
+=== RUN   TestOpenRetriesTransientFailuresAndReturnsTheResource
+--- PASS: TestOpenRetriesTransientFailuresAndReturnsTheResource (0.00s)
+=== RUN   TestOpenFailsImmediatelyForPermanentConfigurationErrors
+--- PASS: TestOpenFailsImmediatelyForPermanentConfigurationErrors (0.00s)
+=== RUN   TestOpenStopsAtTheConfiguredDeadline
+--- PASS: TestOpenStopsAtTheConfiguredDeadline (0.03s)
+=== RUN   TestIsTransientClassifiesKnownStartupFailures
+--- PASS: TestIsTransientClassifiesKnownStartupFailures (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/startup	1.069s
+=== RUN   TestWriteCommittedJSONNeverRewritesStatusAfterBodyFailure
+2026/10/12 01:38:54 ERROR committed response body write failed command_kind=transfer command_id_hash=7947193657c4e3bc error="client disconnected"
+--- PASS: TestWriteCommittedJSONNeverRewritesStatusAfterBodyFailure (0.00s)
+=== RUN   TestWriteCommittedJSONFallsBackToRecoveryEnvelopeWhenEncodingFails
+--- PASS: TestWriteCommittedJSONFallsBackToRecoveryEnvelopeWhenEncodingFails (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http	0.951s
+=== RUN   TestCreateAccountCommandReturnsTransportDTOAndReplayHeader
+--- PASS: TestCreateAccountCommandReturnsTransportDTOAndReplayHeader (0.00s)
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/missing_mutation
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/leading_zero_version
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/unknown_field
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/trailing_JSON
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/partial_metadata
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/missing_reason
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/numeric_version
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/both_mutation_families
+=== RUN   TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/metadata_with_reason
+--- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/missing_mutation (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/leading_zero_version (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/unknown_field (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/trailing_JSON (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/partial_metadata (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/missing_reason (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/numeric_version (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/both_mutation_families (0.00s)
+    --- PASS: TestPatchAccountCommandRequiresExactlyOneMutationAndCanonicalVersion/metadata_with_reason (0.00s)
+=== RUN   TestPatchAccountCommandRoutesMetadataAndLifecycleIntent
+=== RUN   TestPatchAccountCommandRoutesMetadataAndLifecycleIntent/metadata
+=== RUN   TestPatchAccountCommandRoutesMetadataAndLifecycleIntent/status
+--- PASS: TestPatchAccountCommandRoutesMetadataAndLifecycleIntent (0.00s)
+    --- PASS: TestPatchAccountCommandRoutesMetadataAndLifecycleIntent/metadata (0.00s)
+    --- PASS: TestPatchAccountCommandRoutesMetadataAndLifecycleIntent/status (0.00s)
+=== RUN   TestAccountCommandDeniesMissingScopeBeforeBodyOrRepository
+--- PASS: TestAccountCommandDeniesMissingScopeBeforeBodyOrRepository (0.00s)
+=== RUN   TestAccountCommandRejectsMissingKeyAndOversizedBody
+=== RUN   TestAccountCommandRejectsMissingKeyAndOversizedBody/missing_key
+=== RUN   TestAccountCommandRejectsMissingKeyAndOversizedBody/oversized
+--- PASS: TestAccountCommandRejectsMissingKeyAndOversizedBody (0.00s)
+    --- PASS: TestAccountCommandRejectsMissingKeyAndOversizedBody/missing_key (0.00s)
+    --- PASS: TestAccountCommandRejectsMissingKeyAndOversizedBody/oversized (0.00s)
+=== RUN   TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset
+=== RUN   TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/text
+=== RUN   TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/malformed
+=== RUN   TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/json
+=== RUN   TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/json_charset
+=== RUN   TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/missing
+--- PASS: TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset (0.00s)
+    --- PASS: TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/text (0.00s)
+    --- PASS: TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/malformed (0.00s)
+    --- PASS: TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/json (0.00s)
+    --- PASS: TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/json_charset (0.00s)
+    --- PASS: TestAccountCommandRequiresJSONMediaTypeAndAllowsCharset/missing (0.00s)
+=== RUN   TestAccountCommandUsesPrincipalAndTenantCapacityLimits
+--- PASS: TestAccountCommandUsesPrincipalAndTenantCapacityLimits (0.00s)
+=== RUN   TestAccountCommandRateDenialAndUnknownErrorFailClosed
+=== RUN   TestAccountCommandRateDenialAndUnknownErrorFailClosed/rate_denied
+=== RUN   TestAccountCommandRateDenialAndUnknownErrorFailClosed/unknown_dependency_error
+--- PASS: TestAccountCommandRateDenialAndUnknownErrorFailClosed (0.00s)
+    --- PASS: TestAccountCommandRateDenialAndUnknownErrorFailClosed/rate_denied (0.00s)
+    --- PASS: TestAccountCommandRateDenialAndUnknownErrorFailClosed/unknown_dependency_error (0.00s)
+=== RUN   TestAccountCommandBFFWorkloadRequiresActorAssertion
+--- PASS: TestAccountCommandBFFWorkloadRequiresActorAssertion (0.00s)
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/dependency
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/not_found
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/reference
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/version
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/transition
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/terminal
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/non-zero
+=== RUN   TestPublicAccountCommandErrorsAreStableAndNonDisclosing/financial_unavailable
+--- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/dependency (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/not_found (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/reference (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/version (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/transition (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/terminal (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/non-zero (0.00s)
+    --- PASS: TestPublicAccountCommandErrorsAreStableAndNonDisclosing/financial_unavailable (0.00s)
+=== RUN   TestAccountDependencyLossIsTruthfulTemporaryUnavailability
+--- PASS: TestAccountDependencyLossIsTruthfulTemporaryUnavailability (0.00s)
+=== RUN   TestAccountReadDTOKeepsConfigurationAndBalanceVersionsDistinct
+--- PASS: TestAccountReadDTOKeepsConfigurationAndBalanceVersionsDistinct (0.00s)
+=== RUN   TestAccountDetailAuditResponseAddsOnlyPresentLifecycleReason
+--- PASS: TestAccountDetailAuditResponseAddsOnlyPresentLifecycleReason (0.00s)
+=== RUN   TestApprovalListPreservesTypedFiltersAndHonestPageCount
+--- PASS: TestApprovalListPreservesTypedFiltersAndHonestPageCount (0.00s)
+=== RUN   TestApprovalListReturnsSafeUnavailableContractForDependencyFailures
+--- PASS: TestApprovalListReturnsSafeUnavailableContractForDependencyFailures (0.00s)
+=== RUN   TestApprovalListSeparatesDeniedFromInvalidQueries
+=== RUN   TestApprovalListSeparatesDeniedFromInvalidQueries/missing_approval_authority
+=== RUN   TestApprovalListSeparatesDeniedFromInvalidQueries/unqualified_status
+=== RUN   TestApprovalListSeparatesDeniedFromInvalidQueries/unknown_filter
+=== RUN   TestApprovalListSeparatesDeniedFromInvalidQueries/repeated_filter
+--- PASS: TestApprovalListSeparatesDeniedFromInvalidQueries (0.00s)
+    --- PASS: TestApprovalListSeparatesDeniedFromInvalidQueries/missing_approval_authority (0.00s)
+    --- PASS: TestApprovalListSeparatesDeniedFromInvalidQueries/unqualified_status (0.00s)
+    --- PASS: TestApprovalListSeparatesDeniedFromInvalidQueries/unknown_filter (0.00s)
+    --- PASS: TestApprovalListSeparatesDeniedFromInvalidQueries/repeated_filter (0.00s)
+=== RUN   TestAuthenticationErrorPreservesCredentialAndDependencySemantics
+=== RUN   TestAuthenticationErrorPreservesCredentialAndDependencySemantics/invalid_credentials
+=== RUN   TestAuthenticationErrorPreservesCredentialAndDependencySemantics/replay_store_unavailable
+--- PASS: TestAuthenticationErrorPreservesCredentialAndDependencySemantics (0.00s)
+    --- PASS: TestAuthenticationErrorPreservesCredentialAndDependencySemantics/invalid_credentials (0.00s)
+    --- PASS: TestAuthenticationErrorPreservesCredentialAndDependencySemantics/replay_store_unavailable (0.00s)
+=== RUN   TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache
+=== RUN   TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache/warm_cache
+=== RUN   TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache/cache_miss
+--- PASS: TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache (0.00s)
+    --- PASS: TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache/warm_cache (0.00s)
+    --- PASS: TestBalanceHandlerReturnsSameNonDisclosingDenialForWarmAndColdCache/cache_miss (0.00s)
+=== RUN   TestCorrectionRequestUsesVerifiedStepUpAndWriteScope
+--- PASS: TestCorrectionRequestUsesVerifiedStepUpAndWriteScope (0.00s)
+=== RUN   TestCorrectionStepUpFailureIsActionable
+--- PASS: TestCorrectionStepUpFailureIsActionable (0.00s)
+=== RUN   TestCronDrainRejectsMissingCredential
+--- PASS: TestCronDrainRejectsMissingCredential (0.00s)
+=== RUN   TestCronDrainProcessesUntilEmptyBatch
+--- PASS: TestCronDrainProcessesUntilEmptyBatch (0.00s)
+=== RUN   TestDistributedEvidenceRequiresScopeAndUsesVerifiedTenant
+--- PASS: TestDistributedEvidenceRequiresScopeAndUsesVerifiedTenant (0.00s)
+=== RUN   TestDeveloperContractsReturnCanonicalEmbeddedBytesWithoutCredentials
+--- PASS: TestDeveloperContractsReturnCanonicalEmbeddedBytesWithoutCredentials (0.00s)
+=== RUN   TestDeveloperContractsRequireReadScopeAndGET
+--- PASS: TestDeveloperContractsRequireReadScopeAndGET (0.00s)
+=== RUN   TestDeveloperCredentialCreateIsScopedStrictAndNonSecret
+--- PASS: TestDeveloperCredentialCreateIsScopedStrictAndNonSecret (0.00s)
+=== RUN   TestDeveloperCredentialCreateRequiresWriteScope
+--- PASS: TestDeveloperCredentialCreateRequiresWriteScope (0.00s)
+=== RUN   TestDeveloperWebhookRegistrationIsStrictScopedAndOneTime
+--- PASS: TestDeveloperWebhookRegistrationIsStrictScopedAndOneTime (0.00s)
+=== RUN   TestDeveloperWebhookRegistrationRequiresWriteScope
+--- PASS: TestDeveloperWebhookRegistrationRequiresWriteScope (0.00s)
+=== RUN   TestDeveloperWebhookReplayCarriesStableIdentityAndApprovalReference
+--- PASS: TestDeveloperWebhookReplayCarriesStableIdentityAndApprovalReference (0.00s)
+=== RUN   TestFundingRequestRequiresExactMinorUnitsAndWriteScope
+--- PASS: TestFundingRequestRequiresExactMinorUnitsAndWriteScope (0.00s)
+=== RUN   TestFundingApprovalPreservesExplicitLocalDemoLabel
+--- PASS: TestFundingApprovalPreservesExplicitLocalDemoLabel (0.00s)
+=== RUN   TestFundingRequestRejectsAmbiguousJSONBeforeApplication
+--- PASS: TestFundingRequestRejectsAmbiguousJSONBeforeApplication (0.00s)
+=== RUN   TestGuidanceRoutesAreNoStoreBoundedEvidenceReads
+--- PASS: TestGuidanceRoutesAreNoStoreBoundedEvidenceReads (0.00s)
+=== RUN   TestExplainabilityRequiresAllEvidenceScopesAndUsesNonDisclosingNotFound
+--- PASS: TestExplainabilityRequiresAllEvidenceScopesAndUsesNonDisclosingNotFound (0.00s)
+=== RUN   TestOrientationRequiresOperatorAndBothRoutesRejectQueries
+--- PASS: TestOrientationRequiresOperatorAndBothRoutesRejectQueries (0.00s)
+=== RUN   TestOrientationPreferenceUpdateRequiresWriteScopeAndReturnsConflict
+--- PASS: TestOrientationPreferenceUpdateRequiresWriteScopeAndReturnsConflict (0.00s)
+=== RUN   TestInvestigationTransferFiltersAreStrictBoundedAndServerSide
+=== RUN   TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?status=settled
+=== RUN   TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?q=abc%25
+=== RUN   TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?q=abc&q=def
+=== RUN   TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?loadedPageOnly=true
+=== RUN   TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?accountId=not-a-uuid
+=== RUN   TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?from=2026-08-26T00%3A00%3A00Z&to=2026-08-25T00%3A00%3A00Z
+--- PASS: TestInvestigationTransferFiltersAreStrictBoundedAndServerSide (0.00s)
+    --- PASS: TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?status=settled (0.00s)
+    --- PASS: TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?q=abc%25 (0.00s)
+    --- PASS: TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?q=abc&q=def (0.00s)
+    --- PASS: TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?loadedPageOnly=true (0.00s)
+    --- PASS: TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?accountId=not-a-uuid (0.00s)
+    --- PASS: TestInvestigationTransferFiltersAreStrictBoundedAndServerSide//api/transfers?from=2026-08-26T00%3A00%3A00Z&to=2026-08-25T00%3A00%3A00Z (0.00s)
+=== RUN   TestInvestigationRequiresTenantWideOperatorRole
+--- PASS: TestInvestigationRequiresTenantWideOperatorRole (0.00s)
+=== RUN   TestInvestigationAllowsServerOwnedOperatorRole
+--- PASS: TestInvestigationAllowsServerOwnedOperatorRole (0.00s)
+=== RUN   TestExactSearchIsBoundedScopedAndRoleProtected
+=== RUN   TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=short
+=== RUN   TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved-reference&q=second-reference
+=== RUN   TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved-reference&limit=21
+=== RUN   TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved%25reference
+=== RUN   TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved-reference&cursor=forbidden
+--- PASS: TestExactSearchIsBoundedScopedAndRoleProtected (0.00s)
+    --- PASS: TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=short (0.00s)
+    --- PASS: TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved-reference&q=second-reference (0.00s)
+    --- PASS: TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved-reference&limit=21 (0.00s)
+    --- PASS: TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved%25reference (0.00s)
+    --- PASS: TestExactSearchIsBoundedScopedAndRoleProtected//api/investigation/search?q=approved-reference&cursor=forbidden (0.00s)
+=== RUN   TestExactSearchRequiresDedicatedInvestigationScope
+--- PASS: TestExactSearchRequiresDedicatedInvestigationScope (0.00s)
+=== RUN   TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected
+=== RUN   TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected/unknown_source
+=== RUN   TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected/partial_id
+=== RUN   TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected/query_smuggling
+--- PASS: TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected (0.00s)
+    --- PASS: TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected/unknown_source (0.00s)
+    --- PASS: TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected/partial_id (0.00s)
+    --- PASS: TestRelatedEvidenceIsExactBoundedScopedAndRoleProtected/query_smuggling (0.00s)
+=== RUN   TestSavedViewsRequireDedicatedReadAndWriteScopes
+--- PASS: TestSavedViewsRequireDedicatedReadAndWriteScopes (0.00s)
+=== RUN   TestSavedViewCreateValidatesSchemaAndPassesAuditContext
+--- PASS: TestSavedViewCreateValidatesSchemaAndPassesAuditContext (0.00s)
+=== RUN   TestSavedViewRenameAndDeleteUseOptimisticVersions
+--- PASS: TestSavedViewRenameAndDeleteUseOptimisticVersions (0.00s)
+=== RUN   TestWorkspaceCreateUsesAuthorizedServerCapturedRoot
+--- PASS: TestWorkspaceCreateUsesAuthorizedServerCapturedRoot (0.00s)
+=== RUN   TestWorkspaceRejectsCopiedEvidenceAndRequiresWriteScope
+--- PASS: TestWorkspaceRejectsCopiedEvidenceAndRequiresWriteScope (0.00s)
+=== RUN   TestWorkspaceHandoffCloseAndReopenUseOptimisticVersion
+--- PASS: TestWorkspaceHandoffCloseAndReopenUseOptimisticVersion (0.00s)
+=== RUN   TestWorkspaceEvidenceBundleRequiresExactVersionAndAudit
+--- PASS: TestWorkspaceEvidenceBundleRequiresExactVersionAndAudit (0.00s)
+=== RUN   TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit
+=== RUN   TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit/scope
+=== RUN   TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit/version
+=== RUN   TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit/audit
+--- PASS: TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit (0.00s)
+    --- PASS: TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit/scope (0.00s)
+    --- PASS: TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit/version (0.00s)
+    --- PASS: TestWorkspaceEvidenceBundleFailsClosedForScopeVersionAndAudit/audit (0.00s)
+=== RUN   TestLiveInvestigationFeatureFailsClosedWhenDisabled
+--- PASS: TestLiveInvestigationFeatureFailsClosedWhenDisabled (0.00s)
+=== RUN   TestLiveInvestigationRequiresDedicatedScope
+--- PASS: TestLiveInvestigationRequiresDedicatedScope (0.00s)
+=== RUN   TestStartLiveInvestigationBindsAuthenticatedActorAndReference
+--- PASS: TestStartLiveInvestigationBindsAuthenticatedActorAndReference (0.00s)
+=== RUN   TestWebhookEvidenceRequiresScopeAndRejectsUnknownFilters
+--- PASS: TestWebhookEvidenceRequiresScopeAndRejectsUnknownFilters (0.00s)
+=== RUN   TestOperationsReadsApplyRateLimit
+--- PASS: TestOperationsReadsApplyRateLimit (0.00s)
+=== RUN   TestOperationsDiagnosticsIsAuthorizedNoStorePartialRead
+--- PASS: TestOperationsDiagnosticsIsAuthorizedNoStorePartialRead (0.00s)
+=== RUN   TestOperationsRequiresScopeAndTenantRole
+=== RUN   TestOperationsRequiresScopeAndTenantRole/missing_scope
+=== RUN   TestOperationsRequiresScopeAndTenantRole/missing_role
+--- PASS: TestOperationsRequiresScopeAndTenantRole (0.00s)
+    --- PASS: TestOperationsRequiresScopeAndTenantRole/missing_scope (0.00s)
+    --- PASS: TestOperationsRequiresScopeAndTenantRole/missing_role (0.00s)
+=== RUN   TestOperationsRoutesAreGETOnlyAndRejectUnknownFilters
+--- PASS: TestOperationsRoutesAreGETOnlyAndRejectUnknownFilters (0.00s)
+=== RUN   TestRateLimitReturnsStableEnvelopeAndRetryAfter
+--- PASS: TestRateLimitReturnsStableEnvelopeAndRetryAfter (0.00s)
+=== RUN   TestTenantCapacityUsesSharedSecondAndMinuteWindows
+--- PASS: TestTenantCapacityUsesSharedSecondAndMinuteWindows (0.00s)
+=== RUN   TestReconciliationCommandReturnsExactDTOAndReplay
+--- PASS: TestReconciliationCommandReturnsExactDTOAndReplay (0.00s)
+=== RUN   TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject
+=== RUN   TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject/unknown_field
+=== RUN   TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject/read_scope
+=== RUN   TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject/empty_object
+--- PASS: TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject (0.00s)
+    --- PASS: TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject/unknown_field (0.00s)
+    --- PASS: TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject/read_scope (0.00s)
+    --- PASS: TestReconciliationCommandRequiresWriteScopeAndStrictEmptyObject/empty_object (0.00s)
+=== RUN   TestReconciliationCommandMapsStableDenialAndUnknownOutcome
+=== RUN   TestReconciliationCommandMapsStableDenialAndUnknownOutcome/commit_unknown
+=== RUN   TestReconciliationCommandMapsStableDenialAndUnknownOutcome/already_running
+=== RUN   TestReconciliationCommandMapsStableDenialAndUnknownOutcome/in_progress
+=== RUN   TestReconciliationCommandMapsStableDenialAndUnknownOutcome/unknown
+--- PASS: TestReconciliationCommandMapsStableDenialAndUnknownOutcome (0.00s)
+    --- PASS: TestReconciliationCommandMapsStableDenialAndUnknownOutcome/commit_unknown (0.00s)
+    --- PASS: TestReconciliationCommandMapsStableDenialAndUnknownOutcome/already_running (0.00s)
+    --- PASS: TestReconciliationCommandMapsStableDenialAndUnknownOutcome/in_progress (0.00s)
+    --- PASS: TestReconciliationCommandMapsStableDenialAndUnknownOutcome/unknown (0.00s)
+=== RUN   TestRecoveryIndexIsExactNoStoreOperatorRead
+--- PASS: TestRecoveryIndexIsExactNoStoreOperatorRead (0.00s)
+=== RUN   TestTransferExportStreamsQuotedExactCSVAndAuditSummary
+--- PASS: TestTransferExportStreamsQuotedExactCSVAndAuditSummary (0.00s)
+=== RUN   TestExportsRequireCombinedScopeRoleAndObjectAuthorization
+=== RUN   TestExportsRequireCombinedScopeRoleAndObjectAuthorization/missing_underlying_read_scope
+=== RUN   TestExportsRequireCombinedScopeRoleAndObjectAuthorization/missing_operator_role
+--- PASS: TestExportsRequireCombinedScopeRoleAndObjectAuthorization (0.00s)
+    --- PASS: TestExportsRequireCombinedScopeRoleAndObjectAuthorization/missing_underlying_read_scope (0.00s)
+    --- PASS: TestExportsRequireCombinedScopeRoleAndObjectAuthorization/missing_operator_role (0.00s)
+=== RUN   TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence
+=== RUN   TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence/audit_unavailable
+=== RUN   TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence/evidence_unavailable
+=== RUN   TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence/unknown_filter
+--- PASS: TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence (0.00s)
+    --- PASS: TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence/audit_unavailable (0.00s)
+    --- PASS: TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence/evidence_unavailable (0.00s)
+    --- PASS: TestExportRejectsUnknownFiltersAndFailsClosedOnAuditOrEvidence/unknown_filter (0.00s)
+=== RUN   TestPostedTransferPrivatelyCarriesOwnedDestinationConsistency
+--- PASS: TestPostedTransferPrivatelyCarriesOwnedDestinationConsistency (0.00s)
+=== RUN   TestPostedTransferOmitsUnreadableDestinationConsistency
+--- PASS: TestPostedTransferOmitsUnreadableDestinationConsistency (0.00s)
+=== RUN   TestPostedTransferRetainsCommittedSuccessWhenConsistencyIssuanceFails
+--- PASS: TestPostedTransferRetainsCommittedSuccessWhenConsistencyIssuanceFails (0.00s)
+=== RUN   TestPostedTransferRetainsCommittedSuccessWhenConsistencyHeaderEncodingFails
+--- PASS: TestPostedTransferRetainsCommittedSuccessWhenConsistencyHeaderEncodingFails (0.00s)
+=== RUN   TestRecoveryRoutesCoexistWithCorrections
+--- PASS: TestRecoveryRoutesCoexistWithCorrections (0.00s)
+=== RUN   TestRecoveryUsesOnlyServerIdentity
+--- PASS: TestRecoveryUsesOnlyServerIdentity (0.00s)
+=== RUN   TestRecoveryRejectsReplacementBodyAndMissingScope
+--- PASS: TestRecoveryRejectsReplacementBodyAndMissingScope (0.00s)
+=== RUN   TestRecoveryListNeverSerializesKey
+--- PASS: TestRecoveryListNeverSerializesKey (0.00s)
+=== RUN   TestRecoveryPrepareDoesNotPost
+--- PASS: TestRecoveryPrepareDoesNotPost (0.00s)
+=== RUN   TestExhaustedSerializableConflictRequestsSafeSameKeyRetry
+--- PASS: TestExhaustedSerializableConflictRequestsSafeSameKeyRetry (0.00s)
+=== RUN   TestMissingWriteScopeIsDeniedBeforeFinancialInputOrObjectDisclosure
+--- PASS: TestMissingWriteScopeIsDeniedBeforeFinancialInputOrObjectDisclosure (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/handlers	0.488s
+=== RUN   TestContractHeadersUseTrustedEnvironment
+=== RUN   TestContractHeadersUseTrustedEnvironment/development
+=== RUN   TestContractHeadersUseTrustedEnvironment/test
+=== RUN   TestContractHeadersUseTrustedEnvironment/production
+=== RUN   TestContractHeadersUseTrustedEnvironment/unknown_fails_closed
+--- PASS: TestContractHeadersUseTrustedEnvironment (0.00s)
+    --- PASS: TestContractHeadersUseTrustedEnvironment/development (0.00s)
+    --- PASS: TestContractHeadersUseTrustedEnvironment/test (0.00s)
+    --- PASS: TestContractHeadersUseTrustedEnvironment/production (0.00s)
+    --- PASS: TestContractHeadersUseTrustedEnvironment/unknown_fails_closed (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware	0.725s
+=== RUN   TestRegisterAccountCommandRoutesAddsOnlyPostAndPatchSeams
+--- PASS: TestRegisterAccountCommandRoutesAddsOnlyPostAndPatchSeams (0.00s)
+=== RUN   TestRegisterAccountCommandRoutesValidatesCompositionInputs
+--- PASS: TestRegisterAccountCommandRoutesValidatesCompositionInputs (0.00s)
+=== RUN   TestRegisterDeveloperRoutesExposesOnlyBoundedGETAssets
+--- PASS: TestRegisterDeveloperRoutesExposesOnlyBoundedGETAssets (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/api	0.522s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/assertion-contract	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/audit-event	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/device-evidence	[no test files]
+=== RUN   TestBuildManifestUsesCanonicalContractAndSortedMigrations
+--- PASS: TestBuildManifestUsesCanonicalContractAndSortedMigrations (0.01s)
+=== RUN   TestBuildManifestRejectsMissingCanonicalContract
+--- PASS: TestBuildManifestRejectsMissingCanonicalContract (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/evidence-manifest	0.393s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/migrate	[no test files]
+=== RUN   TestWorkerHealthRequiresSuccessfulPollsAndDetectsFailureAndStall
+--- PASS: TestWorkerHealthRequiresSuccessfulPollsAndDetectsFailureAndStall (0.01s)
+=== RUN   TestWorkerHealthFailsClosedOnMissingAndMalformedEvidence
+--- PASS: TestWorkerHealthFailsClosedOnMissingAndMalformedEvidence (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/outbox-worker	0.510s
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/pilot-preflight	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/provision-partner	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/reconcile	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/reconciliation-scheduler	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/replay-delivery	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/replay-outbox	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/retention	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/study-proxy	[no test files]
+?   	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/cmd/study-test-setup	[no test files]
+=== RUN   TestDebitRequiresAccountOwnerPermission
+--- PASS: TestDebitRequiresAccountOwnerPermission (0.00s)
+=== RUN   TestCreditRequiresActiveMatchingCurrencyAccount
+--- PASS: TestCreditRequiresActiveMatchingCurrencyAccount (0.00s)
+=== RUN   TestBalanceReadNeverReturnsForgedHighVersionCache
+--- PASS: TestBalanceReadNeverReturnsForgedHighVersionCache (0.00s)
+=== RUN   TestBalanceReadUsesPrimaryAndNeverReturnsStaleCache
+--- PASS: TestBalanceReadUsesPrimaryAndNeverReturnsStaleCache (0.00s)
+=== RUN   TestBalanceReadReturnsTruthfulAvailabilityErrorWhenPrimaryFails
+--- PASS: TestBalanceReadReturnsTruthfulAvailabilityErrorWhenPrimaryFails (0.00s)
+=== RUN   TestConsistencyRequirementCannotBeUsedForAnotherAccount
+--- PASS: TestConsistencyRequirementCannotBeUsedForAnotherAccount (0.00s)
+=== RUN   TestBalanceCacheNeverBypassesAccountAuthorization
+--- PASS: TestBalanceCacheNeverBypassesAccountAuthorization (0.00s)
+=== RUN   TestWarmBalanceCacheStillPerformsOneAuthoritativeProjectionRead
+--- PASS: TestWarmBalanceCacheStillPerformsOneAuthoritativeProjectionRead (0.00s)
+=== RUN   TestWriteErrorDoesNotExposeInternalError
+--- PASS: TestWriteErrorDoesNotExposeInternalError (0.00s)
+=== RUN   TestIdempotencyReplayAndMismatch
+--- PASS: TestIdempotencyReplayAndMismatch (0.00s)
+=== RUN   TestJournalRequiresBalancedPostings
+--- PASS: TestJournalRequiresBalancedPostings (0.00s)
+=== RUN   TestLoggerRedactsSensitiveValues
+--- PASS: TestLoggerRedactsSensitiveValues (0.00s)
+=== RUN   TestLoggerRedactsSensitiveValuesEmbeddedInErrors
+--- PASS: TestLoggerRedactsSensitiveValuesEmbeddedInErrors (0.00s)
+=== RUN   TestParseUsesExactMinorUnits
+--- PASS: TestParseUsesExactMinorUnits (0.00s)
+=== RUN   TestParseRejectsUnrepresentablePrecision
+--- PASS: TestParseRejectsUnrepresentablePrecision (0.00s)
+=== RUN   TestSubtractCannotUnderflow
+--- PASS: TestSubtractCannotUnderflow (0.00s)
+=== RUN   TestParsePreservesSigned64BitBoundaryWithoutRounding
+--- PASS: TestParsePreservesSigned64BitBoundaryWithoutRounding (0.00s)
+=== RUN   TestParseMakesWhitespaceAndInvalidBoundariesExplicit
+--- PASS: TestParseMakesWhitespaceAndInvalidBoundariesExplicit (0.00s)
+=== RUN   TestOutboxWorkerReschedulesFailureAndDoesNotMarkItPublished
+--- PASS: TestOutboxWorkerReschedulesFailureAndDoesNotMarkItPublished (0.00s)
+=== RUN   TestOutboxWorkerMarksExhaustedEventDead
+--- PASS: TestOutboxWorkerMarksExhaustedEventDead (0.00s)
+=== RUN   TestOutboxWorkerSurfacesRetryPersistenceFailure
+--- PASS: TestOutboxWorkerSurfacesRetryPersistenceFailure (0.00s)
+=== RUN   TestPilotGateRequiresManagedControlsAndProviderRestoreEvidence
+--- PASS: TestPilotGateRequiresManagedControlsAndProviderRestoreEvidence (0.00s)
+=== RUN   TestPilotGateAllowsDeploymentPreflightToPrecedeTheRestoreDrill
+--- PASS: TestPilotGateAllowsDeploymentPreflightToPrecedeTheRestoreDrill (0.00s)
+=== RUN   TestProvisioningConfigRequiresExactMoneyKnownSubjectsAndExternalCredentials
+--- PASS: TestProvisioningConfigRequiresExactMoneyKnownSubjectsAndExternalCredentials (0.00s)
+=== RUN   TestProvisioningConfigDecoderRejectsIgnoredOrTrailingInstructions
+--- PASS: TestProvisioningConfigDecoderRejectsIgnoredOrTrailingInstructions (0.00s)
+=== RUN   TestProvisioningConfigSupportsTheAccountHistoryScopeUsedByTheOperator
+--- PASS: TestProvisioningConfigSupportsTheAccountHistoryScopeUsedByTheOperator (0.00s)
+=== RUN   TestLoggerRedactsSensitiveNestedValues
+--- PASS: TestLoggerRedactsSensitiveNestedValues (0.00s)
+=== RUN   TestTelemetryIsNoopLocallyAndRejectsIncompleteSharedConfiguration
+--- PASS: TestTelemetryIsNoopLocallyAndRejectsIncompleteSharedConfiguration (0.00s)
+=== RUN   TestRetryableTransactionClassificationIsNarrow
+=== RUN   TestRetryableTransactionClassificationIsNarrow/serialization_SQLSTATE
+=== RUN   TestRetryableTransactionClassificationIsNarrow/deadlock_SQLSTATE
+=== RUN   TestRetryableTransactionClassificationIsNarrow/insufficient_funds
+=== RUN   TestRetryableTransactionClassificationIsNarrow/authorization
+=== RUN   TestRetryableTransactionClassificationIsNarrow/connection_refused
+--- PASS: TestRetryableTransactionClassificationIsNarrow (0.00s)
+    --- PASS: TestRetryableTransactionClassificationIsNarrow/serialization_SQLSTATE (0.00s)
+    --- PASS: TestRetryableTransactionClassificationIsNarrow/deadlock_SQLSTATE (0.00s)
+    --- PASS: TestRetryableTransactionClassificationIsNarrow/insufficient_funds (0.00s)
+    --- PASS: TestRetryableTransactionClassificationIsNarrow/authorization (0.00s)
+    --- PASS: TestRetryableTransactionClassificationIsNarrow/connection_refused (0.00s)
+=== RUN   TestLedgerSemanticViolationClassificationIsExactAndSafe
+=== RUN   TestLedgerSemanticViolationClassificationIsExactAndSafe/deferred_semantic_trigger
+=== RUN   TestLedgerSemanticViolationClassificationIsExactAndSafe/source_identity_check
+=== RUN   TestLedgerSemanticViolationClassificationIsExactAndSafe/already_sanitized
+=== RUN   TestLedgerSemanticViolationClassificationIsExactAndSafe/unrelated_check_constraint
+=== RUN   TestLedgerSemanticViolationClassificationIsExactAndSafe/same_name_wrong_SQLSTATE
+--- PASS: TestLedgerSemanticViolationClassificationIsExactAndSafe (0.00s)
+    --- PASS: TestLedgerSemanticViolationClassificationIsExactAndSafe/deferred_semantic_trigger (0.00s)
+    --- PASS: TestLedgerSemanticViolationClassificationIsExactAndSafe/source_identity_check (0.00s)
+    --- PASS: TestLedgerSemanticViolationClassificationIsExactAndSafe/already_sanitized (0.00s)
+    --- PASS: TestLedgerSemanticViolationClassificationIsExactAndSafe/unrelated_check_constraint (0.00s)
+    --- PASS: TestLedgerSemanticViolationClassificationIsExactAndSafe/same_name_wrong_SQLSTATE (0.00s)
+=== RUN   TestZeroTransferIsRejectedBeforeTheFinancialRepository
+--- PASS: TestZeroTransferIsRejectedBeforeTheFinancialRepository (0.00s)
+=== RUN   FuzzParseExactMoney
+=== RUN   FuzzParseExactMoney/seed#0
+=== RUN   FuzzParseExactMoney/seed#1
+=== RUN   FuzzParseExactMoney/seed#2
+=== RUN   FuzzParseExactMoney/seed#3
+=== RUN   FuzzParseExactMoney/seed#4
+=== RUN   FuzzParseExactMoney/seed#5
+=== RUN   FuzzParseExactMoney/seed#6
+=== RUN   FuzzParseExactMoney/seed#7
+--- PASS: FuzzParseExactMoney (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#0 (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#1 (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#2 (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#3 (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#4 (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#5 (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#6 (0.00s)
+    --- PASS: FuzzParseExactMoney/seed#7 (0.00s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/unit	0.633s
+=== RUN   TestAccountReadsDenyUnownedAccountsWithoutDisclosure
+--- PASS: TestAccountReadsDenyUnownedAccountsWithoutDisclosure (0.64s)
+=== RUN   TestEmptyAuthorizedAccountHistoryReturnsAnEmptyCollection
+--- PASS: TestEmptyAuthorizedAccountHistoryReturnsAnEmptyCollection (0.61s)
+=== RUN   TestAccountDirectoryPaginatesTenThousandAuthorizedAccountsWithStableIndexes
+--- PASS: TestAccountDirectoryPaginatesTenThousandAuthorizedAccountsWithStableIndexes (2.22s)
+=== RUN   TestAccountListContainsOnlyAccountsOwnedByCaller
+--- PASS: TestAccountListContainsOnlyAccountsOwnedByCaller (2.89s)
+=== RUN   TestAccountDetailProjectsOnlyAllowListedLifecycleReasons
+--- PASS: TestAccountDetailProjectsOnlyAllowListedLifecycleReasons (2.85s)
+=== RUN   TestAccountCreateIsAtomicZeroAndRetrySafe
+--- PASS: TestAccountCreateIsAtomicZeroAndRetrySafe (2.76s)
+=== RUN   TestAccountCreateHTTPRetryAfterLostResponseUsesRealServiceAndDatabaseControls
+--- PASS: TestAccountCreateHTTPRetryAfterLostResponseUsesRealServiceAndDatabaseControls (2.76s)
+=== RUN   TestAuthorizedAccountReadsExposeConfigurationAndBalanceVersionsSeparately
+--- PASS: TestAuthorizedAccountReadsExposeConfigurationAndBalanceVersionsSeparately (2.75s)
+=== RUN   TestStableAccountDenialIsRecordedAndReplayedOnce
+--- PASS: TestStableAccountDenialIsRecordedAndReplayedOnce (2.63s)
+=== RUN   TestUnknownAccountDependencyFailureRollsBackAndSameKeyCanRetry
+--- PASS: TestUnknownAccountDependencyFailureRollsBackAndSameKeyCanRetry (2.59s)
+=== RUN   TestAccountLifecycleCloseRulesVersionAndTenantBoundary
+--- PASS: TestAccountLifecycleCloseRulesVersionAndTenantBoundary (2.74s)
+=== RUN   TestAccountClosureBlocksObligationsAndPreservesSettledHistory
+--- PASS: TestAccountClosureBlocksObligationsAndPreservesSettledHistory (8.02s)
+=== RUN   TestAccountMetadataUsesOptimisticVersionAndStableReplay
+--- PASS: TestAccountMetadataUsesOptimisticVersionAndStableReplay (3.05s)
+=== RUN   TestConcurrentCloseAndTransferSerializeOnAccountProjectionLocks
+--- PASS: TestConcurrentCloseAndTransferSerializeOnAccountProjectionLocks (9.00s)
+=== RUN   TestAdministrativeRoutesAreNotMountedByDefault
+--- PASS: TestAdministrativeRoutesAreNotMountedByDefault (0.00s)
+=== RUN   TestApprovalInboxCombinesTypedEvidenceInStableOldestFirstPages
+--- PASS: TestApprovalInboxCombinesTypedEvidenceInStableOldestFirstPages (3.08s)
+=== RUN   TestBFFActorAssertionReplayIsRejectedAcrossAPIReplicas
+--- PASS: TestBFFActorAssertionReplayIsRejectedAcrossAPIReplicas (3.00s)
+=== RUN   TestBalanceProjectionIsIdempotentAndNeverRegressesVersion
+--- PASS: TestBalanceProjectionIsIdempotentAndNeverRegressesVersion (0.42s)
+=== RUN   TestCompetingTransfersNeverOverdrawSourceAccount
+--- PASS: TestCompetingTransfersNeverOverdrawSourceAccount (3.26s)
+=== RUN   TestControlledAccountFunctionUsesFixedDefinerBoundary
+--- PASS: TestControlledAccountFunctionUsesFixedDefinerBoundary (2.99s)
+=== RUN   TestControlledAccountFunctionForcesZeroAndRejectsSpoofing
+--- PASS: TestControlledAccountFunctionForcesZeroAndRejectsSpoofing (3.14s)
+=== RUN   TestControlledTransferFunctionUsesFixedDefinerBoundary
+--- PASS: TestControlledTransferFunctionUsesFixedDefinerBoundary (2.92s)
+=== RUN   TestControlledTransferFunctionCommitsAndReplaysAsAPIWorkload
+--- PASS: TestControlledTransferFunctionCommitsAndReplaysAsAPIWorkload (3.05s)
+=== RUN   TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState
+=== RUN   TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/unauthorized_actor
+=== RUN   TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/cross_tenant_account
+=== RUN   TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/search_path_poisoning
+=== RUN   TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/support_role_denied
+--- PASS: TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState (3.18s)
+    --- PASS: TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/unauthorized_actor (0.01s)
+    --- PASS: TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/cross_tenant_account (0.03s)
+    --- PASS: TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/search_path_poisoning (0.03s)
+    --- PASS: TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState/support_role_denied (0.00s)
+=== RUN   TestControlledFundingFunctionUsesFixedDefinerBoundary
+--- PASS: TestControlledFundingFunctionUsesFixedDefinerBoundary (3.25s)
+=== RUN   TestControlledFundingFunctionExecutesAsAPIAndRejectsSpoofing
+--- PASS: TestControlledFundingFunctionExecutesAsAPIAndRejectsSpoofing (3.76s)
+=== RUN   TestDatabaseRoleCapabilities
+=== RUN   TestDatabaseRoleCapabilities/fresh-install/ledgersync_api
+=== RUN   TestDatabaseRoleCapabilities/fresh-install/ledgersync_worker
+=== RUN   TestDatabaseRoleCapabilities/fresh-install/ledgersync_reconciliation
+=== RUN   TestDatabaseRoleCapabilities/fresh-install/ledgersync_provisioning
+=== RUN   TestDatabaseRoleCapabilities/fresh-install/ledgersync_support_readonly
+=== RUN   TestDatabaseRoleCapabilities/fresh-install/ledgersync_break_glass
+=== RUN   TestDatabaseRoleCapabilities/fresh-install/owner-positive-control
+--- PASS: TestDatabaseRoleCapabilities (4.13s)
+    --- PASS: TestDatabaseRoleCapabilities/fresh-install/ledgersync_api (0.17s)
+    --- PASS: TestDatabaseRoleCapabilities/fresh-install/ledgersync_worker (0.12s)
+    --- PASS: TestDatabaseRoleCapabilities/fresh-install/ledgersync_reconciliation (0.08s)
+    --- PASS: TestDatabaseRoleCapabilities/fresh-install/ledgersync_provisioning (0.09s)
+    --- PASS: TestDatabaseRoleCapabilities/fresh-install/ledgersync_support_readonly (0.08s)
+    --- PASS: TestDatabaseRoleCapabilities/fresh-install/ledgersync_break_glass (0.07s)
+    --- PASS: TestDatabaseRoleCapabilities/fresh-install/owner-positive-control (0.03s)
+=== RUN   TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority
+--- PASS: TestProvisionedDatabaseRolesHaveNoForbiddenStandingAuthority (3.93s)
+=== RUN   TestDeveloperCredentialLifecycleIsIdempotentVersionedAndNonSecret
+--- PASS: TestDeveloperCredentialLifecycleIsIdempotentVersionedAndNonSecret (5.06s)
+=== RUN   TestDeveloperWebhookLifecycleIsVerifiedVersionedAndAppendOnly
+--- PASS: TestDeveloperWebhookLifecycleIsVerifiedVersionedAndAppendOnly (4.93s)
+=== RUN   TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses
+--- PASS: TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses (4.64s)
+=== RUN   TestReconciliationTreatsUnintendedEmptyScopeAsMismatch
+--- PASS: TestReconciliationTreatsUnintendedEmptyScopeAsMismatch (4.37s)
+=== RUN   TestTransferDeliveryStatusRequiresDurableAttemptEvidence
+--- PASS: TestTransferDeliveryStatusRequiresDurableAttemptEvidence (4.46s)
+=== RUN   TestPostgreSQLExportsAreTenantScopedObjectAuthorizedAndExact
+--- PASS: TestPostgreSQLExportsAreTenantScopedObjectAuthorizedAndExact (4.86s)
+=== RUN   TestPostgreSQLReconciliationExportIncludesBoundedMismatchEvidence
+    exports_test.go:77: reconciliation export result={Rows:0 Truncated:false SchemaName:ledgersync.reconciliation.v2} error=export evidence unavailable: list reconciliation runs csv="schema_version","record_type","run_id","status","correlation_id","scope","ledger_watermark","application_version","database_schema_version","checked_account_count","posting_count","mismatch_count","started_at_utc","completed_at_utc","mismatch_id","account_id","classification","currency","expected_minor","observed_minor","observed_available_minor","balance_version","created_at_utc"
+--- FAIL: TestPostgreSQLReconciliationExportIncludesBoundedMismatchEvidence (4.01s)
+=== RUN   TestFundingRequestApprovalPostingReplayAndReconciliationAreAtomic
+--- PASS: TestFundingRequestApprovalPostingReplayAndReconciliationAreAtomic (3.47s)
+=== RUN   TestFundingLimitsAndFinanceActivationFailClosed
+--- PASS: TestFundingLimitsAndFinanceActivationFailClosed (2.42s)
+=== RUN   TestGuidanceTimelineProvesCoverageOnlyFromVisibleStoredWatermark
+--- PASS: TestGuidanceTimelineProvesCoverageOnlyFromVisibleStoredWatermark (2.44s)
+=== RUN   TestGuidancePostgreSQLAuthorizationAndOrientationTruth
+--- PASS: TestGuidancePostgreSQLAuthorizationAndOrientationTruth (2.46s)
+=== RUN   TestTransferIdempotencyReplaysOriginalOutcomeWithoutSecondMovement
+--- PASS: TestTransferIdempotencyReplaysOriginalOutcomeWithoutSecondMovement (2.38s)
+=== RUN   TestTransferIdempotencyRejectsSameKeyWithDifferentFinancialIntent
+--- PASS: TestTransferIdempotencyRejectsSameKeyWithDifferentFinancialIntent (2.35s)
+=== RUN   TestConcurrentSameKeyRequestsResolveToOneMovement
+--- PASS: TestConcurrentSameKeyRequestsResolveToOneMovement (2.47s)
+=== RUN   TestReplaySurvivesLostResponseAndServiceRestart
+--- PASS: TestReplaySurvivesLostResponseAndServiceRestart (2.36s)
+=== RUN   TestIdempotencyKeyRejectsChangedAccountAndCurrencyIntent
+--- PASS: TestIdempotencyKeyRejectsChangedAccountAndCurrencyIntent (2.54s)
+=== RUN   TestSavedInvestigationViewsAreOwnerScopedVersionedAndAtomicallyAudited
+--- PASS: TestSavedInvestigationViewsAreOwnerScopedVersionedAndAtomicallyAudited (2.37s)
+=== RUN   TestInvestigationWorkspacesReauthorizeCurrentEvidenceAndAuditLifecycle
+--- PASS: TestInvestigationWorkspacesReauthorizeCurrentEvidenceAndAuditLifecycle (2.49s)
+=== RUN   TestTransferHistoryFiltersApplyBeforePaginationAndBindCursorIntent
+--- PASS: TestTransferHistoryFiltersApplyBeforePaginationAndBindCursorIntent (2.44s)
+=== RUN   TestRelatedEvidenceUsesExplicitKeysAndFiltersTargetDomains
+--- PASS: TestRelatedEvidenceUsesExplicitKeysAndFiltersTargetDomains (2.59s)
+=== RUN   TestExactInvestigationSearchRepeatsTenantObjectAndDomainAuthorization
+--- PASS: TestExactInvestigationSearchRepeatsTenantObjectAndDomainAuthorization (2.64s)
+=== RUN   TestLedgerSemanticKeysSupportOldAndExpandedWriters
+--- PASS: TestLedgerSemanticKeysSupportOldAndExpandedWriters (2.51s)
+=== RUN   TestLedgerSemanticKeysRejectNewTenantSubstitutionAndReportHistoricalMismatch
+--- PASS: TestLedgerSemanticKeysRejectNewTenantSubstitutionAndReportHistoricalMismatch (2.49s)
+=== RUN   TestLedgerSemanticKeyDownMigrationRefusesUnrepresentableEvidence
+    ledger_semantic_keys_test.go:199: representable down migration: ERROR: cannot drop column tenant_id of table ledger_postings because other objects depend on it (SQLSTATE 2BP01)
+--- FAIL: TestLedgerSemanticKeyDownMigrationRefusesUnrepresentableEvidence (2.56s)
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/canonical_control
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/balanced_extra_pair
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/swapped_direction
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/wrong_account
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/wrong_amount
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/unbalanced_amount
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/wrong_currency
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/mutual_command_link_missing
+=== RUN   TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/forged_source_identity
+--- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes (22.73s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/canonical_control (2.55s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/balanced_extra_pair (2.50s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/swapped_direction (2.43s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/wrong_account (2.46s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/wrong_amount (2.46s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/unbalanced_amount (2.59s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/wrong_currency (2.60s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/mutual_command_link_missing (2.65s)
+    --- PASS: TestTransferJournalSemanticConstraintRejectsBalancedFalseShapes/forged_source_identity (2.50s)
+=== RUN   TestLedgerSemanticConstraintRejectsPostingMutationAndDeletion
+=== RUN   TestLedgerSemanticConstraintRejectsPostingMutationAndDeletion/change_posting_amount
+=== RUN   TestLedgerSemanticConstraintRejectsPostingMutationAndDeletion/delete_posting
+--- PASS: TestLedgerSemanticConstraintRejectsPostingMutationAndDeletion (2.57s)
+    --- PASS: TestLedgerSemanticConstraintRejectsPostingMutationAndDeletion/change_posting_amount (0.00s)
+    --- PASS: TestLedgerSemanticConstraintRejectsPostingMutationAndDeletion/delete_posting (0.00s)
+=== RUN   TestTransferJournalSemanticConstraintGeneratedShapeProperties
+--- PASS: TestTransferJournalSemanticConstraintGeneratedShapeProperties (3.49s)
+=== RUN   TestTransferCompensationMustExactlyInvertOriginal
+--- PASS: TestTransferCompensationMustExactlyInvertOriginal (2.98s)
+=== RUN   TestFundingJournalMustUseExactClearingCustomerPair
+--- PASS: TestFundingJournalMustUseExactClearingCustomerPair (2.56s)
+=== RUN   TestRetentionIsBoundedAndProtectsFinalEvidence
+--- PASS: TestRetentionIsBoundedAndProtectsFinalEvidence (2.67s)
+=== RUN   TestLifecycleMigrationProvidesStableHistoryAndRetentionIndexes
+--- PASS: TestLifecycleMigrationProvidesStableHistoryAndRetentionIndexes (2.77s)
+=== RUN   TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation
+--- PASS: TestDeadOutboxAndDeliveryReplayRequireApprovalAndSeparation (2.93s)
+=== RUN   TestPartnerProvisioningIsAuditedIdempotentAndRollbackSafe
+--- PASS: TestPartnerProvisioningIsAuditedIdempotentAndRollbackSafe (3.03s)
+=== RUN   TestLiveInvestigationRoomLifecycleIsTenantScopedAndAudited
+--- PASS: TestLiveInvestigationRoomLifecycleIsTenantScopedAndAudited (2.69s)
+=== RUN   TestLiveInvestigationSignalsAreOrderedBoundedAndEphemeral
+--- PASS: TestLiveInvestigationSignalsAreOrderedBoundedAndEphemeral (0.04s)
+=== RUN   TestLiveRoomMigrationFreshDatabase
+    live_room_migration_compatibility_test.go:174: fresh migration count=43, want 39
+--- FAIL: TestLiveRoomMigrationFreshDatabase (8.51s)
+=== RUN   TestLiveRoomMigrationPreservesKnownLegacyRecordsAndHistory
+    live_room_migration_compatibility_test.go:233: migration count=45, want 39 current and 2 preserved historical versions
+--- FAIL: TestLiveRoomMigrationPreservesKnownLegacyRecordsAndHistory (5.84s)
+=== RUN   TestLiveRoomMigrationDownRestoresStrictOutcomeGuard
+--- PASS: TestLiveRoomMigrationDownRestoresStrictOutcomeGuard (3.51s)
+=== RUN   TestLiveRoomMigrationReferencedTransferPostsAndReplaysOnce
+=== RUN   TestLiveRoomMigrationReferencedTransferPostsAndReplaysOnce/legacy=false
+=== RUN   TestLiveRoomMigrationReferencedTransferPostsAndReplaysOnce/legacy=true
+--- PASS: TestLiveRoomMigrationReferencedTransferPostsAndReplaysOnce (13.60s)
+    --- PASS: TestLiveRoomMigrationReferencedTransferPostsAndReplaysOnce/legacy=false (6.55s)
+    --- PASS: TestLiveRoomMigrationReferencedTransferPostsAndReplaysOnce/legacy=true (7.05s)
+=== RUN   TestLiveRoomMigrationRepairsAlreadyAppliedOriginalCurrent37
+    live_room_migration_compatibility_test.go:471: original current migration count=42, want 38
+--- FAIL: TestLiveRoomMigrationRepairsAlreadyAppliedOriginalCurrent37 (3.82s)
+=== RUN   TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase
+=== RUN   TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/idempotency_requests_tenant_request_reference_idx
+=== RUN   TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/investigation_live_rooms_active_workspace_idx
+=== RUN   TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/investigation_live_rooms_active_request_idx
+=== RUN   TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/investigation_live_rooms_peer_idx
+--- PASS: TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase (14.19s)
+    --- PASS: TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/idempotency_requests_tenant_request_reference_idx (3.83s)
+    --- PASS: TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/investigation_live_rooms_active_workspace_idx (3.56s)
+    --- PASS: TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/investigation_live_rooms_active_request_idx (3.42s)
+    --- PASS: TestLiveRoomMigrationRejectsIndexNameCollisionOnFreshDatabase/investigation_live_rooms_peer_idx (3.37s)
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/missing_history
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/extra_required_column
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/wrong_nullability
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/missing_finding_default
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/unexpected_identity_collation
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/unexpected_row_policy
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/disabled_finding_immutability
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/wrong_active_index
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/unexpected_current_index
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/historical_expiry_violation
+=== RUN   TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/historical_invite_pair_violation
+--- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically (73.41s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/missing_history (5.97s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/extra_required_column (6.35s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/wrong_nullability (6.85s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/missing_finding_default (6.27s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/unexpected_identity_collation (7.16s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/unexpected_row_policy (6.88s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/disabled_finding_immutability (5.92s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/wrong_active_index (7.47s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/unexpected_current_index (7.22s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/historical_expiry_violation (6.64s)
+    --- PASS: TestLiveRoomMigrationRejectsIncompatibleLegacyAtomically/historical_invite_pair_violation (6.67s)
+=== RUN   TestLamportStorageSendAndReceiveRules
+--- PASS: TestLamportStorageSendAndReceiveRules (2.96s)
+=== RUN   TestLamportConcurrencyRestartRollbackAndOverflow
+--- PASS: TestLamportConcurrencyRestartRollbackAndOverflow (3.20s)
+=== RUN   TestLamportEnvelopeRetryAndLegacyReceipt
+--- PASS: TestLamportEnvelopeRetryAndLegacyReceipt (3.25s)
+=== RUN   TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts
+    migration_compatibility_test.go:32: migration versions=43, want 39
+--- FAIL: TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts (3.33s)
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite
+    migration_compatibility_test.go:264: expanded 5001 historical journals and 10002 postings in 2.7224331s
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_api
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_worker
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_reconciliation
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_provisioning
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_support_readonly
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_break_glass
+=== RUN   TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/owner-positive-control
+--- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite (10.25s)
+    --- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_api (0.12s)
+    --- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_worker (0.09s)
+    --- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_reconciliation (0.09s)
+    --- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_provisioning (0.09s)
+    --- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_support_readonly (0.10s)
+    --- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/ledgersync_break_glass (0.08s)
+    --- PASS: TestMigrationThirteenUpgradesPhaseSevenDataWithoutFinancialRewrite/supported-upgrade/owner-positive-control (0.02s)
+=== RUN   TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth
+--- PASS: TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth (3.02s)
+=== RUN   TestEventEvidenceRedactsHostileCodesAndNeverReturnsPayloadOrEndpoint
+--- PASS: TestEventEvidenceRedactsHostileCodesAndNeverReturnsPayloadOrEndpoint (3.57s)
+=== RUN   TestWebhookEndpointEvidenceIsTenantScopedBoundedAndLinkedToEvents
+--- PASS: TestWebhookEndpointEvidenceIsTenantScopedBoundedAndLinkedToEvents (3.33s)
+=== RUN   TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived
+    operations_test.go:165: unexpected database-derived facts: operations.DatabaseFacts{SchemaVersion:"000043_reconciliation_scheduler.up.sql", PendingOutboxCount:3, DeadOutboxCount:0, LatestPublishedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), OldestPendingAt:time.Date(2026, time.October, 11, 20, 15, 24, 530555000, time.UTC), ReconciliationID:"", ReconciliationStatus:"", ReconciledAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)}
+--- FAIL: TestDiagnosticFactsAreTenantScopedAndWorkerProgressIsDatabaseDerived (3.95s)
+=== RUN   TestHealthyPostgreSQLCriticalPathsStayWithinLocalP95Targets
+    performance_truth_test.go:28: healthy PostgreSQL transfer p95=20.4494ms target=<500ms
+    performance_truth_test.go:59: healthy authoritative PostgreSQL balance p95=1.5597ms target=<200ms
+--- PASS: TestHealthyPostgreSQLCriticalPathsStayWithinLocalP95Targets (3.09s)
+=== RUN   TestRateLimitIsSharedByTenantPrincipalAndRoute
+--- PASS: TestRateLimitIsSharedByTenantPrincipalAndRoute (2.72s)
+=== RUN   TestRateLimitRejectsSubsecondWindows
+--- PASS: TestRateLimitRejectsSubsecondWindows (2.78s)
+=== RUN   TestDestinationRequiresExplicitActorRelationshipAndDenialIsAudited
+--- PASS: TestDestinationRequiresExplicitActorRelationshipAndDenialIsAudited (3.17s)
+=== RUN   TestConcurrentTransfersCannotBypassRollingActorLimit
+--- PASS: TestConcurrentTransfersCannotBypassRollingActorLimit (2.85s)
+=== RUN   TestHotTenantSequenceAvoidsExhaustedSerializationConflicts
+--- PASS: TestHotTenantSequenceAvoidsExhaustedSerializationConflicts (3.56s)
+=== RUN   TestVelocityStatePrunesExpiredMovementAndDoesNotDoubleCountReplay
+--- PASS: TestVelocityStatePrunesExpiredMovementAndDoesNotDoubleCountReplay (3.15s)
+=== RUN   TestFinalFinancialAndEvidenceRowsRejectMutation
+--- PASS: TestFinalFinancialAndEvidenceRowsRejectMutation (2.84s)
+=== RUN   TestReconciliationRecordsOutboxInItsLedgerSnapshot
+--- PASS: TestReconciliationRecordsOutboxInItsLedgerSnapshot (3.16s)
+=== RUN   TestPostedTransferProjectionReconcilesWithImmutableLedger
+--- PASS: TestPostedTransferProjectionReconcilesWithImmutableLedger (2.96s)
+=== RUN   TestOperatorReconciliationMatchedMismatchAndIdempotentReplay
+--- PASS: TestOperatorReconciliationMatchedMismatchAndIdempotentReplay (2.94s)
+=== RUN   TestOperatorReconciliationDifferentKeyAlreadyRunningIsStable
+--- PASS: TestOperatorReconciliationDifferentKeyAlreadyRunningIsStable (2.71s)
+=== RUN   TestOperatorReconciliationAuditFailureRollsBackRunAndIdempotency
+--- PASS: TestOperatorReconciliationAuditFailureRollsBackRunAndIdempotency (2.76s)
+=== RUN   TestEnsuringExistingRedisConsumerGroupDoesNotEmitBusyGroupErrors
+--- PASS: TestEnsuringExistingRedisConsumerGroupDoesNotEmitBusyGroupErrors (0.01s)
+=== RUN   TestSchedulerLeaseTakeoverRejectsStaleJobs
+--- PASS: TestSchedulerLeaseTakeoverRejectsStaleJobs (3.89s)
+=== RUN   TestSchedulerIdentityCannotReadOrWriteOtherTenants
+--- PASS: TestSchedulerIdentityCannotReadOrWriteOtherTenants (2.66s)
+=== RUN   TestAcceptedTransferCommitsCompleteFinancialEvidenceTogether
+--- PASS: TestAcceptedTransferCommitsCompleteFinancialEvidenceTogether (2.88s)
+=== RUN   TestTransferRollsBackEverySideEffectWhenPostingFailsMidTransaction
+--- PASS: TestTransferRollsBackEverySideEffectWhenPostingFailsMidTransaction (2.90s)
+=== RUN   TestTransferAuthorizationFailsClosedBeforeObjectDisclosure
+=== RUN   TestTransferAuthorizationFailsClosedBeforeObjectDisclosure/other_tenant
+=== RUN   TestTransferAuthorizationFailsClosedBeforeObjectDisclosure/other_actor
+=== RUN   TestTransferAuthorizationFailsClosedBeforeObjectDisclosure/other_source
+--- PASS: TestTransferAuthorizationFailsClosedBeforeObjectDisclosure (8.36s)
+    --- PASS: TestTransferAuthorizationFailsClosedBeforeObjectDisclosure/other_tenant (2.77s)
+    --- PASS: TestTransferAuthorizationFailsClosedBeforeObjectDisclosure/other_actor (2.79s)
+    --- PASS: TestTransferAuthorizationFailsClosedBeforeObjectDisclosure/other_source (2.80s)
+=== RUN   TestControlledCorrectionFunctionUsesFixedDefinerBoundary
+--- PASS: TestControlledCorrectionFunctionUsesFixedDefinerBoundary (2.59s)
+=== RUN   TestControlledCorrectionFunctionExecutesAsAPIAndRejectsSpoofing
+--- PASS: TestControlledCorrectionFunctionExecutesAsAPIAndRejectsSpoofing (3.06s)
+=== RUN   TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe
+--- PASS: TestTransferCorrectionIsExactAdditiveApprovedAndReplaySafe (2.81s)
+=== RUN   TestProductionCorrectionRequiresRecentStepUpAndIndependentApproval
+--- PASS: TestProductionCorrectionRequiresRecentStepUpAndIndependentApproval (2.70s)
+=== RUN   TestTransferRecoveryRejectedOutcomeIsFinal
+--- PASS: TestTransferRecoveryRejectedOutcomeIsFinal (2.66s)
+=== RUN   TestTransferRecoveryDurableScopeAndIdentity
+--- PASS: TestTransferRecoveryDurableScopeAndIdentity (2.75s)
+=== RUN   TestTransferRecoveryBoundedPagination
+--- PASS: TestTransferRecoveryBoundedPagination (3.23s)
+=== RUN   TestExpiredOutboxOwnerCannotAcknowledge
+--- PASS: TestExpiredOutboxOwnerCannotAcknowledge (2.96s)
+=== RUN   TestOutboxGenerationRejectsPreviousClaimFromSameOwner
+--- PASS: TestOutboxGenerationRejectsPreviousClaimFromSameOwner (2.73s)
+=== RUN   TestOutboxRenewalKeepsLongTaskAndParallelClaimsSeparate
+--- PASS: TestOutboxRenewalKeepsLongTaskAndParallelClaimsSeparate (3.70s)
+=== RUN   TestOutboxCrashHelper
+    worker_crash_test.go:38: process crash helper
+--- SKIP: TestOutboxCrashHelper (0.00s)
+=== RUN   TestOutboxProcessCrashRecovery
+=== RUN   TestOutboxProcessCrashRecovery/before_publish
+    worker_crash_test.go:158: STUDY_WORKER_RECOVERY stage=before_publish recovery_ms=633 deliveries=1 reconciliation=matched
+=== RUN   TestOutboxProcessCrashRecovery/after_publish
+    worker_crash_test.go:158: STUDY_WORKER_RECOVERY stage=after_publish recovery_ms=640 deliveries=2 reconciliation=matched
+--- PASS: TestOutboxProcessCrashRecovery (7.53s)
+    --- PASS: TestOutboxProcessCrashRecovery/before_publish (3.79s)
+    --- PASS: TestOutboxProcessCrashRecovery/after_publish (3.74s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	465.771s
+=== RUN   TestLifecyclePatchContractRequiresExclusiveBoundedReason
+--- PASS: TestLifecyclePatchContractRequiresExclusiveBoundedReason (0.00s)
+=== RUN   TestAccountCreateContractPreservesLostResponseRetryAndChangedIntentConflict
+--- PASS: TestAccountCreateContractPreservesLostResponseRetryAndChangedIntentConflict (0.00s)
+=== RUN   TestDatabaseRoleContractKeepsSupportReadOnlyAndBreakGlassGrantless
+--- PASS: TestDatabaseRoleContractKeepsSupportReadOnlyAndBreakGlassGrantless (0.00s)
+=== RUN   TestLocalComposeUsesSeparateLeastPrivilegeWorkloadLogins
+--- PASS: TestLocalComposeUsesSeparateLeastPrivilegeWorkloadLogins (0.00s)
+=== RUN   TestDeveloperMetadataValidatesAgainstOpenAPIAndContainsNoSecrets
+--- PASS: TestDeveloperMetadataValidatesAgainstOpenAPIAndContainsNoSecrets (0.01s)
+=== RUN   TestDeveloperEndpointCatalogueAndExamplesTrackOpenAPI
+    developer_examples_contract_test.go:111: developer metadata/OpenAPI operations drift: left-only=[GET /developer/distributed] right-only=[]
+--- FAIL: TestDeveloperEndpointCatalogueAndExamplesTrackOpenAPI (0.01s)
+=== RUN   TestDeveloperZeroAccountFactsMatchCanonicalResponseExample
+--- PASS: TestDeveloperZeroAccountFactsMatchCanonicalResponseExample (0.01s)
+=== RUN   TestNamedOpenAPIExamplesValidateAgainstTheirSchemas
+--- PASS: TestNamedOpenAPIExamplesValidateAgainstTheirSchemas (0.01s)
+=== RUN   TestDeveloperContractSurfaceHasNoRunnerOrRawCredentialEndpoint
+    developer_examples_contract_test.go:225: developer contract handler contains request-runner/credential primitive "request.URL.Query"
+--- FAIL: TestDeveloperContractSurfaceHasNoRunnerOrRawCredentialEndpoint (0.01s)
+=== RUN   TestPartnerRecipesConvergeWithCanonicalExamplesAndLifecycle
+--- PASS: TestPartnerRecipesConvergeWithCanonicalExamplesAndLifecycle (0.01s)
+=== RUN   TestSupportedPilotArtifactsUseApprovedINRBoundary
+--- PASS: TestSupportedPilotArtifactsUseApprovedINRBoundary (0.00s)
+=== RUN   TestBaselineFinancialMigrationsRemainImmutable
+--- PASS: TestBaselineFinancialMigrationsRemainImmutable (0.00s)
+=== RUN   TestFinancialSourcePathsDoNotUseFloatingPointMoney
+--- PASS: TestFinancialSourcePathsDoNotUseFloatingPointMoney (0.01s)
+=== RUN   TestLocalWorkspaceBootstrapCreatesPolicyWithoutFinancialEvidence
+--- PASS: TestLocalWorkspaceBootstrapCreatesPolicyWithoutFinancialEvidence (0.00s)
+=== RUN   TestNoDirectBalanceMutationEndpointOrOperatorControlExists
+--- PASS: TestNoDirectBalanceMutationEndpointOrOperatorControlExists (0.08s)
+=== RUN   TestOpenAPIContainsEveryRegisteredMVPRouteAndLosslessBoundaries
+--- PASS: TestOpenAPIContainsEveryRegisteredMVPRouteAndLosslessBoundaries (0.01s)
+=== RUN   TestOpenAPIIsStructurallyValidAndEveryReferenceResolves
+    openapi_validation_test.go:41: OpenAPI download is unbounded: 168069 bytes
+--- FAIL: TestOpenAPIIsStructurallyValidAndEveryReferenceResolves (0.00s)
+=== RUN   TestOpenAPIRoutesExactlyMatchRegisteredPrivateAPI
+--- PASS: TestOpenAPIRoutesExactlyMatchRegisteredPrivateAPI (0.01s)
+=== RUN   TestLiveInvestigationSignallingRemainsInternal
+--- PASS: TestLiveInvestigationSignallingRemainsInternal (0.00s)
+=== RUN   TestTransferHistoryFiltersAreServerSideBoundedAndCursorBound
+--- PASS: TestTransferHistoryFiltersAreServerSideBoundedAndCursorBound (0.01s)
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Account
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/AccountCommandResult
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Balance
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ReconciliationRun
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransferResult
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransferBalance
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransactionEntry
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransferSummary
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Posting
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ReconciliationMismatch
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ReconciliationRun#01
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/SearchResult
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationSearchPage
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Relationship
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RelationshipPage
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/SavedInvestigationView
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/SavedInvestigationViewPage
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceSummary
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspacePage
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceQueryContext
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceReference
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceHistoryItem
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceHistoricalContext
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceCurrentEvidence
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceReceipt
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/DiagnosticSnapshot
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/EventEvidence
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/DeliveryEvidence
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/EventTimelineItem
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryEvidenceIndex
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryBackupEvidence
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryRestoreEvidence
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryRetentionEvidence
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/OrientationSummary
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/OrientationStep
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ExplainabilityTimeline
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ExplainabilityStage
+=== RUN   TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ExplainabilityEvidence
+--- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs (0.03s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Account (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/AccountCommandResult (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Balance (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ReconciliationRun (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransferResult (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransferBalance (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransactionEntry (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/TransferSummary (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Posting (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ReconciliationMismatch (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ReconciliationRun#01 (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/SearchResult (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationSearchPage (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/Relationship (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RelationshipPage (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/SavedInvestigationView (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/SavedInvestigationViewPage (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceSummary (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspacePage (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceQueryContext (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceReference (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceHistoryItem (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceHistoricalContext (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceCurrentEvidence (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/InvestigationWorkspaceReceipt (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/DiagnosticSnapshot (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/EventEvidence (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/DeliveryEvidence (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/EventTimelineItem (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryEvidenceIndex (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryBackupEvidence (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryRestoreEvidence (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/RecoveryRetentionEvidence (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/OrientationSummary (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/OrientationStep (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ExplainabilityTimeline (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ExplainabilityStage (0.00s)
+    --- PASS: TestOpenAPIResponseSchemasMatchRuntimeJSONDTOs/ExplainabilityEvidence (0.00s)
+=== RUN   TestPhaseFiveDiagnosticsRemainBoundedWhenProbesIgnoreCancellation
+--- PASS: TestPhaseFiveDiagnosticsRemainBoundedWhenProbesIgnoreCancellation (0.75s)
+=== RUN   TestPhaseFiveDiagnosticsPreserveCompletedProbeEvidenceAtDeadline
+--- PASS: TestPhaseFiveDiagnosticsPreserveCompletedProbeEvidenceAtDeadline (0.75s)
+=== RUN   TestPhaseFiveReadSurfaceExcludesRawPayloadAndWriteRoutes
+--- PASS: TestPhaseFiveReadSurfaceExcludesRawPayloadAndWriteRoutes (0.00s)
+=== RUN   TestDefaultComposeDelegatesToSupportedTopology
+--- PASS: TestDefaultComposeDelegatesToSupportedTopology (0.00s)
+=== RUN   TestRetiredApplicationSliceDoesNotExist
+--- PASS: TestRetiredApplicationSliceDoesNotExist (0.00s)
+=== RUN   TestProductionDeploymentFilesDoNotReferenceLegacyApplications
+--- PASS: TestProductionDeploymentFilesDoNotReferenceLegacyApplications (0.00s)
+=== RUN   TestSupportedComposeHasNoLegacyDiagnosticProfile
+--- PASS: TestSupportedComposeHasNoLegacyDiagnosticProfile (0.00s)
+=== RUN   TestQualificationUsesOnlySupportedGoPackageRoots
+--- PASS: TestQualificationUsesOnlySupportedGoPackageRoots (0.00s)
+=== RUN   TestRealStackQualificationSelectsDemoFixturesWithoutChangingLocalDefault
+--- PASS: TestRealStackQualificationSelectsDemoFixturesWithoutChangingLocalDefault (0.00s)
+=== RUN   TestRecoveryComposeMountIsOneFixedReadOnlySanitizedIndex
+--- PASS: TestRecoveryComposeMountIsOneFixedReadOnlySanitizedIndex (0.00s)
+=== RUN   TestPhase7OpenAPIDeclaresBoundedReadOnlyEvidenceSurface
+--- PASS: TestPhase7OpenAPIDeclaresBoundedReadOnlyEvidenceSurface (0.00s)
+=== RUN   TestEvidenceContainerImagesAreDigestPinned
+--- PASS: TestEvidenceContainerImagesAreDigestPinned (0.00s)
+=== RUN   TestQualityRestoreRetainsTheExplicitBackupRoot
+--- PASS: TestQualityRestoreRetainsTheExplicitBackupRoot (0.00s)
+=== RUN   TestRestoreInvariantRejectsNegativeCustomerBalancesOnly
+--- PASS: TestRestoreInvariantRejectsNegativeCustomerBalancesOnly (0.00s)
+=== RUN   TestOpenAPIValidatorIsLockedAndInstalledOffline
+--- PASS: TestOpenAPIValidatorIsLockedAndInstalledOffline (0.00s)
+=== RUN   TestSecretHistoryExceptionsAreExactReviewedFingerprints
+--- PASS: TestSecretHistoryExceptionsAreExactReviewedFingerprints (0.00s)
+=== RUN   TestCreateTransferContractReturnsExactPostedOutcome
+--- PASS: TestCreateTransferContractReturnsExactPostedOutcome (0.00s)
+=== RUN   TestCreateTransferContractRejectsMalformedInputWithoutCallingService
+--- PASS: TestCreateTransferContractRejectsMalformedInputWithoutCallingService (0.00s)
+=== RUN   TestCreateTransferContractRejectsOversizedBodyWithoutCallingService
+--- PASS: TestCreateTransferContractRejectsOversizedBodyWithoutCallingService (0.00s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/contract	2.185s
+=== RUN   TestRedisLossUsesPrimaryAndRebuildsTheBalanceCache
+--- PASS: TestRedisLossUsesPrimaryAndRebuildsTheBalanceCache (0.65s)
+=== RUN   TestForgedHighVersionRedisBalanceCannotOverridePostgreSQLTruth
+--- PASS: TestForgedHighVersionRedisBalanceCannotOverridePostgreSQLTruth (0.50s)
+=== RUN   TestExpiredOutboxLeaseIsRecoveredAfterWorkerLoss
+    dependency_recovery_test.go:37: recovered=0, want 3 expired events
+--- FAIL: TestExpiredOutboxLeaseIsRecoveredAfterWorkerLoss (0.48s)
+=== RUN   TestRedisDependencyLossReschedulesWithoutChangingFinancialRecords
+--- PASS: TestRedisDependencyLossReschedulesWithoutChangingFinancialRecords (0.64s)
+=== RUN   TestReconciliationRecordsAnAlertForProjectionMismatch
+--- PASS: TestReconciliationRecordsAnAlertForProjectionMismatch (0.64s)
+=== RUN   TestRequirementBearingReadUsesPrimaryWhenRedisProjectionIsDelayed
+--- PASS: TestRequirementBearingReadUsesPrimaryWhenRedisProjectionIsDelayed (0.66s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/fault	4.047s
+FAIL

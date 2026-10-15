@@ -1,0 +1,29 @@
+{
+  "captured_at_utc": "2026-10-11T20:38:06.9292080Z",
+  "project": "ledgersync-acceptance-20261011181234-8b695d3d",
+  "first_attempt": "removed main study services; profiled services remained",
+  "remaining_before_all_profiles": [
+    "ledgersync-acceptance-20261011181234-8b695d3d-web-peer-1",
+    "ledgersync-acceptance-20261011181234-8b695d3d-test-postgres-1",
+    "ledgersync-acceptance-20261011181234-8b695d3d-test-redis-1"
+  ],
+  "after_container_count": 0,
+  "after_volume_count": 0,
+  "after_network_count": 0,
+  "benchmark_project": "ledgersync-acceptance-20261011195302-1b0ae0eb",
+  "benchmark_resources": 0,
+  "removed_image_tags": [
+    "ledgersync-acceptance-20261011181234-8b695d3d-web:latest",
+    "ledgersync-acceptance-20261011181234-8b695d3d-api:latest",
+    "ledgersync-acceptance-20261011181234-8b695d3d-migrate:latest",
+    "ledgersync-acceptance-20261011181234-8b695d3d-worker:latest",
+    "ledgersync-acceptance-20261011195302-1b0ae0eb-api:latest",
+    "ledgersync-acceptance-20261011195302-1b0ae0eb-web:latest",
+    "ledgersync-acceptance-20261011195302-1b0ae0eb-migrate:latest",
+    "ledgersync-acceptance-20261011195302-1b0ae0eb-worker:latest",
+    "ledgersync-acceptance-20261011181234-8b695d3d-proxy:latest",
+    "ledgersync-acceptance-20261011195302-1b0ae0eb-proxy:latest"
+  ],
+  "protected_state_files": "retained in ignored local state",
+  "normal_project": "not targeted"
+}

@@ -33,7 +33,7 @@ func NewDeveloperCredentialRepository(database *sql.DB, clock func() time.Time) 
 
 func (r *DeveloperCredentialRepository) CreateCredential(ctx context.Context, command developerplatform.CreateCredentialCommand, fingerprint [sha256.Size]byte) (submission developerplatform.CredentialSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-credential-create|"+command.TenantID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "developer-credential-create|"+command.TenantID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func (r *DeveloperCredentialRepository) CreateCredential(ctx context.Context, co
 
 func (r *DeveloperCredentialRepository) RotateCredential(ctx context.Context, command developerplatform.RotateCredentialCommand, fingerprint [sha256.Size]byte) (submission developerplatform.CredentialSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-credential-rotate|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "developer-credential-rotate|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func (r *DeveloperCredentialRepository) RotateCredential(ctx context.Context, co
 
 func (r *DeveloperCredentialRepository) RevokeCredential(ctx context.Context, command developerplatform.RevokeCredentialCommand, fingerprint [sha256.Size]byte) (submission developerplatform.CredentialSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-credential-revoke|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "developer-credential-revoke|"+command.TenantID+"|"+command.CredentialID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -137,18 +137,28 @@ func (r *DeveloperCredentialRepository) RevokeCredential(ctx context.Context, co
 	return submission, err
 }
 
-func (r *DeveloperCredentialRepository) GetCredential(ctx context.Context, tenantID, credentialID string) (developerplatform.Credential, error) {
-	row := r.database.QueryRowContext(ctx, credentialSelect+` WHERE tenant_id=$1 AND id=$2`, tenantID, credentialID)
+func (r *DeveloperCredentialRepository) GetCredential(ctx context.Context, tenantID, actorID, credentialID string) (developerplatform.Credential, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return developerplatform.Credential{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
+	row := tx.QueryRowContext(ctx, credentialSelect+` WHERE tenant_id=$1 AND id=$2`, tenantID, credentialID)
 	return scanDeveloperCredential(row, r.clock().UTC())
 }
 
-func (r *DeveloperCredentialRepository) ListCredentials(ctx context.Context, tenantID string, query developerplatform.CredentialQuery) (developerplatform.CredentialPage, error) {
+func (r *DeveloperCredentialRepository) ListCredentials(ctx context.Context, tenantID, actorID string, query developerplatform.CredentialQuery) (developerplatform.CredentialPage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return developerplatform.CredentialPage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	cursorTime, cursorID, err := decodeDeveloperCredentialCursor(query.Cursor)
 	if err != nil {
 		return developerplatform.CredentialPage{}, developerplatform.ErrInvalidCommand
 	}
 	now := r.clock().UTC()
-	rows, err := r.database.QueryContext(ctx, credentialSelect+` WHERE tenant_id=$1
+	rows, err := tx.QueryContext(ctx, credentialSelect+` WHERE tenant_id=$1
 AND ($2='' OR $2='active' AND status='active' AND expires_at>$3 OR $2='expired' AND status='active' AND expires_at<=$3 OR $2='revoked' AND status='revoked')
 AND ($4::timestamptz IS NULL OR (updated_at,id)<($4,$5::uuid)) ORDER BY updated_at DESC,id DESC LIMIT $6`, tenantID, query.Status, now, nullableTime(cursorTime), nullableString(cursorID), query.Limit+1)
 	if err != nil {
@@ -178,9 +188,12 @@ AND ($4::timestamptz IS NULL OR (updated_at,id)<($4,$5::uuid)) ORDER BY updated_
 // RecordUsage advances last-used evidence at most once per minute per
 // credential. Unknown external references are intentionally ignored so identity
 // provider rollout can precede metadata registration without leaking existence.
-func (r *DeveloperCredentialRepository) RecordUsage(ctx context.Context, tenantID, externalReference string, at time.Time) error {
+func (r *DeveloperCredentialRepository) RecordUsage(ctx context.Context, tenantID, actorID, externalReference string, at time.Time) error {
 	at = at.UTC()
-	_, err := r.database.ExecContext(ctx, `UPDATE developer_credentials SET last_used_at=$3 WHERE tenant_id=$1 AND external_reference=$2 AND status='active' AND expires_at>$3 AND (last_used_at IS NULL OR last_used_at<$3-interval '1 minute')`, tenantID, externalReference, at)
+	err := WithTenantTransaction(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID}, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `UPDATE developer_credentials SET last_used_at=$3 WHERE tenant_id=$1 AND external_reference=$2 AND status='active' AND expires_at>$3 AND (last_used_at IS NULL OR last_used_at<$3-interval '1 minute')`, tenantID, externalReference, at)
+		return err
+	})
 	return err
 }
 

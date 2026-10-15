@@ -41,12 +41,14 @@ func (r *RateLimitRepository) Consume(ctx context.Context, tenantID, principalID
 	started := time.Unix((now.Unix()/windowSeconds)*windowSeconds, 0).UTC()
 	principalHash := sha256.Sum256([]byte(principalID))
 	var count int
-	err := r.database.QueryRowContext(ctx, `
+	err := WithTenantTransaction(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: principalID}, nil, func(tx *sql.Tx) error {
+		return tx.QueryRowContext(ctx, `
 INSERT INTO api_rate_limit_windows (tenant_id,principal_hash,route_key,window_started_at,request_count)
 VALUES ($1,$2,$3,$4,1)
 ON CONFLICT (tenant_id,principal_hash,route_key,window_started_at)
 DO UPDATE SET request_count=api_rate_limit_windows.request_count+1
 RETURNING request_count`, tenantID, principalHash[:], route, started).Scan(&count)
+	})
 	if err != nil {
 		return RateLimitDecision{}, fmt.Errorf("consume rate limit: %w", err)
 	}

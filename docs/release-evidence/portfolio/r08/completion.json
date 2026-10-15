@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "phase": "R08",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T11:48:48.004Z",
+  "summary": "An independent standard-library financial model now predicts exact balances, versions, durable outcomes and journals before commands run. Five seeded sequences cover transfers in both directions, rejected/replayed/conflicting intents, dual-reviewed funding, approved exact corrections, lost caller results, pre-commit rollback and four-way duplicate concurrency. Every step checks database balances, versions, balanced journals and immutable old records through a restricted API workload login. The guarded R07 host harness now has a fixed model profile and bounded counterexample replay. The minimizer and reproducible seed/operation records are retained.",
+  "verification": {
+    "go_packages_passed": 44,
+    "vet": "passed",
+    "integration_passed_top_level": 137,
+    "integration_passed_subtests": 88,
+    "standalone_crash_helper": "intentional skip; parent passed",
+    "final_fresh_model_seeds": [
+      17,
+      29,
+      101,
+      404,
+      20261015
+    ],
+    "generated_steps_passed": 320,
+    "synthetic_balanced_journals": 214,
+    "concurrent_identical_commands_per_selected_step": 4,
+    "old_financial_record_immutability": "checked after every generated step",
+    "model_standard_library_boundary": "passed",
+    "bounded_minimizer": "passed; historical harness input reduced to one transfer",
+    "historical_one_step_replay": "passed in new guarded project",
+    "runtime_artifacts_per_bundle": 13,
+    "runtime_cleanup": "verified",
+    "fuzz_seconds": 10,
+    "fuzz_workers": 2,
+    "fuzz": "passed",
+    "host_safety_tests_passed": 34,
+    "quality_workflow": "parsed and wired; not run remotely"
+  },
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1694,
+    "original_manifest_sha256": "344b8185f30294d997f0067869b8b4fb538665069be3201bc9f434b3edd3cc4b",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": ".github/workflows/quality.yml",
+        "before_sha256": "5aef590d3981d1f5f3f738f31b93a8c32339acfcfc47fc2b6abe5faf7fc94102",
+        "sha256": "58fb047e130c5faddf95e0aecdcc3df27dd3e73fee96b1d4231052f561efa6a7"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "6fd65df0d5d4a243ff7499044a22822831f67bdb30d56fc38840bc5d7893bc2f",
+        "sha256": "9f422dbc020d488236a7d91b82d027dc8084d08bc490a789ae17d549917c5f01"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "5d7ceec02aef20e9091bc96c5a54e1d61a8725453501526b9b05290d49f6f99f",
+        "sha256": "91bed970b3a960f8c2c1289a1a70c949b38be6b74a1f60e26c1c9cb93377e011"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "ecb245986d639ff13b707844b243ed45b698311b5d681e13e786d53b60ffd8b3",
+        "sha256": "5c0722a2b48e1bf34e4bd3142cd388072144da0098bbfd4221d72a98610e4b58"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "e35c450e18dddb0e16a400607f7b85ad9003803289261e1efee9bdbac014756e",
+        "sha256": "a108b577b7df26e5bfc0981fc27460bd7ebbf76cf9b77d05c54cee29dc4879fd"
+      },
+      {
+        "path": "scripts/portfolio/run-demo.mjs",
+        "before_sha256": "3591d53fde96007297991a263fb75b28695bf4f6b3af850283fd95b1bb06162c",
+        "sha256": "788e1e94f3bb4f05d1d4f3d51bd12190ad77212cc7de10963dfb17f8fae7aa37"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/financial-model.md",
+        "sha256": "0b667b5c44c8054b66efd8b24412f27b08fcd3612b7cace67ff8e3433e7d6103"
+      },
+      {
+        "path": "scripts/portfolio/model-replay.mjs",
+        "sha256": "02bc7585b78f5fb73211c98836f3c6832ccddfb530ae57c29a1099566aa26c0c"
+      },
+      {
+        "path": "scripts/portfolio/model-replay.test.mjs",
+        "sha256": "c238035ab294229f24143244bc52550e6c26f5da98bdef9f468948bed284d3a3"
+      },
+      {
+        "path": "scripts/portfolio/run-model.mjs",
+        "sha256": "dbb12ae9bf3efab66a61fc5d8d9aa4eb76ab75c19dafe2cee86e70d9e7ed0050"
+      },
+      {
+        "path": "tests/architecture/financial_model_test.go",
+        "sha256": "ef1a5161ab07a70b4ff5c41a008858caf296a021b88c2dc8828ce697df42a0e5"
+      },
+      {
+        "path": "tests/integration/financial_model_operations_test.go",
+        "sha256": "d2f7ab6a5761e72a584f726bccb9b43fb9da079215316d3e288c54f33e703caa"
+      },
+      {
+        "path": "tests/integration/financial_model_suite_test.go",
+        "sha256": "8f4319ae474ad89482e154d564597da84e952aaf3ae340ab4e9704ada93649a4"
+      },
+      {
+        "path": "tests/integration/financial_model_test.go",
+        "sha256": "e654bdf0ec21045b5d1cd67757ce14b4b5279b1b7d8db55d9710d706e196eaef"
+      },
+      {
+        "path": "tests/model/ledger.go",
+        "sha256": "f8b5281e8d100785b7f88e57fb59c989268d2fe1ab6cc5a80a050a5b216f10a5"
+      },
+      {
+        "path": "tests/model/ledger_test.go",
+        "sha256": "52293e1ea30d46a50988c50f8837ccf9008edcd1ccbaecf2687cbf28230fc10a"
+      },
+      {
+        "path": "tests/model/sequence.go",
+        "sha256": "476ec07fcbf826ec9f31423f7875987ebf453cde9c956d496d869fde468fe41c"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r08-20261015/all-go.txt",
+      "sha256": "6070ba8e5f199e4714dfd2968f932a5a2598139e4de252336e44c4c5d201c75b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/vet.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/integration-full-final.txt",
+      "sha256": "fb8a438f43107d76ae94a3e0fa8105a45f02386874b8cbf1e0b2a07100d528a8",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/oracle-architecture-final.txt",
+      "sha256": "cec21566b907d6e3940b4ae6fb70f558e7f1f898cf2324c548a79ddb9f28f21a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/fuzz-qualified-final.txt",
+      "sha256": "14c13f2d12b7af56febde326371b268316bdda9407b66bd238129590977b4f58",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/runner-safety.txt",
+      "sha256": "10f17945666f99e47ede83c26a982471bf5d2a3482e39e52c107bbbdd6539b27",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/model-run-final.txt",
+      "sha256": "75f84eea6e78572bd74e3c70628b3dc90623b5794d73b4fbd48884d371664f7e",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/replay-run.txt",
+      "sha256": "845c4f3d3fd281afa2b0104790f79333c81803cc6354c35093f92f52f19f402f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/model-runtime-summary.json",
+      "sha256": "0f51cebc2cf60a4f983bb9cd689477f1c635eb331acac87c35e512c29a35e76c",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/qualified-model-reports.json",
+      "sha256": "38bb00f39b5330c2cfd4b12629b26036e3b589f889454e8bb09497e1b4083aaf",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/historical-replay-model-reports.json",
+      "sha256": "19342bfed6b58f0e39c03619dd5556002c6eeccd3584e224ead14a9551b1d47f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/historical-receipt-counterexamples.json",
+      "sha256": "04e5f6212a2bd8a7afba20c2b1af1dbb7566c55a6ffe2708664d31f2a6eb3061",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/oracle-receipt-assumption-failure.txt",
+      "sha256": "39fa2ef54d44d20c4e2ac2432f19a54c15fff2fd3041b2b8003bfbdc39fdfc66",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/compile-failure.txt",
+      "sha256": "80aa589c14241b7d085947004bd9954b6b2ea7c6092e72a7fb87ac6b37d02560",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/quality-workflow.json",
+      "sha256": "9525081eff13e5d5c9b6f147ad5d5cc86f0de5fc88e12d310100a224f297918d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/../demo-runs/demo-20261015113957-7164e9d1/run-manifest.json",
+      "sha256": "05e37698f7fe738a7e06b26b3271b4d400f482df2abb6f6ae69c87a264678803",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r08-20261015/../demo-runs/demo-20261015114245-9a6ced54/run-manifest.json",
+      "sha256": "e629587c6a8e5ed1a0a4bdb476b41304f9e3a79c1b33b418f26a977faee81a91",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "e8ad687ee0b55bada78c792f67cefbea5ce243502f5032e22c9617e01388b057"
+  },
+  "limits": [
+    "The model covers bounded valid USD intents, selected workflows and selected concurrency. It does not prove every schedule or policy.",
+    "Generated correction steps with no eligible funded original are checked no-ops.",
+    "The full integration run and final guarded model run are retained separately; each exact-source runtime bundle states its own candidate identity.",
+    "No product money-movement defect was found in these bounded runs. The initial receipt mismatch was a corrected harness assumption, with failure evidence retained.",
+    "Normal runtime images remain preserved prior images. No normal cutover or managed-production claim is made.",
+    "R09-R17 remain selected implementation work."
+  ]
+}

@@ -1,0 +1,21 @@
+=== RUN   TestLamportStorageSendAndReceiveRules
+    logical_clock_test.go:29: send=23 receive=24 next=25
+--- FAIL: TestLamportStorageSendAndReceiveRules (0.45s)
+=== RUN   TestLamportConcurrencyRestartRollbackAndOverflow
+    logical_clock_test.go:71: restart did not restore counter: 84 <nil>
+--- FAIL: TestLamportConcurrencyRestartRollbackAndOverflow (0.45s)
+=== RUN   TestLamportEnvelopeRetryAndLegacyReceipt
+--- PASS: TestLamportEnvelopeRetryAndLegacyReceipt (0.50s)
+=== RUN   TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth
+--- PASS: TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth (0.47s)
+=== RUN   TestEventEvidenceRedactsHostileCodesAndNeverReturnsPayloadOrEndpoint
+--- PASS: TestEventEvidenceRedactsHostileCodesAndNeverReturnsPayloadOrEndpoint (0.44s)
+=== RUN   TestOutboxProcessCrashRecovery
+=== RUN   TestOutboxProcessCrashRecovery/before_publish
+=== RUN   TestOutboxProcessCrashRecovery/after_publish
+--- PASS: TestOutboxProcessCrashRecovery (3.14s)
+    --- PASS: TestOutboxProcessCrashRecovery/before_publish (1.51s)
+    --- PASS: TestOutboxProcessCrashRecovery/after_publish (1.63s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	5.880s
+FAIL

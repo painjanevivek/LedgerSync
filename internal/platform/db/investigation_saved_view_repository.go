@@ -18,10 +18,15 @@ import (
 var canonicalSavedViewID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 func (r *InvestigationRepository) ListSavedViews(ctx context.Context, tenantID, actorID string, access investigation.SavedViewAccess) (investigation.SavedViewPage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.SavedViewPage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	if r == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" || !access.AnyReadableDomain() {
 		return investigation.SavedViewPage{}, investigation.ErrInvalidSavedView
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT id::text,name,filter_schema_version,domain,filters,version,created_at,updated_at FROM investigation_saved_views WHERE tenant_id=$1 AND owner_subject_id=$2 ORDER BY updated_at DESC,id DESC LIMIT $3`, tenantID, actorID, investigation.MaxSavedViewsPerOperator)
+	rows, err := tx.QueryContext(ctx, `SELECT id::text,name,filter_schema_version,domain,filters,version,created_at,updated_at FROM investigation_saved_views WHERE tenant_id=$1 AND owner_subject_id=$2 ORDER BY updated_at DESC,id DESC LIMIT $3`, tenantID, actorID, investigation.MaxSavedViewsPerOperator)
 	if err != nil {
 		return investigation.SavedViewPage{}, fmt.Errorf("list saved investigation views: %w", err)
 	}
@@ -68,7 +73,7 @@ func (r *InvestigationRepository) CreateSavedView(ctx context.Context, command i
 	}
 	when := savedViewTime(command.OccurredAt)
 	var created investigation.SavedView
-	err = WithSerializableSequence(ctx, r.database, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorID}, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var count int
 		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM investigation_saved_views WHERE tenant_id=$1 AND owner_subject_id=$2`, command.TenantID, command.ActorID).Scan(&count); err != nil {
 			return err
@@ -104,7 +109,7 @@ func (r *InvestigationRepository) RenameSavedView(ctx context.Context, command i
 	}
 	when := savedViewTime(command.OccurredAt)
 	var updated investigation.SavedView
-	err = WithSerializableSequence(ctx, r.database, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorID}, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var schemaVersion int
 		var rawFilters []byte
 		var version int64
@@ -141,7 +146,7 @@ func (r *InvestigationRepository) DeleteSavedView(ctx context.Context, command i
 		return err
 	}
 	when := savedViewTime(command.OccurredAt)
-	err = WithSerializableSequence(ctx, r.database, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorID}, "investigation-saved-views:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var domain string
 		var schemaVersion int
 		var rawFilters []byte
@@ -211,7 +216,7 @@ func insertSavedViewAudit(ctx context.Context, tx *sql.Tx, auditID, tenantID, ac
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'investigation_saved_view',$5,'succeeded',$6,$7,$8)`, auditID, tenantID, actorID, eventType, viewID, correlationID, metadata, occurredAt)
+	_, err = tx.ExecContext(ctx, `SELECT public.controlled_append_audit_v1($1,$2,$3,$4,'investigation_saved_view',$5,'succeeded',$6,$7,$8)`, auditID, tenantID, actorID, eventType, viewID, correlationID, metadata, occurredAt)
 	return err
 }
 

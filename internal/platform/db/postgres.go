@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
 // ErrLedgerSemanticViolation is the deliberately low-cardinality diagnostic
@@ -22,6 +24,7 @@ var ErrLedgerSemanticViolation = errors.New("ledger semantic invariant rejected"
 type PoolConfig struct {
 	DriverName      string
 	DSN             string
+	ApplicationName string
 	MaxOpenConns    int
 	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
@@ -34,12 +37,31 @@ func OpenPool(ctx context.Context, cfg PoolConfig) (*sql.DB, error) {
 	if strings.TrimSpace(cfg.DriverName) == "" || strings.TrimSpace(cfg.DSN) == "" {
 		return nil, errors.New("database driver and DSN are required")
 	}
-	database, err := sql.Open(cfg.DriverName, cfg.DSN)
+	var database *sql.DB
+	var err error
+	if cfg.DriverName == "pgx" && cfg.ApplicationName != "" {
+		connection, parseErr := pgx.ParseConfig(cfg.DSN)
+		if parseErr != nil {
+			return nil, errors.New("invalid PostgreSQL connection configuration")
+		}
+		connection.RuntimeParams["application_name"] = cfg.ApplicationName
+		database = stdlib.OpenDB(*connection)
+	} else {
+		database, err = sql.Open(cfg.DriverName, cfg.DSN)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
-	database.SetMaxOpenConns(max(cfg.MaxOpenConns, 4))
-	database.SetMaxIdleConns(max(cfg.MaxIdleConns, 2))
+	poolLimit := cfg.MaxOpenConns
+	if poolLimit <= 0 {
+		poolLimit = 4
+	}
+	database.SetMaxOpenConns(poolLimit)
+	idleLimit := cfg.MaxIdleConns
+	if idleLimit <= 0 {
+		idleLimit = 2
+	}
+	database.SetMaxIdleConns(min(idleLimit, poolLimit))
 	database.SetConnMaxLifetime(nonZero(cfg.ConnMaxLifetime, 30*time.Minute))
 	pingCtx, cancel := context.WithTimeout(ctx, nonZero(cfg.PingTimeout, 3*time.Second))
 	defer cancel()
@@ -103,6 +125,10 @@ func withSerializableRetry(ctx context.Context, database transactionBeginner, at
 // before BeginTx gives every queued request a fresh serializable snapshot and
 // prevents avoidable retry storms across multiple API instances.
 func WithSerializableSequence(ctx context.Context, database *sql.DB, sequenceKey string, attempts int, fn func(*sql.Tx) error) (err error) {
+	return withSerializableSequence(ctx, database, sequenceKey, attempts, fn, false)
+}
+
+func withSerializableSequence(ctx context.Context, database *sql.DB, sequenceKey string, attempts int, fn func(*sql.Tx) error, tenantScoped bool) (err error) {
 	if strings.TrimSpace(sequenceKey) == "" {
 		return errors.New("serializable sequence key is required")
 	}
@@ -110,7 +136,18 @@ func WithSerializableSequence(ctx context.Context, database *sql.DB, sequenceKey
 	if err != nil {
 		return fmt.Errorf("reserve serializable sequence connection: %w", err)
 	}
-	defer func() { _ = connection.Close() }()
+	defer func() {
+		if tenantScoped {
+			releaseTenantConnection(connection)
+		} else {
+			_ = connection.Close()
+		}
+	}()
+	if tenantScoped {
+		if err := resetTenantConnection(ctx, connection); err != nil {
+			return fmt.Errorf("clear prior sequence tenant scope: %w", err)
+		}
+	}
 	if _, err = connection.ExecContext(ctx, `SELECT pg_advisory_lock(hashtextextended($1,0))`, sequenceKey); err != nil {
 		return fmt.Errorf("acquire serializable sequence: %w", err)
 	}

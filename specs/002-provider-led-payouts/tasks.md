@@ -1,5 +1,7 @@
 # Tasks: Provider-led outbound payouts
 
+**Status:** Deferred as of 2026-09-27. These unchecked tasks are not current work; re-scope and re-number them after a separate approval.
+
 ## Phase 1: Foundations
 
 - [ ] T001 Add payout schema, immutable evidence protections, and role grants in `migrations/000027_payouts.up.sql`

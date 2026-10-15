@@ -31,8 +31,13 @@ type approvalCursor struct {
 }
 
 func (r *ApprovalRepository) List(ctx context.Context, tenantID, actorID string, query appapprovals.Query) (appapprovals.Page, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return appapprovals.Page{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var finance bool
-	if err := r.database.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenant_subject_roles WHERE tenant_id=$1 AND subject_id=$2 AND role='finance')`, tenantID, actorID).Scan(&finance); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM tenant_subject_roles WHERE tenant_id=$1 AND subject_id=$2 AND role='finance')`, tenantID, actorID).Scan(&finance); err != nil {
 		return appapprovals.Page{}, err
 	}
 	if !finance {
@@ -42,7 +47,7 @@ func (r *ApprovalRepository) List(ctx context.Context, tenantID, actorID string,
 	if err != nil {
 		return appapprovals.Page{}, appapprovals.ErrInvalidQuery
 	}
-	rows, err := r.database.QueryContext(ctx, approvalListSQL,
+	rows, err := tx.QueryContext(ctx, approvalListSQL,
 		tenantID,
 		actorID,
 		query.CanApproveFunding,

@@ -4,6 +4,8 @@ import {
   ArrowsLeftRight,
   ArrowsCounterClockwise,
   Bank,
+  CaretDoubleLeft,
+  CaretDoubleRight,
   ChartDonut,
   CheckCircle,
   Pulse,
@@ -26,6 +28,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -73,13 +76,33 @@ type NavigationItem = Readonly<{
 }>;
 
 type NavigationGroupDefinition = Readonly<{
-  id: "work" | "investigate" | "platform" | "environment";
+  id: "work" | "investigate" | "operations" | "developer";
   label: string;
   priority: "primary" | "secondary";
   items: ReadonlyArray<NavigationItem>;
 }>;
 
 const always = () => true;
+const SIDEBAR_STORAGE_KEY = "ledgersync.sidebar.collapsed";
+const SIDEBAR_CHANGE_EVENT = "ledgersync:sidebar-change";
+let sidebarPreferenceFallback = false;
+
+function readSidebarPreference() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+  } catch {
+    return sidebarPreferenceFallback;
+  }
+}
+
+function subscribeSidebarPreference(notify: () => void) {
+  window.addEventListener("storage", notify);
+  window.addEventListener(SIDEBAR_CHANGE_EVENT, notify);
+  return () => {
+    window.removeEventListener("storage", notify);
+    window.removeEventListener(SIDEBAR_CHANGE_EVENT, notify);
+  };
+}
 
 const navigation: ReadonlyArray<NavigationGroupDefinition> = [
   {
@@ -145,10 +168,24 @@ const navigation: ReadonlyArray<NavigationGroupDefinition> = [
       },
       {
         section: "reconciliation" as const,
-        label: "Reconciliation",
+        label: "Internal reconciliation",
         href: "/reconciliation",
         icon: ShieldCheck,
         visible: (capabilities) => capabilities.reconciliationRead,
+      },
+    ],
+  },
+  {
+    id: "operations",
+    label: "Operations",
+    priority: "secondary",
+    items: [
+      {
+        section: "local-status" as const,
+        label: "Local status",
+        href: "/local-status",
+        icon: Pulse,
+        visible: (capabilities) => capabilities.localDiagnosticsRead,
       },
       {
         section: "events" as const,
@@ -156,20 +193,6 @@ const navigation: ReadonlyArray<NavigationGroupDefinition> = [
         href: "/events",
         icon: Broadcast,
         visible: canOpenEventsAndWebhooks,
-      },
-    ],
-  },
-  {
-    id: "platform",
-    label: "Platform",
-    priority: "secondary",
-    items: [
-      {
-        section: "developer" as const,
-        label: "Developer",
-        href: "/developer",
-        icon: Code,
-        visible: (capabilities) => capabilities.developerRead,
       },
       {
         section: "recovery" as const,
@@ -181,16 +204,16 @@ const navigation: ReadonlyArray<NavigationGroupDefinition> = [
     ],
   },
   {
-    id: "environment",
-    label: "Environment",
+    id: "developer",
+    label: "Developer",
     priority: "secondary",
     items: [
       {
-        section: "local-status" as const,
-        label: "Local status",
-        href: "/local-status",
-        icon: Pulse,
-        visible: (capabilities) => capabilities.localDiagnosticsRead,
+        section: "developer" as const,
+        label: "Developer",
+        href: "/developer",
+        icon: Code,
+        visible: (capabilities) => capabilities.developerRead,
       },
     ],
   },
@@ -200,10 +223,12 @@ function NavigationLinks({
   items,
   section,
   closeNavigation,
+  collapsed,
 }: Readonly<{
   items: ReadonlyArray<NavigationItem>;
   section: ConsoleSection;
   closeNavigation: () => void;
+  collapsed: boolean;
 }>) {
   return items.map((item) => {
     const Icon = item.icon;
@@ -215,12 +240,14 @@ function NavigationLinks({
         onClick={closeNavigation}
         className={section === item.section ? "nav-item active" : "nav-item"}
         aria-current={section === item.section ? "page" : undefined}
+        aria-label={collapsed ? item.label : undefined}
+        title={collapsed ? item.label : undefined}
       >
         <Icon
           weight={section === item.section ? "fill" : "regular"}
           aria-hidden="true"
         />
-        <span>{item.label}</span>
+        <span className="nav-item-label">{item.label}</span>
       </Link>
     );
   });
@@ -231,14 +258,24 @@ function NavigationGroup({
   items,
   section,
   closeNavigation,
+  collapsed,
 }: Readonly<{
   definition: NavigationGroupDefinition;
   items: ReadonlyArray<NavigationItem>;
   section: ConsoleSection;
   closeNavigation: () => void;
+  collapsed: boolean;
 }>) {
   const active = items.some((item) => item.section === section);
-  const [open, setOpen] = useState(definition.priority === "primary" || active);
+  const [open, setOpen] = useState(false);
+
+  if (collapsed) {
+    return (
+      <div className="nav-group nav-group-compact" role="group" aria-label={definition.label}>
+        <NavigationLinks items={items} section={section} closeNavigation={closeNavigation} collapsed />
+      </div>
+    );
+  }
 
   if (definition.priority === "primary") {
     return (
@@ -248,6 +285,7 @@ function NavigationGroup({
           items={items}
           section={section}
           closeNavigation={closeNavigation}
+          collapsed={false}
         />
       </div>
     );
@@ -261,13 +299,13 @@ function NavigationGroup({
     >
       <summary>
         <span>{definition.label}</span>
-        <small>{items.length}</small>
       </summary>
       <div className="nav-group-links">
         <NavigationLinks
           items={items}
           section={section}
           closeNavigation={closeNavigation}
+          collapsed={false}
         />
       </div>
     </details>
@@ -291,12 +329,27 @@ export function ConsoleShell({
   );
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [compactNavigation, setCompactNavigation] = useState(false);
+  const sidebarCollapsed = useSyncExternalStore(
+    subscribeSidebarPreference,
+    readSidebarPreference,
+    () => false,
+  );
   const menuButton = useRef<HTMLButtonElement>(null);
   const drawer = useRef<HTMLElement>(null);
   const closeNavigation = useCallback(() => {
     setNavigationOpen(false);
     window.requestAnimationFrame(() => menuButton.current?.focus());
   }, []);
+  const toggleSidebar = () => {
+    const next = !sidebarCollapsed;
+    sidebarPreferenceFallback = next;
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
+    } catch {
+      // The toggle still works for this page when local storage is unavailable.
+    }
+    window.dispatchEvent(new Event(SIDEBAR_CHANGE_EVENT));
+  };
   useEffect(() => {
     const query = window.matchMedia(COMPACT_NAVIGATION_MEDIA_QUERY);
     const update = () => {
@@ -320,9 +373,9 @@ export function ConsoleShell({
       if (event.key !== "Tab") return;
       const focusable = Array.from(
         drawer.current?.querySelectorAll<HTMLElement>(
-          "a[href],button:not([disabled]),[tabindex]:not([tabindex='-1'])",
+          "a[href],button:not([disabled]),summary,[tabindex]:not([tabindex='-1'])",
         ) ?? [],
-      ).filter((element) => !element.hasAttribute("inert"));
+      ).filter((element) => !element.closest("[inert]") && element.checkVisibility({ visibilityProperty: true }));
       if (focusable.length === 0) {
         event.preventDefault();
         return;
@@ -344,7 +397,7 @@ export function ConsoleShell({
     };
   }, [closeNavigation, compactNavigation, navigationOpen]);
   return (
-    <div className="app-shell">
+    <div className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
@@ -379,7 +432,7 @@ export function ConsoleShell({
       <aside
         ref={drawer}
         id="workspace-navigation"
-        className={navigationOpen ? "side-nav open" : "side-nav"}
+        className={`side-nav${navigationOpen ? " open" : ""}${sidebarCollapsed && !compactNavigation ? " collapsed" : ""}`}
         aria-label="LedgerSync workspace"
         aria-hidden={compactNavigation && !navigationOpen ? true : undefined}
         inert={compactNavigation && !navigationOpen ? true : undefined}
@@ -394,24 +447,23 @@ export function ConsoleShell({
         >
           <X aria-hidden="true" />
         </button>
-        <Link className="brand" href="/" aria-label="LedgerSync overview">
-          Ledger<span>Sync</span>
-        </Link>
-
-        <p className="nav-kicker">Operator workspace</p>
-        <p className="context-label">Environment</p>
-        <div
-          className="workspace-card"
-          aria-label={`${tenantLabel}, ${tenantMeta}`}
-        >
-          <div className="workspace-mark" aria-hidden="true">
-            <Bank weight="fill" />
-          </div>
-          <span>
-            <strong>{tenantLabel}</strong>
-            <small>{tenantMeta}</small>
-          </span>
+        <div className="sidebar-heading">
+          <Link className="brand" href="/" aria-label="LedgerSync overview">
+            Ledger<span>Sync</span>
+          </Link>
+          <button
+            className="sidebar-toggle"
+            type="button"
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={sidebarCollapsed}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <CaretDoubleRight aria-hidden="true" /> : <CaretDoubleLeft aria-hidden="true" />}
+          </button>
         </div>
+
+        <p className="nav-kicker">Financial operations</p>
 
         <nav className="primary-nav" aria-label="Primary navigation">
           {navigation.map((group) => {
@@ -424,41 +476,12 @@ export function ConsoleShell({
                 items={items}
                 section={section}
                 closeNavigation={() => setNavigationOpen(false)}
+                collapsed={sidebarCollapsed && !compactNavigation}
               />
             );
           })}
         </nav>
 
-        <div className="nav-footer">
-          <div className="environment-row">
-            <CheckCircle weight="fill" aria-hidden="true" />
-            <span>{environmentLabel}</span>
-          </div>
-          <div className="operator-row">
-            <UserCircle weight="fill" aria-hidden="true" />
-            <span>
-              <strong>{operatorLabel}</strong>
-              <small>{operatorMeta}</small>
-            </span>
-            {session && (
-              <button
-                className="icon-button"
-                type="button"
-                onClick={() => void signOut()}
-                disabled={signOutPending || !online}
-                aria-label={signOutPending ? "Signing out" : "Sign out"}
-                aria-describedby={signOutError ? "sign-out-error" : undefined}
-              >
-                <SignOut aria-hidden="true" />
-              </button>
-            )}
-          </div>
-          {signOutError && (
-            <p id="sign-out-error" className="session-action-error" role="alert">
-              {signOutError}
-            </p>
-          )}
-        </div>
       </aside>
       <div className="workspace-column">
         <nav
@@ -466,15 +489,48 @@ export function ConsoleShell({
           aria-label="Workspace utilities"
           inert={navigationOpen ? true : undefined}
         >
-          <span>LedgerSync workspace</span>
-          <Link
-            href="/guide"
-            className={section === "guide" ? "topbar-link active" : "topbar-link"}
-            aria-current={section === "guide" ? "page" : undefined}
-          >
-            <BookOpenText aria-hidden="true" />
-            Guide
-          </Link>
+          <div className="workspace-topbar-context" aria-label={`Tenant ${tenantLabel}; environment ${environmentLabel}`}>
+            <strong>{tenantLabel}</strong>
+            <span className="tenant-meta">{tenantMeta}</span>
+            <span className="environment-chip">{environmentLabel}</span>
+          </div>
+          <div className="workspace-topbar-actions">
+            {canSearchInvestigations(capabilities) && (
+              <Link href="/search" className="topbar-link">
+                <MagnifyingGlass aria-hidden="true" />
+                Search records
+              </Link>
+            )}
+            <Link
+              href="/guide"
+              className={section === "guide" ? "topbar-link active" : "topbar-link"}
+              aria-current={section === "guide" ? "page" : undefined}
+            >
+              <BookOpenText aria-hidden="true" />
+              Guide
+            </Link>
+            <span className="topbar-utc-label">All times UTC</span>
+            <div className="topbar-operator">
+              <UserCircle weight="fill" aria-hidden="true" />
+              <span>
+                <strong>{operatorLabel}</strong>
+                <small>{operatorMeta}</small>
+              </span>
+            </div>
+            {session && (
+              <button
+                className="topbar-signout"
+                type="button"
+                onClick={() => void signOut()}
+                disabled={signOutPending || !online}
+                aria-label={signOutPending ? "Signing out" : "Sign out"}
+                aria-describedby={signOutError ? "topbar-sign-out-error" : undefined}
+              >
+                <SignOut aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          {signOutError && <p id="topbar-sign-out-error" className="session-action-error topbar-signout-error" role="alert">{signOutError}</p>}
         </nav>
         <main
           id="main-content"
@@ -494,12 +550,8 @@ export function ConsoleFooter({ pending = false }: { pending?: boolean } = {}) {
       className={`console-footer${pending ? " is-pending" : ""}`}
       aria-hidden={pending || undefined}
     >
-      <span>
-        PostgreSQL alone supplies customer-visible balances. Redis is
-        disposable.
-      </span>
-      <span>All times shown in UTC.</span>
-      <span>© 2026 LedgerSync, Inc.</span>
+      <span>LedgerSync · Internal ledger</span>
+      <Link href="/guide">Help and guide</Link>
     </footer>
   );
 }

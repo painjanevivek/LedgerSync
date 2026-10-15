@@ -30,12 +30,12 @@ func TestPostgreSQLExportsAreTenantScopedObjectAuthorizedAndExact(t *testing.T) 
 	}
 
 	var transfersCSV bytes.Buffer
-	result, err := service.StreamTransfers(context.Background(), testTenantID, investigation.TransferFilter{Status: "posted"}, 10, &transfersCSV)
+	result, err := service.StreamTransfers(context.Background(), testTenantID, testActorID, investigation.TransferFilter{Status: "posted"}, 10, &transfersCSV)
 	if err != nil || result.Rows != 1 || !strings.Contains(transfersCSV.String(), `"`+submission.Result.TransferID+`"`) || !strings.Contains(transfersCSV.String(), `"2500","USD"`) {
 		t.Fatalf("transfer export result=%+v error=%v csv=%s", result, err, transfersCSV.String())
 	}
 	var otherTenantCSV bytes.Buffer
-	other, err := service.StreamTransfers(context.Background(), "00000000-0000-4000-8000-000000000099", investigation.TransferFilter{}, 10, &otherTenantCSV)
+	other, err := service.StreamTransfers(context.Background(), "00000000-0000-4000-8000-000000000099", testActorID, investigation.TransferFilter{}, 10, &otherTenantCSV)
 	if err != nil || other.Rows != 0 || strings.Contains(otherTenantCSV.String(), submission.Result.TransferID) {
 		t.Fatalf("cross-tenant export result=%+v error=%v csv=%s", other, err, otherTenantCSV.String())
 	}
@@ -72,7 +72,7 @@ func TestPostgreSQLReconciliationExportIncludesBoundedMismatchEvidence(t *testin
 		t.Fatal(err)
 	}
 	var output bytes.Buffer
-	result, err := service.StreamReconciliation(context.Background(), testTenantID, appexports.ReconciliationFilter{RunID: run.ID, Status: "mismatch"}, 10, &output)
+	result, err := service.StreamReconciliation(context.Background(), testTenantID, testActorID, appexports.ReconciliationFilter{RunID: run.ID, Status: "mismatch"}, 10, &output)
 	if err != nil || result.Rows < 2 || !strings.Contains(output.String(), `"run","`+run.ID+`","mismatch"`) || !strings.Contains(output.String(), `"mismatch"`) || !strings.Contains(output.String(), `"projection_missing"`) {
 		t.Fatalf("reconciliation export result=%+v error=%v csv=%s", result, err, output.String())
 	}

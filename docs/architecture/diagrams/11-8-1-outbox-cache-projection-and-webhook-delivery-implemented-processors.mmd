@@ -1,0 +1,27 @@
+sequenceDiagram
+  participant PG as PostgreSQL
+  participant Publisher as Outbox worker
+  participant Redis as Redis stream
+  participant Projector as Balance projector
+  participant Hook as Webhook worker
+  participant Receiver as Verified HTTPS receiver
+  Note over PG: Financial transaction already committed outbox and applicable jobs
+  Publisher->>PG: Lease ready outbox rows with SKIP LOCKED
+  PG-->>Publisher: Immutable events and attempt counts
+  Publisher->>Redis: Publish event with immutable event ID
+  alt Publication accepted
+    Publisher->>PG: Mark outbox published
+  else Publication failed
+    Publisher->>PG: Schedule retry or mark dead
+  end
+  Projector->>Redis: Recover abandoned pending items, then read group
+  Redis-->>Projector: Balance-change notifications
+  Projector->>Redis: Apply monotonic versioned cache write
+  Projector->>Redis: Acknowledge after cache write
+  Hook->>PG: Lease jobs whose outbox is published
+  PG-->>Hook: Active endpoint and signing-key references
+  Hook->>Receiver: Signed event with event ID and bounded timeout
+  Receiver-->>Hook: Acceptance or failure
+  Hook->>PG: Atomically append attempt and update retry/delivered/dead state
+  Note over Hook,Receiver: Acceptance before a crash can cause later duplicate delivery
+  Note over PG,Projector: Delivery and cache changes cannot alter the posted journal

@@ -5,6 +5,7 @@ import "../styles/foundations/reset.css";
 import "./globals.css";
 import "../styles/features/approvals.css";
 import "../styles/layout/responsive-shell.css";
+import "../styles/layout/chain-of-custody-world.css";
 
 // A per-request CSP nonce requires dynamic rendering so Next can attach it to
 // its hydration scripts instead of reusing static HTML with an old nonce.

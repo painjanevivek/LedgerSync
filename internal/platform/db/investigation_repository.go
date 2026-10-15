@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/reconciliation"
 )
 
 var ErrInvestigationNotFound = errors.New("investigation record not found")
@@ -38,6 +40,11 @@ type transferCursor struct {
 }
 
 func (r *InvestigationRepository) Search(ctx context.Context, tenantID, actorID string, filter investigation.SearchFilter) (investigation.SearchPage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.SearchPage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	lookupID := ""
 	lookupReference := ""
 	if filter.QueryKind == "immutable_id" {
@@ -45,7 +52,7 @@ func (r *InvestigationRepository) Search(ctx context.Context, tenantID, actorID 
 	} else {
 		lookupReference = filter.Query
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 WITH matches AS (
  SELECT 'account'::text record_type,a.id::text record_id,''::text related_record_type,''::text related_record_id,
         'Account'::text safe_label,a.status::text status,a.created_at occurred_at
@@ -197,13 +204,18 @@ func transferFilterFingerprint(filter investigation.TransferFilter) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (r *InvestigationRepository) ListTransfers(ctx context.Context, tenantID string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
+func (r *InvestigationRepository) ListTransfers(ctx context.Context, tenantID, actorID string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, "", scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	fingerprint := transferFilterFingerprint(filter)
 	cursor, err := decodeTransferCursor(filter.Cursor, fingerprint)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT t.id,t.debit_account_id,t.credit_account_id,t.amount_minor,t.currency,t.status,
  CASE WHEN t.status<>'posted' THEN 'not_applicable' ELSE COALESCE((SELECT d.status FROM delivery_attempts d WHERE d.tenant_id=t.tenant_id AND d.transfer_id=t.id ORDER BY d.created_at DESC,d.id DESC LIMIT 1),'not_applicable') END,
  t.created_at,COALESCE(t.completed_at,t.created_at),COALESCE(t.journal_transaction_id::text,''),COALESCE(t.rejection_code,''),
@@ -247,9 +259,14 @@ ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT $9`, tenantI
 	return items, next, nil
 }
 
-func (r *InvestigationRepository) GetTransfer(ctx context.Context, tenantID, transferID string) (investigation.TransferDetail, error) {
+func (r *InvestigationRepository) GetTransfer(ctx context.Context, tenantID, actorID, transferID string) (investigation.TransferDetail, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.TransferDetail{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var item investigation.TransferDetail
-	err := r.database.QueryRowContext(ctx, `
+	err := tx.QueryRowContext(ctx, `
 SELECT t.id,t.debit_account_id,t.credit_account_id,t.amount_minor,t.currency,t.status,
  CASE WHEN t.status<>'posted' THEN 'not_applicable' ELSE COALESCE((SELECT d.status FROM delivery_attempts d WHERE d.tenant_id=t.tenant_id AND d.transfer_id=t.id ORDER BY d.created_at DESC,d.id DESC LIMIT 1),'not_applicable') END,
  t.created_at,COALESCE(t.completed_at,t.created_at),COALESCE(t.journal_transaction_id::text,''),COALESCE(t.rejection_code,''),t.actor_subject_id,
@@ -269,7 +286,7 @@ WHERE t.tenant_id=$1 AND t.id=$2`, tenantID, transferID).Scan(&item.ID, &item.De
 	}
 	item.CreatedAt = item.CreatedAt.UTC()
 	item.CompletedAt = item.CompletedAt.UTC()
-	rows, err := r.database.QueryContext(ctx, `SELECT p.id,p.account_id,p.direction,p.amount_minor,p.currency,p.occurred_at FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.tenant_id=$1 AND j.transfer_id=$2 ORDER BY p.direction DESC,p.id`, tenantID, transferID)
+	rows, err := tx.QueryContext(ctx, `SELECT p.id,p.account_id,p.direction,p.amount_minor,p.currency,p.occurred_at FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.tenant_id=$1 AND j.transfer_id=$2 ORDER BY p.direction DESC,p.id`, tenantID, transferID)
 	if err != nil {
 		return item, err
 	}
@@ -290,12 +307,17 @@ WHERE t.tenant_id=$1 AND t.id=$2`, tenantID, transferID).Scan(&item.ID, &item.De
 	return item, nil
 }
 
-func (r *InvestigationRepository) ListReconciliationRuns(ctx context.Context, tenantID, rawCursor string, limit int) ([]investigation.ReconciliationRun, string, error) {
+func (r *InvestigationRepository) ListReconciliationRuns(ctx context.Context, tenantID, actorID, rawCursor string, limit int) ([]investigation.ReconciliationRun, string, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, "", scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	cursor, err := decodeInvestigationCursor(rawCursor)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT id,status,checked_account_count,posting_count,mismatch_count,correlation_id,started_at,completed_at,scope,ledger_watermark,application_version,schema_version FROM reconciliation_runs WHERE tenant_id=$1 AND ($2::timestamptz IS NULL OR (completed_at,id)<($2::timestamptz,$3::uuid)) ORDER BY completed_at DESC,id DESC LIMIT $4`, tenantID, nullableTime(cursor.At), nullableString(cursor.ID), limit+1)
+	rows, err := tx.QueryContext(ctx, `SELECT id,status,checked_account_count,posting_count,mismatch_count,correlation_id,started_at,completed_at,scope,ledger_watermark,application_version,schema_version,details FROM reconciliation_runs WHERE tenant_id=$1 AND ($2::timestamptz IS NULL OR (completed_at,id)<($2::timestamptz,$3::uuid)) ORDER BY completed_at DESC,id DESC LIMIT $4`, tenantID, nullableTime(cursor.At), nullableString(cursor.ID), limit+1)
 	if err != nil {
 		return nil, "", err
 	}
@@ -322,9 +344,17 @@ type rowScanner interface{ Scan(...any) error }
 func scanReconciliation(row rowScanner) (investigation.ReconciliationRun, error) {
 	var item investigation.ReconciliationRun
 	var checked, postings, mismatches int64
-	if err := row.Scan(&item.ID, &item.Status, &checked, &postings, &mismatches, &item.CorrelationID, &item.StartedAt, &item.CompletedAt, &item.Scope, &item.LedgerWatermark, &item.ApplicationVersion, &item.SchemaVersion); err != nil {
+	var details []byte
+	if err := row.Scan(&item.ID, &item.Status, &checked, &postings, &mismatches, &item.CorrelationID, &item.StartedAt, &item.CompletedAt, &item.Scope, &item.LedgerWatermark, &item.ApplicationVersion, &item.SchemaVersion, &details); err != nil {
 		return item, err
 	}
+	var evidence struct {
+		OutboxSnapshot *reconciliation.OutboxSnapshot `json:"outbox_snapshot"`
+	}
+	if err := json.Unmarshal(details, &evidence); err != nil {
+		return item, fmt.Errorf("read reconciliation snapshot evidence: %w", err)
+	}
+	item.OutboxSnapshot = evidence.OutboxSnapshot
 	item.CheckedAccountCount = strconv.FormatInt(checked, 10)
 	item.PostingCount = strconv.FormatInt(postings, 10)
 	item.MismatchCount = strconv.FormatInt(mismatches, 10)
@@ -332,8 +362,13 @@ func scanReconciliation(row rowScanner) (investigation.ReconciliationRun, error)
 	item.CompletedAt = item.CompletedAt.UTC()
 	return item, nil
 }
-func (r *InvestigationRepository) GetReconciliationRun(ctx context.Context, tenantID, runID string) (investigation.ReconciliationRun, error) {
-	row := r.database.QueryRowContext(ctx, `SELECT id,status,checked_account_count,posting_count,mismatch_count,correlation_id,started_at,completed_at,scope,ledger_watermark,application_version,schema_version FROM reconciliation_runs WHERE tenant_id=$1 AND id=$2`, tenantID, runID)
+func (r *InvestigationRepository) GetReconciliationRun(ctx context.Context, tenantID, actorID, runID string) (investigation.ReconciliationRun, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.ReconciliationRun{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
+	row := tx.QueryRowContext(ctx, `SELECT id,status,checked_account_count,posting_count,mismatch_count,correlation_id,started_at,completed_at,scope,ledger_watermark,application_version,schema_version,details FROM reconciliation_runs WHERE tenant_id=$1 AND id=$2`, tenantID, runID)
 	item, err := scanReconciliation(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, ErrInvestigationNotFound
@@ -341,7 +376,7 @@ func (r *InvestigationRepository) GetReconciliationRun(ctx context.Context, tena
 	if err != nil {
 		return item, err
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT id,COALESCE(account_id::text,''),classification,COALESCE(currency,''),COALESCE(expected_minor::text,''),COALESCE(observed_minor::text,''),COALESCE(observed_available_minor::text,''),COALESCE(balance_version::text,''),created_at FROM reconciliation_mismatches WHERE tenant_id=$1 AND run_id=$2 ORDER BY created_at,id`, tenantID, runID)
+	rows, err := tx.QueryContext(ctx, `SELECT id,COALESCE(account_id::text,''),classification,COALESCE(currency,''),COALESCE(expected_minor::text,''),COALESCE(observed_minor::text,''),COALESCE(observed_available_minor::text,''),COALESCE(balance_version::text,''),created_at FROM reconciliation_mismatches WHERE tenant_id=$1 AND run_id=$2 ORDER BY created_at,id`, tenantID, runID)
 	if err != nil {
 		return item, err
 	}

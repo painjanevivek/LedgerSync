@@ -1,0 +1,12 @@
+
+> ledgersync-web@0.1.0 test:e2e:real-stack
+> playwright test --config playwright.real-stack.config.ts distributed-evidence.real-stack.spec.ts
+
+
+Running 1 test using 1 worker
+
+(node:28396) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 1 tests\system\distributed-evidence.real-stack.spec.ts:5:5 › distributed evidence stays behind an accessible disclosure (16.8s)
+
+  1 passed (20.0s)

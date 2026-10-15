@@ -34,7 +34,7 @@ func NewDeveloperWebhookRepository(database *sql.DB, clock func() time.Time) (*D
 
 func (r *DeveloperWebhookRepository) RegisterWebhook(ctx context.Context, command developerplatform.RegisterWebhookCommand, fingerprint [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-register|"+command.TenantID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "developer-webhook-register|"+command.TenantID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func (r *DeveloperWebhookRepository) RegisterWebhook(ctx context.Context, comman
 
 func (r *DeveloperWebhookRepository) VerifyWebhook(ctx context.Context, command developerplatform.VerifyWebhookCommand, fingerprint, challengeDigest [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-verify|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "developer-webhook-verify|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -111,7 +111,7 @@ func (r *DeveloperWebhookRepository) VerifyWebhook(ctx context.Context, command 
 
 func (r *DeveloperWebhookRepository) RotateWebhook(ctx context.Context, command developerplatform.RotateWebhookCommand, fingerprint [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-rotate|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "developer-webhook-rotate|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -151,7 +151,7 @@ func (r *DeveloperWebhookRepository) RotateWebhook(ctx context.Context, command 
 
 func (r *DeveloperWebhookRepository) DisableWebhook(ctx context.Context, command developerplatform.DisableWebhookCommand, fingerprint [sha256.Size]byte) (submission developerplatform.WebhookSubmission, err error) {
 	now := r.clock().UTC()
-	err = WithSerializableSequence(ctx, r.database, "developer-webhook-disable|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, "developer-webhook-disable|"+command.TenantID+"|"+command.WebhookID, 5, func(tx *sql.Tx) error {
 		if err := authorizeTenantActor(ctx, tx, command.TenantID, command.ActorSubjectID); err != nil {
 			return err
 		}
@@ -193,16 +193,26 @@ func (r *DeveloperWebhookRepository) DisableWebhook(ctx context.Context, command
 // then validates it before exposing it to the application.
 const webhookSelect = `SELECT id::text,display_name,endpoint_url,array_to_json(subscribed_events)::text,signing_key_reference,signing_key_id,status,version::text,challenge_expires_at,verified_at,disabled_at,created_at,updated_at FROM developer_webhook_endpoints`
 
-func (r *DeveloperWebhookRepository) GetWebhook(ctx context.Context, tenantID, webhookID string) (developerplatform.Webhook, error) {
-	return scanWebhook(r.database.QueryRowContext(ctx, webhookSelect+` WHERE tenant_id=$1 AND id=$2`, tenantID, webhookID))
+func (r *DeveloperWebhookRepository) GetWebhook(ctx context.Context, tenantID, actorID, webhookID string) (developerplatform.Webhook, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return developerplatform.Webhook{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
+	return scanWebhook(tx.QueryRowContext(ctx, webhookSelect+` WHERE tenant_id=$1 AND id=$2`, tenantID, webhookID))
 }
 
-func (r *DeveloperWebhookRepository) ListWebhooks(ctx context.Context, tenantID string, query developerplatform.WebhookQuery) (developerplatform.WebhookPage, error) {
+func (r *DeveloperWebhookRepository) ListWebhooks(ctx context.Context, tenantID, actorID string, query developerplatform.WebhookQuery) (developerplatform.WebhookPage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return developerplatform.WebhookPage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	at, id, err := decodeWebhookCursor(query.Cursor)
 	if err != nil {
 		return developerplatform.WebhookPage{}, developerplatform.ErrInvalidCommand
 	}
-	rows, err := r.database.QueryContext(ctx, webhookSelect+` WHERE tenant_id=$1 AND ($2='' OR status=$2) AND ($3::timestamptz IS NULL OR (updated_at,id)<($3,$4::uuid)) ORDER BY updated_at DESC,id DESC LIMIT $5`, tenantID, query.Status, nullableTime(at), nullableString(id), query.Limit+1)
+	rows, err := tx.QueryContext(ctx, webhookSelect+` WHERE tenant_id=$1 AND ($2='' OR status=$2) AND ($3::timestamptz IS NULL OR (updated_at,id)<($3,$4::uuid)) ORDER BY updated_at DESC,id DESC LIMIT $5`, tenantID, query.Status, nullableTime(at), nullableString(id), query.Limit+1)
 	if err != nil {
 		return developerplatform.WebhookPage{}, err
 	}
@@ -227,19 +237,24 @@ func (r *DeveloperWebhookRepository) ListWebhooks(ctx context.Context, tenantID 
 	return page, nil
 }
 
-func (r *DeveloperWebhookRepository) ListWebhookDeliveries(ctx context.Context, tenantID, webhookID string, query developerplatform.DeliveryQuery) (developerplatform.DeliveryPage, error) {
+func (r *DeveloperWebhookRepository) ListWebhookDeliveries(ctx context.Context, tenantID, actorID, webhookID string, query developerplatform.DeliveryQuery) (developerplatform.DeliveryPage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return developerplatform.DeliveryPage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	at, id, err := decodeWebhookCursor(query.Cursor)
 	if err != nil {
 		return developerplatform.DeliveryPage{}, developerplatform.ErrInvalidCommand
 	}
 	var exists bool
-	if err = r.database.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM developer_webhook_endpoints WHERE tenant_id=$1 AND id=$2)`, tenantID, webhookID).Scan(&exists); err != nil {
+	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM developer_webhook_endpoints WHERE tenant_id=$1 AND id=$2)`, tenantID, webhookID).Scan(&exists); err != nil {
 		return developerplatform.DeliveryPage{}, err
 	}
 	if !exists {
 		return developerplatform.DeliveryPage{}, developerplatform.ErrNotFound
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT id::text,transfer_id::text,COALESCE(outbox_event_id::text,''),attempt_number,status,COALESCE(response_class,''),COALESCE(sanitized_error_code,''),due_at,started_at,completed_at,created_at FROM delivery_attempts WHERE tenant_id=$1 AND delivery_kind='webhook' AND endpoint_reference=$2 AND ($3='' OR status=$3) AND ($4::timestamptz IS NULL OR (created_at,id)<($4,$5::uuid)) ORDER BY created_at DESC,id DESC LIMIT $6`, tenantID, webhookID, query.Status, nullableTime(at), nullableString(id), query.Limit+1)
+	rows, err := tx.QueryContext(ctx, `SELECT id::text,transfer_id::text,COALESCE(outbox_event_id::text,''),attempt_number,status,COALESCE(response_class,''),COALESCE(sanitized_error_code,''),due_at,started_at,completed_at,created_at FROM delivery_attempts WHERE tenant_id=$1 AND delivery_kind='webhook' AND endpoint_reference=$2 AND ($3='' OR status=$3) AND ($4::timestamptz IS NULL OR (created_at,id)<($4,$5::uuid)) ORDER BY created_at DESC,id DESC LIMIT $6`, tenantID, webhookID, query.Status, nullableTime(at), nullableString(id), query.Limit+1)
 	if err != nil {
 		return developerplatform.DeliveryPage{}, err
 	}

@@ -14,8 +14,8 @@ export function parseSystemWebURL(raw: string): string {
   if (url.username || url.password || url.hash || url.search || url.pathname !== "/") {
     throw new Error("LEDGERSYNC_SYSTEM_WEB_URL cannot contain credentials, path, query, or fragment data");
   }
-  if (url.port !== "3000") {
-    throw new Error("LEDGERSYNC_SYSTEM_WEB_URL must use the Compose web port 3000");
+  if (!["3000", "3102"].includes(url.port)) {
+    throw new Error("LEDGERSYNC_SYSTEM_WEB_URL must use the Compose web port 3000 or isolated journey port 3102");
   }
   return url.origin;
 }

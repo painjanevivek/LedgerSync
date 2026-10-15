@@ -59,10 +59,12 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
   const accountState = uiDataState({ loading: accountsLoading, hasData: accounts.length > 0, hasError: Boolean(accountsError), online, partial: Boolean(accountsError?.includes("partial")) });
   const transferState = uiDataState({ loading: transfersLoading, hasData: transfers.length > 0, hasError: Boolean(transfersError), online });
   const reconciliationState = uiDataState({ loading: reconciliationLoading, hasData: Boolean(reconciliation), hasError: Boolean(reconciliationError), online });
-  const evidenceSettled =
+  const readsSettled =
     !accountsLoading &&
     !transfersLoading &&
-    !reconciliationLoading &&
+    !reconciliationLoading;
+  const evidenceSettled =
+    readsSettled &&
     !accountsError &&
     !transfersError &&
     !reconciliationError &&
@@ -77,47 +79,62 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
   });
   const newWorkspace = evidenceSettled && workspaceStage === "empty";
   return <>
-    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}>{(capabilities.accountsRead||capabilities.transfersRead||capabilities.reconciliationRead)&&<button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button>}</PageHeader>
+    <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Create an account to start your ledger." : "Your ledger at a glance."}>{(capabilities.accountsRead||capabilities.transfersRead||capabilities.reconciliationRead)&&<button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing…" : "Refresh"}</button>}</PageHeader>
     {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} capabilities={capabilities} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
-    {!capabilities.accountsRead&&!capabilities.transfersRead&&!capabilities.reconciliationRead&&<StatePanel kind="denied" title="No financial read capability" message="Your server-issued session has no account, transfer, or reconciliation read scope. Protected overview requests were not made."/>}
-    {evidenceSettled && workspaceStage === "attention_required" && (
+    {!capabilities.accountsRead&&!capabilities.transfersRead&&!capabilities.reconciliationRead&&<StatePanel kind="denied" title="Financial records unavailable" message="Your session cannot read financial records. Ask an administrator for access."/>}
+    {readsSettled && (capabilities.accountsRead || capabilities.transfersRead || capabilities.reconciliationRead) && workspaceStage === "attention_required" && (
       <NextBestAction
         attention
-        title="Resolve the current evidence warning"
-        message="One or more authoritative reads, reconciliation results, or connectivity checks needs attention. Review the visible warning below before relying on normal metrics."
-        action={reconciliation && !isAuthoritativelyReconciled(reconciliation)
+        title={online ? "Check the current warning" : "Reconnect to check current records"}
+        message={online ? "Review the warning below before using these figures." : "Shown records may be old. Connect to refresh them."}
+        action={online && capabilities.reconciliationRead && reconciliation && !isAuthoritativelyReconciled(reconciliation)
           ? <Link className="button primary" href={`/reconciliation/${reconciliation.run_id}`}>Open reconciliation result</Link>
-          : <button className="button primary" type="button" onClick={onRefreshAll} disabled={!online || busy}>Refresh evidence</button>}
+          : <button className="button primary" type="button" onClick={onRefreshAll} disabled={!online || busy}>Refresh records</button>}
       />
     )}
-    {evidenceSettled && workspaceStage === "account_ready" && (
+    {evidenceSettled && accounts.length === 1 && transfers.length === 0 && workspaceStage !== "attention_required" && (
       <NextBestAction
-        title="Add the first verified funding record"
-        message="Your account structure is ready. Record external value evidence and send it through the existing approval flow before making a transfer."
+        title="Create the destination account"
+        message="A transfer needs two different accounts in the same currency. Keep both accounts in this workspace."
+        action={capabilities.accountsWrite
+          ? <Link className="button primary" href="/accounts/new">Create second account</Link>
+          : <Link className="text-link" href="/guide">View required steps →</Link>}
+      />
+    )}
+    {evidenceSettled && accounts.length >= 2 && workspaceStage === "account_ready" && (
+      <NextBestAction
+        title="Add or review funding"
+        message="Verify the payment outside LedgerSync. Record and review it before posting."
         action={capabilities.fundingWrite
           ? <Link className="button primary" href="/funding">Open funding</Link>
-          : <Link className="button secondary" href="/guide">Review the required steps</Link>}
+          : <Link className="text-link" href="/guide">View required steps →</Link>}
       />
     )}
-    {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
+    {evidenceSettled && accounts.length >= 2 && workspaceStage === "operational" && transfers.length === 0 && capabilities.transfersWrite && (
+      <NextBestAction
+        title="Make your first transfer"
+        message="Choose two accounts and review the amount before you confirm."
+        action={<Link className="button primary" href="/transfers">Open transfers</Link>}
+      />
+    )}
+    {newWorkspace&&<section className="new-workspace overview-start" aria-labelledby="new-workspace-title">
       <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
       <div className="new-workspace-copy">
-        <p className="eyebrow">New workspace</p>
-        <h2 id="new-workspace-title">Start with four simple steps</h2>
-        <p>Create an account, add a funding record, review it, then make a transfer.</p>
+        <h2 id="new-workspace-title">Start with an account</h2>
+        <p>Create two accounts in the same currency. Then record, review, and post funding.</p>
         <div className="new-workspace-actions">
           {capabilities.accountsWrite&&<Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>}
-          <Link className="button secondary" href="/guide">Follow the guide</Link>
+          <Link className="text-link" href="/guide">View the steps →</Link>
         </div>
       </div>
-      <ol className="new-workspace-path" aria-label="First ledger steps">
-        {capabilities.accountsWrite&&<li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>}
-        {capabilities.fundingWrite&&<li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>}
-        {capabilities.fundingApprove&&<li><Link href="/approvals"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>}
-        {capabilities.transfersWrite&&<li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>}
+      <ol className="new-workspace-path overview-start-sequence" aria-label="First ledger steps">
+        {capabilities.accountsWrite&&<li><Link href="/accounts/new"><span>01</span><strong>Create two accounts</strong></Link></li>}
+        {capabilities.fundingWrite&&<li><Link href="/funding"><span>02</span><strong>Record funding</strong></Link></li>}
+        {capabilities.fundingApprove&&<li><Link href="/approvals"><span>03</span><strong>Review record</strong></Link></li>}
+        {capabilities.transfersWrite&&<li><Link href="/transfers"><span>04</span><strong>Make transfer</strong></Link></li>}
       </ol>
     </section>}
-    <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account details state">
+    {!newWorkspace&&capabilities.accountsRead&&<section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account details state">
       {accountsError && <StatePanel
         kind="error"
         title="Account details unavailable"
@@ -125,12 +142,12 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
         action={<FocusedRetry label="Retry accounts only" onRetry={onRefreshAccounts} disabled={!online} busy={accountsLoading} />}
       />}
       {accountsVerifiedAt&&accounts.length>0&&<EvidenceFreshness state={accountsError||!online?"historical":accountsLoading?"refreshing":"current"} verifiedAt={accountsVerifiedAt} label="Account totals" reason={accountsError??(!online?"Reconnect before relying on totals.":undefined)}/>}
-      {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account details" message="Authoritative account balances are loading. No zero balance or empty tenant is inferred."/>}
-      {!newWorkspace&&!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title="No authorized accounts" message="The verified authorized scope is empty. Create an account or ask an administrator to grant account access."/>}
-      {accounts.length>0&&mixedCurrency&&<StatePanel kind="error" title="Mixed-currency pilot data blocked" message="Loaded accounts are preserved, but LedgerSync will not combine balances across currencies. Investigate tenant provisioning before relying on overview totals."/>}
-      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of <Timestamp value={asOf} /></span></div><strong className="hero-amount"><Money currency={currency} minorUnits={operating} /></strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount"><Money currency={currency} minorUnits={customerFunds} /></strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
-    </section>
-    {!newWorkspace&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation results state">
+      {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account details" message="Balances are not yet available."/>}
+      {!newWorkspace&&!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title={online ? "No authorized accounts" : "Account details unavailable"} message={online ? "Your verified account list is empty. Create an account or ask an administrator for access." : "Connect to load account records and balances."}/>}
+      {accounts.length>0&&mixedCurrency&&<StatePanel kind="error" title="Mixed currencies" message="These balances use different currencies. Totals are unavailable. Check account setup."/>}
+      {accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of <Timestamp value={asOf} /></span></div><strong className="hero-amount"><Money currency={currency} minorUnits={operating} /></strong><p className="metric-definition">Excludes customer funds.</p><Link className="text-link" href="/accounts">View accounts →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separate category</span></div><strong className="hero-amount"><Money currency={currency} minorUnits={customerFunds} /></strong><p className="metric-definition">Not operating capital.</p></section></div>}
+    </section>}
+    {!newWorkspace&&capabilities.reconciliationRead&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation results state">
       {reconciliationError && <StatePanel
         kind="error"
         title="Reconciliation results unavailable"
@@ -138,21 +155,21 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
         action={<FocusedRetry label="Retry reconciliation only" onRetry={onRefreshReconciliation} disabled={!online} busy={reconciliationLoading} />}
       />}
       {reconciliationVerifiedAt&&reconciliation&&<EvidenceFreshness state={reconciliationError||!online?"historical":reconciliationLoading?"refreshing":"current"} verifiedAt={reconciliationVerifiedAt} label="Reconciliation" reason={reconciliationError??(!online?"Reconnect before treating the run as current.":undefined)}/>}
-      {reconciliationLoading&&!reconciliation&&<StatePanel title="Loading reconciliation results" message="No passing result or mismatch count is inferred while authoritative records load."/>}
+      {reconciliationLoading&&!reconciliation&&<StatePanel title="Loading reconciliation results" message="The result is not yet available."/>}
       {reconciliation ? (
         <section className={`evidence-strip ${isAuthoritativelyReconciled(reconciliation) ? "" : "caution"}`}>
           <ShieldCheck weight="fill" aria-hidden="true" />
           <div>
-            <strong>{isAuthoritativelyReconciled(reconciliation) ? "Latest reconciliation passed" : "Reconciliation requires attention"}</strong>
+            <strong>{isAuthoritativelyReconciled(reconciliation) ? "Internal reconciliation passed" : "Internal reconciliation needs attention"}</strong>
             <span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · <Timestamp value={reconciliation.completed_at} /></span>
           </div>
           <RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open result" />
         </section>
       ) : !reconciliationError && !reconciliationLoading ? (
-        <StatePanel kind="unknown" title="No reconciliation results" message="The verified history contains no authoritative run. No passing result is inferred." action={<Link className="text-link" href="/reconciliation">View reconciliation</Link>} />
+        <StatePanel kind="unknown" title={online ? "No reconciliation results" : "Reconciliation results unavailable"} message={online ? "No run is recorded. Balances have not been checked by reconciliation." : "Connect to load reconciliation results."} action={online ? <Link className="text-link" href="/reconciliation">View reconciliation →</Link> : undefined} />
       ) : null}
     </section>}
-    {!newWorkspace&&<section className="overview-data-state overview-transfer-state" data-data-state={transferState} aria-label="Transfer history state">
+    {!newWorkspace&&capabilities.transfersRead&&<section className="overview-data-state overview-transfer-state" data-data-state={transferState} aria-label="Transfer history state">
       {transfersError && <StatePanel
         kind="error"
         title="Transfer history unavailable"
@@ -160,8 +177,8 @@ export function OverviewView({ accounts, transfers, reconciliation, accountsLoad
         action={<FocusedRetry label="Retry transfers only" onRetry={onRefreshTransfers} disabled={!online} busy={transfersLoading} />}
       />}
       {transfersVerifiedAt&&transfers.length>0&&<EvidenceFreshness state={transfersError||!online?"historical":transfersLoading?"refreshing":"current"} verifiedAt={transfersVerifiedAt} label="Transfer history" reason={transfersError??(!online?"Reconnect before treating history as current.":undefined)}/>}
-      {transfersLoading&&transfers.length===0&&<StatePanel title="Loading transfer history" message="No empty transfer history is inferred while immutable records load."/>}
-      {!transfersError&&!transfersLoading&&transfers.length===0&&<StatePanel title="No transfer records" message="The verified authorized history is empty."/>}
+      {transfersLoading&&transfers.length===0&&<StatePanel title="Loading transfer history" message="Transfer records are not yet available."/>}
+      {!transfersError&&!transfersLoading&&transfers.length===0&&<StatePanel title={online ? "No transfer records" : "Transfer history unavailable"} message={online ? "Your verified transfer history is empty." : "Connect to load transfer records."}/>}
       {transfers.length>0&&<TransferList variant="recent" transfers={transfers.slice(0,5)} returnTo="/"/>}
     </section>}
   </>;

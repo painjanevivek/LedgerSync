@@ -1,0 +1,6 @@
+=== RUN   TestSchedulerLeaseTakeoverRejectsStaleJobs
+    scheduler_fencing_test.go:13: ERROR: relation "reconciliation_scheduler_tenants" does not exist (SQLSTATE 42P01)
+--- FAIL: TestSchedulerLeaseTakeoverRejectsStaleJobs (0.39s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	0.999s
+FAIL

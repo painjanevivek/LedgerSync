@@ -1,0 +1,16 @@
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-postgres-1 Running 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-redis-1 Running 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-postgres-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-redis-1 Waiting 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-redis-1 Healthy 
+ Container ledgersync-acceptance-20261011181234-8b695d3d-test-postgres-1 Healthy 
+=== RUN   TestOutboxProcessCrashRecovery
+=== RUN   TestOutboxProcessCrashRecovery/before_publish
+    worker_crash_test.go:158: STUDY_WORKER_RECOVERY stage=before_publish recovery_ms=620 deliveries=1 reconciliation=matched
+=== RUN   TestOutboxProcessCrashRecovery/after_publish
+    worker_crash_test.go:158: STUDY_WORKER_RECOVERY stage=after_publish recovery_ms=615 deliveries=2 reconciliation=matched
+--- PASS: TestOutboxProcessCrashRecovery (3.28s)
+    --- PASS: TestOutboxProcessCrashRecovery/before_publish (1.68s)
+    --- PASS: TestOutboxProcessCrashRecovery/after_publish (1.61s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	3.760s

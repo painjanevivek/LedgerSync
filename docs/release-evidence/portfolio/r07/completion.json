@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "phase": "R07",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T11:19:04.077Z",
+  "summary": "A host-only runner now executes seven fixed failure scenarios in a new tmpfs PostgreSQL/Redis project. It verifies exact IDs, labels, images, storage and loopback binds before each scenario and cleanup. It compiles and preserves the actual Go test binaries, source/index hashes, applied migration identity, limits and JSON test output. The verifier rejects missing, skipped or failed tests, tampered artifacts and mismatched provenance. Cancellation retains an incomplete bundle and verifies cleanup. The advanced Systems Lab reads only an archived safe summary; it has no browser fault command.",
+  "verification": {
+    "runtime_scenarios_passed": 7,
+    "source_and_target_preservation": "passed",
+    "disposable_cleanup": "passed",
+    "runtime_run_id": "demo-20261015111612-82a0f63d",
+    "artifacts_verified": 26,
+    "artifact_bytes": 75953051,
+    "applied_migrations": 61,
+    "api_contract_version": "3.6.0",
+    "cancellation": "verified incomplete result, nonzero exit and exact cleanup",
+    "contract_and_safety_tests_passed": 31,
+    "frontend_tests_passed": 220,
+    "browser_tests_passed": 11,
+    "production_build": "passed",
+    "typescript": "passed",
+    "targeted_eslint": "passed",
+    "quality_workflow": "parsed and wired; not run remotely"
+  },
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1681,
+    "original_manifest_sha256": "b368da38c677a386b3ef10ee3f571b2ba52b02cf8d6ef4aa918d8556e27ea8e9",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": ".github/workflows/quality.yml",
+        "before_sha256": "25761e98ae68e8c20cc392d17428a1cda9d19cf9cb389f12c643476495da4a44",
+        "sha256": "5aef590d3981d1f5f3f738f31b93a8c32339acfcfc47fc2b6abe5faf7fc94102"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "6319320543ffed5486e74c0954a2820aae8c56d89d474ac5fc2eed2c60b99a88",
+        "sha256": "6fd65df0d5d4a243ff7499044a22822831f67bdb30d56fc38840bc5d7893bc2f"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "4aa116088d8b54c7e61f5eb5575a2522f06e358049c2c8a2487d7e8e7dcd71fd",
+        "sha256": "5d7ceec02aef20e9091bc96c5a54e1d61a8725453501526b9b05290d49f6f99f"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "9ab83ab68d7016761232507a231fa5daed241a70a9334334ef74b48b05113730",
+        "sha256": "ecb245986d639ff13b707844b243ed45b698311b5d681e13e786d53b60ffd8b3"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "c19732a7e20f111af5096ab15f75edc0111fc6dab12cf27027f8f4c1cc240dda",
+        "sha256": "e35c450e18dddb0e16a400607f7b85ad9003803289261e1efee9bdbac014756e"
+      },
+      {
+        "path": "web/src/features/developer/DeveloperViews.tsx",
+        "before_sha256": "e8642d7672d3c9c3e57cd994b1b4143b3e8960b02157b5c95c3c92d7dfad21c1",
+        "sha256": "64319673e06817b1ca1ce24a302cb3147fb99ef67f158d3eb9eab35b29c95b0f"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/failure-demonstration.md",
+        "sha256": "4d917d4a167ac244841bae63aae3d07b2051350286d636a3e315337e71acdb98"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r07/demo-20261015110632-49a9a466.json",
+        "sha256": "426b99388b41874a87a889c0a09f34cf1d74e3b4fd45f325a61fd61417a0ba3c"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r07/demo-20261015111612-82a0f63d.json",
+        "sha256": "0ea70700768cc3e72bc31fdde09e4f831ee7adf17944ace7ef0b3e7804cdb79a"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r07/latest-demo.json",
+        "sha256": "0ea70700768cc3e72bc31fdde09e4f831ee7adf17944ace7ef0b3e7804cdb79a"
+      },
+      {
+        "path": "scripts/portfolio/demo-safety.mjs",
+        "sha256": "6d58e306d89576631521643d3dec7f3a7bacfe0a618b9001cfea70dd825e587e"
+      },
+      {
+        "path": "scripts/portfolio/demo-safety.test.mjs",
+        "sha256": "7b68ac419965305828cc554138d4873066059efbb11ca3fcfb099057d11e4337"
+      },
+      {
+        "path": "scripts/portfolio/run-demo.mjs",
+        "sha256": "3591d53fde96007297991a263fb75b28695bf4f6b3af850283fd95b1bb06162c"
+      },
+      {
+        "path": "scripts/portfolio/test-demo-cancellation.mjs",
+        "sha256": "da1f4089c0e9de6714d14319972a3747f6f9682c0e9ed0881c046e961f345955"
+      },
+      {
+        "path": "scripts/portfolio/verify-demo.mjs",
+        "sha256": "06a762bcaf4b08f96de07f3c12e61121b9bdfae84c4c8633ed27079a9cc42d00"
+      },
+      {
+        "path": "web/src/features/developer/SystemsLabEvidence.tsx",
+        "sha256": "76d8fbc49c949a35d1afa8c67e704cd4db49515fd1a57ec3527213b0b067239a"
+      },
+      {
+        "path": "web/src/lib/portfolio-demo.generated.json",
+        "sha256": "0ea70700768cc3e72bc31fdde09e4f831ee7adf17944ace7ef0b3e7804cdb79a"
+      },
+      {
+        "path": "web/tests/e2e/systems-lab.spec.ts",
+        "sha256": "946f68041d1c334511d08ac7da261033824e4fd34dec2d87922024fc5fbde7be"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r07-20261015/demo-run-final.txt",
+      "sha256": "0326eee92d4a8a26a670e21a26844d746f0226f662b301d57a37f1eef7c30853",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/demo-run-tmpfs-guard-failure.txt",
+      "sha256": "a4ca883abef3725557ccc7d684af4a19dacb7dcce6adc561139bea65d27e3b8d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/failed-run-cleanup-repair.json",
+      "sha256": "d0e468113d7800f976d57ce5a8ce1dac03255c3d08486fed2484df21daf6abcc",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/cancellation.txt",
+      "sha256": "469ac931be51c79aa497215664eda4d726582d451be2ca7c248cbfd6117a46e0",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/bundle-verification-final.txt",
+      "sha256": "c3417844654772333ecc6e8a8e483a1e67d5e33a283da0e1d4e5a465da613796",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/safety-tests-final.txt",
+      "sha256": "65220758e108260a62fe66ab4b893214db7590dfde1956e68ead178e7889a0cb",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/web-unit.txt",
+      "sha256": "ca3a3fca10f9e5c328ac3e77c5d861ca2463b1b0b117790fa164493c67d6f7da",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/typescript.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/eslint.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/browser-final.txt",
+      "sha256": "f38061e2fe180b646ce1ec739d698500c398645a9ca65443d2d5f10aa26f2052",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/browser-import-failure.txt",
+      "sha256": "2195d14e4ed479de524994a94ccc799d5df7b6873016bb363e5fba86bb57ab8c",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/quality-workflow.json",
+      "sha256": "5e2c02696996703a02ea229f832bc5a9194e62acb620e9a5488f89501e7c80dc",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/normal-financial-before-final-run.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r07-20261015/../demo-runs/demo-20261015111612-82a0f63d/run-manifest.json",
+      "sha256": "873d0158d66b8c3985c58e398d504ec1a372ea718fe6ef236e8836bfaf6e7599",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "decc1262c36905f1c21e9c7bc496a3c26774d17a298e997b22888bde84f6eaba"
+  },
+  "limits": [
+    "Source/binary provenance belongs to each recorded run; later documentation and generated summary updates do not relabel old runs.",
+    "The lost-response case discards a service result; no network-proxy or multi-host partition claim is made.",
+    "PostgreSQL/Redis image IDs are dependency identities. No candidate API image was built or tested in R07.",
+    "The browser receives only the safe historical projection. Optional-surface availability remains R11.",
+    "R08-R17 remain selected implementation work."
+  ]
+}
