@@ -13,7 +13,7 @@ type diagnosticRepositoryStub struct {
 	block bool
 }
 
-func (r diagnosticRepositoryStub) Facts(context.Context, string) (DatabaseFacts, error) {
+func (r diagnosticRepositoryStub) Facts(context.Context, string, string) (DatabaseFacts, error) {
 	if r.block {
 		select {}
 	}
@@ -38,7 +38,7 @@ func TestDiagnosticsPreservesFinancialAndDisposableDependencyDistinction(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := service.Snapshot(context.Background(), "tenant")
+	result := service.Snapshot(context.Background(), "tenant", "actor")
 	if result.OverallState != "degraded" || result.FinancialAuthority.PostgreSQL.State != "reachable" || result.DeliveryCache.Redis.State != "unavailable" || result.DeliveryCache.Redis.Label != "disposable_cache" || result.DeliveryCache.Outbox.WorkerProgress != "stalled" || result.Application.Environment != "local_demo" {
 		t.Fatalf("unexpected partial diagnostics: %#v", result)
 	}
@@ -51,7 +51,7 @@ func TestDiagnosticsReturnsWhenProbeIgnoresCancellation(t *testing.T) {
 	}
 	service.timeout = 10 * time.Millisecond
 	started := time.Now()
-	result := service.Snapshot(context.Background(), "tenant")
+	result := service.Snapshot(context.Background(), "tenant", "actor")
 	if time.Since(started) > 250*time.Millisecond || result.OverallState != "unavailable" || result.DeliveryCache.Redis.State != "reachable" {
 		t.Fatalf("diagnostics did not return a bounded partial result: elapsed=%s result=%#v", time.Since(started), result)
 	}

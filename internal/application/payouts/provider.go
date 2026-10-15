@@ -1,3 +1,5 @@
+// Package payouts preserves deferred provider experiments. FakeProvider never
+// moves money and has no default API, worker or production composition binding.
 package payouts
 
 import (

@@ -1,0 +1,29 @@
+sequenceDiagram
+  actor Requester
+  actor Approver
+  participant UI as Funding screen
+  participant API as BFF and Go API
+  participant PG as PostgreSQL
+  Requester->>UI: Enter destination, amount and external evidence references
+  UI->>API: Request funding with stable key
+  API->>PG: Authorize finance actor and tenant funding policy
+  PG->>PG: Insert requested event, approval record and audit
+  PG-->>API: Requested funding receipt
+  API-->>UI: Show Requested, no balance increase
+  Approver->>UI: Review evidence and reason
+  UI->>API: Approve selected funding event
+  API->>PG: Lock event and check policy, actor and state
+  alt Production dual-control policy
+    PG->>PG: Require finance activation and a different approver
+  else Explicit local demo policy
+    PG->>PG: Record single-operator demo policy
+  end
+  PG-->>API: Commit Approved and audit evidence
+  API-->>UI: Show Approved, posting is still separate
+  Requester->>UI: Review and post approved funding
+  UI->>API: Post with stable idempotency key
+  API->>PG: Run controlled_post_funding_v1 in serializable transaction
+  PG->>PG: Recheck approval and limits, write balanced clearing/customer journal
+  PG->>PG: Update versions, audit, outbox and durable outcome
+  PG-->>API: Commit Posted
+  API-->>UI: Posted funding receipt and allowed evidence

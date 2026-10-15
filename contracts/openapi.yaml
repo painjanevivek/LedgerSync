@@ -1,9 +1,13 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 3.3.0
+  version: 3.7.0
   description: >-
-    Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
+    Closed-loop single-currency ledger API for the LedgerSync BFF and approved
+    trusted backend workloads. Browser clients use the same-origin BFF and never
+    receive workload credentials. A token with bff:act-as-user requires a fresh
+    actor assertion for every call. A workload without that scope acts only as
+    its own authenticated principal and must omit actor assertions. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
     has an unknown outcome and must be retried with the identical payload and
     Idempotency-Key. Account and controlled-funding command timeouts follow the
@@ -11,9 +15,9 @@ info:
     bank settlement, custody, or movement outside this ledger.
   license: { name: Apache License 2.0, identifier: Apache-2.0 }
 servers: [{ url: /api }]
-security: [{ bearerAuth: [], actorAssertion: [] }]
+security: [{ bearerAuth: [], actorAssertion: [] }, { bearerAuth: [] }]
 x-ledgersync-lifecycle:
-  semantic_version: 3.3.0
+  semantic_version: 3.7.0
   supported_window: current minor and immediately preceding minor, with at least 180 days notice before sunset
   changelog: ./CHANGELOG.md
   policy: ./api-lifecycle-policy.md
@@ -171,6 +175,64 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/PolicyDenied' }
         '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /transfers/recovery:
+    get:
+      operationId: listTransferRecoveryRequests
+      x-required-scope: transfers:read
+      summary: Read a bounded original-actor recovery inbox after browser data loss.
+      description: Current tenant, actor, and account permissions filter every page. Keys remain private. Empty pages do not prove failure for legacy unsaved requests.
+      parameters: [{ $ref: '#/components/parameters/Cursor' }]
+      responses:
+        '200': { description: Up to 25 immutable intents with original outcome snapshots., content: { application/json: { schema: { $ref: '#/components/schemas/TransferRecoveryPage' } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      operationId: prepareTransferRecoveryRequest
+      x-required-scope: transfers:write
+      summary: Retain confirmed immutable intent before financial submission.
+      description: Reuses original key and reference. Checks stored account authority. Creates no financial posting or funds reservation.
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+        - { in: header, name: X-LedgerSync-Request-Reference, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateTransferRequest' } } }
+      responses:
+        '201':
+          description: Original immutable intent is durably saved.
+          content: { application/json: { schema: { type: object, required: [request_reference, state, message], properties: { request_reference: { type: string, format: uuid }, state: { type: string, enum: [saved] }, message: { type: string } } } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /transfers/recovery/{requestReference}/retry:
+    post:
+      operationId: retryOriginalTransferRecoveryRequest
+      x-required-scope: transfers:write
+      summary: Explicitly retry the immutable server intent under its original financial key.
+      description: Requires an empty body. No caller-supplied replacement accounts, amount, key, or reference are used. Current authority and policy apply to new execution. A known original outcome is replayed without new money movement.
+      parameters: [{ in: path, name: requestReference, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '201':
+          description: Original posted or rejected result, including safe replay.
+          headers:
+            Idempotent-Replay: { schema: { type: string, enum: ['true'] } }
+            X-LedgerSync-Metadata-Status: { schema: { type: string, enum: [complete, partial, unavailable] } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/TransferResult' } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/PolicyDenied' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
         '500': { $ref: '#/components/responses/InternalError' }
   /transfers/{transferId}:
     get:
@@ -922,6 +984,20 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /developer/distributed:
+    get:
+      operationId: getDistributedEvidence
+      x-required-scope: developer:read
+      summary: Read tenant-scoped, separately sampled distributed system observations.
+      description: Requires true for the LEDGERSYNC_STUDY_ENABLED server flag in the isolated development study set. Disabled routes return 404. Worker observations are historical publication evidence. Scheduler state uses database lease time. No test command is executed.
+      responses:
+        '200':
+          description: Bounded observations with explicit unavailable states.
+          content: { application/json: { schema: { $ref: '#/components/schemas/DistributedEvidence' } } }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
   /developer/credentials:
     get:
       operationId: listDeveloperCredentials
@@ -1215,7 +1291,7 @@ components:
       type: apiKey
       in: header
       name: X-LedgerSync-Actor-Assertion
-      description: Short-lived BFF-signed end-user context bound to the workload token.
+      description: Required for workloads with bff:act-as-user; mint a fresh short-lived BFF-signed assertion per call. Own-principal workloads without that scope must omit this header. The bearer-only security alternative never permits a delegating workload to omit its assertion.
   parameters:
     AccountID: { in: path, name: accountId, required: true, schema: { type: string, format: uuid } }
     TransferID: { in: path, name: transferId, required: true, schema: { type: string, format: uuid } }
@@ -1235,6 +1311,44 @@ components:
     CorrelationID: { in: header, name: X-Request-ID, schema: { type: string, format: uuid } }
     ConsistencyRequirement: { in: header, name: X-LedgerSync-Consistency-Requirement, schema: { type: string, maxLength: 2048 } }
   schemas:
+    DistributedEvidence:
+      type: object
+      additionalProperties: false
+      required: [api_replicas, worker_publications, scheduler]
+      properties:
+        api_replicas: { $ref: '#/components/schemas/DistributedObservation' }
+        worker_publications: { $ref: '#/components/schemas/DistributedObservation' }
+        scheduler: { $ref: '#/components/schemas/DistributedObservation' }
+    DistributedObservation:
+      type: object
+      additionalProperties: false
+      required: [state, sampled_at]
+      properties:
+        state: { type: string, enum: [available, unavailable, historical, active, expired, not_observed] }
+        sampled_at: { type: string, format: date-time }
+        count: { type: string, pattern: '^(0|[1-9][0-9]{0,18})$' }
+        owner_id: { type: string, maxLength: 128 }
+        generation: { type: string, pattern: '^[1-9][0-9]{0,18}$' }
+        expires_at: { type: string, format: date-time }
+        latest_published_at: { type: string, format: date-time }
+    TransferRecoveryPage:
+      type: object
+      required: [requests]
+      properties:
+        requests: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/TransferRecoveryIntent' } }
+        next_cursor: { type: string, maxLength: 2048 }
+    TransferRecoveryIntent:
+      type: object
+      required: [request_reference, source_account_id, destination_account_id, currency, amount_minor, created_at, state]
+      properties:
+        request_reference: { type: string, format: uuid }
+        source_account_id: { type: string, format: uuid }
+        destination_account_id: { type: string, format: uuid }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+        amount_minor: { type: string, pattern: '^[1-9][0-9]*$' }
+        created_at: { type: string, format: date-time }
+        state: { type: string, enum: [unresolved, posted, rejected] }
+        transfer_id: { type: string, format: uuid }
     ExactMinor: { type: string, pattern: '^-?(0|[1-9][0-9]*)$' }
     ExactVersion: { type: string, pattern: '^(0|[1-9][0-9]*)$' }
     Currency: { type: string, pattern: '^[A-Z]{3}$', example: INR }
@@ -1669,6 +1783,7 @@ components:
       type: object
       required: [run_id, status, correlation_id, scope, ledger_watermark, application_version, schema_version, checked_account_count, posting_count, mismatch_count, started_at, completed_at]
       properties:
+        outbox_snapshot: { $ref: '#/components/schemas/OutboxSnapshot' }
         run_id: { type: string, format: uuid }
         status: { type: string, enum: [running, matched, mismatch, failed] }
         correlation_id: { type: string, format: uuid }
@@ -1929,8 +2044,18 @@ components:
           type: object
           required: [outbox, redis]
           properties:
-            outbox: { type: object, required: [state, worker_progress], properties: { state: { type: string, enum: [reachable, unavailable] }, pending_count: { $ref: '#/components/schemas/ExactVersion' }, dead_count: { $ref: '#/components/schemas/ExactVersion' }, worker_progress: { type: string, enum: [recent, idle, stalled, unknown] }, latest_published_at: { type: string, format: date-time }, oldest_pending_at: { type: string, format: date-time } } }
-            redis: { type: object, required: [state, label], properties: { state: { type: string, enum: [reachable, unavailable] }, label: { type: string, enum: [disposable_cache] } } }
+            outbox: { type: object, required: [state, worker_progress], properties: { sampled_at: { type: string, format: date-time }, state: { type: string, enum: [reachable, unavailable] }, pending_count: { $ref: '#/components/schemas/ExactVersion' }, dead_count: { $ref: '#/components/schemas/ExactVersion' }, worker_progress: { type: string, enum: [recent, idle, stalled, unknown] }, latest_published_at: { type: string, format: date-time }, oldest_pending_at: { type: string, format: date-time } } }
+            redis: { type: object, required: [state, label], properties: { sampled_at: { type: string, format: date-time }, state: { type: string, enum: [reachable, unavailable] }, label: { type: string, enum: [disposable_cache] } } }
+    OutboxSnapshot:
+      type: object
+      additionalProperties: false
+      required: [isolation, sampled_at, pending_count, published_count, dead_count]
+      properties:
+        isolation: { type: string, enum: [repeatable_read] }
+        sampled_at: { type: string, format: date-time }
+        pending_count: { $ref: '#/components/schemas/ExactVersion' }
+        published_count: { $ref: '#/components/schemas/ExactVersion' }
+        dead_count: { $ref: '#/components/schemas/ExactVersion' }
     EventEvidence:
       type: object
       required: [event_id, event_type, state, aggregate_type, aggregate_id, aggregate_version, attempt_count, occurred_at, available_at]
@@ -1974,9 +2099,48 @@ components:
         - type: object
           required: [delivery_attempts, delivery_attempts_truncated, timeline]
           properties:
+            diagnostic_trace_id:
+              type: string
+              pattern: '^[0-9a-f]{32}$'
+              description: Optional opaque origin trace ID for authorized diagnostic review. Absence is valid for historical records. It grants no financial or viewer authority.
+            event_order: { $ref: '#/components/schemas/EventOrder' }
+            publication_attempts: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/PublicationEvidence' } }
+            publication_attempts_truncated: { type: boolean }
+            receipts: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/ReceiptEvidence' } }
+            receipts_truncated: { type: boolean }
             delivery_attempts: { type: array, maxItems: 25, items: { $ref: '#/components/schemas/DeliveryEvidence' } }
             delivery_attempts_truncated: { type: boolean }
             timeline: { type: array, maxItems: 32, items: { $ref: '#/components/schemas/EventTimelineItem' } }
+
+    EventOrder:
+      type: object
+      description: Immutable optional Lamport origin metadata. Absence means legacy metadata is unavailable.
+      required: [node_id, logical_timestamp]
+      properties:
+        node_id: { type: string, minLength: 1, maxLength: 128 }
+        logical_timestamp: { $ref: '#/components/schemas/ExactVersion' }
+        parent_reference: { type: string, maxLength: 128 }
+    PublicationEvidence:
+      type: object
+      required: [generation, worker_id, state, started_at, lease_until]
+      properties:
+        generation: { $ref: '#/components/schemas/ExactVersion' }
+        worker_id: { type: string, minLength: 1, maxLength: 128 }
+        state: { type: string, enum: [claimed, expired, published, retrying, dead] }
+        started_at: { type: string, format: date-time }
+        lease_until: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        receive_counter: { $ref: '#/components/schemas/ExactVersion' }
+        send_counter: { $ref: '#/components/schemas/ExactVersion' }
+    ReceiptEvidence:
+      type: object
+      required: [node_id, receive_counter, received_at]
+      properties:
+        node_id: { type: string, minLength: 1, maxLength: 128 }
+        sender_node_id: { type: string, minLength: 1, maxLength: 128 }
+        send_counter: { $ref: '#/components/schemas/ExactVersion' }
+        receive_counter: { $ref: '#/components/schemas/ExactVersion' }
+        received_at: { type: string, format: date-time }
     EventEvidencePage: { type: object, required: [events, next_cursor], properties: { events: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/EventEvidence' } }, next_cursor: { type: string, maxLength: 512 } } }
     WebhookEndpointEvidence:
       type: object

@@ -1,0 +1,1 @@
+Scheduler stop and pause takeover, stale fences, interval uniqueness, and manual reconciliation passed.

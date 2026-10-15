@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"bytes"
+	"context"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/operations"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +12,38 @@ import (
 	contractassets "github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/contracts"
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/identity"
 )
+
+type distributedReaderStub struct {
+	tenant, actor string
+	calls         int
+}
+
+func (s *distributedReaderStub) Read(_ context.Context, tenant, actor string) operations.DistributedEvidence {
+	s.tenant, s.actor = tenant, actor
+	s.calls++
+	return operations.DistributedEvidence{}
+}
+func TestDistributedEvidenceRequiresScopeAndUsesVerifiedTenant(t *testing.T) {
+	for _, scoped := range []bool{false, true} {
+		scopes := []string{}
+		if scoped {
+			scopes = append(scopes, "developer:read")
+		}
+		reader := &distributedReaderStub{}
+		handler := NewDeveloperContractHandler(identity.DevelopmentProvider{SubjectID: "reader", TenantID: "tenant-a", Scopes: scopes}).WithDistributedReader(reader)
+		request := httptest.NewRequest(http.MethodGet, "/api/developer/distributed", nil)
+		request.Header.Set("Authorization", "Bearer development-local-only")
+		response := httptest.NewRecorder()
+		handler.Distributed(response, request)
+		if scoped {
+			if response.Code != 200 || reader.actor != "reader" || reader.tenant != "tenant-a" || reader.calls != 1 {
+				t.Fatal("authorized observation failed")
+			}
+		} else if response.Code != 403 || reader.calls != 0 {
+			t.Fatal("unauthorized reader reached observations")
+		}
+	}
+}
 
 func TestDeveloperContractsReturnCanonicalEmbeddedBytesWithoutCredentials(t *testing.T) {
 	handler := NewDeveloperContractHandler(identity.DevelopmentProvider{

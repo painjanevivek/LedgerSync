@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "phase": "R12",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T15:12:07.912Z",
+  "summary": "One dependency-free TypeScript backend example now persists complete exact intents, operation/destination and original credential bindings before send, supports explicit original-key recovery across processes, and receives signed events with durable deduplication. The generated client preserves the API base prefix, rejects escaped/plaintext remote destinations, bounds network time, protects credential headers, and can obtain a fresh delegated assertion per call. API 3.7.0 documents own-principal versus delegated authentication. Developer starts with this workflow and derives operation-specific retry advice from a generated web-local contract projection. Other recipes and detailed references remain available.",
+  "verification": {
+    "go_packages_passed": 44,
+    "vet": "passed",
+    "example_unit_tests_passed": 4,
+    "example_typecheck": "passed",
+    "offline_install": "passed",
+    "host_tests_passed": 39,
+    "web_tests_passed": 222,
+    "typecheck": "passed",
+    "targeted_lint": "passed",
+    "web_build": "passed",
+    "browser_tests_passed": 11,
+    "generated_drift": "passed",
+    "workflow_yaml": "passed",
+    "journals": 2,
+    "postings": 4,
+    "reconciliation": "matched",
+    "receiver_restart_effects": 1,
+    "named_integration_seconds": 5.254,
+    "host_bundle_seconds": 32.361,
+    "artifacts": 32,
+    "artifact_bytes": 44696599,
+    "final_run": "demo-20261015150744-f551eea6",
+    "api_version": "3.7.0"
+  },
+  "source": {
+    "head": "65e45ae1ac399c2c09f612941fa2e2c6ed178269",
+    "dirty": true,
+    "original_files": 1753,
+    "original_manifest_path": "data/portfolio/r12-20261015/source-before.json",
+    "original_manifest_sha256": "9f9584c865fbdf3394241ded807f25ae0ae194909187ac54484fbbba7d2332a6",
+    "authorized_git_checkpoint": null,
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "c3586256bb3bf2a8e401b4cdfe4d0c22624adc003b55c8429adcef58c21b4c41",
+    "changed_original_files": [
+      {
+        "path": ".github/workflows/quality.yml",
+        "before_sha256": "a5db87bfa8a22a6fd802556f8f0ae3014b147329c38ba50f70ac616cd45efeef",
+        "sha256": "fecedcc6e32cec81fc0537af51071c599e7675000acddfe8ac526c77e0277a95"
+      },
+      {
+        "path": "README.md",
+        "before_sha256": "c9863e3e58aefde664363540e37e5fbf51f3d469b07d83759b4c9775749e46b6",
+        "sha256": "7c8a524fc3a7769476219b93dae5ce718bf5a5ed27741e7ed2ce26c144a10d24"
+      },
+      {
+        "path": "contracts/CHANGELOG.md",
+        "before_sha256": "837cf954cde1edf1f0fbe196b3abed7763728ce5f07e64345aeddc07645282cf",
+        "sha256": "1685e44e35f8f588bf1a301f3a59bb0475acccbff9ddcfeaf1dfee0b39f2fdae"
+      },
+      {
+        "path": "contracts/assets.go",
+        "before_sha256": "41cc562eebc39c69e302626a340d32c6173624c315f3b75f6343defba085822b",
+        "sha256": "7276a507a533601da3730481afbbdb85658ef9d923ab5dc3bc3767c2eb74ddb4"
+      },
+      {
+        "path": "contracts/demo/run-manifest.v1.example.json",
+        "before_sha256": "145882783a5e1d9678e5ee040b43939102110b8688b587d8b694941d3a9b2ec7",
+        "sha256": "ab72800e90693791ed5f0536f6da3633069d97109b7d9fd9216ed297f9dd0903"
+      },
+      {
+        "path": "contracts/developer-examples.v1.json",
+        "before_sha256": "d6d1fd408546144d5f8258899232a21dee8a0887ca4524efaf0d77246bd9da9b",
+        "sha256": "c1f3f05c37c5e0c07e0dea5ff32c37e52356f2e6ca5b31879308da6de7480be3"
+      },
+      {
+        "path": "contracts/generated/go/ledgersync.go",
+        "before_sha256": "b6ef287e48500862c64fce1d8d612c9d4be699f18ecde159394d008348ca2c65",
+        "sha256": "03fedf1860acb09ea5b14efeea3a8f0a605092267ac68426bb0a58fffcf6d849"
+      },
+      {
+        "path": "contracts/generated/ledgersync.postman_collection.json",
+        "before_sha256": "bf6489bf2b49b8fb74dfc7f13a7d55310b898b5e69bbcdf579a0ff22d0a7fb4e",
+        "sha256": "63b8d60e8fefdfd9de2cb6873245b18e7bbf1d168bef1e612e0a807d8e3d2357"
+      },
+      {
+        "path": "contracts/generated/sdk-manifest.json",
+        "before_sha256": "53db96c85bd436e384000f01a03c7068499f2bb83af7da91a853b5514e23ab03",
+        "sha256": "8e93794b26b373cf38339b13442878e55ed64232cdb2b2e7bb6c31ed2e004865"
+      },
+      {
+        "path": "contracts/generated/typescript/ledgersync.ts",
+        "before_sha256": "59b6fa328d8db170fc7ff53919a239644406d6fd729e7f6f59960f77538d44f4",
+        "sha256": "8a536f217f8c2dbd8e8538a318289464a33db4c39e6d275f28f7be939216199a"
+      },
+      {
+        "path": "contracts/openapi.yaml",
+        "before_sha256": "64030b0055a869fb976dabdf2783a1e33603befa64e892cd3b0e474bb85f1fcd",
+        "sha256": "9e4bf4c687813db32c3f8a3458175ee5cac2293c87c9db7f881707f30f060bfc"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "bb96e08e107c5237725565cdab81ad94dd5045d912e8c7dd622a39d44066cd1e",
+        "sha256": "354ecebf93123603028413889018aa7409c0531423c30867b3270d0e46555d08"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "05329954155b7300f79c1b5718d3fe7305434edb4d21b99a207b41b393f92481",
+        "sha256": "a982a2419950d07a59eeafe188717e7cf70ff7df003525c6f77a5cc00f7856ee"
+      },
+      {
+        "path": "docs/portfolio/module-map.md",
+        "before_sha256": "8aceab5b3f0dcfbf63fb21e23c27a930869cda2def6a03b5f7cdc8917b96a6b2",
+        "sha256": "2e21f5ab906496ac4a1a830287b8a5b8897f7a7f6af304d5eab69e4cef949eac"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "bb435106e1266256f31a8f4ffc24134ef4c0f59d69aad14f7e9f3562db44eb5f",
+        "sha256": "501c19f90bcc907e5e22db54bf1784dc1b7498b8c7e192534920205389c5218a"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "b53431f1e7a133056ce934c7e17ef8f816654f8aa3293b932d08638a7ee4f85b",
+        "sha256": "30f7e18f28cc854a98a72f1925a3f9fc71ee59a3b0d82003cc0153c7b373f67e"
+      },
+      {
+        "path": "scripts/generate-developer-artifacts.mjs",
+        "before_sha256": "f6888c8f3f9068cc7954ef7ed472f0604b1d137ef2bcbeea981a8641a06f17d2",
+        "sha256": "c5e769d03c5ee2bae25f9c4664909dfe1fb7883d7bab987dee3bcce9252d2aec"
+      },
+      {
+        "path": "scripts/portfolio/run-demo.mjs",
+        "before_sha256": "a6ea70be85e14e28070b90ee1f5a60bea48c0f791e68158c6cac0b33da7732ab",
+        "sha256": "645bfa0426c9a79a26749417b01403842315a629946cdf4e64ed2ab16295ddbf"
+      },
+      {
+        "path": "web/src/features/developer/DeveloperReferenceSections.tsx",
+        "before_sha256": "5d0d4b4ea77ed838fd793040c031194bc885b314c8d9bdb56d832056f9ff8ade",
+        "sha256": "35299bf65dd4e6aece24e4e766b39c842cf30c840b8e7750bfa7d1e79e0e8c7c"
+      },
+      {
+        "path": "web/src/features/developer/DeveloperViews.tsx",
+        "before_sha256": "d93e304f6a79ab9f7eebf10649bb0cc9c535508e86899a547a64b13c19bfea7d",
+        "sha256": "18afd6a2c4775f5fd871d759e72a790f31d21e557646ed603ffefc2a5dc60bdd"
+      },
+      {
+        "path": "web/src/features/developer/developer-recipes.ts",
+        "before_sha256": "7d9818e51faaee30e445676bc32ccac7516121bfe835f1437e7fd29b732e252e",
+        "sha256": "486ba1112e77d0e6d2d7f2a4fb815235f2bfb6d8e39753c144ed5f9e3e7dc506"
+      },
+      {
+        "path": "web/tests/e2e/developer.spec.ts",
+        "before_sha256": "c89edaae3dd184e5b3a899c01fced4df8430e93d9a90b0b52d5adf9af53f4732",
+        "sha256": "66db77c16746fd115f71e9ab41fffbe12aaeb3b26a93876c974c957d6e16112c"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "examples/typescript/.gitignore",
+        "sha256": "ee7f8b37fcd15e135c4bfae055f16cc602b207dc0c503818d158a73289280267"
+      },
+      {
+        "path": "examples/typescript/README.md",
+        "sha256": "d3031ff7dcda0c4cd7a95ce22562470be45359b49b68ff2e96610a138d2c5f83"
+      },
+      {
+        "path": "examples/typescript/package-lock.json",
+        "sha256": "2217faa7433e7a0a0c20e9d7f155cd7dac1b838ad713db7f51e4c8a060fd0948"
+      },
+      {
+        "path": "examples/typescript/package.json",
+        "sha256": "06f2d7726bc1a2ce651217847dfc52027314439423d0118f8f6972e50c5d62fe"
+      },
+      {
+        "path": "examples/typescript/src/client.test.ts",
+        "sha256": "1e56140fd21e90ac83ff3d04d97e1027fb765862a0a96467a57253e1a3f1e230"
+      },
+      {
+        "path": "examples/typescript/src/client.ts",
+        "sha256": "fdd785072250fb33bef5873cdf83d067daf9e2dce5cbfe97e48e3679adb83f69"
+      },
+      {
+        "path": "examples/typescript/src/config.ts",
+        "sha256": "6cdfd0377836351a3c5c7ecd2474d4b9e14ec3b388d04eb4350f9a328274a718"
+      },
+      {
+        "path": "examples/typescript/src/intents.ts",
+        "sha256": "3dcd98d05339d31a48e085e739e60a9c4dddf70e821b39b52ec0ec0c843afb00"
+      },
+      {
+        "path": "examples/typescript/src/main.ts",
+        "sha256": "ea1469e79d9ada95eb5d3ac85c1386248a40c43801b0c54917e679746b850b03"
+      },
+      {
+        "path": "examples/typescript/src/receiver-main.ts",
+        "sha256": "1bcb317a2782c2962a1dd6f747f67b368ed3f23c4f3963354c647f7af4e19259"
+      },
+      {
+        "path": "examples/typescript/src/receiver.test.ts",
+        "sha256": "370df5efc05d4e32687c9ef029a45c851b1c90def58acd04325129d0209da63c"
+      },
+      {
+        "path": "examples/typescript/src/receiver.ts",
+        "sha256": "b02091bc90a7909e953b93b696037be9f5406a2ffd95d1e91ddd4fd79f5c3ed2"
+      },
+      {
+        "path": "examples/typescript/src/sdk.test.ts",
+        "sha256": "8852b743672f88abb94fff621f7553e598de8d1e01b63cd2c47feb05491d37fe"
+      },
+      {
+        "path": "examples/typescript/src/storage.ts",
+        "sha256": "712e636f715d87c2b7f281520f38a7d2bffcccd360bb2364ada38fe38cf45f0d"
+      },
+      {
+        "path": "examples/typescript/src/workflow-check.ts",
+        "sha256": "6168da651c6b43f6bbae66457123de598a51001babeb8a427b6ef835c0ef4a62"
+      },
+      {
+        "path": "examples/typescript/tsconfig.json",
+        "sha256": "640d7ea8716caa211b4d5304aa57df177cf9b7ac4bc8f10ae0d3c67efb91f6b4"
+      },
+      {
+        "path": "scripts/portfolio/run-developer.mjs",
+        "sha256": "c7e9d1de4e592b996aa5c2f5a2bb4c93295d14e46e3001f46634397b5a5ba69d"
+      },
+      {
+        "path": "scripts/templates/typescript-client.ts.txt",
+        "sha256": "b9975a59a456abc04d8bf61c8ff521d175041628d940fcc65873841e9af0af85"
+      },
+      {
+        "path": "tests/integration/developer_example_fixture_test.go",
+        "sha256": "e9935b7eae89d710ac610b6437d49e0bec9c838e5b5a58d19f92ecf7eb09eba9"
+      },
+      {
+        "path": "tests/integration/developer_example_test.go",
+        "sha256": "0e90cae687bb936ddd1d577d836757304ab1e797599189ea172511b97d1940c5"
+      },
+      {
+        "path": "web/src/features/developer/retry-guidance.ts",
+        "sha256": "da6f1066ccbf432548f1b21b59f1bfe280cc40c4440f10dca0d90883d06db21d"
+      },
+      {
+        "path": "web/src/lib/generated/developer-retry-contract.json",
+        "sha256": "e27d4e951f62448330c46d88fdb9cee49829368e572dd1cd6dfa73c908c53d9e"
+      },
+      {
+        "path": "web/tests/security/developer-retry-guidance.test.ts",
+        "sha256": "e6f0cac42f03b2e0a863f93a7461bb91d903c05a47fa3698c43f4facd5badc0f"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r12-20261015/go-verified.txt",
+      "sha256": "29f6d4c7c9de396fb5ead44bac8bc97cf481eeb6aa62e6d9276cfb09d4abf349",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/vet-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/example-install-final.txt",
+      "sha256": "847f4f3733e80779098e2bd254bb07099b4385b5c9ff46f3097b5901c1797b67",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/example-final.txt",
+      "sha256": "583d9c369d68b5358c1ef41f89379105bd773bb7be21bb2fc81e1d25b517003d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/example-typecheck-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/host-final.txt",
+      "sha256": "720f0a713b583fada50ab5e3f2241bd54d85ef879730eb63818aad406bc28677",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/web-final.txt",
+      "sha256": "946ec41de36b187bb654a89e58646e2a54c5ce432f5ac15bc9e8ff9d0f67ffe8",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/web-verified.txt",
+      "sha256": "451b4f378ad20bca58621bdab9569eff3e6433d43caa9300c43832d661d1101e",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/typecheck-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/lint-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/browser-final.txt",
+      "sha256": "a8233451b7d6687c1c5529e9a61227c1fff783f90811bc2b9a49a3eed9819b5c",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/browser-second.txt",
+      "sha256": "aac26e7176b802b97a2902fae5bd520e04c9b6cd1079d29a13ec1f989bd16e7c",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/developer-first.txt",
+      "sha256": "1a7fd61b04dc8409955c141d3d3196c67fa12d863305f002b078ce350a6f2397",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/developer-second.txt",
+      "sha256": "e680dd6606d17bbba0de78f283f29b44c12e344be0e1b62d73f7eaa4cb52e526",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/developer-third.txt",
+      "sha256": "1bef444853fb408188479225caa218e74c55d7736cfc1077d24e31b996731247",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/developer-final.txt",
+      "sha256": "594b7e0a6e3caba3c9358806a426a890836f0ca1d2406762a536170992e11c82",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/developer-final-repeat.txt",
+      "sha256": "1a8eb2e40c39c9c1068e94db86580bc91dac45c49001c97abdacaa5d7d002101",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/verification-final.json",
+      "sha256": "08de5d6c63b4e572efe2dfd530cfc93180897d356dc3aec57e01975b1adfff88",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/generated-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/workflow-final.txt",
+      "sha256": "3903eaa5b2e60827b92027ae6199130160df2b8b3b4feb29501edf1ad2685013",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/final-run-manifest.json",
+      "sha256": "9f9f4b6b1adb12510f84224ea031425980165f29181c4dbeda09432e85cf8631",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/final-cleanup.json",
+      "sha256": "946c3b2b6024498b7e49801434b2deba7ab597181e86252b5aa8557f20a19acc",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r12-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "94b0eca09aca7080bdf1b4a50c137505496b3e591011f586ca79ea32ccf25a1b"
+  },
+  "limits": [
+    "This clean environment uses new disposable databases/configuration and separate Node processes with the installed pinned runtime. It does not claim a second human review, fresh-machine installation, external OAuth provisioning or a candidate API image.",
+    "The local fixture uses real RequestAuthenticator/handlers with a synthetic own-principal identity provider and restricted workload pools; final provider/image qualification remains separate.",
+    "Receiver rewriting is confined to a fixed synthetic HTTPS destination and an owned loopback process in Go test code. Production SSRF/transport policy is unchanged.",
+    "Real delivery selects transfer.posted. Balance-event ordering is a separately labelled signed synthetic fixture; no new subscription availability is claimed.",
+    "Node SQLite is experimental in pinned Node 24.12.0 and is limited to this local example. It is not the ledger authority or an approved shared production receiver store.",
+    "The latest integration source snapshot remains immutable. Subsequent OpenAPI wording and generated EOF normalization are documentation/format corrections, with final drift, type, Go and frontend checks; they do not relabel that snapshot.",
+    "R13-R17 remain selected work."
+  ]
+}

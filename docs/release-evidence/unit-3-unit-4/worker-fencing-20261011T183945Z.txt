@@ -1,0 +1,14 @@
+=== RUN   TestDeveloperWebhookLifecycleIsVerifiedVersionedAndAppendOnly
+--- PASS: TestDeveloperWebhookLifecycleIsVerifiedVersionedAndAppendOnly (0.51s)
+=== RUN   TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth
+--- PASS: TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth (0.47s)
+=== RUN   TestWebhookEndpointEvidenceIsTenantScopedBoundedAndLinkedToEvents
+--- PASS: TestWebhookEndpointEvidenceIsTenantScopedBoundedAndLinkedToEvents (0.50s)
+=== RUN   TestExpiredOutboxOwnerCannotAcknowledge
+--- PASS: TestExpiredOutboxOwnerCannotAcknowledge (0.55s)
+=== RUN   TestOutboxGenerationRejectsPreviousClaimFromSameOwner
+--- PASS: TestOutboxGenerationRejectsPreviousClaimFromSameOwner (0.46s)
+=== RUN   TestOutboxRenewalKeepsLongTaskAndParallelClaimsSeparate
+--- PASS: TestOutboxRenewalKeepsLongTaskAndParallelClaimsSeparate (1.56s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	4.688s

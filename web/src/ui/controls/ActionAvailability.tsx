@@ -4,10 +4,7 @@ import {
   useId,
   type ButtonHTMLAttributes,
   type ReactElement,
-  type ReactNode,
 } from "react";
-
-import { UnavailableActionMetric } from "@/ui/controls/UnavailableActionMetric.client";
 
 export type UnavailableActionState =
   | "busy"
@@ -21,7 +18,7 @@ export type UnavailableActionState =
 
 export type ActionAvailabilityStatus =
   | Readonly<{ state: "available" }>
-  | Readonly<{ state: UnavailableActionState; reason: string; recovery?: ReactNode }>;
+  | Readonly<{ state: UnavailableActionState; reason: string }>;
 
 type ActionElement = ReactElement<ButtonHTMLAttributes<HTMLButtonElement>>;
 
@@ -42,11 +39,9 @@ export function ActionAvailability({
 
   return (
     <span className="action-availability" data-availability={availability.state}>
-      <UnavailableActionMetric state={availability.state} />
       {control}
       <span id={reasonId} className="action-availability-reason">
         {availability.reason}
-        {availability.recovery && <span className="action-availability-recovery">{availability.recovery}</span>}
       </span>
     </span>
   );

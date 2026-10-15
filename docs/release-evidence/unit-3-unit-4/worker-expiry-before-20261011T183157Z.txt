@@ -1,0 +1,6 @@
+=== RUN   TestExpiredOutboxOwnerCannotAcknowledge
+    worker_coordination_test.go:25: expired claim was acknowledged
+--- FAIL: TestExpiredOutboxOwnerCannotAcknowledge (0.65s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	1.216s
+FAIL

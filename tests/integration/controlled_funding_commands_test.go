@@ -90,7 +90,7 @@ INSERT INTO tenant_funding_policies(
 	const postKey = "controlled-funding-post-0001"
 	const correlationID = "00000000-0000-4000-8000-000000008503"
 	var replayed bool
-	if err = api.db.QueryRowContext(ctx, `SELECT replayed FROM public.controlled_post_funding_v1($1,$2,$3,$4,$5,$6)`,
+	if err = tenantTestRow(ctx, api.db, testTenantID, approver, `SELECT replayed FROM public.controlled_post_funding_v1($1,$2,$3,$4,$5,$6)`,
 		testTenantID, approver, created.Event.FundingEventID, postKey, correlationID, now).Scan(&replayed); err != nil || replayed {
 		t.Fatalf("API controlled funding post replayed=%t error=%v", replayed, err)
 	}
@@ -99,7 +99,7 @@ INSERT INTO tenant_funding_policies(
 		t.Fatal("controlled funding post did not commit one canonical journal")
 	}
 
-	if _, err = api.db.ExecContext(ctx, `SELECT * FROM public.controlled_post_funding_v1($1,$2,$3,$4,$5,$6)`,
+	if _, err = tenantTestExec(ctx, api.db, testTenantID, approver, `SELECT * FROM public.controlled_post_funding_v1($1,$2,$3,$4,$5,$6)`,
 		testTenantID, "spoofed-finance-actor", created.Event.FundingEventID, postKey, correlationID, now); sqlState(err) != "42501" {
 		t.Fatalf("spoofed actor SQLSTATE=%s error=%v, want 42501", sqlState(err), err)
 	}
@@ -113,6 +113,9 @@ INSERT INTO tenant_funding_policies(
 		t.Fatal(err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec("SELECT set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true)", testTenantID, approver); err != nil {
+		t.Fatal(err)
+	}
 	if _, err = tx.Exec(`CREATE TEMP TABLE funding_events(id uuid); SET LOCAL search_path=pg_temp,public`); err != nil {
 		t.Fatal(err)
 	}

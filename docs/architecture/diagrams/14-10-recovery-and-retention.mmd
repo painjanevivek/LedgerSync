@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor Operator
+  participant Tool as Backup and restore scripts
+  participant Normal as Normal PostgreSQL
+  participant Store as Protected host backup store
+  participant Isolated as Isolated recovery PostgreSQL
+  participant Redis as Disposable recovery Redis
+  Operator->>Tool: Create local backup
+  Tool->>Normal: Export consistent snapshot and pg_dump
+  Tool->>Store: Store dump, counts, byte size, digest and manifest
+  Tool->>Store: Finalize sanitized evidence index
+  Operator->>Tool: Run isolated restore drill
+  Tool->>Store: Validate format, digest and corruption rejection
+  Tool->>Normal: Record normal fingerprint and volume names
+  Tool->>Isolated: Create new internal recovery project and restore
+  Tool->>Isolated: Apply migrations and verify counts and financial invariants
+  Tool->>Isolated: Run tenant reconciliation
+  Isolated-->>Tool: Zero unexplained mismatches required
+  Tool->>Redis: Rebuild only from restored PostgreSQL projections
+  Tool->>Normal: Check normal fingerprint and volume names unchanged
+  Tool->>Store: Record sanitized restore evidence
+  Tool->>Isolated: Remove only exact isolated project after evidence capture
+  Tool-->>Operator: Verified local result or blocking evidence failure

@@ -14,20 +14,60 @@ ad5eda1ff028b33e88c3154bcbc8d8991b36e277:internal/transport/http/handlers/transf
 b4be5f44d9da2ba01f54ce4a30664287399cb629:docs/plans/ledgersync-implementation-plan.md:generic-api-key:1594
 e07c562f79c1e5037602b39d3eb58537f0def064:tests/unit/idempotency_test.go:generic-api-key:14
 
-# PR 11 review: exact historical idempotency fixtures. These values identify
-# synthetic commands in tests; they are not authentication credentials.
-c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:tests/integration/lifecycle_recovery_test.go:generic-api-key:130
-c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:internal/transport/http/handlers/developer_webhooks_test.go:generic-api-key:105
-c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:internal/transport/http/handlers/developer_webhooks_test.go:generic-api-key:114
-c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:tests/integration/lifecycle_recovery_test.go:generic-api-key:139
-c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:tests/integration/lifecycle_recovery_test.go:generic-api-key:151
-f642e94db4c771ed75dfec06567e2e5718c69759:tests/integration/account_commands_test.go:generic-api-key:379
-7bd1f98905a00eeee8da5f14eff08995c4104fd5:internal/domain/funding/event_test.go:generic-api-key:85
-ee5a0e4fda8ccde56c3df930caa82f2762eeffc9:tests/integration/funding_test.go:generic-api-key:134
-ee5a0e4fda8ccde56c3df930caa82f2762eeffc9:tests/integration/funding_test.go:generic-api-key:184
-
-# PR 11 review: public SHA-256 provenance from generated contract artifacts.
-# Keep exclusions fingerprint-specific. New findings must still fail the scan.
-3d0beb8057fe55d5a79d85f82f34713df4ff1c92:contracts/generated/sdk-manifest.json:generic-api-key:5
+# R13: exact reviewed historical study identifiers, test fixtures and public digests.
 0849dd135a21fa84d85e9f445a746cf449ecc6f0:contracts/generated/go/ledgersync.go:generic-api-key:2
 0849dd135a21fa84d85e9f445a746cf449ecc6f0:contracts/generated/typescript/ledgersync.ts:generic-api-key:2
+3d0beb8057fe55d5a79d85f82f34713df4ff1c92:contracts/generated/sdk-manifest.json:generic-api-key:5
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:104
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:114
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:124
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:134
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:144
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:154
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:164
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:174
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:188
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:198
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:208
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:218
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:228
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:238
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:24
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:248
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:258
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:268
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:278
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:298
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:308
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:318
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:328
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:338
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:34
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:348
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:358
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:368
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:378
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:388
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:398
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:408
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:418
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:44
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:54
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:64
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:74
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/api-failure.json:generic-api-key:84
+65e45ae1ac399c2c09f612941fa2e2c6ed178269:docs/release-evidence/unit-3-unit-4/concurrent-transfers.json:generic-api-key:13
+7bd1f98905a00eeee8da5f14eff08995c4104fd5:internal/domain/funding/event_test.go:generic-api-key:85
+c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:internal/transport/http/handlers/developer_webhooks_test.go:generic-api-key:105
+c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:internal/transport/http/handlers/developer_webhooks_test.go:generic-api-key:114
+c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:tests/integration/lifecycle_recovery_test.go:generic-api-key:130
+c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:tests/integration/lifecycle_recovery_test.go:generic-api-key:139
+c3dcc0568261cdb221f2e0b52b1fe724f687c5cb:tests/integration/lifecycle_recovery_test.go:generic-api-key:151
+ee5a0e4fda8ccde56c3df930caa82f2762eeffc9:tests/integration/funding_test.go:generic-api-key:134
+ee5a0e4fda8ccde56c3df930caa82f2762eeffc9:tests/integration/funding_test.go:generic-api-key:184
+f642e94db4c771ed75dfec06567e2e5718c69759:tests/integration/account_commands_test.go:generic-api-key:379
+
+# R13 resumed: retained recovery snapshots contain the same synthetic cron fixture.
+0cb076d0a5bde7a06ccbb14084a23256810dd1b1:tests/integration/cron_worker_role_test.go:generic-api-key:34
+79a68b4decfa5a262388e193df62317d5f0f9a9f:tests/integration/cron_worker_role_test.go:generic-api-key:34
+f8632859f495212b86c14681fb1c93a7584d56c8:tests/integration/cron_worker_role_test.go:generic-api-key:34

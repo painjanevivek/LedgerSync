@@ -17,6 +17,7 @@ const (
 )
 
 type Result struct {
+	OutboxSnapshot                                                                         *OutboxSnapshot `json:"outbox_snapshot,omitempty"`
 	ID, TenantID, CorrelationID, Scope, LedgerWatermark, ApplicationVersion, SchemaVersion string
 	Status                                                                                 Status
 	CheckedAccountCount, PostingCount, MismatchCount                                       int

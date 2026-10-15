@@ -1,0 +1,18 @@
+=== RUN   TestLamportStorageSendAndReceiveRules
+--- PASS: TestLamportStorageSendAndReceiveRules (0.49s)
+=== RUN   TestLamportConcurrencyRestartRollbackAndOverflow
+--- PASS: TestLamportConcurrencyRestartRollbackAndOverflow (0.48s)
+=== RUN   TestLamportEnvelopeRetryAndLegacyReceipt
+    logical_clock_test.go:117: ERROR: duplicate key value violates unique constraint "outbox_events_transfer_id_account_id_event_type_key" (SQLSTATE 23505)
+--- FAIL: TestLamportEnvelopeRetryAndLegacyReceipt (0.47s)
+=== RUN   TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth
+--- PASS: TestEventEvidenceAuthorizationPaginationAndFirstClaimTruth (0.48s)
+=== RUN   TestOutboxProcessCrashRecovery
+=== RUN   TestOutboxProcessCrashRecovery/before_publish
+=== RUN   TestOutboxProcessCrashRecovery/after_publish
+--- PASS: TestOutboxProcessCrashRecovery (2.92s)
+    --- PASS: TestOutboxProcessCrashRecovery/before_publish (1.43s)
+    --- PASS: TestOutboxProcessCrashRecovery/after_publish (1.49s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	5.447s
+FAIL

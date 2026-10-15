@@ -28,10 +28,10 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 	if err := database.QueryRowContext(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&versions); err != nil {
 		t.Fatal(err)
 	}
-	if versions != 37 {
-		t.Fatalf("migration versions=%d, want 37", versions)
+	if want := len(liveMigrationSource(t, false)); versions != want {
+		t.Fatalf("migration versions=%d, want %d", versions, want)
 	}
-	for _, table := range []string{"bff_sessions", "operator_ui_preferences", "accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs"} {
+	for _, table := range []string{"accounts", "account_credit_permissions", "ledger_postings", "ledger_semantic_key_validation", "ledger_semantic_control_events", "outbox_events", "reconciliation_runs", "reconciliation_mismatches", "reconciliation_run_commands", "delivery_attempts", "webhook_delivery_jobs", "delivery_replay_actions", "tenant_transfer_policies", "transfer_policy_versions", "transfer_corrections", "tenant_funding_policies", "funding_events", "approval_records", "funding_velocity_events", "api_rate_limit_windows", "transfer_velocity_events", "transfer_velocity_totals", "account_opening_balances", "retention_runs", "outbox_replay_actions", "partner_provisioning_requests", "partner_credential_events", "operator_onboarding_preferences", "investigation_saved_views", "investigation_workspaces", "investigation_workspace_references", "investigation_live_rooms", "investigation_live_room_findings", "investigation_live_room_operations", "bff_actor_assertion_replays", "webhook_endpoint_verification_jobs", "opening_import_batches", "opening_import_rows", "opening_import_approvals", "opening_import_executions"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -40,7 +40,7 @@ func TestMigrationsAreForwardCompatibleAndPreserveExistingReadContracts(t *testi
 			t.Fatalf("required table %s is missing after migration", table)
 		}
 	}
-	for _, index := range []string{"bff_sessions_expiry_idx", "bff_sessions_operator_idx", "funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx", "reconciliation_mismatches_tenant_transfer_idx", "journal_transactions_tenant_funding_idx", "outbox_events_tenant_account_relation_idx", "outbox_events_tenant_transfer_relation_idx", "transfer_corrections_tenant_compensation_idx", "investigation_saved_views_owner_name_idx", "investigation_saved_views_owner_recent_idx", "investigation_workspaces_owner_recent_idx", "investigation_workspace_references_record_idx"} {
+	for _, index := range []string{"opening_import_batches_tenant_created_idx", "opening_import_rows_account_idx", "outbox_opening_import_account_idx", "bff_sessions_expiry_idx", "bff_sessions_operator_idx", "funding_events_approval_queue_idx", "transfer_corrections_approval_queue_idx", "developer_webhook_endpoints_tenant_status_updated_idx", "developer_webhook_endpoints_subscriptions_idx", "delivery_attempts_webhook_endpoint_recent_idx", "delivery_attempts_webhook_event_endpoint_idx", "reconciliation_mismatches_tenant_transfer_idx", "journal_transactions_tenant_funding_idx", "outbox_events_tenant_account_relation_idx", "outbox_events_tenant_transfer_relation_idx", "transfer_corrections_tenant_compensation_idx", "investigation_saved_views_owner_name_idx", "investigation_saved_views_owner_recent_idx", "investigation_workspaces_owner_recent_idx", "investigation_workspace_references_record_idx"} {
 		var exists bool
 		if err := database.QueryRowContext(context.Background(), `SELECT to_regclass($1) IS NOT NULL`, index).Scan(&exists); err != nil {
 			t.Fatal(err)
@@ -132,14 +132,15 @@ FROM pg_proc procedure
 JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
 JOIN pg_roles owner ON owner.oid=procedure.proowner
 WHERE namespace.nspname='public'
-  AND procedure.proname IN ('controlled_submit_transfer_v1','controlled_post_funding_v1','controlled_post_transfer_correction_v1','controlled_provision_account_v1')
+  AND procedure.proname IN ('controlled_submit_transfer_v1','controlled_post_funding_v1','controlled_post_transfer_correction_v1','controlled_provision_account_v1','controlled_attach_transfer_request_reference_v1')
   AND procedure.prosecdef
   AND owner.rolname='ledgersync_migration_owner'
   AND 'search_path=pg_catalog, public'=ANY(procedure.proconfig)
+  AND has_function_privilege('ledgersync_api',procedure.oid,'EXECUTE')
   AND NOT EXISTS (SELECT 1 FROM aclexplode(procedure.proacl) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')`).Scan(&controlledFinancialFunctions); err != nil {
 		t.Fatal(err)
 	}
-	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 4 || semanticTriggers != 4 {
+	if compositeUniqueKeys != 2 || validatedCompositeForeignKeys != 4 || hardenedHydrators != 2 || hardenedSemanticFunctions != 2 || controlledFinancialFunctions != 5 || semanticTriggers != 4 {
 		t.Fatalf("ledger validation controls unique=%d validated_fk=%d hardened_hydrators=%d hardened_semantic_functions=%d controlled_financial_functions=%d semantic_triggers=%d", compositeUniqueKeys, validatedCompositeForeignKeys, hardenedHydrators, hardenedSemanticFunctions, controlledFinancialFunctions, semanticTriggers)
 	}
 }
@@ -293,7 +294,7 @@ GROUP BY journal.id`, legacyJournalID).Scan(&sourceType, &sourceID, &journalTena
 	if _, err := upgradeDatabase.Exec(string(rolesSQL)); err != nil {
 		t.Fatalf("apply post-upgrade database roles: %v", err)
 	}
-	verifyDatabaseRoleCapabilities(
+	upgradeCapabilities := verifyDatabaseRoleCapabilities(
 		t,
 		upgradeDatabase,
 		parsed.String(),
@@ -301,6 +302,9 @@ GROUP BY journal.id`, legacyJournalID).Scan(&sourceType, &sourceID, &journalTena
 		"00000000-0000-4000-8000-000000000806",
 		legacyTenant,
 	)
+	if reportPath := os.Getenv("LEDGERSYNC_CAPABILITY_UPGRADE_REPORT_PATH"); reportPath != "" {
+		writeCapabilityReport(t, reportPath, upgradeCapabilities)
+	}
 	var canReadOutbox, canReadAudit, canReadFundingPolicy, canMutateFundingPolicy, canPersistAssertionReplay, canDeleteAssertionReplay, canInsertVerificationJob, workerCanClaimVerificationJob bool
 	if err := upgradeDatabase.QueryRow(`
 SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
@@ -310,8 +314,9 @@ SELECT has_table_privilege('ledgersync_api','outbox_events','SELECT'),
        has_table_privilege('ledgersync_api','bff_actor_assertion_replays','INSERT'),
        has_table_privilege('ledgersync_api','bff_actor_assertion_replays','DELETE'),
        has_table_privilege('ledgersync_api','webhook_endpoint_verification_jobs','INSERT'),
-       has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','SELECT')
-         AND has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy, &canPersistAssertionReplay, &canDeleteAssertionReplay, &canInsertVerificationJob, &workerCanClaimVerificationJob); err != nil {
+       has_function_privilege('ledgersync_worker','controlled_claim_webhook_verification_v1(double precision,integer,text)','EXECUTE')
+         AND has_function_privilege('ledgersync_worker','controlled_complete_webhook_verification_v1(uuid,text,bigint,text,timestamptz,timestamptz,text,text)','EXECUTE')
+         AND NOT has_table_privilege('ledgersync_worker','webhook_endpoint_verification_jobs','UPDATE')`).Scan(&canReadOutbox, &canReadAudit, &canReadFundingPolicy, &canMutateFundingPolicy, &canPersistAssertionReplay, &canDeleteAssertionReplay, &canInsertVerificationJob, &workerCanClaimVerificationJob); err != nil {
 		t.Fatal(err)
 	}
 	if !canReadOutbox || !canReadAudit || !canReadFundingPolicy || canMutateFundingPolicy || !canPersistAssertionReplay || !canDeleteAssertionReplay || !canInsertVerificationJob || !workerCanClaimVerificationJob {

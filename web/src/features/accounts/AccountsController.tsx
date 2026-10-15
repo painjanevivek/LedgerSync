@@ -72,6 +72,7 @@ export function AccountsController({
           online={online}
           canWrite={hasScope("accounts:write")}
           canTransfer={hasScope("transfers:write")}
+          canRecordFunding={hasScope("funding:read") && hasScope("funding:write")}
           fundingScopeComplete={workspace.scopeComplete}
           fundedSourceAvailable={workspace.accounts.some((candidate) => candidate.status === "active" && candidate.currency === "INR" && hasPositiveMinorUnits(candidate.available_minor))}
           returnTo={returnTo}
@@ -104,6 +105,7 @@ export function AccountsController({
           csrfToken={session.csrf_token}
           canWrite={hasScope("accounts:write")}
           canTransfer={hasScope("transfers:write")}
+          canRecordFunding={hasScope("funding:read") && hasScope("funding:write")}
           canExport={hasScope("exports:read") && hasScope("transactions:read")}
           fundingScopeComplete={workspace.scopeComplete}
           detailReturnTo={accountId ? returnTo : undefined}

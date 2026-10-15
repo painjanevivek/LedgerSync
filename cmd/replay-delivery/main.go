@@ -41,7 +41,7 @@ func main() {
 	}
 	switch *action {
 	case "inspect":
-		item, inspectErr := repository.Inspect(ctx, *tenant, *attempt)
+		item, inspectErr := repository.Inspect(ctx, *tenant, *actor, *attempt)
 		if inspectErr != nil {
 			fail(inspectErr)
 		}

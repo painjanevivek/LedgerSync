@@ -6,8 +6,8 @@ partner. It is not a public signup API and it never accepts raw credentials.
 ## Limits and input
 
 - One reviewed JSON configuration creates one tenant with 1–10,000 accounts.
-- The configuration uses the selected pilot currency (currently INR), canonical
-  integer minor-unit values, reviewed account categories, server-owned subject
+- The configuration uses the selected pilot currency (currently INR), an exact
+  zero opening value, reviewed account categories, server-owned subject
   grants, and external credential references only.
 - Validate the file before any mutation:
 
@@ -23,8 +23,9 @@ repository's source tree.
 ## Apply and rollback
 
 Only a trusted operator runs `apply`, with a new correlation UUID. Apply writes
-the tenant, policies, accounts, permissions, credential references, and audit
-records transactionally. If the onboarding must be cancelled before use, run
+the tenant, policies, zero-opening accounts, permissions, credential references,
+and audit records transactionally. Non-zero opening value follows the separate
+two-person opening-import runbook. If onboarding must be cancelled before use, run
 the explicit rollback with the same approved operator identity and a new
 correlation UUID. Do not delete rows manually.
 

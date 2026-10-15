@@ -1,0 +1,6 @@
+=== RUN   TestReconciliationRecordsOutboxInItsLedgerSnapshot
+    reconciliation_snapshot_test.go:22: outbox snapshot unavailable: , unexpected end of JSON input
+--- FAIL: TestReconciliationRecordsOutboxInItsLedgerSnapshot (0.43s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	1.207s
+FAIL

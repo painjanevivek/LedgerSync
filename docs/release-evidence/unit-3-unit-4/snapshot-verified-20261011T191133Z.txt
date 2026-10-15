@@ -1,0 +1,14 @@
+=== RUN   TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses
+--- PASS: TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses (0.41s)
+=== RUN   TestReconciliationTreatsUnintendedEmptyScopeAsMismatch
+--- PASS: TestReconciliationTreatsUnintendedEmptyScopeAsMismatch (0.39s)
+=== RUN   TestReconciliationRecordsOutboxInItsLedgerSnapshot
+--- PASS: TestReconciliationRecordsOutboxInItsLedgerSnapshot (0.53s)
+=== RUN   TestOperatorReconciliationMatchedMismatchAndIdempotentReplay
+--- PASS: TestOperatorReconciliationMatchedMismatchAndIdempotentReplay (0.44s)
+=== RUN   TestOperatorReconciliationDifferentKeyAlreadyRunningIsStable
+--- PASS: TestOperatorReconciliationDifferentKeyAlreadyRunningIsStable (0.47s)
+=== RUN   TestOperatorReconciliationAuditFailureRollsBackRunAndIdempotency
+--- PASS: TestOperatorReconciliationAuditFailureRollsBackRunAndIdempotency (0.40s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	3.282s

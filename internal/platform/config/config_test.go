@@ -5,6 +5,30 @@ import (
 	"testing"
 )
 
+func TestOutboxBatchConfigurationIsBounded(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("PORT", "")
+	for _, test := range []struct {
+		value string
+		want  int
+		bad   bool
+	}{{"", 10, false}, {"1", 1, false}, {"50", 50, false}, {"100", 100, false}, {"0", 0, true}, {"101", 0, true}, {"-1", 0, true}, {"unbounded", 0, true}} {
+		t.Run(test.value, func(t *testing.T) {
+			t.Setenv("LEDGERSYNC_OUTBOX_BATCH_SIZE", test.value)
+			got, err := Load()
+			if test.bad {
+				if err == nil {
+					t.Fatal("invalid worker batch accepted")
+				}
+				return
+			}
+			if err != nil || got.OutboxBatchSize != test.want {
+				t.Fatalf("batch=%d error=%v want=%d", got.OutboxBatchSize, err, test.want)
+			}
+		})
+	}
+}
+
 func TestLoadProvidesBoundedHTTPAndPilotDefaults(t *testing.T) {
 	t.Setenv("LEDGERSYNC_ENV", "development")
 	t.Setenv("PORT", "")
@@ -131,5 +155,25 @@ func TestLoadRequiresAbsoluteFixedRecoveryEvidenceRoot(t *testing.T) {
 	configuration, err := Load()
 	if err != nil || configuration.RecoveryEvidenceRoot != "/run/ledgersync/recovery" {
 		t.Fatalf("absolute recovery root=%q error=%v", configuration.RecoveryEvidenceRoot, err)
+	}
+}
+
+func TestLiveInvestigationIsDisabledByDefaultAndRequiresRedisWhenEnabled(t *testing.T) {
+	t.Setenv("LEDGERSYNC_ENV", "development")
+	t.Setenv("PORT", "")
+	t.Setenv("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", "")
+	t.Setenv("LEDGERSYNC_REDIS_ADDR", "")
+	configuration, err := Load()
+	if err != nil || configuration.LiveInvestigationEnabled {
+		t.Fatalf("default live investigation enabled=%v error=%v", configuration.LiveInvestigationEnabled, err)
+	}
+	t.Setenv("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", "true")
+	if _, err := Load(); err == nil {
+		t.Fatal("live investigation accepted missing Redis")
+	}
+	t.Setenv("LEDGERSYNC_REDIS_ADDR", "redis:6379")
+	configuration, err = Load()
+	if err != nil || !configuration.LiveInvestigationEnabled || configuration.LiveInvestigationNamespace == "" {
+		t.Fatalf("development live investigation config=%#v error=%v", configuration, err)
 	}
 }

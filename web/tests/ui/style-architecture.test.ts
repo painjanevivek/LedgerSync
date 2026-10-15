@@ -27,6 +27,10 @@ test("global styles remain a layered import-only ownership manifest", () => {
 
   assert.ok(meaningfulLines.length > 0);
   assert.equal(meaningfulLines[0], "@layer tokens, reset, foundations, primitives, patterns, features, utilities, overrides;");
+  // The bundler can place the order statement after imported rules. First
+  // appearances must therefore establish that same order independently.
+  const firstAppearances = [...new Set([...globals.matchAll(/layer\(([a-z-]+)\)/gu)].map((match) => match[1]))];
+  assert.deepEqual(firstAppearances, ["tokens", "reset", "foundations", "primitives", "patterns", "features", "utilities", "overrides"]);
   for (const line of meaningfulLines.slice(1)) {
     assert.match(line, /^@import\s+["'][^"']+["']\s+layer\([a-z-]+\);$/u);
     const [, importPath] = line.match(/^@import\s+["']([^"']+)["']/u) ?? [];

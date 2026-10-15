@@ -41,6 +41,8 @@ function isMismatch(value: unknown): value is Record<string, unknown> {
 }
 
 function sanitizeRun(value: unknown): Readonly<Record<string, unknown>> | null {
+  const snapshot = isRecord(value) ? value.outbox_snapshot : undefined;
+  if (snapshot !== undefined && (!isRecord(snapshot) || Object.keys(snapshot).some((key) => !["isolation", "sampled_at", "pending_count", "published_count", "dead_count"].includes(key)) || snapshot.isolation !== "repeatable_read" || !isDate(snapshot.sampled_at) || ![snapshot.pending_count, snapshot.published_count, snapshot.dead_count].every((item) => typeof item === "string" && canonicalCount.test(item) && item.length <= 20))) return null;
   if (!isRecord(value)
     || !isBoundedString(value.run_id, 128)
     || !uuid.test(value.run_id)
@@ -63,6 +65,7 @@ function sanitizeRun(value: unknown): Readonly<Record<string, unknown>> | null {
     return null;
   }
   return {
+    ...(snapshot === undefined ? {} : { outbox_snapshot: { ...snapshot } }),
     run_id: value.run_id,
     status: value.status,
     correlation_id: value.correlation_id,

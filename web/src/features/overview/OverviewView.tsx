@@ -91,6 +91,33 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
     : null;
   const reconciliationStatus = reconciliation ? reconciliationPresentation(reconciliation.status, reconciliation.mismatch_count) : null;
 
+  const accountNextSteps = <>
+    {evidenceSettled && accountsScopeComplete && accounts.length === 1 && transfers.length === 0 && workspaceStage !== "attention_required" && (
+      <NextBestAction
+        title="Create the destination account"
+        message="A transfer needs two different accounts in the same currency. Keep both accounts in this workspace."
+        action={capabilities.accountsWrite
+          ? <Link className="button primary" href="/accounts/new">Create second account</Link>
+          : <Link className="text-link" href="/guide">View required steps →</Link>}
+      />
+    )}
+    {evidenceSettled && accountsScopeComplete && accounts.length >= 2 && workspaceStage === "account_ready" && (
+      <NextBestAction
+        title="Add or review funding"
+        message="Verify the payment outside LedgerSync. Record and review it before posting."
+        action={capabilities.fundingWrite
+          ? <Link className="button primary" href="/funding">Open funding</Link>
+          : <Link className="text-link" href="/guide">View required steps →</Link>}
+      />
+    )}
+    {evidenceSettled && accountsScopeComplete && accounts.length >= 2 && workspaceStage === "operational" && transfers.length === 0 && capabilities.transfersWrite && (
+      <NextBestAction
+        title="Make your first transfer"
+        message="Choose two accounts and review the amount before you confirm."
+        action={<Link className="button primary" href="/transfers">Open transfers</Link>}
+      />
+    )}
+  </>;
   if (mode === "simple") {
     const trustTone = !online || accountsError || transfersError || reconciliationError
       ? "unknown" as const
@@ -117,6 +144,7 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
       <PageHeader eyebrow="Home" title="Your money at a glance" description="See what is available, what needs attention, and the safest next step." >
         {(capabilities.accountsRead || capabilities.transfersRead || capabilities.reconciliationRead) && <button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing…" : "Refresh"}</button>}
       </PageHeader>
+      {accountNextSteps}
       <TrustStrip
         tone={trustTone}
         title={trustTitle}
@@ -178,11 +206,11 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
         </ul>
       </>}
 
-      {evidenceSettled && workspaceStage === "account_ready" && <NextBestAction title="Add money to your account" message="Record where the money came from, then send it for review before making a transfer." action={capabilities.fundingWrite ? <Link className="button primary" href="/funding">Add money</Link> : <Link className="button secondary" href="/guide">Review the steps</Link>} />}
     </>;
   }
   return <>
     <PageHeader eyebrow="Operations / Authoritative ledger" title="Overview" description={newWorkspace ? "Your workspace is ready. Begin with one real account and let every later balance come from posted ledger records." : "Current balances, transfers, reconciliation results, and exceptions for this workspace."}>{(capabilities.accountsRead||capabilities.transfersRead||capabilities.reconciliationRead)&&<button className="button secondary" type="button" onClick={onRefreshAll} disabled={!online || busy}>{busy ? "Refreshing dashboard…" : "Refresh dashboard"}</button>}</PageHeader>
+      {accountNextSteps}
     {localWorkspace&&forceOrientation&&<LocalOrientationPanel evidence={orientation} loading={orientationLoading} error={orientationError} preferenceError={orientationPreferenceError} preferenceSaving={orientationPreferenceSaving} online={online} canRead={canReadOrientation} canWrite={canWriteOrientation} capabilities={capabilities} onRefresh={onRefreshOrientation} onUpdatePreferences={onUpdateOrientationPreferences}/>}
     {!capabilities.accountsRead&&!capabilities.transfersRead&&!capabilities.reconciliationRead&&<StatePanel kind="denied" title="No financial read capability" message="Your server-issued session has no account, transfer, or reconciliation read scope. Protected overview requests were not made."/>}
     {evidenceSettled && workspaceStage === "attention_required" && (
@@ -195,15 +223,7 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
           : <button className="button primary" type="button" onClick={onRefreshAll} disabled={!online || busy}>Refresh evidence</button>}
       />
     )}
-    {evidenceSettled && workspaceStage === "account_ready" && (
-      <NextBestAction
-        title="Add the first verified funding record"
-        message="Your account structure is ready. Record external value evidence and send it through the existing approval flow before making a transfer."
-        action={capabilities.fundingWrite
-          ? <Link className="button primary" href="/funding">Open funding</Link>
-          : <Link className="button secondary" href="/guide">Review the required steps</Link>}
-      />
-    )}
+
     {newWorkspace&&<section className="new-workspace" aria-labelledby="new-workspace-title">
       <div className="new-workspace-mark" aria-hidden="true"><Bank weight="fill" /></div>
       <div className="new-workspace-copy">
@@ -249,7 +269,7 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
         <section className={`evidence-strip ${isAuthoritativelyReconciled(reconciliation) ? "" : "caution"}`}>
           <ShieldCheck weight="fill" aria-hidden="true" />
           <div>
-            <strong>{isAuthoritativelyReconciled(reconciliation) ? "Latest reconciliation passed" : "Reconciliation requires attention"}</strong>
+            <strong>{isAuthoritativelyReconciled(reconciliation) ? "Internal reconciliation passed" : "Reconciliation requires attention"}</strong>
             <span>Run {reconciliation.run_id} · {reconciliation.mismatch_count} mismatches · <Timestamp value={reconciliation.completed_at} /></span>
           </div>
           <RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open result" />

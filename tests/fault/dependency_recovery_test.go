@@ -29,6 +29,9 @@ func TestExpiredOutboxLeaseIsRecoveredAfterWorkerLoss(t *testing.T) {
 		t.Fatalf("claimed=%d, want 3 transfer events", len(claimed))
 	}
 	now = now.Add(2 * time.Second)
+	// Claim expiry uses PostgreSQL time; changing the application clock cannot
+	// replace an owner before its database lease expires.
+	time.Sleep(1100 * time.Millisecond)
 	recovered, err := repository.Claim(context.Background(), "recovery-worker", 10, time.Second)
 	if err != nil {
 		t.Fatal(err)
@@ -37,7 +40,7 @@ func TestExpiredOutboxLeaseIsRecoveredAfterWorkerLoss(t *testing.T) {
 		t.Fatalf("recovered=%d, want 3 expired events", len(recovered))
 	}
 	for _, event := range recovered {
-		if err := repository.MarkPublished(context.Background(), "recovery-worker", event.ID, now); err != nil {
+		if err := repository.MarkPublished(context.Background(), "recovery-worker", event.ID, now, event.ClaimGeneration); err != nil {
 			t.Fatal(err)
 		}
 	}

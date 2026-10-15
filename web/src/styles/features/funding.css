@@ -24,25 +24,19 @@
 }
 .funding-context-card {
   border: 1px solid var(--line);
-  border-left: 3px solid var(--green);
   padding: var(--space-5);
   background: var(--paper);
-  box-shadow: var(--shadow-surface);
-}
-.funding-context-card .eyebrow {
-  margin-bottom: var(--space-2);
 }
 .funding-context-card h2 {
   margin: 0;
   font-size: var(--type-h3);
 }
-.funding-context-card p:not(.eyebrow) {
+.funding-context-card p {
   margin: var(--space-2) 0 0;
   color: var(--muted);
 }
 .funding-context-card.funding-context-current {
-  border-left-color: var(--blue);
-  background: var(--paper-subtle);
+  background: var(--paper);
 }
 .funding-context-next {
   border-top: 1px solid var(--line);

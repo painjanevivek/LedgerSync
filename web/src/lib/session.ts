@@ -10,7 +10,7 @@ export const maxSessionCookieValueBytes = 3_584;
 export const opaqueSessionTokenBytes = 32;
 
 const maxSessionRoles = 16;
-const maxSessionScopes = 32;
+const maxSessionScopes = 40;
 const maxConsistencyRequirements = 10;
 const maxConsistencyAccountIDLength = 128;
 const maxConsistencyTokenLength = 2_048;

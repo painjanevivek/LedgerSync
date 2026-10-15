@@ -1,0 +1,6 @@
+=== RUN   TestLamportStorageSendAndReceiveRules
+    logical_clock_test.go:16: ERROR: function advance_logical_clock(unknown, unknown) does not exist (SQLSTATE 42883)
+--- FAIL: TestLamportStorageSendAndReceiveRules (0.39s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	0.979s
+FAIL

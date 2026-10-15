@@ -2,6 +2,7 @@
 
 import { ArrowRight, CheckCircle, DownloadSimple, Key, LockKey, ShieldCheck, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
@@ -19,6 +20,9 @@ import {
   WebhookVerificationSection,
 } from "@/features/developer/DeveloperReferenceSections";
 import type { DeveloperExample, DeveloperMetadata } from "@/lib/api/developer";
+import { operationRetryGuidance } from "@/features/developer/retry-guidance";
+const DistributedSystems = dynamic(() => import("./DistributedSystems").then((module) => module.DistributedSystems), { loading: () => <p role="status">Loading observations…</p> });
+const SystemsLabEvidence = dynamic(() => import("./SystemsLabEvidence").then((module) => module.SystemsLabEvidence));
 
 function browserRequest(example: DeveloperExample) {
   const path = example.id === "create_account" ? "/api/me/accounts" : `/api${example.path}`;
@@ -64,11 +68,12 @@ type DeveloperViewProps = Readonly<{
   error: string | null;
   online: boolean;
   canRead: boolean;
+  systemsLabEnabled?: boolean;
   publicOrigin: string;
   onRefresh: () => void;
 }>;
 
-export function DeveloperView({ metadata, loading, error, online, canRead, publicOrigin, onRefresh }: DeveloperViewProps) {
+export function DeveloperView({ metadata, loading, error, online, canRead, systemsLabEnabled = false, publicOrigin, onRefresh }: DeveloperViewProps) {
   const transfer = metadata?.examples.find((example) => example.id === "create_transfer");
   const account = metadata?.examples.find((example) => example.id === "create_account");
   const [operationQuery, setOperationQuery] = useState("");
@@ -87,6 +92,7 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
           {online && canRead && metadata ? <a className="button primary guarded-control" href="/api/developer/openapi" download="ledgersync-openapi.yaml"><DownloadSimple aria-hidden="true" />Download OpenAPI YAML</a> : <span className="permission-note">Download unavailable until the current authorized contract is loaded.</span>}
         </div>
       </PageHeader>
+      {systemsLabEnabled && <DisclosureSection id="developer-distributed-systems" title="Systems Lab" summary="Replica observations and retained local failure evidence." priority="advanced" lazy><DistributedSystems online={online} canRead={canRead} />{canRead && <SystemsLabEvidence />}</DisclosureSection>}
 
       {!canRead && <StatePanel kind="denied" title="Developer contract not authorized" message="This session does not include developer:read. No contract metadata or download has been requested." />}
       {!online && <StatePanel kind="offline" title="Offline — contract freshness is not verified" message={metadata ? "The last loaded version remains visible. Reconnect before using it as the current contract." : "Reconnect to retrieve the versioned local API contract."} />}
@@ -95,6 +101,13 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
 
       {metadata && (
         <div className="developer-workspace" aria-busy={loading}>
+          <section className="developer-section" aria-labelledby="working-integration-heading">
+            <h2 id="working-integration-heading">Start with the TypeScript example</h2>
+            <p>Follow <code>examples/typescript/README.md</code> for one complete local workflow: exact-zero accounts, independent synthetic funding review, an original-key retry, current balances, reconciliation, and signed webhook recovery.</p>
+            <p>Use protected own-principal backend credentials. Browser sessions stay in the BFF. A delegating workload needs a fresh actor assertion for every call.</p>
+            <DeveloperCopyCode value="node scripts/portfolio/run-developer.mjs" label="Local TypeScript integration check" />
+            <p>This host command creates disposable test data. This page can copy the command; it cannot execute it. Full schemas and the other language recipes remain below.</p>
+          </section>
           <section className="developer-boundary" aria-labelledby="local-boundary-heading">
             <div className="boundary-mark" aria-hidden="true"><LockKey weight="fill" /></div>
             <div><p className="eyebrow">{metadata.boundary.network.replaceAll("_", " ")}</p><h2 id="local-boundary-heading">{metadata.boundary.title}</h2><p>{metadata.boundary.summary}</p></div>
@@ -122,7 +135,7 @@ export function DeveloperView({ metadata, loading, error, online, canRead, publi
             </div>
             <div className="endpoint-group-picker" aria-label="Endpoint groups">{filteredGroups.map((group) => <button className="button secondary" type="button" key={group.id} aria-pressed={selectedGroup === group.id} onClick={() => setSelectedGroup((current) => current === group.id ? null : group.id)}><span>{group.label}</span><small>{group.operations.length} operations</small></button>)}</div>
             {filteredGroups.length === 0 && <StatePanel title="No matching operations" message="Clear or change the local filters. The downloaded OpenAPI contract remains unchanged." />}
-            <div className="endpoint-catalogue">{filteredGroups.filter((group) => group.id === selectedGroup).map((group) => <section id={`schema-${group.id}`} key={group.id} aria-labelledby={`schema-${group.id}-heading`}><h3 id={`schema-${group.id}-heading`}>{group.label}</h3>{group.operations.map((operation) => <DisclosureSection id={`operation-${operation.operation_id}`} key={operation.operation_id} title={`${operation.method} ${operation.path}`} summary={operation.operation_id} lazy><div className="endpoint-operation-detail"><p><strong>Overview</strong><br/><code>{metadata.base_url}{operation.path}</code></p><p><strong>Required scope</strong><br/><code>{operation.scope}</code></p><p><strong>Request and response</strong><br/>Use the versioned OpenAPI schema and examples. The browser never executes this private operation.</p><p><strong>Errors</strong><br/>See the searchable error catalogue below.</p><p><strong>Retry rule</strong><br/>{operation.method === "GET" ? "Repeat only after checking freshness and authorization." : "Persist the exact intent and idempotency key before send; an unknown response keeps the same key."}</p></div></DisclosureSection>)}</section>)}</div>
+            <div className="endpoint-catalogue">{filteredGroups.filter((group) => group.id === selectedGroup).map((group) => <section id={`schema-${group.id}`} key={group.id} aria-labelledby={`schema-${group.id}-heading`}><h3 id={`schema-${group.id}-heading`}>{group.label}</h3>{group.operations.map((operation) => <DisclosureSection id={`operation-${operation.operation_id}`} key={operation.operation_id} title={`${operation.method} ${operation.path}`} summary={operation.operation_id} lazy><div className="endpoint-operation-detail"><p><strong>Overview</strong><br/><code>{metadata.base_url}{operation.path}</code></p><p><strong>Required scope</strong><br/><code>{operation.scope}</code></p><p><strong>Request and response</strong><br/>Use the versioned OpenAPI schema and examples. The browser never executes this private operation.</p><p><strong>Errors</strong><br/>See the searchable error catalogue below.</p><p><strong>Retry rule</strong><br/>{operationRetryGuidance(operation)}</p></div></DisclosureSection>)}</section>)}</div>
           </section>
 
           <ExactMoneyAndRetryGuide metadata={metadata} />

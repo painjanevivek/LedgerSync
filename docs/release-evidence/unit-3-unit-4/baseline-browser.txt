@@ -1,0 +1,20 @@
+
+> ledgersync-web@0.1.0 test:e2e:real-stack
+> playwright test --config playwright.real-stack.config.ts --workers=1
+
+
+Running 5 tests using 1 worker
+
+(node:231088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PHASE3_FIXTURES run=study-848cbe1da1bb account=e62e94ba-27da-4aa1-93a2-e595fa68ff50 funding_transfer=328b7740-076c-4eb9-8206-0e0732c101c5 return_transfer=b8158a9a-a5a6-45be-9bda-99fa3ed8470b reconciliation_run=a683b98b-1929-4d54-91fd-e956a2acd7c6
+  ok 1 tests\system\account-lifecycle.real-stack.spec.ts:267:7 › @real-stack account product lifecycle › creates, replays, funds, freezes, reactivates, returns to zero, and closes through normal commands (16.4s)
+  ok 2 tests\system\account-lifecycle.real-stack.spec.ts:405:7 › @real-stack account product lifecycle › investigates the accepted records across filters, exports, local tools, and responsive accessibility (29.3s)
+Journey: funding reference recorded; balance still zero.
+Journey: local approval recorded; journal still separate.
+Journey: one funding journal posted and verified.
+  ok 3 tests\system\funding-transfer-journey.real-stack.spec.ts:35:5 › @real-stack first account, controlled funding, lost-response transfer, exact retry, and follow-up (10.7s)
+  ok 4 tests\system\investigation-handoff.real-stack.spec.ts:23:5 › @real-stack saved filters, audited bundle, and reauthorized peer handoff (18.9s)
+  ok 5 tests\system\transfer-recovery.real-stack.spec.ts:11:5 › @real-stack clean-device recovery survives lost request and lost committed response without duplicate money (28.0s)
+
+  5 passed (1.8m)

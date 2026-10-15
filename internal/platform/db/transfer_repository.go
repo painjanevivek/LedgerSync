@@ -62,7 +62,7 @@ func (r *TransferRepository) WithPilotCurrency(currency string) *TransferReposit
 func (r *TransferRepository) Submit(ctx context.Context, command transfers.Command, fingerprint [sha256.Size]byte) (submission transfers.Submission, err error) {
 	started := time.Now()
 	ctx, span := r.start(ctx, "db.transfer.submit")
-	defer func() { span.End(); r.observe(ctx, "transfer_submit", started, err) }()
+	defer func() { r.observe(ctx, "transfer_submit", started, err); span.End() }()
 	if command.OccurredAt.IsZero() {
 		command.OccurredAt = r.clock().UTC()
 	}
@@ -73,7 +73,7 @@ func (r *TransferRepository) Submit(ctx context.Context, command transfers.Comma
 		}
 	}
 	sequenceTenant := command.TenantID.String()
-	err = WithSerializableSequence(ctx, r.database, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID.String(), ActorID: command.ActorSubjectID}, "transfer-policy|"+sequenceTenant, 5, func(tx *sql.Tx) error {
 		var response []byte
 		var replayed bool
 		queryErr := tx.QueryRowContext(ctx, `
@@ -89,6 +89,12 @@ FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 		var result transfers.Result
 		if unmarshalErr := json.Unmarshal(response, &result); unmarshalErr != nil {
 			return fmt.Errorf("decode controlled transfer outcome: %w", unmarshalErr)
+		}
+		if command.RequestReference != "" {
+			if _, updateErr := tx.ExecContext(ctx, `SELECT public.controlled_attach_transfer_request_reference_v1($1,$2,$3,$4,$5)`,
+				command.TenantID, command.ActorSubjectID, command.IdempotencyKey, fingerprint[:], command.RequestReference); updateErr != nil {
+				return classifyControlledTransferError(updateErr)
+			}
 		}
 		submission = transfers.Submission{Result: result, Replayed: replayed}
 		return nil
@@ -133,7 +139,7 @@ func classifyControlledTransferError(err error) error {
 		return ErrSourceVelocityExceeded
 	case "controlled_transfer_tenant_velocity":
 		return ErrTenantVelocityExceeded
-	case "controlled_transfer_idempotency":
+	case "controlled_transfer_idempotency", "controlled_transfer_request_reference", "recovery_reference_unique", "recovery_key_unique":
 		return transfers.ErrIdempotencyConflict
 	case "controlled_transfer_in_progress":
 		return transfers.ErrRequestInProgress
@@ -145,9 +151,6 @@ func classifyControlledTransferError(err error) error {
 }
 
 func (r *TransferRepository) start(ctx context.Context, name string) (context.Context, trace.Span) {
-	if r.telemetry == nil {
-		return ctx, trace.SpanFromContext(ctx)
-	}
 	return r.telemetry.Start(ctx, name)
 }
 
@@ -198,7 +201,10 @@ func (r *TransferRepository) recordDeniedAudit(ctx context.Context, command tran
 	if err != nil {
 		return err
 	}
-	_, err = r.database.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'transfer.policy_denied','transfer_request','failed',$4,$5,$6)`, id, command.TenantID, command.ActorSubjectID, correlationID, metadata, command.OccurredAt.UTC())
+	err = WithTenantTransaction(ctx, r.database, TenantScope{TenantID: command.TenantID.String(), ActorID: command.ActorSubjectID}, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `SELECT public.controlled_append_audit_v1($1,$2,$3,'transfer.policy_denied','transfer_request',NULL,'failed',$4,$5,$6)`, id, command.TenantID, command.ActorSubjectID, correlationID, metadata, command.OccurredAt.UTC())
+		return err
+	})
 	return err
 }
 

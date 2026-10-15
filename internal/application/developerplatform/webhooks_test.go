@@ -23,13 +23,13 @@ func (*webhookRepositoryStub) RotateWebhook(context.Context, RotateWebhookComman
 func (*webhookRepositoryStub) DisableWebhook(context.Context, DisableWebhookCommand, [sha256.Size]byte) (WebhookSubmission, error) {
 	return WebhookSubmission{}, nil
 }
-func (*webhookRepositoryStub) GetWebhook(context.Context, string, string) (Webhook, error) {
+func (*webhookRepositoryStub) GetWebhook(context.Context, string, string, string) (Webhook, error) {
 	return Webhook{}, ErrNotFound
 }
-func (*webhookRepositoryStub) ListWebhooks(context.Context, string, WebhookQuery) (WebhookPage, error) {
+func (*webhookRepositoryStub) ListWebhooks(context.Context, string, string, WebhookQuery) (WebhookPage, error) {
 	return WebhookPage{}, nil
 }
-func (*webhookRepositoryStub) ListWebhookDeliveries(context.Context, string, string, DeliveryQuery) (DeliveryPage, error) {
+func (*webhookRepositoryStub) ListWebhookDeliveries(context.Context, string, string, string, DeliveryQuery) (DeliveryPage, error) {
 	return DeliveryPage{}, nil
 }
 

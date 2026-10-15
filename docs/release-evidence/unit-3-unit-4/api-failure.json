@@ -1,0 +1,422 @@
+{
+  "captured_at": "2026-10-11T20:05:00.7620930Z",
+  "routing": {
+    "ready_nodes": [
+      "ledgersync/api/34ea6d82c283",
+      "ledgersync/api/ed0304a54477"
+    ]
+  },
+  "detection_milliseconds": 1661.8369,
+  "reconciliation": "matched",
+  "financial_checks": {
+    "unbalanced": 0,
+    "duplicate_transfer_journals": 0
+  },
+  "requests": [
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:50.6365727Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "d110e798-b34e-4a5d-b2fd-0d14486c29e8",
+      "key": "9ef54c7e-9931-4229-b5b7-44d38ef81663"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:50.8872108Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "7fa60120-93f6-47fe-84a2-381d1f099b02",
+      "key": "5856201c-955e-4101-b064-3f231ce4d221"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.0559639Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "3dcee954-ac02-4910-80fe-19245cc2c62c",
+      "key": "728a2e9b-1471-4b38-811f-8e65ef29b8d9"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.1949453Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "7a1fcc84-776e-420c-822c-a95ee45cf96b",
+      "key": "8f4fac77-7454-4322-badf-44b1aa0bd130"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.3356739Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "3bbaa41f-6030-4683-945a-ff993d6118d0",
+      "key": "91437b21-912b-4605-99cb-ee2e0942d8c6"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.4757066Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "53d5a5b8-ff31-4209-8a30-a6c5c0c84196",
+      "key": "f7a15310-c05e-4c95-87e6-291e8acab1cb"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.5999172Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "e960e437-9ada-4acb-b34e-5a3dfb4d4aaa",
+      "key": "8427ee6d-36bb-4371-bf2e-2eeb543712fd"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.7230355Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "69d89805-1881-49c1-bc1c-25dd6e88962d",
+      "key": "ff714852-fed5-46bf-8121-114fb0e84542"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.8562731Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "a5008f6a-bfe8-4d23-bb8c-4df073c37159",
+      "key": "edac9960-5208-4ae4-ab8c-11700390f0f8"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:51.993991Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "0593d24b-33b2-42eb-aed6-9d40a796a847",
+      "key": "f308b6c1-aa99-45ff-b524-60769900839e"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:52.1326503Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "139f09d9-9a2b-4ee1-bcdb-baa0a6304637",
+      "key": "d8e10603-3e1a-4bf8-8545-29b7f100a6af"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:52.257082Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "5c665cfe-a385-4d54-b600-b6a1e7c10b7d",
+      "key": "6eeb5efd-b8dc-4534-9edd-816bab354164"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:52.382056Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "867285bd-266d-48c7-9138-ea23930ece49",
+      "key": "09900777-d343-48cc-b130-3aef5cba69d0"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:52.5115793Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "95dceb52-a2cc-4def-a56c-18d3ffc5732e",
+      "key": "0210d667-f550-4636-9323-d71165d0f881"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:52.6350774Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "691aa080-9e78-4e3d-b194-8d564fd254da",
+      "key": "fffb8276-c494-4044-b0f9-cc2269b50318"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:52.7655473Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "7d8876f8-a5d9-4991-b785-96754652a77f",
+      "key": "cbea9d73-a431-4cba-b0da-4a5fecd447be"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:52.8905293Z",
+          "status": 503
+        },
+        {
+          "at": "2026-10-11T20:04:54.2139887Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "22e99b38-632f-4b1e-be0d-294db297889c",
+      "key": "d1a06abe-e9a3-4715-a7ba-3e02c06632fd"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:54.3687478Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "fec89961-d50a-40e4-9e2c-e83f1df55194",
+      "key": "e4adce50-d7da-4eea-9456-de9fe1f6be38"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:54.493285Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "b2bbe4e3-af93-40c9-93ce-045a62c180dd",
+      "key": "7cb7252a-9179-421c-82ce-d65c0287f504"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:54.6188133Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "01b54107-5162-4750-8fca-3653a67b6b6e",
+      "key": "7f900866-15eb-46ce-9d3a-20a8cc8f86dc"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:54.7427639Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "d3c04bf3-8438-456b-a01c-0ee69f44d9ed",
+      "key": "cff10081-830a-4411-be5b-cda2a2c29098"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:54.8705056Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "761ce33a-d310-4b7e-80c4-707403b7ac98",
+      "key": "35f55a35-721f-4547-a47f-b9e8282bd73b"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:54.9960969Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "8c5c2d76-c7c4-4a66-8c74-4f9048f9c913",
+      "key": "4bc40cbb-1ad3-4fd5-aa80-995bceb97e78"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:55.1354249Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "b5020dbe-09c0-4524-9974-72717d85fe85",
+      "key": "3d42865c-af9f-47b5-a9f4-319e1e27180f"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:55.2756497Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "aa48739b-9f4f-4bd0-b23b-489ca44d62cd",
+      "key": "7c8e5167-3429-414a-9ed1-0369763227c3"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:55.4160278Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "f8ebd75c-2387-4829-9cbf-e836501a6e45",
+      "key": "49cb5eeb-8578-4fe2-8956-239e51e4db75"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:55.5379713Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "2c972f51-b2e0-46f9-aadf-eb446b1e3f89",
+      "key": "91835b38-4357-4527-8735-57c45d4ba56a"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:55.6627147Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "8964556a-a5ff-4fc0-98ca-8b3917a6165e",
+      "key": "cdfffc43-fb8a-4a24-ad9e-5ce2142a4da2"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:55.7865674Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "fc19b047-e7da-4ae6-9cfa-7173f179f05d",
+      "key": "fbba3245-2f98-481f-ac2d-bae56128133e"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:55.9102948Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "367fdf66-4ce9-4385-b1aa-7312544bd4db",
+      "key": "00163741-b556-4f22-a7ac-24fd437193c0"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.0342144Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "77c51dc2-cf68-4c19-bdcd-335112e9f903",
+      "key": "8f99ecab-c714-4810-a531-f45901618a1e"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.1561714Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "0eff4c4f-a81e-476c-b6ba-75250239d4dc",
+      "key": "eca597e9-3aad-488f-be8a-232ef43a89fc"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.2967227Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "5efae3ca-6145-414c-9fa3-038a059d2004",
+      "key": "3ca9dcf5-017a-45a1-8547-2b4e7f1e989e"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.4206841Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "6aec3703-5660-45a1-8436-0e8d222ff06d",
+      "key": "f59618a8-ef42-407a-b37c-266d7fb1474f"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.5606263Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "a53f7d2f-66a5-468c-8a08-80dfff3d5bbf",
+      "key": "79c0a991-0086-432c-a8d9-0f20fd91728a"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.7015129Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "84e9ef28-209d-4b34-a397-e0f383803e28",
+      "key": "73b61e4d-0641-43a0-941a-e3ab3f706d01"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.8393276Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "84bb4e9d-0818-4f75-9b0c-26ea69142fd0",
+      "key": "1cf43536-a4ec-4fe6-b296-6f833ce4fc40"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:56.9653974Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "d1ac7671-df97-4195-950c-a439310a7821",
+      "key": "34419327-3128-471b-880d-6c17ce7173ad"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:57.0900422Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "510c448c-b43b-4a83-9d98-9614a6e1d81f",
+      "key": "67a65dc6-d273-4f3d-b5c7-9b753dd2ee9e"
+    },
+    {
+      "attempts": [
+        {
+          "at": "2026-10-11T20:04:57.2147864Z",
+          "status": 201
+        }
+      ],
+      "transfer_id": "6e6db09c-e4fc-4427-b3f3-ea520677a500",
+      "key": "00997b45-2fbb-403a-81a5-4892452a56c9"
+    }
+  ],
+  "failed_container": "34ea6d82c283"
+}

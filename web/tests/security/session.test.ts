@@ -148,9 +148,9 @@ test("cookie-authenticated mutations require same-origin CSRF", () => {
 
 test("signed sessions preserve the complete bounded operator scope set", () => {
   const localSession = createLocalSession({ enabled: true, environment: "development", subjectId: "operator-a", tenantId: "tenant-a" });
-  assert.equal(localSession.scopes?.length, 27);
+  assert.equal(localSession.scopes?.length, 28);
   assert.deepEqual(readSession(createSession(localSession))?.scopes, localSession.scopes);
-  assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 33 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
+  assert.equal(readSession(createSession({ ...session, scopes: Array.from({ length: 41 }, (_, index) => `scope:${index}`) }))?.scopes, undefined);
 });
 
 test("public origin configuration is fixed and proxy rejects DNS-rebinding hosts", async () => {

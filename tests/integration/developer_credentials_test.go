@@ -39,10 +39,10 @@ func TestDeveloperCredentialLifecycleIsIdempotentVersionedAndNonSecret(t *testin
 	if _, err = service.Create(ctx, changed); !errors.Is(err, developerplatform.ErrIdempotencyConflict) {
 		t.Fatalf("changed-intent error=%v", err)
 	}
-	if err = repository.RecordUsage(ctx, testTenantID, "partner-client-001", now.Add(time.Hour)); err != nil {
+	if err = repository.RecordUsage(ctx, testTenantID, testActorID, "partner-client-001", now.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	used, err := service.Get(ctx, testTenantID, created.Credential.ID)
+	used, err := service.Get(ctx, testTenantID, testActorID, created.Credential.ID)
 	if err != nil || used.LastUsedAt == nil || !used.LastUsedAt.Equal(now.Add(time.Hour)) {
 		t.Fatalf("used=%#v err=%v", used, err)
 	}
@@ -60,7 +60,7 @@ func TestDeveloperCredentialLifecycleIsIdempotentVersionedAndNonSecret(t *testin
 	if err != nil || revoked.Credential.Status != "revoked" || revoked.Credential.Version != "3" || revoked.Credential.RevokedAt == nil {
 		t.Fatalf("revoked=%#v err=%v", revoked, err)
 	}
-	page, err := service.List(ctx, testTenantID, developerplatform.CredentialQuery{Status: "revoked", Limit: 10})
+	page, err := service.List(ctx, testTenantID, testActorID, developerplatform.CredentialQuery{Status: "revoked", Limit: 10})
 	if err != nil || len(page.Items) != 1 || page.Items[0].ID != created.Credential.ID {
 		t.Fatalf("page=%#v err=%v", page, err)
 	}

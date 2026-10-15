@@ -60,7 +60,7 @@ export function ConsoleShell({ section, children, tenantLabel, environmentLabel,
       {!focused && <button className="guided-menu-button button secondary" ref={menuButton} type="button" aria-expanded={navigationOpen} aria-controls="workspace-navigation" onClick={() => setNavigationOpen(true)}><List aria-hidden="true" />Menu</button>}
     </header>
     {navigationOpen && <><button className="guided-nav-backdrop" aria-label="Close navigation" onClick={closeNavigation} /><aside className="guided-nav-drawer" ref={drawer} id="workspace-navigation" role="dialog" aria-modal="true" aria-label="LedgerSync workspace"><button className="button secondary" onClick={closeNavigation} aria-label="Close navigation"><X aria-hidden="true" />Close</button><nav aria-label="Primary navigation">{links}<Link href="/guide" onClick={() => setNavigationOpen(false)}>Help</Link>{expertLinks}</nav></aside></>}
-    <div className="workspace-column" inert={navigationOpen || undefined}><main id="main-content" className={`console-main section-${section}`}>{children}</main></div>
+    <div className="workspace-column" inert={navigationOpen || undefined}><main id="main-content" className={`console-main section-${section} experience-${mode}`}>{children}</main></div>
   </div></WorkspaceLayoutContext.Provider>;
 }
 export function ConsoleFooter({ pending = false }: { pending?: boolean } = {}) {
@@ -69,11 +69,8 @@ export function ConsoleFooter({ pending = false }: { pending?: boolean } = {}) {
       className={`console-footer${pending ? " is-pending" : ""}`}
       aria-hidden={pending || undefined}
     >
-      <span>
-        Balances come from verified ledger records.
-      </span>
-      <span className="expert-only">PostgreSQL alone supplies customer-visible balances. Redis is disposable. Exact times use UTC.</span>
-      <span>© 2026 LedgerSync, Inc.</span>
+      <span>LedgerSync · Internal ledger</span>
+      <Link href="/guide">Help and guide</Link>
     </footer>
   );
 }

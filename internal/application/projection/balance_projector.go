@@ -41,6 +41,7 @@ type Config struct {
 	PendingIdle time.Duration
 	Block       time.Duration
 	OnItem      func(string)
+	TraceItem   func(context.Context, string) (context.Context, func())
 }
 
 type BalanceProjector struct {
@@ -88,28 +89,40 @@ func (p *BalanceProjector) RunOnce(ctx context.Context) (int, error) {
 		if p.config.OnItem != nil {
 			p.config.OnItem(message.ID)
 		}
-		// Other aggregate event types share the durable outbox and Redis stream,
-		// but this consumer group owns only the disposable balance cache. Acking
-		// an unrelated event advances this group without preventing a dedicated
-		// lifecycle consumer group from reading the same stream.
-		if message.Event.EventType != BalanceChangedEventType {
-			if err := p.stream.Ack(ctx, p.config.Group, message.ID); err != nil {
-				return len(messages), fmt.Errorf("ack non-balance event: %w", err)
-			}
-			continue
-		}
-		balance, err := decodeBalance(message.Event)
-		if err != nil {
+		if err := p.applyMessage(ctx, message); err != nil {
 			return len(messages), err
-		}
-		if _, err := p.cache.Put(ctx, balance); err != nil {
-			return len(messages), fmt.Errorf("apply balance cache projection: %w", err)
-		}
-		if err := p.stream.Ack(ctx, p.config.Group, message.ID); err != nil {
-			return len(messages), fmt.Errorf("ack balance event: %w", err)
 		}
 	}
 	return len(messages), nil
+}
+
+func (p *BalanceProjector) applyMessage(ctx context.Context, message Message) error {
+	if p.config.TraceItem != nil {
+		var end func()
+		ctx, end = p.config.TraceItem(ctx, message.Event.DiagnosticTraceParent)
+		defer end()
+	}
+	// Other aggregate event types share the durable outbox and Redis stream,
+	// but this consumer group owns only the disposable balance cache. Acking
+	// an unrelated event advances this group without preventing a dedicated
+	// lifecycle consumer group from reading the same stream.
+	if message.Event.EventType != BalanceChangedEventType {
+		if err := p.stream.Ack(ctx, p.config.Group, message.ID); err != nil {
+			return fmt.Errorf("ack non-balance event: %w", err)
+		}
+		return nil
+	}
+	balance, err := decodeBalance(message.Event)
+	if err != nil {
+		return err
+	}
+	if _, err := p.cache.Put(ctx, balance); err != nil {
+		return fmt.Errorf("apply balance cache projection: %w", err)
+	}
+	if err := p.stream.Ack(ctx, p.config.Group, message.ID); err != nil {
+		return fmt.Errorf("ack balance event: %w", err)
+	}
+	return nil
 }
 
 func decodeBalance(event outbox.Event) (accounts.Balance, error) {

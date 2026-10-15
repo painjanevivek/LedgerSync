@@ -24,7 +24,9 @@ test("local guide persists confirmation, dismissal, and reopening in server-owne
   await expect(clearManualConfirmations).toBeDisabled();
   await expect(page.getByText("No manual confirmations are currently saved. Stored ledger evidence is never cleared here.",{exact:true})).toBeVisible();
   await expect(clearManualConfirmations).toHaveAttribute("aria-describedby",/.+/);
-  await page.getByRole("button",{name:"I checked current health"}).first().click();
+  const healthStep=page.locator(".local-orientation").getByRole("listitem").filter({hasText:"Confirm local system health"});
+  await expect(healthStep.locator("details")).toHaveAttribute("open","");
+  await healthStep.getByRole("button",{name:"I checked current health"}).click();
   await expect(page.getByText("Operator confirmed",{exact:true})).toBeVisible();
   await expect(clearManualConfirmations).toBeEnabled();
   await page.getByRole("button",{name:"Copy safe stop command"}).click();
@@ -49,7 +51,10 @@ test("unknown preference response refreshes server truth without optimistic comp
   await page.route("**/api/local/orientation",route=>{reads+=1;return json(route,orientationEvidence);});
   await page.route("**/api/local/orientation/preferences",route=>{writes+=1;return json(route,{error:{code:"upstream_timeout"}},504);});
   await page.goto("/?guide=1");
-  await page.getByRole("button",{name:"I checked current health"}).first().click();
+  await expect(page.getByRole("heading",{name:"Follow one INR ledger record from system health to recovery"})).toBeVisible();
+  const healthStep=page.locator(".local-orientation").getByRole("listitem").filter({hasText:"Confirm local system health"});
+  await expect(healthStep.locator("details")).toHaveAttribute("open","");
+  await healthStep.getByRole("button",{name:"I checked current health"}).click();
   await expect(page.getByText(/The response was unknown, so current server state was refreshed without assuming the change succeeded/)).toBeVisible();
   await expect(page.getByText("Not yet evidenced",{exact:true}).first()).toBeVisible();
   expect(writes).toBe(1); expect(reads).toBeGreaterThanOrEqual(2);
@@ -65,7 +70,8 @@ test("orientation reports empty and unavailable durable evidence without browser
   await expect(recoveryStep.locator(".status-label")).toHaveText("Unavailable");
   const fundingStep=orientation.getByRole("listitem").filter({hasText:"Fund through an approved ledger event"});
   await expect(fundingStep.getByText("Stored evidence",{exact:true})).toBeVisible();
-  await fundingStep.getByText("Fund through an approved ledger event",{exact:true}).click();
+  await fundingStep.locator("summary").click();
+  await expect(fundingStep.locator("details")).toHaveAttribute("open","");
   await expect(fundingStep.getByRole("link",{name:"Open evidence"})).toHaveAttribute("href",`/funding/${orientationEvidence.steps[4].evidence_id}`);
   await expect(orientation.getByText("Stored evidence",{exact:true})).toHaveCount(4);
 });
@@ -107,28 +113,33 @@ test("workspace and local guide fill the browser canvas on phone, tablet, and de
 
 test("transfer detail renders seven linked stored-evidence stages and preserves filtered return context",async({page})=>{
   await mockOperatorConsole(page); await page.goto(`/transfers?q=3333&status=posted`);
-  await page.getByRole("link",{name:"Open record"}).click();
-  await page.getByText("Evidence timeline and delivery",{exact:true}).click();
+  await page.getByRole("link",{name:transfer.transfer_id,exact:true}).click();
+  await expect(page.getByRole("heading",{name:`Transfer ${transfer.transfer_id}`,exact:true})).toBeVisible();
+  await page.locator("#transfer-evidence-timeline > summary").click();
+  await expect(page.locator("#transfer-evidence-timeline")).toHaveAttribute("open","");
   await expect(page.getByRole("heading",{name:"Stored evidence chain"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Request and idempotency outcome"})).toBeVisible();
   await expect(page.getByRole("heading",{name:"Reconciliation coverage"})).toBeVisible();
   await expect(page.locator(".evidence-stage")).toHaveCount(7);
-  await page.getByRole("link",{name:"← Back to previous view"}).click();
+  await page.getByRole("link",{name:"← Back to transfer history",exact:true}).click();
   await expect(page).toHaveURL(/\/transfers\?q=3333&status=posted/);
+  await page.locator(".transfer-filter-disclosure > summary").click();
   await expect(page.getByLabel("Search transfers")).toHaveValue("3333");
-  await expect(page.getByLabel("Status")).toHaveValue("posted");
+  await expect(page.getByLabel("Financial status")).toHaveValue("posted");
 });
 
 test("partial, out-of-order, denied, and compact timeline states remain explicit and accessible",async({page})=>{
   await mockOperatorConsole(page); await page.setViewportSize({width:320,height:760});
   const partial={...transferExplainability,evidence_state:"partial",stages:transferExplainability.stages.map((stage,index)=>index===5?{...stage,state:"missing",evidence:[],reason_code:"no_delivery_attempts"}:index===4?{...stage,evidence:stage.evidence.map((item)=>({...item,occurred_at:"2026-08-19T10:00:00Z"}))}:stage)};
   await page.route("**/api/transfers/*/explainability",route=>json(route,partial)); await page.goto(`/transfers/${transfer.transfer_id}`);
-  await page.getByText("Evidence timeline and delivery",{exact:true}).click();
+  await page.locator("#transfer-evidence-timeline > summary").click();
+  await expect(page.locator("#transfer-evidence-timeline")).toHaveAttribute("open","");
   await expect(page.getByText("Stored timestamps are out of sequence",{exact:true})).toBeVisible();
   await expect(page.getByText("No downstream delivery attempt is stored.",{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth)).toBe(false);
   await expectAccessible(page);
   await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["transfers:read"],environment:"local"})); await page.reload();
-  await page.getByText("Evidence timeline and delivery",{exact:true}).click();
+  await page.locator("#transfer-evidence-timeline > summary").click();
+  await expect(page.locator("#transfer-evidence-timeline")).toHaveAttribute("open","");
   await expect(page.getByText("Stored evidence timeline not authorized",{exact:true})).toBeVisible();
 });

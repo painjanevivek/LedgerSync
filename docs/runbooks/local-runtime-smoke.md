@@ -52,6 +52,15 @@ Startup performs these checks before it prints the URL:
 5. PostgreSQL and Redis become healthy.
 6. Migration and local-workspace bootstrap jobs exit successfully.
 7. API, worker, and web are running and healthy.
+
+The worker health probe checks completed queue polls, not process presence. It
+requires one successful poll for each of the four queues, no latest poll failure,
+progress within 60 seconds, and a monitor heartbeat within 15 seconds. Healthy
+idle queues pass. An unstarted, failed, or stalled queue fails. The snapshot is a
+private temporary file; no worker port is published. After the 90-second startup
+grace period, three failed probes at five-second intervals mark it unhealthy.
+Use `scripts/status-local.ps1` and worker logs to inspect the cause. Docker does
+not automatically restart a process merely because its health state is unhealthy.
 8. Session, authorized account, and reconciliation reads succeed through the web/BFF.
 
 Fresh startup runs a replay-safe non-financial bootstrap for the tenant,
@@ -63,9 +72,12 @@ isolated retry lab; it never resets existing financial evidence.
 ## Walk the complete browser evidence path
 
 After startup, open `http://127.0.0.1:3000` directly and follow the local guide.
-The normal operator path is Accounts → Create account → Fund account through
-Transfers → inspect Transfer Detail → freeze/reactivate/close at authoritative
-zero → Reconciliation → Events. Local Status, Developer, and Recovery provide
+The normal operator path is Accounts → Create account → Record funding →
+review evidence → approve under the configured policy → post the journal →
+Transfer → inspect Transfer Detail → freeze/reactivate/close at authoritative
+zero → Reconciliation → Events → preserve investigation → hand off with current
+authorization. An incoming internal transfer is also available as **Transfer
+into account** when another authorized account has funds. Local Status, Developer, and Recovery provide
 read-only operational, contract, and custody evidence.
 
 For an unknown account, transfer, or reconciliation response, retry the exact
@@ -79,6 +91,32 @@ HTTP requests. Use only the fixed host commands in this runbook for those
 operations. The isolated real-stack browser suite and its required safety
 variables are documented in `web/tests/system/README.md`; it must never target
 the normal `compose` project.
+
+## Docker dependency-download TLS compatibility
+
+The local Compose build sets `GO_BUILD_GODEBUG=tlsmlkem=0` for the API,
+migration tool, and worker builders. This bypasses a measured handshake
+compatibility failure on this Docker Desktop module-download path. It keeps
+certificate validation, HTTPS, and Go module checksum verification enabled.
+The final runtime images do not receive this builder setting.
+
+The same fresh pinned Go container failed a module download with default TLS
+settings and passed with `GODEBUG=tlsmlkem=0`. A canonical `--no-cache` build
+then passed for all three backend images. See the [verification record](../design/journey-verification-20261010.md).
+The [official Go GODEBUG documentation](https://go.dev/doc/godebug) explains
+this compatibility setting for peers that cannot handle the larger handshake.
+The A/B result does not identify the specific proxy implementation fault.
+
+On a compatible build network, restore Go's default behavior explicitly:
+
+```powershell
+$env:LEDGERSYNC_GO_BUILD_GODEBUG = ''
+docker compose --project-name compose --env-file data/local-runtime/runtime.env -f deploy/compose/docker-compose.yml build --no-cache api migrate outbox-worker
+```
+
+Direct Dockerfile builds default to Go's normal TLS settings. Use the build
+argument only where the download path needs it. No insecure proxy or certificate
+bypass is part of this repair.
 
 ## Inspect status and bounded logs
 

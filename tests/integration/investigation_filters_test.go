@@ -147,19 +147,19 @@ func TestTransferHistoryFiltersApplyBeforePaginationAndBindCursorIntent(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	firstPage, cursor, err := repository.ListTransfers(context.Background(), testTenantID, investigation.TransferFilter{Status: "posted", Limit: 2})
+	firstPage, cursor, err := repository.ListTransfers(context.Background(), testTenantID, testActorID, investigation.TransferFilter{Status: "posted", Limit: 2})
 	if err != nil || len(firstPage) != 2 || cursor == "" {
 		t.Fatalf("first posted page=%#v cursor=%q err=%v", firstPage, cursor, err)
 	}
-	secondPage, next, err := repository.ListTransfers(context.Background(), testTenantID, investigation.TransferFilter{Status: "posted", Cursor: cursor, Limit: 2})
+	secondPage, next, err := repository.ListTransfers(context.Background(), testTenantID, testActorID, investigation.TransferFilter{Status: "posted", Cursor: cursor, Limit: 2})
 	if err != nil || len(secondPage) != 1 || next != "" {
 		t.Fatalf("second posted page=%#v cursor=%q err=%v", secondPage, next, err)
 	}
-	if _, _, err := repository.ListTransfers(context.Background(), testTenantID, investigation.TransferFilter{Status: "rejected", Cursor: cursor, Limit: 2}); err == nil {
+	if _, _, err := repository.ListTransfers(context.Background(), testTenantID, testActorID, investigation.TransferFilter{Status: "rejected", Cursor: cursor, Limit: 2}); err == nil {
 		t.Fatal("posted cursor was accepted for a changed status filter")
 	}
 	query := postedIDs[0][:12]
-	matches, _, err := repository.ListTransfers(context.Background(), testTenantID, investigation.TransferFilter{Query: query, Limit: 25})
+	matches, _, err := repository.ListTransfers(context.Background(), testTenantID, testActorID, investigation.TransferFilter{Query: query, Limit: 25})
 	if err != nil || len(matches) != 1 || matches[0].ID != postedIDs[0] {
 		t.Fatalf("server-side transfer ID query %q returned %#v err=%v", query, matches, err)
 	}

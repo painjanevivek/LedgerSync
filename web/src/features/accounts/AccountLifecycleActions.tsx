@@ -28,6 +28,7 @@ type Props = Readonly<{
   online: boolean;
   canWrite: boolean;
   canTransfer: boolean;
+  canRecordFunding: boolean;
   fundingScopeComplete: boolean;
   fundedSourceAvailable: boolean;
   returnTo: string;
@@ -45,7 +46,7 @@ function actionExplanation(status: AccountTargetStatus) {
   return "Closure is terminal. The private API will recheck that the current exact balance is zero before committing.";
 }
 
-export function AccountLifecycleActions({ account, balance, balanceLoading, balanceError, tenantId, csrfToken, online, canWrite, canTransfer, fundingScopeComplete, fundedSourceAvailable, returnTo, onChanged, onRefreshEvidence }: Props) {
+export function AccountLifecycleActions({ account, balance, balanceLoading, balanceError, tenantId, csrfToken, online, canWrite, canTransfer, canRecordFunding, fundingScopeComplete, fundedSourceAvailable, returnTo, onChanged, onRefreshEvidence }: Props) {
   const storageKey = useMemo(() => lifecycleAccountStorageKey(tenantId, account.account_id), [account.account_id, tenantId]);
   const [target, setTarget] = useState<AccountTargetStatus | null>(null);
   const [reason, setReason] = useState("");
@@ -165,12 +166,13 @@ export function AccountLifecycleActions({ account, balance, balanceLoading, bala
         {account.status === "active" && <button className="button secondary guarded-control" type="button" disabled={actionDisabled} onClick={(event) => void open("frozen", event.currentTarget)}><Snowflake aria-hidden="true" />Freeze account</button>}
         {account.status === "frozen" && <button className="button secondary guarded-control" type="button" disabled={actionDisabled} onClick={(event) => void open("active", event.currentTarget)}><ArrowClockwise aria-hidden="true" />Reactivate account</button>}
         <button className="button danger guarded-control" type="button" disabled={actionDisabled} onClick={(event) => void open("closed", event.currentTarget)}><XCircle aria-hidden="true" />Close account</button>
-        {account.status === "active" && canTransfer && fundingScopeComplete && fundedSourceAvailable && <Link className="button primary guarded-control" href={`/transfers?destination=${encodeURIComponent(account.account_id)}&return_to=${encodeURIComponent(returnTo)}`}>Fund account</Link>}
+        {account.status === "active" && canRecordFunding && <Link className="button primary guarded-control" href="/funding">Record funding</Link>}
+        {account.status === "active" && canTransfer && fundingScopeComplete && fundedSourceAvailable && <Link className="button primary guarded-control" href={`/transfers?destination=${encodeURIComponent(account.account_id)}&return_to=${encodeURIComponent(returnTo)}`}>Transfer into account</Link>}
       </div>
       {!canWrite && <p className="permission-note">Read-only role: account lifecycle commands are not permitted.</p>}
-      {account.status === "active" && !canTransfer && <p className="permission-note">Funding is unavailable because your role cannot post transfers.</p>}
-      {account.status === "active" && canTransfer && !fundingScopeComplete && <p className="permission-note">The authorized account picker exceeds its bounded scope. LedgerSync cannot prove a funded source, so funding remains unavailable.</p>}
-      {account.status === "active" && canTransfer && fundingScopeComplete && !fundedSourceAvailable && <p className="permission-note">No different active, authorized INR source has a positive available balance. Funding remains unavailable.</p>}
+      {account.status === "active" && !canTransfer && !canRecordFunding && <p className="permission-note">Funding and transfers require their separate scopes.</p>}
+      {account.status === "active" && canTransfer && !fundingScopeComplete && <p className="permission-note">The account picker is incomplete. An incoming transfer remains unavailable until its source can be verified.</p>}
+      {account.status === "active" && canTransfer && fundingScopeComplete && !fundedSourceAvailable && <p className="permission-note">No other active, authorized INR account has a positive available balance for an incoming transfer.</p>}
       {!online && <StatePanel kind="offline" title="Account controls are offline" message="Lifecycle commands are disabled until current account details can be verified and the command can be submitted." />}
       {balanceLoading && <StatePanel title="Verifying closure boundary" message="Current available and ledger balances are loading independently." />}
       {balanceError && <StatePanel kind="unknown" title="Closure details unavailable" message="Final closure confirmation remains disabled until the dialog refreshes and verifies both exact balances." />}

@@ -3,10 +3,10 @@
 import { ArrowsCounterClockwise, WarningCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { ConsoleFooter, ConsoleShell } from "@/features/console/ConsoleShell";
-import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
+import { useCorrectionsWorkspace } from "@/features/corrections/useCorrectionsWorkspace";
 import { CopyControl } from "@/ui/controls/CopyControl.client";
 import { FocusedRetry } from "@/ui/controls/FocusedRetry.client";
 import { DataTableRegion } from "@/ui/display/DataTableRegion";
@@ -17,22 +17,17 @@ import { StatePanel } from "@/ui/display/StatePanel";
 import { StatusBadge } from "@/ui/display/StatusBadge";
 import { FormField } from "@/ui/forms/FormField.client";
 import type {
-  CorrectionPage,
   CorrectionFilters,
   CorrectionStatus,
-  CorrectionSubmission,
   TransferCorrection,
 } from "@/lib/api/corrections";
-import { readJSON, unavailableMessage } from "@/lib/api/client";
 import { Money } from "@/ui/display/Money";
 import { Timestamp } from "@/ui/display/Timestamp";
-import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
+import { useCorrectionCommand } from "@/features/corrections/useCorrectionCommand";
+import { ConfirmationDialog } from "@/ui/overlays/ConfirmationDialog.client";
 import { correctionsURL } from "@/lib/page-query/corrections";
-import { useExperienceMode } from "@/features/console/ExperienceModeBoundary";
-import { CorrectionDetail } from "@/features/corrections/CorrectionDetail";
-import { RecordIdentity } from "@/ui/presentation/RecordIdentity";
-import { RelativeTime } from "@/ui/presentation/RelativeTime";
-import { TechnicalDetails } from "@/ui/presentation/TechnicalDetails";
+import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
 
 const statusOptions: ReadonlyArray<CorrectionStatus | "all"> = [
   "all",
@@ -54,15 +49,6 @@ function label(value: string) {
   return value.replaceAll("_", " ");
 }
 
-function correctionStatusLabel(status: CorrectionStatus): string {
-  if (status === "requested") return "Waiting for review";
-  if (status === "approved") return "Ready to correct";
-  if (status === "posted") return "Correction completed";
-  if (status === "rejected") return "Correction not approved";
-  if (status === "cancelled") return "Correction cancelled";
-  return "Review period ended";
-}
-
 export function CorrectionsConsole({
   correctionId,
   detailReturnTo,
@@ -70,150 +56,7 @@ export function CorrectionsConsole({
   invalidQuery = false,
 }: Readonly<{ correctionId?: string; detailReturnTo?: string; filters?: CorrectionFilters; invalidQuery?: boolean }>) {
   const router = useRouter();
-  const { session, sessionLoading, sessionError, online, hasScope } = useConsoleSession();
-  const [events, setEvents] = useState<TransferCorrection[]>([]);
-  const [selected, setSelected] = useState<TransferCorrection | null>(null);
-  const [nextCursor, setNextCursor] = useState<string>();
-  const [loading, setLoading] = useState(false);
-  const [actionBusy, setActionBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [verifiedAt, setVerifiedAt] = useState<string>();
-  const [decisionReason, setDecisionReason] = useState("");
-  const [stepUpRequired, setStepUpRequired] = useState(false);
-  const listRequests = useRef(createEvidenceRequestCoordinator());
-  const detailRequests = useRef(createEvidenceRequestCoordinator());
-
-  const loadList = useCallback(
-    async () => {
-      const query = new URLSearchParams({ limit: "25" });
-      if (filters.status) query.set("status", filters.status);
-      if (filters.cursor) query.set("cursor", filters.cursor);
-      const request = beginEvidenceRequest(listRequests.current, `corrections:list:${query}`, "replace");
-      if (!request) return;
-      if (!request.sameResource) {
-        setEvents([]);
-        setNextCursor(undefined);
-        setVerifiedAt(undefined);
-      }
-      setLoading(true);
-      setError(null);
-      const response = await readJSON<CorrectionPage>(
-        `/api/transfer-corrections?${query}`,
-      );
-      if (!isEvidenceRequestCurrent(listRequests.current, request.token)) return;
-      if (response.ok && Array.isArray(response.data.events)) {
-        setEvents(response.data.events);
-        setNextCursor(response.data.next_cursor || undefined);
-        setVerifiedAt(new Date().toISOString());
-      } else
-        setError(
-          unavailableMessage(
-            response.status,
-            "transfer correction evidence",
-            response.requestReference,
-          ),
-        );
-      if (finishEvidenceRequest(listRequests.current, request.token)) setLoading(false);
-    },
-    [filters.cursor, filters.status],
-  );
-
-  const loadEvent = useCallback(async () => {
-    if (!correctionId) return null;
-    const request = beginEvidenceRequest(detailRequests.current, `correction:${correctionId}`);
-    if (!request) return null;
-    if (!request.sameResource) { setSelected(null); setVerifiedAt(undefined); }
-    setLoading(true);
-    setError(null);
-    const response = await readJSON<TransferCorrection>(
-      `/api/transfer-corrections/${encodeURIComponent(correctionId)}`,
-    );
-    if (!isEvidenceRequestCurrent(detailRequests.current, request.token)) return null;
-    if (response.ok && response.data.correction_id) {
-      setSelected(response.data);
-      setVerifiedAt(new Date().toISOString());
-      setLoading(false);
-      return response.data;
-    } else {
-      setError(
-        response.status === 404
-          ? `The correction record was not found in this authorized tenant scope. Request reference: ${response.requestReference}.`
-          : unavailableMessage(
-              response.status,
-              "transfer correction evidence",
-              response.requestReference,
-            ),
-      );
-    }
-    if (finishEvidenceRequest(detailRequests.current, request.token)) setLoading(false);
-    return null;
-  }, [correctionId]);
-
-  useEffect(() => {
-    if (!session || !online || !hasScope("corrections:read") || invalidQuery)
-      return;
-    const listCoordinator = listRequests.current;
-    const detailCoordinator = detailRequests.current;
-    const timer = window.setTimeout(
-      () => void (correctionId ? loadEvent() : loadList()),
-      0,
-    );
-    return () => {
-      window.clearTimeout(timer);
-      invalidateEvidenceRequests(listCoordinator);
-      invalidateEvidenceRequests(detailCoordinator);
-    };
-  }, [correctionId, hasScope, invalidQuery, loadEvent, loadList, online, session]);
-  async function act(action: "approve" | "reject" | "cancel") {
-    if (!session || !selected) return;
-    setActionBusy(true);
-    setError(null);
-    setStepUpRequired(false);
-    try {
-      const headers: Record<string, string> = {
-        "X-CSRF-Token": session.csrf_token,
-        "Content-Type": "application/json",
-      };
-      const response = await fetch(
-        `/api/transfer-corrections/${encodeURIComponent(selected.correction_id)}/${action}`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ reason: decisionReason }),
-        },
-      );
-      const payload = (await response.json().catch(() => ({}))) as
-        | TransferCorrection
-        | CorrectionSubmission
-        | { error?: { code?: string } };
-      if (!response.ok) {
-        const code = "error" in payload ? payload.error?.code : undefined;
-        if (response.status === 428 || code === "step_up_required")
-          setStepUpRequired(true);
-        throw new Error(
-          response.status === 504
-            ? "The command outcome is unknown. Refresh this record before any retry."
-            : code === "step_up_required"
-              ? "Recent authentication is required before this command can be authorized."
-              : `The correction command was not recorded (${code ?? response.status}).`,
-        );
-      }
-      const event =
-        "event" in payload ? payload.event : (payload as TransferCorrection);
-      if (event.correction_id) setSelected(event);
-      else await loadEvent();
-      setDecisionReason("");
-      setVerifiedAt(new Date().toISOString());
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "The correction command could not be verified.",
-      );
-    } finally {
-      setActionBusy(false);
-    }
-  }
+  const { session, sessionLoading, sessionError, online, hasScope, events, selected, nextCursor, loading, actionBusy, error, verifiedAt, decisionReason, setDecisionReason, stepUpRequired, loadList, loadEvent, act } = useCorrectionsWorkspace({ correctionId, filters, invalidQuery });
 
   if (sessionLoading)
     return (
@@ -364,7 +207,6 @@ function CorrectionList({
   onClearFilters: () => void;
   onRefresh: () => void;
 }>) {
-  const { mode } = useExperienceMode();
   const [draftStatus, setDraftStatus] = useState<CorrectionFilters["status"]>(filters.status);
   const returnTo = correctionsURL(filters);
   const nextHref = nextCursor ? correctionsURL({ ...filters, cursor: nextCursor }) : undefined;
@@ -388,7 +230,7 @@ function CorrectionList({
         </div>
         <strong>Policy-bound</strong>
       </section>
-      {mode === "expert" && <form className="surface list-filter-bar" onSubmit={(event) => { event.preventDefault(); onApplyFilters({ status: draftStatus }); }}>
+      <form className="surface list-filter-bar" onSubmit={(event) => { event.preventDefault(); onApplyFilters({ status: draftStatus }); }}>
         <FormField label="Exact correction status" requirement="optional" hint="The server filters the complete correction history before pagination."><select
             value={draftStatus}
             onChange={(event) =>
@@ -402,8 +244,8 @@ function CorrectionList({
             ))}
           </select></FormField>
         <div className="action-row"><button className="button primary" type="submit" disabled={loading}>Apply filters</button><button className="button secondary" type="button" disabled={loading} onClick={onClearFilters}>Clear all</button><button className="button secondary" type="button" disabled={!online || loading} onClick={onRefresh}>Refresh evidence</button></div>
-      </form>}
-      {mode === "expert" && <SavedViewCapture domain="corrections" filters={{ status: filters.status || undefined }} />}
+      </form>
+      <SavedViewCapture domain="corrections" filters={{ status: filters.status || undefined }} />
       {error && (
         <StatePanel
           kind="error"
@@ -438,9 +280,7 @@ function CorrectionList({
           message="No correction records match this authorized status scope."
         />
       ) : (
-        events.length > 0 && mode === "simple" ? (
-          <section className="simple-record-section" aria-busy={loading}><div className="simple-section-heading"><div><h2>Corrections</h2><p>{events.length} {events.length === 1 ? "record needs" : "records need"} your attention on this page.</p></div></div><ul className="simple-record-list">{events.map((event) => <li key={event.correction_id} data-tone={event.status === "posted" ? "positive" : ["rejected", "cancelled", "expired"].includes(event.status) ? "danger" : "warning"}><article><div className="simple-record-main"><div><strong>{correctionStatusLabel(event.status)}</strong><span>{label(event.reason_code)} · <RelativeTime value={event.requested_at} /></span></div><Money currency={event.currency} minorUnits={event.amount_minor} /></div><p>The original transfer stays unchanged. Any approved correction creates a linked reverse transfer.</p><div className="simple-record-actions"><Link className="button secondary" href={`/corrections/${encodeURIComponent(event.correction_id)}?return_to=${encodeURIComponent(returnTo)}`}>{event.status === "requested" ? "Review correction" : "View correction"}</Link><TechnicalDetails><RecordIdentity label="Correction reference" value={event.correction_id} /><p>Approval expires <Timestamp value={event.approval_expires_at} />.</p></TechnicalDetails></div></article></li>)}</ul>{nextHref && <div className="pagination"><span>More corrections are available</span><Link className="button secondary" href={nextHref}>Next page</Link></div>}</section>
-        ) : events.length > 0 && (
+        events.length > 0 && (
           <section className="ledger-section" aria-busy={loading}>
             <div className="section-heading"><div><p className="eyebrow">Newest requested evidence first</p><h2>Correction history</h2><p>{events.length} record{events.length === 1 ? "" : "s"} on this page. A total is not calculated or implied.</p></div></div>
             <DataTableRegion label="Transfer correction queue">
@@ -488,6 +328,437 @@ function CorrectionList({
           </section>
         )
       )}
+    </>
+  );
+}
+
+function CorrectionDetail({
+  event,
+  loading,
+  error,
+  verifiedAt,
+  online,
+  currentSubject,
+  tenantId,
+  csrfToken,
+  canWrite,
+  canApprove,
+  actionBusy,
+  decisionReason,
+  stepUpRequired,
+  returnTo,
+  backHref,
+  onReason,
+  onRefresh,
+  onAction,
+}: Readonly<{
+  event: TransferCorrection | null;
+  loading: boolean;
+  error: string | null;
+  verifiedAt?: string;
+  online: boolean;
+  currentSubject: string;
+  tenantId: string;
+  csrfToken: string;
+  canWrite: boolean;
+  canApprove: boolean;
+  actionBusy: boolean;
+  decisionReason: string;
+  stepUpRequired: boolean;
+  returnTo: string;
+  backHref: string;
+  onReason: (value: string) => void;
+  onRefresh: () => Promise<TransferCorrection | null>;
+  onAction: (action: "approve" | "reject" | "cancel") => void;
+}>) {
+  const [postReviewOpen, setPostReviewOpen] = useState(false);
+  const [postEvidence, setPostEvidence] = useState<TransferCorrection | null>(null);
+  const [postVerificationError, setPostVerificationError] = useState<string | null>(null);
+  const [verifyingPost, setVerifyingPost] = useState(false);
+  const [restorePostTrigger, setRestorePostTrigger] = useState(true);
+  const postTrigger = useRef<HTMLButtonElement>(null);
+  const postOutcome = useRef<HTMLDivElement>(null);
+  const postCommand = useCorrectionCommand(tenantId, event?.correction_id ?? "", csrfToken);
+
+  if (!event)
+    return (
+      <>
+        <PageHeader
+          eyebrow="Controls / Correction record"
+          title="Transfer correction"
+          description="Loading the selected immutable control record."
+        />
+        {error ? (
+          <StatePanel
+            kind="error"
+            title="Correction evidence unavailable"
+            message={error}
+          />
+        ) : (
+          <StatePanel
+            title="Loading correction evidence"
+            message="Authorization and linked journals are being verified."
+          />
+        )}
+      </>
+    );
+  const requester = event.requester_subject_id === currentSubject;
+  const canDecide = canApprove && !requester && event.status === "requested";
+  const canPost = canApprove && !requester && event.status === "approved";
+  const canCancel =
+    canWrite &&
+    requester &&
+    (event.status === "requested" || event.status === "approved");
+  const activeCorrectionId = event.correction_id;
+
+  async function beginPostReview() {
+    setRestorePostTrigger(true);
+    setPostVerificationError(null);
+    postCommand.setOutcome(null);
+    setPostEvidence(null);
+    setPostReviewOpen(true);
+    setVerifyingPost(true);
+    const current = await onRefresh();
+    setVerifyingPost(false);
+    if (current?.correction_id === activeCorrectionId
+      && current.status === "approved"
+      && current.requester_subject_id !== currentSubject
+      && Boolean(current.approver_subject_id)) {
+      setPostEvidence(current);
+      return;
+    }
+    if (current?.status === "posted") postCommand.discard();
+    setRestorePostTrigger(false);
+    setPostVerificationError(current
+      ? "This correction is no longer approved for posting by the current independent operator. Current evidence has been refreshed."
+      : "LedgerSync could not verify the current approved correction. Posting remains disabled.");
+    setPostReviewOpen(false);
+    requestAnimationFrame(() => postOutcome.current?.focus());
+  }
+
+  async function confirmPost() {
+    if (!postEvidence || postEvidence.status !== "approved") return;
+    const result = await postCommand.send(postCommand.prepare());
+    setRestorePostTrigger(false);
+    setPostReviewOpen(false);
+    if (result.kind === "success") await onRefresh();
+    requestAnimationFrame(() => postOutcome.current?.focus());
+  }
+
+  return (
+    <>
+      <PageHeader
+          eyebrow="Ledger / Correction"
+        title="Correction control record"
+          description="See the correction request, review decision, and any linked reverse transfer."
+      />
+      <section className="identity-strip">
+        <div>
+          <span>Correction ID</span>
+          <CopyControl value={event.correction_id} />
+        </div>
+        <div>
+          <span>Status</span>
+          <StatusBadge tone={correctionTone(event.status)}>
+            {event.status}
+          </StatusBadge>
+        </div>
+        <div>
+          <span>Policy</span>
+          <strong>{event.policy_version}</strong>
+        </div>
+        <div>
+          <span>Updated</span>
+          <strong><Timestamp value={event.updated_at} /></strong>
+        </div>
+      </section>
+      {verifiedAt && (
+        <EvidenceFreshness
+          state={
+            error || !online ? "historical" : loading ? "refreshing" : "current"
+          }
+          verifiedAt={verifiedAt}
+          label="Correction record"
+          reason={
+            error ?? (!online ? "Reconnect before taking action." : undefined)
+          }
+        />
+      )}
+      {error && (
+        <StatePanel
+          kind="error"
+          title="Correction command or refresh failed"
+          message={error}
+        />
+      )}
+      {stepUpRequired && (
+        <StatePanel
+          kind="unknown"
+          title="Recent authentication required"
+          message="Reauthenticate with the approved identity provider, then return to this exact record. No correction command was assumed to succeed."
+          action={
+            <Link
+              className="button primary"
+              href={`/api/auth/sign-in?prompt=login&return_to=${encodeURIComponent(returnTo)}`}
+            >
+              Reauthenticate
+            </Link>
+          }
+        />
+      )}
+      {(postVerificationError || postCommand.outcome) && (
+        <div ref={postOutcome} tabIndex={-1}>
+          {postVerificationError ? (
+            <StatePanel kind="error" title="Posting evidence changed" message={postVerificationError} />
+          ) : postCommand.outcome?.kind === "success" ? (
+            <StatePanel title="Exact reverse transfer posted" message={`The authoritative correction confirms one additive reverse transfer. Request reference: ${postCommand.outcome.requestReference}.`} />
+          ) : (
+            <StatePanel
+              kind={postCommand.outcome?.kind === "unknown" ? "unknown" : postCommand.outcome?.kind === "denied" ? "denied" : "error"}
+              title={postCommand.outcome?.kind === "unknown" ? "Posting outcome unknown" : "Correction posting not completed"}
+              message={postCommand.outcome?.message ?? "The posting was not completed."}
+              action={postCommand.outcome?.kind === "unknown" ? <button className="button primary guarded-control" type="button" disabled={!online || postCommand.pending} onClick={() => void beginPostReview()}>Refresh before retry</button> : undefined}
+            />
+          )}
+        </div>
+      )}
+      <section className="correction-evidence-grid">
+        <article>
+          <p className="eyebrow">Original · permanent</p>
+          <h2>Committed transfer</h2>
+          <dl className="evidence-list">
+            <div>
+              <dt>Transfer</dt>
+              <dd>
+                <Link href={`/transfers/${event.original_transfer_id}`}>
+                  <CopyControl value={event.original_transfer_id} />
+                </Link>
+              </dd>
+            </div>
+            <div>
+              <dt>Journal</dt>
+              <dd>
+                <CopyControl value={event.original_journal_id} />
+              </dd>
+            </div>
+            <div>
+              <dt>Route</dt>
+              <dd>
+                {event.debit_account_id} → {event.credit_account_id}
+              </dd>
+            </div>
+            <div>
+              <dt>Amount</dt>
+              <dd><Money currency={event.currency} minorUnits={event.amount_minor} /></dd>
+            </div>
+          </dl>
+        </article>
+        <article
+          className={event.compensation_transfer_id ? "posted" : "pending"}
+        >
+          <p className="eyebrow">Compensation · additive</p>
+          <h2>
+            {event.compensation_transfer_id
+              ? "Posted reverse transfer"
+              : "Not posted"}
+          </h2>
+          {event.compensation_transfer_id ? (
+            <dl className="evidence-list">
+              <div>
+                <dt>Transfer</dt>
+                <dd>
+                  <Link href={`/transfers/${event.compensation_transfer_id}`}>
+                    <CopyControl value={event.compensation_transfer_id} />
+                  </Link>
+                </dd>
+              </div>
+              <div>
+                <dt>Journal</dt>
+                <dd>
+                  {event.compensation_journal_id ? (
+                    <CopyControl value={event.compensation_journal_id} />
+                  ) : (
+                    "Unavailable"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Route</dt>
+                <dd>
+                  {event.credit_account_id} → {event.debit_account_id}
+                </dd>
+              </div>
+              <div>
+                <dt>Amount</dt>
+                <dd><Money currency={event.currency} minorUnits={event.amount_minor} /></dd>
+              </div>
+            </dl>
+          ) : (
+            <p>
+              The original ledger remains unchanged until an authorized approver
+              posts the exact reversal.
+            </p>
+          )}
+        </article>
+      </section>
+      <section className="surface correction-rationale">
+        <div>
+          <p className="eyebrow">Reasoned evidence</p>
+          <h2>{label(event.reason_code)}</h2>
+          <p>{event.operator_note}</p>
+        </div>
+        <dl>
+          <div>
+            <dt>Requester</dt>
+            <dd>{event.requester_subject_id}</dd>
+          </div>
+          <div>
+            <dt>Approver</dt>
+            <dd>
+              {event.approver_subject_id ?? "Independent approval pending"}
+            </dd>
+          </div>
+          <div>
+            <dt>Control mode</dt>
+            <dd>{label(event.control_mode)}</dd>
+          </div>
+          <div>
+            <dt>Approval expires</dt>
+            <dd><Timestamp value={event.approval_expires_at} /></dd>
+          </div>
+          {event.decision_reason && (
+            <div>
+              <dt>Decision reason</dt>
+              <dd>{event.decision_reason}</dd>
+            </div>
+          )}
+        </dl>
+      </section>
+      <DisclosureSection
+        id="correction-related-evidence"
+        title="Lifecycle and related evidence"
+        summary="Inspect authorized records linked to this correction after reviewing the original and requested reversal."
+        lazy
+      >
+        <RelatedEvidenceRail sourceType="correction" sourceId={event.correction_id} />
+      </DisclosureSection>
+      {(canDecide || canPost || canCancel) && (
+        <section className="correction-actions">
+          <header>
+            <div>
+              <p className="eyebrow">Authorized next command</p>
+              <h2>
+                {canDecide
+                  ? "Independent review"
+                  : canPost
+                    ? "Post exact compensation"
+                    : "Cancel request"}
+              </h2>
+            </div>
+            <StatusBadge tone="warning">step-up protected</StatusBadge>
+          </header>
+          {!canPost && (
+            <FormField label="Decision or cancellation reason" requirement="required" hint="Explain why you approve, reject, or cancel this correction."><textarea
+                rows={3}
+                maxLength={500}
+                required
+                value={decisionReason}
+                onChange={(change) => onReason(change.target.value)}
+              /></FormField>
+          )}
+          <div>
+            {canDecide && (
+              <>
+                <button
+                  className="button primary"
+                  type="button"
+                  disabled={!online || actionBusy || !decisionReason.trim()}
+                  onClick={() => onAction("approve")}
+                >
+                  Approve request
+                </button>
+                <button
+                  className="button danger"
+                  type="button"
+                  disabled={!online || actionBusy || !decisionReason.trim()}
+                  onClick={() => onAction("reject")}
+                >
+                  Reject request
+                </button>
+              </>
+            )}
+            {canPost && (
+              <button
+                ref={postTrigger}
+                className="button danger guarded-control"
+                type="button"
+                disabled={!online || actionBusy || postCommand.pending}
+                onClick={() => void beginPostReview()}
+              >
+                {verifyingPost ? "Verifying…" : postCommand.intent ? "Review same reverse-transfer retry" : "Review reverse-transfer posting"}
+              </button>
+            )}
+            {canCancel && (
+              <button
+                className="button secondary"
+                type="button"
+                disabled={!online || actionBusy || !decisionReason.trim()}
+                onClick={() => onAction("cancel")}
+              >
+                Cancel request
+              </button>
+            )}
+            <button
+              className="button secondary"
+              type="button"
+              disabled={!online || loading}
+              onClick={onRefresh}
+            >
+              Refresh record
+            </button>
+          </div>
+        </section>
+      )}
+      {requester &&
+        canApprove &&
+        (event.status === "requested" || event.status === "approved") && (
+          <StatePanel
+            kind="denied"
+            title="Requester cannot approve or post"
+            message="Dual control requires a different authorized subject. This UI hides the command, and the API enforces the same separation."
+          />
+        )}
+      <Link className="text-link back-link" href={backHref}>
+        ← {backHref.startsWith("/approvals") ? "Back to approvals" : "Back to correction queue"}
+      </Link>
+      <ConfirmationDialog
+        open={postReviewOpen}
+        eyebrow="Permanent additive correction"
+        title="Post exact reverse transfer?"
+        description="LedgerSync refreshed this correction before review. The original journal remains unchanged; confirmation creates one new balanced reversal."
+        confirmLabel={postCommand.intent ? "Retry same reverse transfer" : "Post exact reverse transfer"}
+        busyLabel="Posting…"
+        className="financial-command-dialog"
+        busy={postCommand.pending || verifyingPost}
+        confirmDisabled={!postEvidence || postEvidence.status !== "approved"}
+        returnFocusRef={postTrigger}
+        restoreTriggerFocus={restorePostTrigger}
+        onDismiss={() => setPostReviewOpen(false)}
+        onConfirm={() => void confirmPost()}
+      >
+        {verifyingPost ? (
+          <StatePanel title="Verifying current approval" message="Posting remains disabled until the authoritative correction and independent approval are available." />
+        ) : postEvidence && (
+          <dl className="review-grid">
+            <div><dt>Permanent effect</dt><dd>Create one additive balanced reverse transfer</dd></div>
+            <div><dt>Exact amount</dt><dd><Money currency={postEvidence.currency} minorUnits={postEvidence.amount_minor} /></dd></div>
+            <div><dt>Reverse route</dt><dd><code>{postEvidence.credit_account_id}</code> → <code>{postEvidence.debit_account_id}</code></dd></div>
+            <div><dt>Original transfer</dt><dd><code>{postEvidence.original_transfer_id}</code></dd></div>
+            <div><dt>Independent approver</dt><dd>{postEvidence.approver_subject_id ?? "Approval evidence unavailable"}</dd></div>
+            <div><dt>Approval expires</dt><dd><Timestamp value={postEvidence.approval_expires_at} /></dd></div>
+          </dl>
+        )}
+      </ConfirmationDialog>
     </>
   );
 }

@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     # Long-lived local authority must return with Docker Desktop. Normal stop/start
     # preserves the named volume; reset is a separate explicit operation.
     restart: unless-stopped
@@ -27,7 +27,7 @@ services:
     security_opt: ["no-new-privileges:true"]
 
   redis:
-    image: redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+    image: redis:7.4-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     # Redis is disposable, but automatic restart keeps the local read path usable
     # after an ordinary Docker daemon event.
     restart: unless-stopped
@@ -52,6 +52,10 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
+      # Build-time TLS compatibility for Docker Desktop proxies. Certificate and
+      # module checksum checks stay enabled; this does not set runtime GODEBUG.
+      args:
+        GO_BUILD_GODEBUG: ${LEDGERSYNC_GO_BUILD_GODEBUG-tlsmlkem=0}
     environment:
       LEDGERSYNC_ENV: development
       LEDGERSYNC_HTTP_ADDR: :8080
@@ -65,6 +69,8 @@ services:
       LEDGERSYNC_REDIS_STREAM_MAX_LENGTH: 5000000
       LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_api:${LEDGERSYNC_API_DATABASE_PASSWORD:?Local API database secret is required}@postgres:5432/ledgersync?sslmode=disable
       LEDGERSYNC_REDIS_ADDR: redis:6379
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: ${LEDGERSYNC_LIVE_INVESTIGATION_ENABLED:-false}
+      LEDGERSYNC_LIVE_INVESTIGATION_NAMESPACE: ledgersync:investigation-live:local
       LEDGERSYNC_SESSION_SECRET: ${LEDGERSYNC_SESSION_SECRET:?Local API session secret is required}
       LEDGERSYNC_CONSISTENCY_SIGNING_KEY: ${LEDGERSYNC_CONSISTENCY_SIGNING_KEY:?Local consistency signing key is required}
       LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:?Local BFF assertion secret is required}
@@ -100,6 +106,8 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/outbox-worker.Dockerfile
+      args:
+        GO_BUILD_GODEBUG: ${LEDGERSYNC_GO_BUILD_GODEBUG-tlsmlkem=0}
     environment:
       LEDGERSYNC_ENV: development
       LEDGERSYNC_DATABASE_URL: postgres://ledgersync_local_worker:${LEDGERSYNC_WORKER_DATABASE_PASSWORD:?Local worker database secret is required}@postgres:5432/ledgersync?sslmode=disable
@@ -108,7 +116,7 @@ services:
       LEDGERSYNC_STARTUP_INITIAL_BACKOFF: 250ms
       LEDGERSYNC_STARTUP_MAX_BACKOFF: 5s
     depends_on:
-      migrate:
+      demo-seed:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
@@ -116,11 +124,11 @@ services:
     stop_grace_period: 30s
     init: true
     healthcheck:
-      test: ["CMD-SHELL", "ps | grep -q '[o]utbox-worker'"]
+      test: ["CMD", "/usr/local/bin/outbox-worker", "--healthcheck"]
       interval: 5s
       timeout: 3s
-      start_period: 5s
-      retries: 30
+      start_period: 90s
+      retries: 3
     networks: [private]
     read_only: true
     tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
@@ -143,6 +151,7 @@ services:
       LEDGERSYNC_LOCAL_LOGIN_ENABLED: "true"
       LEDGERSYNC_LOCAL_SUBJECT_ID: local-user
       LEDGERSYNC_LOCAL_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: ${LEDGERSYNC_LIVE_INVESTIGATION_ENABLED:-false}
     depends_on:
       api:
         condition: service_healthy
@@ -162,16 +171,58 @@ services:
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
 
+  web-peer:
+    profiles: ["collaboration"]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/web.Dockerfile
+    environment:
+      NODE_ENV: production
+      LEDGERSYNC_PRIVATE_API_URL: http://api:8080
+      LEDGERSYNC_PRIVATE_API_TOKEN: ${LEDGERSYNC_DEVELOPMENT_API_TOKEN:?Local private API token is required}
+      LEDGERSYNC_WEB_SESSION_SECRET: ${LEDGERSYNC_WEB_SESSION_SECRET:?Local web session secret is required}
+      LEDGERSYNC_BFF_ASSERTION_SECRET: ${LEDGERSYNC_BFF_ASSERTION_SECRET:?Local BFF assertion secret is required}
+      LEDGERSYNC_DEPLOYMENT_ENV: development
+      LEDGERSYNC_COOKIE_SECURE: "false"
+      LEDGERSYNC_PUBLIC_ORIGIN: http://127.0.0.1:3001
+      LEDGERSYNC_LOCAL_LOGIN_ENABLED: "true"
+      LEDGERSYNC_LOCAL_SUBJECT_ID: local-peer
+      LEDGERSYNC_LOCAL_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: ${LEDGERSYNC_LIVE_INVESTIGATION_ENABLED:-false}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 30s
+    init: true
+    healthcheck:
+      # The process listens on container port 3000 but accepts HTTP only for
+      # the published 3001 origin. Check process readiness here; the smoke test
+      # verifies the real host-validating browser path through port 3001.
+      test: ["CMD", "node", "-e", "const net=require('node:net');const s=net.connect(3000,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      start_period: 10s
+      retries: 30
+    ports: ["127.0.0.1:3001:3000"]
+    networks: [edge, private]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+
   migrate:
     build:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
       target: database-tooling
+      args:
+        GO_BUILD_GODEBUG: ${LEDGERSYNC_GO_BUILD_GODEBUG-tlsmlkem=0}
     entrypoint: ["sh", "-ec"]
     command:
       - >-
         /usr/local/bin/migrate &&
-        exec psql -v ON_ERROR_STOP=1 -h postgres -U ledgersync -d ledgersync
+        exec psql --single-transaction -v ON_ERROR_STOP=1 -h postgres -U ledgersync -d ledgersync
         -f /database-roles/roles.sql -f /database-roles/local-workload-logins.sql
     environment:
       LEDGERSYNC_ENV: development
@@ -191,7 +242,7 @@ services:
     security_opt: ["no-new-privileges:true"]
 
   demo-seed:
-    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD:?Local PostgreSQL secret is required}
       LEDGERSYNC_INITIALIZATION_MODE: ${LEDGERSYNC_INITIALIZATION_MODE:-empty}

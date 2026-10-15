@@ -2,8 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  outputDir: "./test-results/e2e",
   snapshotPathTemplate: "../docs/design/qa/responsive/baselines/{platform}/{projectName}/{arg}{ext}",
   fullyParallel: true,
+  updateSnapshots: "none",
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:3100",
@@ -15,6 +17,8 @@ export default defineConfig({
     env: { ...process.env, LEDGERSYNC_DEPLOYMENT_ENV: "development", LEDGERSYNC_ENABLE_TEST_RENDER_FAILURE: "true", LEDGERSYNC_PUBLIC_ORIGIN: "http://127.0.0.1:3100" },
     url: "http://127.0.0.1:3100",
     reuseExistingServer: false,
-    timeout: 60_000,
+    // This bound covers a complete production build plus server startup.
+    // Per-test and assertion timeouts remain unchanged.
+    timeout: 180_000,
   },
 });

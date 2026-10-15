@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "phase": "R04",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T10:23:49.101Z",
+  "source": {
+    "head": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+    "dirty": true,
+    "original_files": 1655,
+    "original_manifest_sha256": "8f52f56eddc48f87c8240e5c28e085369a0b18d1cfd4b5458d53941ffb776354",
+    "missing_unexplained_original_files": [],
+    "intentional_moved_files": [
+      {
+        "from": "internal/application/webhookdelivery/dispatcher.go",
+        "to": "internal/platform/webhookdelivery/dispatcher.go",
+        "before_sha256": "765cd1a0f03bb341539c963ac1f79dfbb497c0cee13116acb61073fa2ba01a1d",
+        "backup": "data/portfolio/r04-20261015/internal_application_webhookdelivery_dispatcher.go.before"
+      },
+      {
+        "from": "internal/application/webhookdelivery/dispatcher_test.go",
+        "to": "internal/platform/webhookdelivery/dispatcher_test.go",
+        "before_sha256": "cd03a1a01a757441c4e796bef75c4d288a2c0ef067c89efe675818b121363c4a",
+        "backup": "data/portfolio/r04-20261015/internal_application_webhookdelivery_dispatcher_test.go.before"
+      },
+      {
+        "from": "internal/application/webhookverification/dispatcher.go",
+        "to": "internal/platform/webhookverification/dispatcher.go",
+        "before_sha256": "f3cbbd7d93fd5157c0fb0d27c60f69936a9575c3256d5517f94ae42fc9570743",
+        "backup": "data/portfolio/r04-20261015/internal_application_webhookverification_dispatcher.go.before"
+      },
+      {
+        "from": "internal/application/webhookverification/dispatcher_test.go",
+        "to": "internal/platform/webhookverification/dispatcher_test.go",
+        "before_sha256": "e50fa5d6331258680bb75728223c581fe60fd6476de833c0ed7e654970ce45a3",
+        "backup": "data/portfolio/r04-20261015/internal_application_webhookverification_dispatcher_test.go.before"
+      }
+    ],
+    "index_unchanged": true,
+    "index_sha256": "d54fe9bb80d21877859d904263aa282071bc1d0e59e1eaa9f90a6e49f6515f71",
+    "changed_original_files": [
+      {
+        "path": "cmd/outbox-worker/main.go",
+        "before_sha256": "e7fd3445d89275c69e52bb9a86296e517cb629a55fee3cce4098511d2636803b",
+        "sha256": "83ae3d4b2f49fea9b5d6f8dc652a87569c5dd8fa9879485939074c38df9234ca"
+      },
+      {
+        "path": "docs/architecture/decisions/001-portfolio-module-boundaries.md",
+        "before_sha256": "e988eeccdd2d510f64c48505ccbe46236c762d198bbc56941ea8a486346f69c7",
+        "sha256": "f844599d9b23a7b8bc4eb7f595cbe004745c29ec25d9793afd51beb6b80a5679"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "812f51711bd8d497f3d3d1f50c0cdc6b4c9a8918abab9796013591bdcb098fcd",
+        "sha256": "339e1bfbf3a8a377bbc9626c839d79a350385188cfb4b123e236404a42132e76"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "c50c6b3fcda3bf8171f08f5e10d5746cb241bff355415b3093c65a9d88bda8a1",
+        "sha256": "1780382922f0d12fabc81c8285f7ae33c29f55bd413e1e4b033cfaf9ce64aad2"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "d94e6e575e4b011bff43ce82fff6ffe3c2c5e36d90e2c819bffbc080e6bf7e8c",
+        "sha256": "cf52a7991e56a469d1ea60ff6af0505b33f65c700221468bf7e6b8481f70cb28"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "88dc79408c69f0a619531e3b8e5d94df25b5ea873334ccac840a9d98174ceff0",
+        "sha256": "a626dec19ec4cff64da05e1080eef970a7584508c6da3ce443db97411f9470ed"
+      },
+      {
+        "path": "internal/bootstrap/worker.go",
+        "before_sha256": "adb05a150b308386c839d43773bd6cbc4d5373fdbb853f0fa02a1a972ebf3b8c",
+        "sha256": "3c4c74a6444b5753845893e2c579141a4283b6f970995cc0ede7e65b4cecc604"
+      },
+      {
+        "path": "internal/bootstrap/worker_test.go",
+        "before_sha256": "073b3888e92e1ee65215ad8dae33929ebbba4774e92346edce00c9201fe1a29a",
+        "sha256": "0f467cddde63845af508c217c9abdb09bf72434651a0c40d5e16e6ac5a63432c"
+      },
+      {
+        "path": "tests/architecture/boundaries_test.go",
+        "before_sha256": "d41e9fbb460bdf29f42f2d46d3cd35322d41ffbea1905613dd1192e4bebed471",
+        "sha256": "b05d9414831801972bffe720b4af0e0329fde54d75e10e781e75270663a82ee0"
+      },
+      {
+        "path": "web/src/features/corrections/CorrectionsConsole.tsx",
+        "before_sha256": "a1b6f0f42f4878a958fcc259122bbbd6e5f1c6d783cb91d3d25d8a2cf3f57bfd",
+        "sha256": "7958fde320c3f44bcfc172864ed7dce03d5b2d32d0f0981e90d3bcd0354cb819"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/module-map.md",
+        "sha256": "8aceab5b3f0dcfbf63fb21e23c27a930869cda2def6a03b5f7cdc8917b96a6b2"
+      },
+      {
+        "path": "internal/application/webhookdelivery/contracts.go",
+        "sha256": "1b48208e09f3eb54c4a184016ab409a0c03ffae70ac178bd40bc53b9b49447ad"
+      },
+      {
+        "path": "internal/platform/webhookdelivery/dispatcher.go",
+        "sha256": "516d3f8f2c030b7a9261caeb7f028583ead2865ee1d9848a59c1de0a6b0f2b97"
+      },
+      {
+        "path": "internal/platform/webhookdelivery/dispatcher_test.go",
+        "sha256": "62d0159554ffbf37a5d894d18b58322d72fb8217b7fbe1bef722158e35e95fb7"
+      },
+      {
+        "path": "internal/platform/webhookdelivery/key_resolver.go",
+        "sha256": "18bdea84f3efb09df0d2a2bc823a9ea998a300b03ec44765faef8df3d0e1ae7e"
+      },
+      {
+        "path": "internal/platform/webhookdelivery/transport.go",
+        "sha256": "5a55f489a16cf85d756455e41805b7e6d43da1af8db115e31290c7a85aa5e722"
+      },
+      {
+        "path": "internal/platform/webhookverification/contracts.go",
+        "sha256": "1434ef41f191510d3a3ca0f32f8032a34dd64d38e317289a58f193e64dc4d787"
+      },
+      {
+        "path": "internal/platform/webhookverification/dispatcher.go",
+        "sha256": "f3cbbd7d93fd5157c0fb0d27c60f69936a9575c3256d5517f94ae42fc9570743"
+      },
+      {
+        "path": "internal/platform/webhookverification/dispatcher_test.go",
+        "sha256": "ceef2a9b60ca1f5fdca2d80f0eebac5d4abc801bbe4802478ebb3fe3b5b35826"
+      },
+      {
+        "path": "tests/integration/shared_worker_runner_test.go",
+        "sha256": "79e0660d074c180daa3c07ae4fadf045c66af8642833cc7f42c16f89eb1f4317"
+      },
+      {
+        "path": "web/src/features/corrections/useCorrectionsWorkspace.ts",
+        "sha256": "a9dd8bab596bf2c99d664fa7e9bf4d2d4be64535bec0ebe0390d5bfe07725f9a"
+      }
+    ]
+  },
+  "verification": {
+    "go_packages_passed": 43,
+    "integration_passed_top_level": 9,
+    "integration_passed_subtests": 2,
+    "standalone_crash_helper": "intentionally skipped; parent passed",
+    "vet": "passed",
+    "architecture": "passed",
+    "typescript": "passed",
+    "targeted_eslint": "passed",
+    "frontend_tests_passed": 214,
+    "production_build": "passed",
+    "browser_correction_journeys_passed": 4,
+    "correction_render_body_unchanged": true,
+    "shared_worker_restricted_login": "published 3 events, processed 3 projections, completed all four queue callbacks"
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "original_moved_bytes": "verified private before-copy hashes",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r04-20261015/all-go-final.txt",
+      "sha256": "c99c2c2ae3900a8bf3848e747a2e13a8ea9e622afb3d835f4fc80fa58f717746",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/integration-final.txt",
+      "sha256": "678ead454fe49734d46f8df772806feda76bafb21b6cdfb2fe60bb3f258bb342",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/vet-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/architecture-final.txt",
+      "sha256": "9ff03d44ff52405111651e3cdafaa88241f8edc40a648c9e7d98b96347e9d565",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/backend-final.txt",
+      "sha256": "7c102e59f21252a6d1f814a8128bc089e6e1749d96d981230456f439da4d83f2",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/web-unit.txt",
+      "sha256": "6149358c8891554d307f82d1d845cc85d31f0601557adab1ee6f36c1b09282d2",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/typescript.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/eslint.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/browser-corrections.txt",
+      "sha256": "abe3d9bdf5d7587d115e6042d0ffdaeb846c4362ecd37ae4214eae9b1b73236b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/ui-render-preservation.json",
+      "sha256": "5d535f212658d412672cbee509f1e8afbf2f71f5e57c15ad2ad8c5535b071bdd",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/adapter-moves.json",
+      "sha256": "8bc31a631cc5cb5cfffed8ba27a684bf7a6be3a609e90d4fd2bca9023f97731d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/architecture-red.txt",
+      "sha256": "55bf50b9328240d96e7aa4781b2b37b860ecf53ed4330754b1daa664712af507",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/worker-progress-red.txt",
+      "sha256": "0f6a54002ab629d727cbfa246e98df19ae82a96a4fb71d538801176d28f1d42d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r04-20261015/worker-health-sandbox-failure.txt",
+      "sha256": "2b980ebe806f3c4f8d5830d61181a12a21b42a35738fc8aa5540a5b384ef9cf4",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "911ea24fe0cac3e755bc4dde9d7131690c2abc9e2d3c5900d572d20c2a48b8cf"
+  },
+  "limits": [
+    "Optional request-driven worker uses API pool; R11 must require a separate worker binding before enabling queue work",
+    "Windows restricted-temp health test failed; same unchanged health code passed with normal local permissions",
+    "No normal deployment, candidate-image qualification, managed recovery or physical-device review claim",
+    "R05-R17 remain selected work"
+  ]
+}

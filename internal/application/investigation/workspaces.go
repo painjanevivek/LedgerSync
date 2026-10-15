@@ -182,7 +182,7 @@ func WorkspaceTaxonomy(value string) bool {
 
 func WorkspaceRecordType(value string) bool {
 	switch value {
-	case "account", "transfer", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction":
+	case "account", "transfer", "transfer_request", "funding", "event", "reconciliation_run", "reconciliation_mismatch", "correction":
 		return true
 	default:
 		return false
@@ -194,6 +194,8 @@ func WorkspaceRecordAllowed(value string, access SearchAccess) bool {
 	case "account":
 		return access.Accounts
 	case "transfer":
+		return access.Transfers
+	case "transfer_request":
 		return access.Transfers
 	case "funding":
 		return access.Funding
@@ -214,6 +216,8 @@ func WorkspaceTargetPath(recordType, recordID string) string {
 		return "/accounts/" + recordID
 	case "transfer":
 		return "/transfers/" + recordID
+	case "transfer_request":
+		return "/transfers"
 	case "funding":
 		return "/funding/" + recordID
 	case "event":

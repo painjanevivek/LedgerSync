@@ -17,14 +17,20 @@ import (
 var canonicalWorkspaceID = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 func (r *InvestigationRepository) ListWorkspaces(ctx context.Context, tenantID, actorID string, access investigation.SearchAccess) (investigation.WorkspacePage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.WorkspacePage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	if r == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" || !access.Any() {
 		return investigation.WorkspacePage{}, investigation.ErrInvalidWorkspace
 	}
-	rows, err := r.database.QueryContext(ctx, `SELECT id::text,title,taxonomy,status,version,created_at,updated_at,closed_at
+	rows, err := tx.QueryContext(ctx, `SELECT id::text,title,taxonomy,status,version,created_at,updated_at,closed_at
 FROM investigation_workspaces workspace
 WHERE tenant_id=$1 AND owner_subject_id=$2 AND (
  (root_record_type='account' AND $3 AND EXISTS(SELECT 1 FROM accounts record JOIN account_owners owner ON owner.tenant_id=record.tenant_id AND owner.account_id=record.id WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id AND owner.subject_id=$2 AND owner.permission IN ('read','debit') AND record.account_kind='customer')) OR
  (root_record_type='transfer' AND $4 AND EXISTS(SELECT 1 FROM transfers record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
+	(root_record_type='transfer_request' AND $4 AND EXISTS(SELECT 1 FROM idempotency_requests request WHERE request.tenant_id=workspace.tenant_id AND request.actor_subject_id=$2 AND request.request_reference=workspace.root_record_id)) OR
  (root_record_type='funding' AND $5 AND EXISTS(SELECT 1 FROM funding_events record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
  (root_record_type='event' AND $6 AND EXISTS(SELECT 1 FROM outbox_events record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
  (root_record_type='reconciliation_run' AND $7 AND EXISTS(SELECT 1 FROM reconciliation_runs record WHERE record.tenant_id=workspace.tenant_id AND record.id=workspace.root_record_id)) OR
@@ -80,7 +86,7 @@ func (r *InvestigationRepository) CreateWorkspace(ctx context.Context, command i
 		return investigation.Workspace{}, err
 	}
 	when := workspaceTime(command.OccurredAt)
-	err = WithSerializableSequence(ctx, r.database, "investigation-workspace-owner:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorID}, "investigation-workspace-owner:"+command.TenantID+":"+command.ActorID, 3, func(tx *sql.Tx) error {
 		var count int
 		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM investigation_workspaces WHERE tenant_id=$1 AND owner_subject_id=$2 AND status='open'`, command.TenantID, command.ActorID).Scan(&count); err != nil {
 			return err
@@ -157,11 +163,16 @@ func (r *InvestigationRepository) GetWorkspace(ctx context.Context, tenantID, ac
 }
 
 func (r *InvestigationRepository) readWorkspaceHeader(ctx context.Context, tenantID, actorID, workspaceID string) (investigation.Workspace, string, string, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return investigation.Workspace{}, "", "", scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var workspace investigation.Workspace
 	var rootType, rootID string
 	var version int64
 	var closedAt sql.NullTime
-	err := r.database.QueryRowContext(ctx, `SELECT id::text,title,taxonomy,status,query_kind,root_record_type,query_value,root_record_id::text,version,created_at,updated_at,closed_at FROM investigation_workspaces WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3`, tenantID, actorID, workspaceID).Scan(&workspace.ID, &workspace.Title, &workspace.Taxonomy, &workspace.Status, &workspace.HistoricalContext.QueryContext.Kind, &rootType, &workspace.HistoricalContext.QueryContext.Value, &rootID, &version, &workspace.CreatedAt, &workspace.UpdatedAt, &closedAt)
+	err := tx.QueryRowContext(ctx, `SELECT id::text,title,taxonomy,status,query_kind,root_record_type,query_value,root_record_id::text,version,created_at,updated_at,closed_at FROM investigation_workspaces WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3`, tenantID, actorID, workspaceID).Scan(&workspace.ID, &workspace.Title, &workspace.Taxonomy, &workspace.Status, &workspace.HistoricalContext.QueryContext.Kind, &rootType, &workspace.HistoricalContext.QueryContext.Value, &rootID, &version, &workspace.CreatedAt, &workspace.UpdatedAt, &closedAt)
 	if err != nil {
 		return investigation.Workspace{}, "", "", err
 	}
@@ -176,7 +187,12 @@ func (r *InvestigationRepository) readWorkspaceHeader(ctx context.Context, tenan
 }
 
 func (r *InvestigationRepository) readWorkspaceReferences(ctx context.Context, tenantID, actorID, workspaceID string, access investigation.SearchAccess) ([]investigation.WorkspaceReference, int, error) {
-	rows, err := r.database.QueryContext(ctx, `SELECT relationship_type,COALESCE(source_record_type,''),COALESCE(source_record_id::text,''),record_type,record_id::text,captured_at FROM investigation_workspace_references WHERE tenant_id=$1 AND investigation_id=$2 ORDER BY position`, tenantID, workspaceID)
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, 0, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
+	rows, err := tx.QueryContext(ctx, `SELECT relationship_type,COALESCE(source_record_type,''),COALESCE(source_record_id::text,''),record_type,record_id::text,captured_at FROM investigation_workspace_references WHERE tenant_id=$1 AND investigation_id=$2 ORDER BY position`, tenantID, workspaceID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("read investigation workspace references: %w", err)
 	}
@@ -202,7 +218,7 @@ func (r *InvestigationRepository) readWorkspaceReferences(ctx context.Context, t
 			withheld++
 			continue
 		}
-		exists, err := r.authorizedRelationshipSource(ctx, tenantID, actorID, item.RecordType, item.RecordID)
+		exists, err := authorizedRelationshipSourceWithQuerier(ctx, tx, tenantID, actorID, item.RecordType, item.RecordID)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -217,7 +233,12 @@ func (r *InvestigationRepository) readWorkspaceReferences(ctx context.Context, t
 }
 
 func (r *InvestigationRepository) readWorkspaceHistory(ctx context.Context, tenantID, actorID, workspaceID string) ([]investigation.WorkspaceHistoryItem, bool, error) {
-	rows, err := r.database.QueryContext(ctx, `SELECT event_type,actor_subject_id=$2,sanitized_metadata->>'workspace_version',sanitized_metadata->>'status',occurred_at FROM audit_events WHERE tenant_id=$1 AND target_type='investigation_workspace' AND target_id=$3 AND event_type IN ('investigation.workspace_created','investigation.workspace_handed_off','investigation.workspace_closed','investigation.workspace_reopened') ORDER BY occurred_at DESC,id DESC LIMIT $4`, tenantID, actorID, workspaceID, investigation.MaxWorkspaceHistoryItems+1)
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, false, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
+	rows, err := tx.QueryContext(ctx, `SELECT event_type,actor_subject_id=$2,sanitized_metadata->>'workspace_version',sanitized_metadata->>'status',occurred_at FROM audit_events WHERE tenant_id=$1 AND target_type='investigation_workspace' AND target_id=$3 AND event_type IN ('investigation.workspace_created','investigation.workspace_handed_off','investigation.workspace_closed','investigation.workspace_reopened') ORDER BY occurred_at DESC,id DESC LIMIT $4`, tenantID, actorID, workspaceID, investigation.MaxWorkspaceHistoryItems+1)
 	if err != nil {
 		return nil, false, fmt.Errorf("read investigation workspace history: %w", err)
 	}
@@ -248,6 +269,14 @@ func (r *InvestigationRepository) readWorkspaceHistory(ctx context.Context, tena
 
 func (r *InvestigationRepository) workspaceCurrentEvidence(ctx context.Context, tenantID, actorID, rootType, rootID string, access investigation.SearchAccess) (investigation.WorkspaceCurrentEvidence, error) {
 	generatedAt := time.Now().UTC()
+	if rootType == "transfer_request" {
+		status, err := r.TransferRequestStatus(ctx, tenantID, actorID, rootID)
+		if err != nil {
+			return investigation.WorkspaceCurrentEvidence{}, err
+		}
+		root := &investigation.SearchResult{RecordType: rootType, RecordID: rootID, SafeLabel: "Transfer request", Status: status.Status, OccurredAt: status.CheckedAt}
+		return investigation.WorkspaceCurrentEvidence{Root: root, Relationships: []investigation.Relationship{}, GeneratedAt: generatedAt, Available: true}, nil
+	}
 	search, err := r.Search(ctx, tenantID, actorID, investigation.SearchFilter{Query: rootID, QueryKind: "immutable_id", Limit: 20, Access: access})
 	if err != nil {
 		return investigation.WorkspaceCurrentEvidence{}, err
@@ -294,7 +323,7 @@ func (r *InvestigationRepository) mutateWorkspace(ctx context.Context, tenantID,
 		return investigation.WorkspaceReceipt{}, err
 	}
 	receipt := investigation.WorkspaceReceipt{InvestigationID: workspaceID, Outcome: strings.TrimPrefix(eventType, "investigation.workspace_"), OccurredAt: when}
-	err = WithSerializableSequence(ctx, r.database, "investigation-workspace:"+tenantID+":"+workspaceID, 3, func(tx *sql.Tx) error {
+	err = WithTenantSerializableSequence(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID}, "investigation-workspace:"+tenantID+":"+workspaceID, 3, func(tx *sql.Tx) error {
 		var taxonomy, currentStatus, rootType, rootID string
 		var version int64
 		err := tx.QueryRowContext(ctx, `SELECT taxonomy,status,version,root_record_type,root_record_id::text FROM investigation_workspaces WHERE tenant_id=$1 AND owner_subject_id=$2 AND id=$3 FOR UPDATE`, tenantID, actorID, workspaceID).Scan(&taxonomy, &currentStatus, &version, &rootType, &rootID)
@@ -319,6 +348,13 @@ func (r *InvestigationRepository) mutateWorkspace(ctx context.Context, tenantID,
 			requiredStatus = "closed"
 		}
 		if currentStatus != requiredStatus {
+			return investigation.ErrWorkspaceState
+		}
+		var liveRoomActive bool
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM investigation_live_rooms WHERE tenant_id=$1 AND investigation_id=$2 AND status='active' AND expires_at>$3)`, tenantID, workspaceID, when).Scan(&liveRoomActive); err != nil {
+			return err
+		}
+		if liveRoomActive {
 			return investigation.ErrWorkspaceState
 		}
 		if eventType == "investigation.workspace_handed_off" {
@@ -354,7 +390,7 @@ func insertWorkspaceAudit(ctx context.Context, tx *sql.Tx, auditID, tenantID, ac
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES($1,$2,$3,$4,'investigation_workspace',$5,'succeeded',$6,$7,$8)`, auditID, tenantID, actorID, eventType, workspaceID, correlationID, encoded, occurredAt)
+	_, err = tx.ExecContext(ctx, `SELECT public.controlled_append_audit_v1($1,$2,$3,$4,'investigation_workspace',$5,'succeeded',$6,$7,$8)`, auditID, tenantID, actorID, eventType, workspaceID, correlationID, encoded, occurredAt)
 	return err
 }
 

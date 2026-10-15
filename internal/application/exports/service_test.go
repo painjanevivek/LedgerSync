@@ -21,7 +21,7 @@ type exportRepositoryStub struct {
 	err           error
 }
 
-func (r *exportRepositoryStub) ListTransfers(ctx context.Context, _ string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
+func (r *exportRepositoryStub) ListTransfers(ctx context.Context, _, _ string, filter investigation.TransferFilter) ([]investigation.TransferSummary, string, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, "", err
 	}
@@ -60,7 +60,7 @@ func (r *exportRepositoryStub) ListAccountHistory(ctx context.Context, _, _, _, 
 	return append([]transactions.Entry(nil), r.account[start:end]...), next, nil
 }
 
-func (r *exportRepositoryStub) ListReconciliationRuns(ctx context.Context, _ string, filter ReconciliationFilter) ([]investigation.ReconciliationRun, string, error) {
+func (r *exportRepositoryStub) ListReconciliationRuns(ctx context.Context, _, _ string, filter ReconciliationFilter) ([]investigation.ReconciliationRun, string, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, "", err
 	}
@@ -70,7 +70,7 @@ func (r *exportRepositoryStub) ListReconciliationRuns(ctx context.Context, _ str
 	return append([]investigation.ReconciliationRun(nil), r.runs...), "", nil
 }
 
-func (r *exportRepositoryStub) ListReconciliationMismatches(ctx context.Context, _, _, _ string, _ int) ([]investigation.ReconciliationMismatch, string, error) {
+func (r *exportRepositoryStub) ListReconciliationMismatches(ctx context.Context, _, _, _, _ string, _ int) ([]investigation.ReconciliationMismatch, string, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, "", err
 	}
@@ -94,7 +94,7 @@ func TestTransferExportPaginatesQuotesExactFieldsAndNeutralizesFormulaCorpus(t *
 			t.Fatal(err)
 		}
 		var output bytes.Buffer
-		result, err := service.StreamTransfers(context.Background(), "tenant", investigation.TransferFilter{}, 3, &output)
+		result, err := service.StreamTransfers(context.Background(), "tenant", "actor", investigation.TransferFilter{}, 3, &output)
 		if err != nil || result.Rows != 3 || repository.transferPages != 2 {
 			t.Fatalf("formula=%q result=%+v pages=%d err=%v", formula, result, repository.transferPages, err)
 		}
@@ -125,7 +125,7 @@ func TestAccountAndReconciliationExportsPreserveMinorStrings(t *testing.T) {
 		t.Fatalf("account result=%+v err=%v csv=%s", result, err, account.String())
 	}
 	var reconciliation bytes.Buffer
-	if result, err := service.StreamReconciliation(context.Background(), "tenant", ReconciliationFilter{}, 10, &reconciliation); err != nil || result.Rows != 2 || !strings.Contains(reconciliation.String(), `"INR","-1","0","0","2"`) {
+	if result, err := service.StreamReconciliation(context.Background(), "tenant", "actor", ReconciliationFilter{}, 10, &reconciliation); err != nil || result.Rows != 2 || !strings.Contains(reconciliation.String(), `"INR","-1","0","0","2"`) {
 		t.Fatalf("reconciliation result=%+v err=%v csv=%s", result, err, reconciliation.String())
 	}
 }
@@ -135,10 +135,10 @@ func TestExportStopsOnCancellationAndBoundsRows(t *testing.T) {
 	service, _ := NewService(repository, 1, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := service.StreamTransfers(ctx, "tenant", investigation.TransferFilter{}, 1, &bytes.Buffer{}); !errors.Is(err, context.Canceled) {
+	if _, err := service.StreamTransfers(ctx, "tenant", "actor", investigation.TransferFilter{}, 1, &bytes.Buffer{}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled export error=%v", err)
 	}
-	if _, err := service.StreamTransfers(context.Background(), "tenant", investigation.TransferFilter{}, 2, &bytes.Buffer{}); !errors.Is(err, ErrInvalidRequest) {
+	if _, err := service.StreamTransfers(context.Background(), "tenant", "actor", investigation.TransferFilter{}, 2, &bytes.Buffer{}); !errors.Is(err, ErrInvalidRequest) {
 		t.Fatalf("over-bound export error=%v", err)
 	}
 }

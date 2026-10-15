@@ -19,7 +19,7 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db"
 )
 
-const databaseCapabilityMatrixVersion = "2026-09-03.pr005.v1"
+const databaseCapabilityMatrixVersion = "2026-10-15.r03.v1"
 
 var (
 	capabilityRoles = []string{
@@ -29,6 +29,7 @@ var (
 		"ledgersync_provisioning",
 		"ledgersync_support_readonly",
 		"ledgersync_break_glass",
+		"ledgersync_maintenance",
 	}
 	capabilityTables = []string{
 		"accounts",
@@ -153,23 +154,24 @@ func verifyDatabaseRoleCapabilities(t *testing.T, admin *sql.DB, databaseURL, in
 func databaseCapabilityExpectations() []capabilityExpectation {
 	current := map[string]map[string]string{
 		"ledgersync_api": {
-			"accounts": "SIU", "account_opening_balances": "SI", "account_balance_projections": "SIU",
-			"journal_transactions": "SI", "ledger_postings": "SI", "account_owners": "SI", "audit_events": "SI",
+			"accounts": "S", "account_opening_balances": "S", "account_balance_projections": "S",
+			"journal_transactions": "S", "ledger_postings": "S", "account_owners": "S", "audit_events": "S",
 		},
-		"ledgersync_worker": {"audit_events": "I"},
+		"ledgersync_worker": {},
 		"ledgersync_reconciliation": {
 			"accounts": "S", "account_opening_balances": "S", "account_balance_projections": "S",
-			"journal_transactions": "S", "ledger_postings": "S", "audit_events": "I",
+			"journal_transactions": "S", "ledger_postings": "S", "audit_events": "",
 		},
 		"ledgersync_provisioning": {
-			"accounts": "IU", "account_opening_balances": "I", "account_balance_projections": "I",
-			"account_owners": "ID", "audit_events": "I",
+			"accounts": "", "account_opening_balances": "", "account_balance_projections": "",
+			"account_owners": "", "audit_events": "",
 		},
 		"ledgersync_support_readonly": {
 			"accounts": "S", "account_balance_projections": "S", "journal_transactions": "S",
 			"ledger_postings": "S", "account_owners": "S", "audit_events": "S",
 		},
 		"ledgersync_break_glass": {},
+		"ledgersync_maintenance": {},
 	}
 	targetReads := map[string]map[string]bool{
 		"ledgersync_api": {
@@ -187,10 +189,11 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 			"ledger_postings": true, "account_owners": true, "audit_events": true,
 		},
 		"ledgersync_break_glass": {},
+		"ledgersync_maintenance": {},
 	}
 	privileges := []struct {
 		name, code string
-	}{{"SELECT", "S"}, {"INSERT", "I"}, {"UPDATE", "U"}, {"DELETE", "D"}}
+	}{{"SELECT", "S"}, {"INSERT", "I"}, {"UPDATE", "U"}, {"DELETE", "D"}, {"TRUNCATE", "T"}}
 
 	expectations := make([]capabilityExpectation, 0, len(capabilityRoles)*(len(capabilityTables)*4+3))
 	for _, role := range capabilityRoles {
@@ -205,8 +208,8 @@ func databaseCapabilityExpectations() []capabilityExpectation {
 			}
 		}
 		expectations = append(expectations,
-			capabilityExpectation{Role: role, Capability: "cross_tenant.accounts.SELECT", CurrentAllowed: strings.Contains(current[role]["accounts"], "S"), TargetAllowed: false},
-			capabilityExpectation{Role: role, Capability: "function.reject_ledger_mutation.EXECUTE", CurrentAllowed: role != "ledgersync_break_glass", TargetAllowed: false},
+			capabilityExpectation{Role: role, Capability: "cross_tenant.accounts.SELECT", CurrentAllowed: false, TargetAllowed: false},
+			capabilityExpectation{Role: role, Capability: "function.reject_ledger_mutation.EXECUTE", CurrentAllowed: false, TargetAllowed: false},
 			capabilityExpectation{Role: role, Capability: "function.controlled_submit_transfer_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
 			capabilityExpectation{Role: role, Capability: "function.controlled_post_funding_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
 			capabilityExpectation{Role: role, Capability: "function.controlled_post_transfer_correction_v1.EXECUTE", CurrentAllowed: role == "ledgersync_api", TargetAllowed: role == "ledgersync_api"},
@@ -258,7 +261,7 @@ func verifyWorkloadSession(t *testing.T, admin *sql.DB, session *workloadSession
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if _, err := session.db.ExecContext(ctx, `SELECT set_config('application_name','ledgersync-capability-harness',false), set_config('app.tenant_id',$1,false), set_config('row_security','on',false)`, tenantID); err != nil {
+	if _, err := session.db.ExecContext(ctx, `SELECT set_config('application_name','ledgersync-capability-harness',false), set_config('app.tenant_id',$1,false), set_config('app.actor_id','capability-actor',false), set_config('row_security','on',false)`, tenantID); err != nil {
 		t.Fatalf("configure workload session: %v", err)
 	}
 	var currentUser, sessionUser, rowSecurity string
@@ -315,8 +318,8 @@ func probeCapability(t *testing.T, database *sql.DB, capability, otherTenantID s
 	case "cross_tenant.accounts.SELECT":
 		var count int
 		err := database.QueryRowContext(ctx, `SELECT count(*) FROM public.accounts WHERE tenant_id=$1`, otherTenantID).Scan(&count)
-		if err == nil && count < 1 {
-			t.Errorf("cross-tenant probe read %d rows, want at least 1", count)
+		if err == nil {
+			return count > 0
 		}
 		return classifyPrivilegeProbe(t, capability, err, nil)
 	case "function.reject_ledger_mutation.EXECUTE":
@@ -349,11 +352,15 @@ func probeCapability(t *testing.T, database *sql.DB, capability, otherTenantID s
 	case "SELECT":
 		statement = `SELECT * FROM ` + quotedTable + ` LIMIT 0`
 	case "INSERT":
-		statement = `INSERT INTO ` + quotedTable + ` DEFAULT VALUES`
+		// EXPLAIN measures the INSERT grant without confusing an invalid row with
+		// row-policy enforcement. Actual scoped writes have separate tests.
+		statement = `EXPLAIN (FORMAT JSON) INSERT INTO ` + quotedTable + ` DEFAULT VALUES`
 	case "UPDATE":
 		statement = `UPDATE ` + quotedTable + ` SET ` + pgx.Identifier{tableUpdateColumns[table]}.Sanitize() + `=DEFAULT WHERE false`
 	case "DELETE":
 		statement = `DELETE FROM ` + quotedTable + ` WHERE false`
+	case "TRUNCATE":
+		statement = `TRUNCATE ` + quotedTable
 	default:
 		t.Fatalf("unsupported table privilege %q", privilege)
 	}
@@ -367,6 +374,9 @@ func probeCapability(t *testing.T, database *sql.DB, capability, otherTenantID s
 	allowedStates := map[string]bool{}
 	if privilege == "INSERT" {
 		allowedStates = map[string]bool{"22000": true, "23502": true, "23503": true, "23505": true, "23514": true, "P0001": true}
+	}
+	if privilege == "TRUNCATE" {
+		allowedStates = map[string]bool{"2BP01": true}
 	}
 	return classifyPrivilegeProbe(t, capability, err, allowedStates)
 }

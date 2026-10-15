@@ -119,7 +119,7 @@ function Invoke-RetryLabLostResponseBoundary {
     )
     $response = Invoke-WebRequest -UseBasicParsing -WebSession $Session -TimeoutSec 15 `
         -Method Post -Uri "$script:LedgerSyncWebUrl/api/transfers" `
-        -Headers @{ Origin = $script:LedgerSyncWebUrl; "X-CSRF-Token" = $CSRFToken; "Idempotency-Key" = $idempotencyKey } `
+        -Headers @{ Origin = $script:LedgerSyncWebUrl; "X-CSRF-Token" = $CSRFToken; "Idempotency-Key" = $idempotencyKey; "X-LedgerSync-Request-Reference" = Get-LedgerSyncAcceptanceRequestReference -IdempotencyKey $idempotencyKey } `
         -ContentType "application/json" -Body $Body
     Assert-RetryLab ([int]$response.StatusCode -eq 201) "Retry lab first request did not commit."
     Assert-RetryLab ([string]$response.Headers["Idempotent-Replay"] -ine "true") "Retry lab first request was unexpectedly a replay."
@@ -174,6 +174,13 @@ try {
         destinationAccountId = $destinationAccountID
         amount = [ordered]@{ currency = "INR"; minorUnits = [string]$AmountMinor }
     } | ConvertTo-Json -Depth 3 -Compress
+    $reference = Get-LedgerSyncAcceptanceRequestReference -IdempotencyKey $idempotencyKey
+    $saved = Invoke-WebRequest -UseBasicParsing -WebSession $session -TimeoutSec 15 `
+        -Method Post -Uri "$script:LedgerSyncWebUrl/api/transfers/recovery" `
+        -Headers @{ Origin = $script:LedgerSyncWebUrl; "X-CSRF-Token" = $csrf; "Idempotency-Key" = $idempotencyKey; "X-LedgerSync-Request-Reference" = $reference } `
+        -ContentType "application/json" -Body $body
+    $savedProof = $saved.Content | ConvertFrom-Json
+    Assert-RetryLab ([int]$saved.StatusCode -eq 201 -and $savedProof.request_reference -ceq $reference -and $savedProof.state -ceq 'saved') "Retry lab durable intent was not verified."
     $before = Get-RetryLabDatabaseState
 
     $phase = "first committed request"
@@ -216,7 +223,7 @@ try {
     $phase = "same-key identical retry"
     $retryResponse = Invoke-WebRequest -UseBasicParsing -WebSession $session -TimeoutSec 15 `
         -Method Post -Uri "$script:LedgerSyncWebUrl/api/transfers" `
-        -Headers @{ Origin = $script:LedgerSyncWebUrl; "X-CSRF-Token" = $csrf; "Idempotency-Key" = $idempotencyKey } `
+        -Headers @{ Origin = $script:LedgerSyncWebUrl; "X-CSRF-Token" = $csrf; "Idempotency-Key" = $idempotencyKey; "X-LedgerSync-Request-Reference" = Get-LedgerSyncAcceptanceRequestReference -IdempotencyKey $idempotencyKey } `
         -ContentType "application/json" -Body $body
     Assert-RetryLab ([int]$retryResponse.StatusCode -eq 201 -and
         [string]$retryResponse.Headers["Idempotent-Replay"] -ieq "true") "Identical retry was not returned as an idempotent replay."

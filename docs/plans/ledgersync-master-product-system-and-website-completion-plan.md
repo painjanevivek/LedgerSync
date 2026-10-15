@@ -1,10 +1,8 @@
 # LedgerSync Master Product, System, Website, and Production Completion Plan
 
-**Planned file:** `D:\Work\Project\Plans\LedgerSync\ledgersync-master-product-system-and-website-completion-plan.md`
-
 ## 1. Purpose and authority
 
-This document will become LedgerSync’s single authoritative implementation plan. Earlier plans remain historical references, but completion status, sequencing, acceptance criteria, and future decisions must be maintained here.
+This is LedgerSync’s authoritative implementation plan. Earlier plans remain historical references. The [master delivery register](ledgersync-master-progress.md) holds current phase status; this plan holds scope and exit criteria.
 
 The plan takes LedgerSync through three explicit milestones:
 
@@ -16,51 +14,17 @@ The implementation must preserve the defining product promise:
 
 > Every transfer is exact, explainable, and visible when it matters.
 
-### Execution status — 2026-08-28
+### Product focus — 2026-09-27
 
-| Phase | Status | Evidence |
-|---|---|---|
-| 0 — canonical baseline | Complete | `docs/release-evidence/master-phase-0-baseline.md` |
-| 1 — green quality gates | Complete | `docs/release-evidence/master-phase-1-quality.md` |
-| 2 — deterministic local runtime | Complete | `docs/release-evidence/master-phase-2-local-runtime.md` |
-| 3 — truthful dependency-aware UI | Complete | `docs/release-evidence/master-phase-3-ui-truthfulness.md` |
-| 4 — guided first-run journey | Complete | `docs/release-evidence/master-phase-4-onboarding-foundation.md` |
-| 5 — controlled funding journals | Complete | `docs/release-evidence/master-phase-5-controlled-funding.md` |
-| 6 — correction and approval controls | Complete | `docs/release-evidence/master-phase-6-correction-controls.md` |
-| 7 — API-first developer product | Active | Implementation follows Phase 6 exact-commit qualification. |
+The current product is an internal, same-currency ledger. Prioritize its database authority and tenant boundary before broadening financial scope. Internal reconciliation checks postings against LedgerSync balance projections; it is not bank or payment-provider reconciliation.
 
-Later phases remain pending in the dependency order below. A phase is marked complete only when its repository-supported exit gate has durable evidence; provider, legal, partner, and production approvals remain explicit manual gates.
+External reconciliation is the next **customer-validated hypothesis**, not a shipped capability or a committed payout program. Identify a buyer and recurring exception workflow, obtain a representative external statement, and map one clearing account and cutoff. Only then build a read-only import with source provenance, deterministic matching, and human-reviewed exceptions. Do not auto-post corrections from a variance. Do not imply every internal customer account has a matching external balance.
 
-## 2. Current verified position
+Provider-led payouts, multiple providers, cards, FX, and broad balance lifecycle expansion are deferred until a separately approved use case requires them. Pending/available semantics must follow actual hold or settlement rules. No invented match-rate target, product score, or production claim may stand in for observed evidence.
 
-LedgerSync already contains substantial working foundations:
+## 2. Current status
 
-- Go financial core using exact integer money.
-- PostgreSQL-backed immutable double-entry ledger.
-- Transactional idempotency, audit, outbox, and balance updates.
-- Redis treated as a rebuildable read cache.
-- Account lifecycle, transfers, transaction history, reconciliation, event investigation, recovery evidence, exports, and operator tooling.
-- Next.js operator console with desktop, tablet, and mobile structures.
-- OIDC/BFF security foundations.
-- Local Docker Compose runtime and PowerShell lifecycle scripts.
-- Contract, quality, security, container, browser, and release-evidence workflows.
-- India/INR pilot profile using AWS Mumbai and Cognito.
-- Local acceptance evidence from an earlier candidate.
-
-The current branch requires reconvergence:
-
-- Current HEAD: `f87245f85c09365973d66f64728b454be512197d`.
-- Four uncommitted responsive-layout changes must be preserved and verified before new implementation:
-  - `web/src/app/globals.css`
-  - `web/src/app/layout.tsx`
-  - `web/src/styles/tokens.css`
-  - `web/tests/e2e/orientation-explainability.spec.ts`
-- Current quality CI is not fully green because CLS exceeded the `0.1` budget.
-- The current main commit has not yet received a complete local real-stack requalification.
-- Documentation, API inventory, and gate status contain drift.
-- The interface still confuses unavailable evidence with empty business data in some flows.
-- The first-run experience does not consistently guide a new operator toward the next safe action.
-- Production infrastructure and provider-backed recovery evidence do not yet exist.
+Use the [master delivery register](ledgersync-master-progress.md) for phase status, exact-commit evidence, and remaining gates. This plan defines the required work and does not itself certify completion.
 
 ## 3. Fixed product decisions
 
@@ -1156,6 +1120,7 @@ These are hard gates, not code blockers for earlier phases.
 
 ### Add after pilot demand is proven
 
+- read-only external reconciliation for one mapped clearing account and independently sourced feed, subject to customer discovery and reviewed data provenance;
 - self-service sandbox tenants;
 - webhook event simulator;
 - API usage analytics;
@@ -1168,6 +1133,9 @@ These are hard gates, not code blockers for earlier phases.
 
 ### Defer
 
+- provider-led payouts and multi-provider orchestration;
+- automatic financial adjustments from external variances;
+- pending/available balance expansion without a real hold or settlement workflow;
 - bank rails;
 - cards;
 - FX;

@@ -21,18 +21,18 @@ type storedReconciliationFailure struct {
 func (r *ReconciliationRepository) RunCommand(ctx context.Context, command reconciliation.RunCommand, fingerprint [sha256.Size]byte) (submission reconciliation.CommandSubmission, err error) {
 	started := time.Now()
 	ctx, span := r.start(ctx, "db.reconciliation.command")
-	defer func() { span.End(); r.observe(ctx, started, err) }()
+	defer func() { r.observe(ctx, started, err); span.End() }()
 
-	tx, err := r.database.BeginTx(ctx, nil)
+	tx, err := beginTenantTransaction(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, nil)
 	if err != nil {
 		return submission, fmt.Errorf("%w: begin command: %w", reconciliation.ErrCommandUnavailable, err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	stored, replayed, denial, replayedActiveRunID, err := reserveReconciliationCommand(ctx, tx, command, fingerprint)
+	stored, replayed, denial, replayedActiveRunID, err := reserveReconciliationCommand(ctx, tx.Tx, command, fingerprint)
 	if err != nil {
 		if errors.Is(err, idempotency.ErrInProgress) {
-			activeRunID, activeCorrelation, requestedAt, owns, loadErr := loadActiveReconciliationCommand(ctx, tx, command)
+			activeRunID, activeCorrelation, requestedAt, owns, loadErr := loadActiveReconciliationCommand(ctx, tx.Tx, command)
 			if loadErr != nil {
 				return submission, classifyReconciliationCommandError(loadErr)
 			}
@@ -73,16 +73,16 @@ func (r *ReconciliationRepository) RunCommand(ctx context.Context, command recon
 			return submission, classifyReconciliationCommandError(err)
 		}
 		if !leaseExpiresAt.After(time.Now().UTC()) {
-			lockFree, lockErr := acquireReconciliationLock(ctx, tx, command.TenantID)
+			lockFree, lockErr := acquireReconciliationLock(ctx, tx.Tx, command.TenantID)
 			if lockErr != nil {
 				return submission, classifyReconciliationCommandError(lockErr)
 			}
 			if lockFree {
 				stale := reconciliation.RunCommand{TenantID: command.TenantID, ActorSubjectID: activeActor, IdempotencyKey: activeKey, CorrelationID: activeCorrelation, OccurredAt: command.OccurredAt}
-				if err := persistReconciliationDenial(ctx, tx, stale, "response_unknown", activeRunID); err != nil {
+				if err := persistReconciliationDenial(ctx, tx.Tx, stale, "response_unknown", activeRunID); err != nil {
 					return submission, classifyReconciliationCommandError(err)
 				}
-				if err := storeReconciliationFailure(ctx, tx, stale, "response_unknown", activeRunID, 504); err != nil {
+				if err := storeReconciliationFailure(ctx, tx.Tx, stale, "response_unknown", activeRunID, 504); err != nil {
 					return submission, classifyReconciliationCommandError(err)
 				}
 				if _, err := tx.ExecContext(ctx, `DELETE FROM reconciliation_run_commands WHERE tenant_id=$1 AND run_id=$2`, command.TenantID, activeRunID); err != nil {
@@ -91,7 +91,7 @@ func (r *ReconciliationRepository) RunCommand(ctx context.Context, command recon
 				if _, err := tx.ExecContext(ctx, `INSERT INTO reconciliation_run_commands(tenant_id,run_id,actor_subject_id,idempotency_key,correlation_id,lease_expires_at,requested_at) VALUES($1,$2,$3,$4,$5,$6,$7)`, command.TenantID, runID, command.ActorSubjectID, command.IdempotencyKey, command.CorrelationID, command.OccurredAt.Add(2*time.Minute), command.OccurredAt); err != nil {
 					return submission, classifyReconciliationCommandError(err)
 				}
-				if err := persistReconciliationRequest(ctx, tx, command, runID); err != nil {
+				if err := persistReconciliationRequest(ctx, tx.Tx, command, runID); err != nil {
 					return submission, classifyReconciliationCommandError(err)
 				}
 				if err := tx.Commit(); err != nil {
@@ -100,10 +100,10 @@ func (r *ReconciliationRepository) RunCommand(ctx context.Context, command recon
 				return r.executeReconciliationCommand(ctx, command, runID)
 			}
 		}
-		if err := persistReconciliationDenial(ctx, tx, command, "already_running", activeRunID); err != nil {
+		if err := persistReconciliationDenial(ctx, tx.Tx, command, "already_running", activeRunID); err != nil {
 			return submission, classifyReconciliationCommandError(err)
 		}
-		if err := storeReconciliationFailure(ctx, tx, command, "already_running", activeRunID, 409); err != nil {
+		if err := storeReconciliationFailure(ctx, tx.Tx, command, "already_running", activeRunID, 409); err != nil {
 			return submission, classifyReconciliationCommandError(err)
 		}
 		if err := tx.Commit(); err != nil {
@@ -112,7 +112,7 @@ func (r *ReconciliationRepository) RunCommand(ctx context.Context, command recon
 		return reconciliation.CommandSubmission{Denial: "already_running", ActiveRunID: activeRunID}, nil
 	}
 
-	if err := persistReconciliationRequest(ctx, tx, command, runID); err != nil {
+	if err := persistReconciliationRequest(ctx, tx.Tx, command, runID); err != nil {
 		return submission, classifyReconciliationCommandError(err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -122,14 +122,14 @@ func (r *ReconciliationRepository) RunCommand(ctx context.Context, command recon
 }
 
 func (r *ReconciliationRepository) executeReconciliationCommand(ctx context.Context, command reconciliation.RunCommand, runID string) (reconciliation.CommandSubmission, error) {
-	tx, err := r.database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
+	tx, err := beginTenantTransaction(ctx, r.database, TenantScope{TenantID: command.TenantID, ActorID: command.ActorSubjectID}, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	if err != nil {
 		return reconciliation.CommandSubmission{}, classifyReconciliationCommandError(err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	// This is deliberately the first statement: a run never takes its financial
-	// snapshot before proving non-queued tenant execution authority.
-	locked, err := acquireReconciliationLock(ctx, tx, command.TenantID)
+	// After installing scope, prove non-queued tenant execution authority before
+	// reading financial rows. A busy tenant must not wait on this lock.
+	locked, err := acquireReconciliationLock(ctx, tx.Tx, command.TenantID)
 	if err != nil {
 		return reconciliation.CommandSubmission{}, classifyReconciliationCommandError(err)
 	}
@@ -143,11 +143,11 @@ func (r *ReconciliationRepository) executeReconciliationCommand(ctx context.Cont
 	if !owns {
 		return reconciliation.CommandSubmission{}, reconciliation.ErrCommandInProgress
 	}
-	result, err := r.reconcileTx(ctx, tx, command.TenantID, command.ActorSubjectID, command.CorrelationID, runID, command.OccurredAt)
+	result, err := r.reconcileTx(ctx, tx.Tx, command.TenantID, command.ActorSubjectID, command.CorrelationID, runID, command.OccurredAt)
 	if err != nil {
 		return reconciliation.CommandSubmission{}, classifyReconciliationCommandError(err)
 	}
-	if err := storeReconciliationOutcome(ctx, tx, command, result); err != nil {
+	if err := storeReconciliationOutcome(ctx, tx.Tx, command, result); err != nil {
 		return reconciliation.CommandSubmission{}, classifyReconciliationCommandError(err)
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM reconciliation_run_commands WHERE tenant_id=$1 AND run_id=$2`, command.TenantID, runID); err != nil {
@@ -246,7 +246,7 @@ func persistReconciliationRequest(ctx context.Context, tx *sql.Tx, command recon
 		return err
 	}
 	metadata, _ := json.Marshal(map[string]string{"operation": reconciliation.RunOperation, "scope": reconciliationScope})
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.requested','reconciliation_run',$4,'allowed',$5,$6,$7)`, id, command.TenantID, command.ActorSubjectID, runID, command.CorrelationID, metadata, command.OccurredAt)
+	_, err = tx.ExecContext(ctx, `SELECT public.controlled_append_audit_v1($1,$2,$3,'reconciliation.requested','reconciliation_run',$4,'allowed',$5,$6,$7)`, id, command.TenantID, command.ActorSubjectID, runID, command.CorrelationID, metadata, command.OccurredAt)
 	if err != nil {
 		return fmt.Errorf("persist reconciliation request audit: %w", err)
 	}
@@ -259,7 +259,7 @@ func persistReconciliationDenial(ctx context.Context, tx *sql.Tx, command reconc
 		return err
 	}
 	metadata, _ := json.Marshal(map[string]string{"operation": reconciliation.RunOperation, "denial_code": code, "scope": reconciliationScope})
-	_, err = tx.ExecContext(ctx, `INSERT INTO audit_events (id,tenant_id,actor_subject_id,event_type,target_type,target_id,outcome,correlation_id,sanitized_metadata,occurred_at) VALUES ($1,$2,$3,'reconciliation.command_denied','reconciliation_run',$4,'denied',$5,$6,$7)`, id, command.TenantID, command.ActorSubjectID, activeRunID, command.CorrelationID, metadata, command.OccurredAt)
+	_, err = tx.ExecContext(ctx, `SELECT public.controlled_append_audit_v1($1,$2,$3,'reconciliation.command_denied','reconciliation_run',$4,'denied',$5,$6,$7)`, id, command.TenantID, command.ActorSubjectID, activeRunID, command.CorrelationID, metadata, command.OccurredAt)
 	if err != nil {
 		return fmt.Errorf("persist reconciliation denial audit: %w", err)
 	}

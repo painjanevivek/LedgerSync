@@ -106,6 +106,7 @@ export type ReconciliationRun = Readonly<{
   started_at: string;
   completed_at: string;
   mismatches?: ReconciliationMismatch[];
+  outbox_snapshot?: Readonly<{ isolation: "repeatable_read"; sampled_at: string; pending_count: string; published_count: string; dead_count: string }>;
 }>;
 
 export type ReconciliationMismatch = Readonly<{
@@ -128,6 +129,7 @@ export type ConsoleSession = Readonly<{
   environment?: "local" | "production";
   operator_label?: string;
   tenant_label?: string;
+  features?: Readonly<{ live_investigation: boolean; systems_lab?: boolean }>;
 }>;
 
 export type AccountCommandResult = Readonly<{

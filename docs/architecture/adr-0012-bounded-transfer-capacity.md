@@ -1,5 +1,7 @@
 # ADR-0012: Bound transfer-policy contention and the pilot write envelope
 
+Historical candidate evidence: retain this report for its recorded source and workload. It does not qualify the R09 source. See [the current local component study](../portfolio/capacity.md) for its measured scope and limits.
+
 - **Status:** accepted for the controlled pilot
 - **Date:** 2026-08-24
 - **Scope:** same-currency internal ledger transfers only

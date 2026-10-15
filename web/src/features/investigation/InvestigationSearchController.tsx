@@ -48,7 +48,8 @@ function tone(status: string): StatusTone {
 }
 
 function SearchResultCard({ result, query, queryKind }: Readonly<{ result: InvestigationSearchResult; query: string; queryKind: "immutable_id" | "approved_reference" }>) {
-  const href = investigationResultHref(result);
+  const detailPath = investigationResultHref(result);
+  const href = detailPath ? `${detailPath}?return_to=${encodeURIComponent(investigationSearchURL(query))}` : null;
   return <li className="investigation-result">
     <div className="investigation-result-heading">
       <div><p className="eyebrow">{result.record_type.replaceAll("_", " ")}</p><h2>{result.safe_label}</h2></div>
@@ -123,16 +124,16 @@ export function InvestigationSearchController({ initialQuery, invalidQuery }: Re
 
   return <ConsoleRouteFrame section="search" loadingLabel="Search" pending={loading}>
     <div className="investigation-search-workspace">
-      <PageHeader eyebrow="Investigate / Exact lookup" title="Search records" description="Locate authorized evidence by one complete immutable ID or approved external reference. LedgerSync does not perform broad or cross-tenant discovery." />
+      <PageHeader eyebrow="Investigate / Exact lookup" title="Search records" description="Find a record by its complete ID or approved reference." />
       {!canSearch && session ? <StatePanel kind="denied" title="Investigation authority required" message="Your server-issued role and scopes do not permit cross-domain lookup. No protected search was made." /> : invalidQuery ? <StatePanel kind="error" title="Invalid search URL" message="The shared URL contains an unknown, repeated, empty, oversized, partial, or malformed lookup. No protected search was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/search")}>Clear invalid lookup</button>} /> : <>
         <form className="investigation-search-form" role="search" onSubmit={submit}>
-          <FormField label="Exact ID or approved reference" requirement="required" hint="Examples: a complete account/transfer UUID or an exact approved account or funding reference. Minimum reference length: 8." error={inputError}>
+          <FormField label="Exact ID or approved reference" requirement="required" hint="Use one complete UUID or an exact reference of 8–128 characters." error={inputError}>
             <input type="search" value={input} onChange={(event) => { setInput(event.target.value); setInputError(null); }} maxLength={128} autoComplete="off" spellCheck={false} placeholder="11111111-1111-4111-8111-111111111111" />
           </FormField>
-          <button className="button primary" type="submit" disabled={!online || loading}><MagnifyingGlass aria-hidden="true" />{loading ? "Searching…" : "Search exact evidence"}</button>
+          <button className="button primary" type="submit" disabled={!online || loading}><MagnifyingGlass aria-hidden="true" />{loading ? "Searching…" : "Find record"}</button>
         </form>
-        <p className="investigation-search-boundary">Exact lookup only · maximum 10 typed locators · current tenant and server-issued scopes · no balances or payloads copied into results</p>
-        {!initialQuery && <StatePanel title="Start with known evidence" message="Enter a complete record ID, request reference, or approved external reference. Partial names and broad discovery are intentionally unavailable." />}
+        <p className="investigation-search-boundary">Exact lookup · current tenant · up to 10 authorized results</p>
+        {!initialQuery && <StatePanel title="Start with a known record" message="Enter its complete ID or approved reference. Partial names are not supported." />}
         {initialQuery && !online && !page && <StatePanel kind="offline" title="Search unavailable offline" message="Reconnect to query current tenant-scoped evidence. No empty result is inferred." />}
         {error && <StatePanel kind="error" title="Search evidence unavailable" message={error} action={online ? <button className="button secondary" type="button" onClick={() => { const controller = new AbortController(); void search(controller.signal); }}>Retry exact lookup</button> : undefined} />}
         {loading && !page && <StatePanel announce="polite" title="Searching authorized evidence" message="No result is inferred until the bounded server lookup completes." />}
@@ -141,8 +142,8 @@ export function InvestigationSearchController({ initialQuery, invalidQuery }: Re
           <div className="investigation-results-summary"><div><p className="eyebrow">Bounded lookup</p><h2 id="investigation-results-heading">{page.results.length} authorized locator{page.results.length === 1 ? "" : "s"}</h2></div><p>Generated <Timestamp value={page.generated_at} />{page.truncated ? " · Additional matches withheld by the result bound." : ""}</p></div>
           <ol>{page.results.map((result) => <SearchResultCard key={`${result.record_type}-${result.record_id}-${result.related_record_id ?? "direct"}`} result={result} query={initialQuery} queryKind={page.query_kind} />)}</ol>
         </section>}
-        {(Boolean(page?.results.length) || Boolean(initialQuery)) && <DisclosureSection id="investigation-case-tools" title="Case tools" summary="Open saved views and investigation workspaces after locating evidence." lazy><WorkspaceListPanel /><SavedViewsPanel /></DisclosureSection>}
       </>}
+      {capabilities.investigationRead && <DisclosureSection id="investigation-case-tools" title="Saved views and investigations" summary="Reopen a saved view or continue an investigation." lazy><WorkspaceListPanel /><SavedViewsPanel /></DisclosureSection>}
     </div>
   </ConsoleRouteFrame>;
 }

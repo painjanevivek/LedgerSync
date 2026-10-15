@@ -175,7 +175,7 @@ func decodeSessionRequest(writer http.ResponseWriter, request *http.Request) (se
 }
 
 func validSessionClaims(ctx context.Context, input sessionRequest) bool {
-	if len(input.SubjectID) < 1 || len(input.SubjectID) > 256 || len(input.CSRFToken) < 16 || len(input.CSRFToken) > 128 || len(input.Roles) > 16 || len(input.Scopes) > 32 || input.ExpiresAt <= time.Now().UnixMilli() || input.ExpiresAt > time.Now().Add(31*time.Minute).UnixMilli() {
+	if len(input.SubjectID) < 1 || len(input.SubjectID) > 256 || len(input.CSRFToken) < 16 || len(input.CSRFToken) > 128 || len(input.Roles) > 16 || len(input.Scopes) > 40 || input.ExpiresAt <= time.Now().UnixMilli() || input.ExpiresAt > time.Now().Add(31*time.Minute).UnixMilli() {
 		return false
 	}
 	if _, err := identifier.Parse(ctx, identifier.KindTenant, input.TenantID); err != nil {

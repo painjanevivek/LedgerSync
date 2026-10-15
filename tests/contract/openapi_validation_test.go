@@ -37,6 +37,7 @@ func TestOpenAPIIsStructurallyValidAndEveryReferenceResolves(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The additive observation schemas remain a bounded, embedded contract asset.
 	if len(content) > 192*1024 {
 		t.Fatalf("OpenAPI download is unbounded: %d bytes", len(content))
 	}
@@ -133,6 +134,25 @@ func TestOpenAPIRoutesExactlyMatchRegisteredPrivateAPI(t *testing.T) {
 		}
 	}
 	assertStringSetsEqual(t, "OpenAPI/runtime routes", contractRoutes, runtimeRoutes)
+}
+
+func TestLiveInvestigationSignallingRemainsInternal(t *testing.T) {
+	root := repositoryRoot(t)
+	paths := []string{
+		filepath.Join(root, "contracts", "openapi.yaml"),
+		filepath.Join(root, "contracts", "generated", "sdk-manifest.json"),
+		filepath.Join(root, "contracts", "generated", "ledgersync.postman_collection.json"),
+	}
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lower := strings.ToLower(string(content))
+		if strings.Contains(lower, "live-room") || strings.Contains(lower, "webrtc") || strings.Contains(lower, "invite_token") || strings.Contains(lower, "/private/investigation") {
+			t.Fatalf("internal live-investigation contract leaked into %s", filepath.Base(path))
+		}
+	}
 }
 
 func TestTransferHistoryFiltersAreServerSideBoundedAndCursorBound(t *testing.T) {

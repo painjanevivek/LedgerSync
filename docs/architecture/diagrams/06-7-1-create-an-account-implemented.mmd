@@ -1,0 +1,24 @@
+sequenceDiagram
+  actor Operator
+  participant UI as Accounts screen
+  participant BFF
+  participant API
+  participant PG as PostgreSQL
+  Operator->>UI: Enter name, reference and category
+  UI->>UI: Validate and review INR account
+  UI->>BFF: POST /api/me/accounts with CSRF and idempotency key
+  BFF->>BFF: Check session, body and command boundary
+  BFF->>API: Authenticated account command
+  API->>API: Verify scope and exact command
+  API->>PG: Begin serialized account-create transaction
+  PG->>PG: Authorize actor and reserve command fingerprint
+  alt Matching completed key exists
+    PG-->>API: Stored account outcome
+  else New valid account
+    PG->>PG: Insert account, owner, permissions and zero baseline
+    PG->>PG: Append audit, outbox and command outcome
+    PG-->>API: Commit and return account receipt
+  end
+  API-->>BFF: Account ID, status, version and zero balance
+  BFF-->>UI: Sanitized command result
+  UI-->>Operator: Open account, show next action

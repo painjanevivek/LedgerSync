@@ -1,0 +1,118 @@
+
+> ledgersync-web@0.1.0 build
+> next build
+
+▲ Next.js 16.3.2 (Turbopack)
+✓ Running next.config.ts took 85ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1876ms
+  Running TypeScript ...
+  Finished TypeScript in 6.6s ...
+  Collecting page data using 31 workers ...
+  Generating static pages using 31 workers (0/30) ...
+  Generating static pages using 31 workers (7/30) 
+  Generating static pages using 31 workers (14/30) 
+  Generating static pages using 31 workers (22/30) 
+✓ Generating static pages using 31 workers (30/30) in 345ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /accounts
+├ ƒ /accounts/[accountId]
+├ ƒ /accounts/new
+├ ƒ /admin
+├ ƒ /api/accounts/[accountId]
+├ ƒ /api/accounts/[accountId]/balance
+├ ƒ /api/accounts/[accountId]/transactions
+├ ƒ /api/approvals
+├ ƒ /api/auth/callback
+├ ƒ /api/auth/sign-in
+├ ƒ /api/auth/sign-out
+├ ƒ /api/developer/distributed
+├ ƒ /api/developer/distributed/evidence
+├ ƒ /api/developer/metadata
+├ ƒ /api/developer/openapi
+├ ƒ /api/events
+├ ƒ /api/events/[eventId]
+├ ƒ /api/exports/accounts/[accountId]/transactions.csv
+├ ƒ /api/exports/reconciliation.csv
+├ ƒ /api/exports/transfers.csv
+├ ƒ /api/funding-events
+├ ƒ /api/funding-events/[fundingEventId]
+├ ƒ /api/funding-events/[fundingEventId]/approve
+├ ƒ /api/funding-events/[fundingEventId]/compensations
+├ ƒ /api/funding-events/[fundingEventId]/post
+├ ƒ /api/funding-events/[fundingEventId]/reconciliation
+├ ƒ /api/funding-events/[fundingEventId]/reject
+├ ƒ /api/funding-requests
+├ ƒ /api/investigation/live/rooms
+├ ƒ /api/investigation/live/rooms/[roomId]
+├ ƒ /api/investigation/live/rooms/[roomId]/[action]
+├ ƒ /api/investigation/live/rooms/[roomId]/presence
+├ ƒ /api/investigation/live/rooms/[roomId]/signals
+├ ƒ /api/investigation/live/rooms/join
+├ ƒ /api/investigation/live/status/[requestReference]
+├ ƒ /api/investigation/related/[recordType]/[recordId]
+├ ƒ /api/investigation/saved-views
+├ ƒ /api/investigation/saved-views/[savedViewId]
+├ ƒ /api/investigation/search
+├ ƒ /api/investigation/workspaces
+├ ƒ /api/investigation/workspaces/[investigationId]
+├ ƒ /api/investigation/workspaces/[investigationId]/[action]
+├ ƒ /api/investigation/workspaces/[investigationId]/evidence-bundle
+├ ƒ /api/local/diagnostics
+├ ƒ /api/local/orientation
+├ ƒ /api/local/orientation/preferences
+├ ƒ /api/me/accounts
+├ ƒ /api/reconciliation/runs
+├ ƒ /api/reconciliation/runs/[runId]
+├ ƒ /api/recovery/manifests
+├ ƒ /api/session
+├ ƒ /api/transfer-corrections
+├ ƒ /api/transfer-corrections/[correctionId]
+├ ƒ /api/transfer-corrections/[correctionId]/approve
+├ ƒ /api/transfer-corrections/[correctionId]/cancel
+├ ƒ /api/transfer-corrections/[correctionId]/post
+├ ƒ /api/transfer-corrections/[correctionId]/reject
+├ ƒ /api/transfers
+├ ƒ /api/transfers/[transferId]
+├ ƒ /api/transfers/[transferId]/corrections
+├ ƒ /api/transfers/[transferId]/explainability
+├ ƒ /api/transfers/recovery
+├ ƒ /api/transfers/recovery/[requestReference]
+├ ƒ /api/webhook-endpoints
+├ ƒ /api/webhook-endpoints/[endpointId]
+├ ƒ /api/webhook-endpoints/[endpointId]/deliveries/[attemptId]/replay
+├ ƒ /api/webhook-endpoints/[endpointId]/deliveries/[attemptId]/replay-approvals
+├ ƒ /approvals
+├ ƒ /corrections
+├ ƒ /corrections/[correctionId]
+├ ƒ /developer
+├ ƒ /events
+├ ƒ /events/[eventId]
+├ ƒ /funding
+├ ƒ /funding/[fundingEventId]
+├ ƒ /guide
+├ ƒ /investigations/[investigationId]
+├ ƒ /investigations/live
+├ ƒ /investigations/live/[roomId]
+├ ƒ /local-status
+├ ƒ /reconciliation
+├ ƒ /reconciliation/[runId]
+├ ƒ /recovery
+├ ƒ /search
+├ ƒ /sign-in
+├ ƒ /test-support/route-error
+├ ƒ /transfers
+├ ƒ /transfers/[transferId]
+├ ƒ /webhooks
+└ ƒ /webhooks/[endpointId]
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+

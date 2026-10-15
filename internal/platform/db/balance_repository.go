@@ -25,8 +25,13 @@ func NewBalanceRepository(database *sql.DB) (*BalanceRepository, error) {
 // returned. It uses the same non-disclosing result for absent and inaccessible
 // accounts.
 func (r *BalanceRepository) Authorize(ctx context.Context, tenantID, actorID, accountID string) error {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var authorized bool
-	err := r.database.QueryRowContext(ctx, `
+	err := tx.QueryRowContext(ctx, `
 SELECT EXISTS(
   SELECT 1
   FROM account_owners
@@ -46,9 +51,14 @@ SELECT EXISTS(
 // projection. It intentionally returns one safe denial for absent/inaccessible
 // accounts so callers do not disclose another account's existence.
 func (r *BalanceRepository) ReadCurrent(ctx context.Context, tenantID, actorID, accountID string) (accounts.Balance, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return accounts.Balance{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var balance accounts.Balance
 	var updatedAt time.Time
-	err := r.database.QueryRowContext(ctx, `
+	err := tx.QueryRowContext(ctx, `
 SELECT a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at
 FROM accounts AS a
 JOIN account_balance_projections AS b ON b.account_id = a.id
@@ -70,7 +80,12 @@ WHERE a.tenant_id = $1 AND a.id = $2 AND owner.subject_id = $3
 // their controlled negative projections are authoritative in PostgreSQL but are
 // neither customer-visible nor valid customer cache records.
 func (r *BalanceRepository) ListCurrentForTenant(ctx context.Context, tenantID string) ([]accounts.Balance, error) {
-	rows, err := r.database.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 AND a.account_kind='customer' ORDER BY a.id`, tenantID)
+	tx, err := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: "system:cache-rebuild"})
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	rows, err := tx.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 AND a.account_kind='customer' ORDER BY a.id`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("list current balances: %w", err)
 	}

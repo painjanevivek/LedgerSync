@@ -13,7 +13,7 @@ import (
 
 type nonReturningDiagnosticRepository struct{ release <-chan struct{} }
 
-func (r nonReturningDiagnosticRepository) Facts(context.Context, string) (operations.DatabaseFacts, error) {
+func (r nonReturningDiagnosticRepository) Facts(context.Context, string, string) (operations.DatabaseFacts, error) {
 	<-r.release
 	return operations.DatabaseFacts{}, context.Canceled
 }
@@ -43,7 +43,7 @@ func TestPhaseFiveDiagnosticsRemainBoundedWhenProbesIgnoreCancellation(t *testin
 	}
 
 	result := make(chan operations.DiagnosticSnapshot, 1)
-	go func() { result <- service.Snapshot(context.Background(), "tenant-a") }()
+	go func() { result <- service.Snapshot(context.Background(), "tenant-a", "actor") }()
 
 	select {
 	case snapshot := <-result:
@@ -68,7 +68,7 @@ func TestPhaseFiveDiagnosticsPreserveCompletedProbeEvidenceAtDeadline(t *testing
 		t.Fatal(err)
 	}
 
-	snapshot := service.Snapshot(context.Background(), "tenant-a")
+	snapshot := service.Snapshot(context.Background(), "tenant-a", "actor")
 	if snapshot.DeliveryCache.Redis.State != "reachable" {
 		t.Fatalf("completed cache probe was discarded while another dependency timed out: %+v", snapshot)
 	}

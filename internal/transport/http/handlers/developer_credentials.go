@@ -120,7 +120,7 @@ func (h *DeveloperCredentialHandler) List(writer http.ResponseWriter, request *h
 			return
 		}
 	}
-	page, err := h.service.List(request.Context(), principal.TenantID, developerplatform.CredentialQuery{Status: request.URL.Query().Get("status"), Cursor: request.URL.Query().Get("cursor"), Limit: limit})
+	page, err := h.service.List(request.Context(), principal.TenantID, principal.SubjectID, developerplatform.CredentialQuery{Status: request.URL.Query().Get("status"), Cursor: request.URL.Query().Get("cursor"), Limit: limit})
 	if err != nil {
 		httptransport.WriteError(writer, request, publicDeveloperCredentialError(err))
 		return
@@ -141,7 +141,7 @@ func (h *DeveloperCredentialHandler) Get(writer http.ResponseWriter, request *ht
 	if !ok {
 		return
 	}
-	credential, err := h.service.Get(request.Context(), principal.TenantID, credentialID)
+	credential, err := h.service.Get(request.Context(), principal.TenantID, principal.SubjectID, credentialID)
 	if err != nil {
 		httptransport.WriteError(writer, request, publicDeveloperCredentialError(err))
 		return

@@ -1,5 +1,7 @@
 # LedgerSync Production-Hardening Implementation Plan
 
+> **Historical review at commit `944a8f4` (2026-09-03).** Its scores and “currently” statements describe that commit, not the present tree. Later migrations added semantic journal validation and controlled financial functions; later changes addressed committed-response handling and webhook worker progress. Broad workload DML grants and database tenant isolation remain open in the [current delivery register](ledgersync-master-progress.md). Recheck each finding against the exact release commit before using it as a gate.
+
 Review date: 2026-09-03
 Repository reviewed: `https://github.com/painjanevivek/LedgerSync.git`
 Branch and commit: `main` at `944a8f44d197728f14bf178f2aafcb32209363d5`

@@ -7,8 +7,8 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "LedgerSync | Clear money operations",
-  description: "Understand balances, move money, and resolve work with confidence.",
+  title: "LedgerSync | Operator Console",
+  description: "Exact, explainable internal ledger transfers and balances.",
 };
 
 export const viewport: Viewport = {

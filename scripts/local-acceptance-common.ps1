@@ -3,6 +3,13 @@ $ErrorActionPreference = "Stop"
 $script:LedgerSyncAcceptanceProjectPattern = '^ledgersync-acceptance-\d{14}-[0-9a-f]{8}$'
 $script:LedgerSyncAcceptanceUUIDPattern = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 
+function Get-LedgerSyncAcceptanceRequestReference {
+    param([Parameter(Mandatory = $true)][string]$IdempotencyKey)
+    # A retry keeps the same reference, including when the key is not a UUID.
+    $hex = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($IdempotencyKey))).ToLowerInvariant()
+    return "$($hex.Substring(0,8))-$($hex.Substring(8,4))-4$($hex.Substring(13,3))-8$($hex.Substring(17,3))-$($hex.Substring(20,12))"
+}
+
 function Assert-LedgerSyncAcceptance {
     param([bool]$Condition, [Parameter(Mandatory = $true)][string]$Message)
     if (-not $Condition) { throw $Message }
@@ -51,6 +58,7 @@ function Invoke-LedgerSyncAcceptanceTransfer {
             Origin = $script:LedgerSyncWebUrl
             "X-CSRF-Token" = $CSRFToken
             "Idempotency-Key" = $IdempotencyKey
+            "X-LedgerSync-Request-Reference" = Get-LedgerSyncAcceptanceRequestReference -IdempotencyKey $IdempotencyKey
         } -ContentType "application/json" -Body $body
     Assert-LedgerSyncAcceptance ([int]$response.StatusCode -eq 201) "Acceptance transfer returned HTTP $([int]$response.StatusCode)."
     $payload = $response.Content | ConvertFrom-Json
@@ -173,6 +181,9 @@ function Invoke-LedgerSyncAcceptanceJSON {
         $headers.Origin = $script:LedgerSyncWebUrl
         $headers.'X-CSRF-Token' = $CSRFToken
         $headers.'Idempotency-Key' = $IdempotencyKey
+        if ($Path -ceq '/api/transfers') {
+            $headers.'X-LedgerSync-Request-Reference' = Get-LedgerSyncAcceptanceRequestReference -IdempotencyKey $IdempotencyKey
+        }
     }
     $arguments = @{
         UseBasicParsing = $true; WebSession = $Session; TimeoutSec = 20

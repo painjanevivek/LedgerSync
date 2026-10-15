@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Containers consume the standalone server. Vercel owns its output tracing.
+  output: process.env.VERCEL ? undefined : "standalone",
   poweredByHeader: false,
 };
 

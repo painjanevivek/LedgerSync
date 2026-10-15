@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { diagnosticTraceHeaders } from "@/lib/diagnostic-trace";
 
 import { isValidAccountIdempotencyKey } from "@/lib/api/accounts";
 import { hasValidCSRF, jsonError } from "@/lib/security";
@@ -44,6 +45,7 @@ export function accountMutationPrivateHeaders(privateHeaders: Readonly<Record<st
   }
   return {
     Authorization: authorization,
+    ...diagnosticTraceHeaders(privateHeaders),
     "X-LedgerSync-Actor-Assertion": assertion,
     "X-Request-ID": requestID,
     "Content-Type": "application/json",

@@ -49,7 +49,7 @@ func (h *OperationsHandler) Diagnostics(writer http.ResponseWriter, request *htt
 	if !ok {
 		return
 	}
-	writeInvestigationJSON(writer, h.diagnostics.Snapshot(request.Context(), principal.TenantID))
+	writeInvestigationJSON(writer, h.diagnostics.Snapshot(request.Context(), principal.TenantID, principal.SubjectID))
 }
 
 func (h *OperationsHandler) Events(writer http.ResponseWriter, request *http.Request) {

@@ -1,0 +1,140 @@
+@layer features {
+  .live-investigation-entry,
+  .live-investigation-room {
+    border: 1px solid var(--line);
+    background: var(--paper);
+    padding: 1.25rem;
+  }
+
+  .live-investigation-entry {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .live-investigation-entry h3,
+  .live-investigation-entry p,
+  .live-investigation-room h2,
+  .live-investigation-room h3,
+  .live-investigation-room p {
+    margin: 0;
+  }
+
+  .live-investigation-room {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+
+  .live-investigation-room > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 1rem;
+  }
+
+  .live-connection {
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 0.875rem;
+    padding: 0.4rem 0.65rem;
+    white-space: nowrap;
+  }
+
+  .live-connection.connected { color: var(--green); }
+  .live-connection.disconnected { color: var(--red); }
+
+  .live-room-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .live-room-grid > section,
+  .live-intent,
+  .live-chat,
+  .live-finding {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    min-width: 0;
+    border-top: 3px solid var(--green);
+    background: var(--paper-subtle);
+    padding: 1rem;
+  }
+
+  .live-participants,
+  .live-chat ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .live-participants li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3rem;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .live-invite { display: grid; gap: 0.5rem; min-width: 0; }
+  .live-invite code,
+  .live-room-grid dd { overflow-wrap: anywhere; }
+
+  .live-chat ol {
+    display: grid;
+    gap: 0.5rem;
+    max-height: 18rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+  .live-chat li:not(.live-chat-empty) {
+    border-left: 3px solid var(--line-strong);
+    background: var(--paper);
+    padding: 0.75rem;
+  }
+
+  .live-chat li.mine { border-left-color: var(--green); }
+  .live-chat li p { margin-top: 0.25rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .live-chat-empty { color: var(--muted); padding: 1rem 0; }
+
+  .live-chat form {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .live-chat textarea {
+    min-height: 6rem;
+    resize: vertical;
+  }
+
+  .live-finding {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .live-finding h3,
+  .live-finding p,
+  .live-finding label { grid-column: 1 / -1; }
+
+  @media (max-width: 767px) {
+    .live-investigation-entry,
+    .live-investigation-room { padding: 1rem; }
+    .live-investigation-room > header { align-items: stretch; flex-direction: column; }
+    .live-connection { align-self: flex-start; }
+    .live-room-grid { grid-template-columns: 1fr; }
+    .live-finding { grid-template-columns: 1fr; }
+    .live-finding h3,
+    .live-finding p,
+    .live-finding label { grid-column: auto; }
+    .live-investigation-room .action-row,
+    .live-investigation-entry .action-row { align-items: stretch; flex-direction: column; }
+    .live-investigation-room .button,
+    .live-investigation-entry .button { width: 100%; }
+  }
+}

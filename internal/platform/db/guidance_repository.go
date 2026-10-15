@@ -31,27 +31,32 @@ func (r *GuidanceRepository) Orientation(ctx context.Context, tenantID, actorID 
 	if r == nil || r.database == nil || ctx == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" {
 		return guidance.OrientationFacts{}, guidance.ErrEvidenceUnavailable
 	}
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return guidance.OrientationFacts{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var facts guidance.OrientationFacts
 	var err error
-	if facts.AuthorizedAccount, err = r.reference(ctx, `SELECT a.id::text,a.created_at FROM accounts a JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id WHERE a.tenant_id=$1 AND owner.subject_id=$2 AND owner.permission IN ('read','debit') ORDER BY a.created_at DESC,a.id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.AuthorizedAccount, err = r.reference(ctx, tx, `SELECT a.id::text,a.created_at FROM accounts a JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id WHERE a.tenant_id=$1 AND owner.subject_id=$2 AND owner.permission IN ('read','debit') ORDER BY a.created_at DESC,a.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation account: %w", err)
 	}
-	if facts.CreatedAccount, err = r.reference(ctx, `SELECT a.id::text,audit.occurred_at FROM audit_events audit JOIN accounts a ON a.tenant_id=audit.tenant_id AND a.id::text=audit.target_id WHERE audit.tenant_id=$1 AND audit.actor_subject_id=$2 AND audit.event_type='account.created' AND audit.outcome='succeeded' ORDER BY audit.occurred_at DESC,audit.id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.CreatedAccount, err = r.reference(ctx, tx, `SELECT a.id::text,audit.occurred_at FROM audit_events audit JOIN accounts a ON a.tenant_id=audit.tenant_id AND a.id::text=audit.target_id WHERE audit.tenant_id=$1 AND audit.actor_subject_id=$2 AND audit.event_type='account.created' AND audit.outcome='succeeded' ORDER BY audit.occurred_at DESC,audit.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation account creation: %w", err)
 	}
-	if facts.FundingJournal, err = r.reference(ctx, `SELECT event.id::text,COALESCE(event.posted_at,event.updated_at) FROM funding_events event WHERE event.tenant_id=$1 AND event.requester_subject_id=$2 AND event.compensation_of_event_id IS NULL AND event.status IN ('posted','compensated') ORDER BY COALESCE(event.posted_at,event.updated_at) DESC,event.id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.FundingJournal, err = r.reference(ctx, tx, `SELECT event.id::text,COALESCE(event.posted_at,event.updated_at) FROM funding_events event WHERE event.tenant_id=$1 AND event.requester_subject_id=$2 AND event.compensation_of_event_id IS NULL AND event.status IN ('posted','compensated') ORDER BY COALESCE(event.posted_at,event.updated_at) DESC,event.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation funding: %w", err)
 	}
-	if facts.PostedTransfer, err = r.reference(ctx, `SELECT id::text,completed_at FROM transfers WHERE tenant_id=$1 AND actor_subject_id=$2 AND status='posted' ORDER BY completed_at DESC,id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.PostedTransfer, err = r.reference(ctx, tx, `SELECT id::text,completed_at FROM transfers WHERE tenant_id=$1 AND actor_subject_id=$2 AND status='posted' ORDER BY completed_at DESC,id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation posted transfer: %w", err)
 	}
-	if facts.AuthorizedTransfer, err = r.reference(ctx, `SELECT t.id::text,COALESCE(t.completed_at,t.created_at) FROM transfers t WHERE t.tenant_id=$1 AND (t.actor_subject_id=$2 OR EXISTS(SELECT 1 FROM account_owners owner WHERE owner.tenant_id=t.tenant_id AND owner.subject_id=$2 AND owner.account_id IN(t.debit_account_id,t.credit_account_id) AND owner.permission IN ('read','debit'))) ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.AuthorizedTransfer, err = r.reference(ctx, tx, `SELECT t.id::text,COALESCE(t.completed_at,t.created_at) FROM transfers t WHERE t.tenant_id=$1 AND (t.actor_subject_id=$2 OR EXISTS(SELECT 1 FROM account_owners owner WHERE owner.tenant_id=t.tenant_id AND owner.subject_id=$2 AND owner.account_id IN(t.debit_account_id,t.credit_account_id) AND owner.permission IN ('read','debit'))) ORDER BY COALESCE(t.completed_at,t.created_at) DESC,t.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation transfer: %w", err)
 	}
-	if facts.ReconciliationRun, err = r.reference(ctx, `SELECT run.id::text,run.completed_at FROM reconciliation_runs run JOIN audit_events audit ON audit.tenant_id=run.tenant_id AND audit.target_id=run.id::text AND audit.event_type='reconciliation.completed' WHERE run.tenant_id=$1 AND audit.actor_subject_id=$2 ORDER BY run.completed_at DESC,run.id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.ReconciliationRun, err = r.reference(ctx, tx, `SELECT run.id::text,run.completed_at FROM reconciliation_runs run JOIN audit_events audit ON audit.tenant_id=run.tenant_id AND audit.target_id=run.id::text AND audit.event_type='reconciliation.completed' WHERE run.tenant_id=$1 AND audit.actor_subject_id=$2 ORDER BY run.completed_at DESC,run.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation reconciliation: %w", err)
 	}
-	if facts.DeliveryAttempt, err = r.reference(ctx, `SELECT attempt.id::text,COALESCE(attempt.completed_at,attempt.started_at,attempt.created_at) FROM delivery_attempts attempt JOIN transfers transfer ON transfer.tenant_id=attempt.tenant_id AND transfer.id=attempt.transfer_id WHERE attempt.tenant_id=$1 AND transfer.actor_subject_id=$2 ORDER BY COALESCE(attempt.completed_at,attempt.started_at,attempt.created_at) DESC,attempt.id DESC LIMIT 1`, tenantID, actorID); err != nil {
+	if facts.DeliveryAttempt, err = r.reference(ctx, tx, `SELECT attempt.id::text,COALESCE(attempt.completed_at,attempt.started_at,attempt.created_at) FROM delivery_attempts attempt JOIN transfers transfer ON transfer.tenant_id=attempt.tenant_id AND transfer.id=attempt.transfer_id WHERE attempt.tenant_id=$1 AND transfer.actor_subject_id=$2 ORDER BY COALESCE(attempt.completed_at,attempt.started_at,attempt.created_at) DESC,attempt.id DESC LIMIT 1`, tenantID, actorID); err != nil {
 		return facts, fmt.Errorf("read orientation delivery: %w", err)
 	}
 	return facts, nil
@@ -61,10 +66,15 @@ func (r *GuidanceRepository) OrientationPreference(ctx context.Context, tenantID
 	if r == nil || r.database == nil || ctx == nil || strings.TrimSpace(tenantID) == "" || strings.TrimSpace(actorID) == "" {
 		return guidance.OrientationPreference{}, guidance.ErrEvidenceUnavailable
 	}
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return guidance.OrientationPreference{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var preference guidance.OrientationPreference
 	var completedJSON []byte
 	var updatedAt time.Time
-	err := r.database.QueryRowContext(ctx, `SELECT dismissed,completed_step_ids,version,updated_at FROM operator_onboarding_preferences WHERE tenant_id=$1 AND subject_id=$2`, tenantID, actorID).
+	err := tx.QueryRowContext(ctx, `SELECT dismissed,completed_step_ids,version,updated_at FROM operator_onboarding_preferences WHERE tenant_id=$1 AND subject_id=$2`, tenantID, actorID).
 		Scan(&preference.Dismissed, &completedJSON, &preference.Version, &updatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		preference.CompletedStepIDs = []string{}
@@ -92,11 +102,12 @@ func (r *GuidanceRepository) UpdateOrientationPreference(ctx context.Context, te
 	}
 	var version int64
 	var updatedAt time.Time
-	if update.ExpectedVersion == 0 {
-		err = r.database.QueryRowContext(ctx, `INSERT INTO operator_onboarding_preferences(tenant_id,subject_id,dismissed,completed_step_ids,version,updated_at) VALUES($1,$2,$3,$4::jsonb,1,now()) ON CONFLICT (tenant_id,subject_id) DO NOTHING RETURNING version,updated_at`, tenantID, actorID, update.Dismissed, string(completedJSON)).Scan(&version, &updatedAt)
-	} else {
-		err = r.database.QueryRowContext(ctx, `UPDATE operator_onboarding_preferences SET dismissed=$3,completed_step_ids=$4::jsonb,version=version+1,updated_at=now() WHERE tenant_id=$1 AND subject_id=$2 AND version=$5 RETURNING version,updated_at`, tenantID, actorID, update.Dismissed, string(completedJSON), update.ExpectedVersion).Scan(&version, &updatedAt)
-	}
+	err = WithTenantTransaction(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID}, nil, func(tx *sql.Tx) error {
+		if update.ExpectedVersion == 0 {
+			return tx.QueryRowContext(ctx, `INSERT INTO operator_onboarding_preferences(tenant_id,subject_id,dismissed,completed_step_ids,version,updated_at) VALUES($1,$2,$3,$4::jsonb,1,now()) ON CONFLICT (tenant_id,subject_id) DO NOTHING RETURNING version,updated_at`, tenantID, actorID, update.Dismissed, string(completedJSON)).Scan(&version, &updatedAt)
+		}
+		return tx.QueryRowContext(ctx, `UPDATE operator_onboarding_preferences SET dismissed=$3,completed_step_ids=$4::jsonb,version=version+1,updated_at=now() WHERE tenant_id=$1 AND subject_id=$2 AND version=$5 RETURNING version,updated_at`, tenantID, actorID, update.Dismissed, string(completedJSON), update.ExpectedVersion).Scan(&version, &updatedAt)
+	})
 	if errors.Is(err, sql.ErrNoRows) {
 		return guidance.OrientationPreference{}, guidance.ErrPreferenceConflict
 	}
@@ -112,9 +123,9 @@ func (r *GuidanceRepository) UpdateOrientationPreference(ctx context.Context, te
 	}, nil
 }
 
-func (r *GuidanceRepository) reference(ctx context.Context, statement string, arguments ...any) (*guidance.DurableReference, error) {
+func (r *GuidanceRepository) reference(ctx context.Context, query scopedReadExecutor, statement string, arguments ...any) (*guidance.DurableReference, error) {
 	var reference guidance.DurableReference
-	err := r.database.QueryRowContext(ctx, statement, arguments...).Scan(&reference.ID, &reference.OccurredAt)
+	err := query.QueryRowContext(ctx, statement, arguments...).Scan(&reference.ID, &reference.OccurredAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -126,11 +137,16 @@ func (r *GuidanceRepository) reference(ctx context.Context, statement string, ar
 }
 
 func (r *GuidanceRepository) ExplainTransfer(ctx context.Context, tenantID, actorID, transferID string) (guidance.TransferFacts, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return guidance.TransferFacts{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	facts := guidance.TransferFacts{TransferID: transferID}
 	var status, amountMinor, currency, journalID string
 	var createdAt time.Time
 	var completedAt sql.NullTime
-	err := r.database.QueryRowContext(ctx, `
+	err := tx.QueryRowContext(ctx, `
 SELECT t.status,t.amount_minor::text,t.currency,t.created_at,t.completed_at,COALESCE(t.journal_transaction_id::text,'')
 FROM transfers t
 WHERE t.tenant_id=$1 AND t.id=$2 AND (
@@ -150,16 +166,16 @@ WHERE t.tenant_id=$1 AND t.id=$2 AND (
 	}
 	facts.Transfer.Items = []guidance.EvidenceItem{{EvidenceType: "transfer", EvidenceID: transferID, Status: allowedGuidanceStatus(status), AmountMinor: amountMinor, Currency: currency, OccurredAt: guidanceTime(transferAt)}}
 
-	facts.Request = r.requestEvidence(ctx, tenantID, transferID)
-	facts.JournalPostings = r.journalEvidence(ctx, tenantID, transferID, journalID)
-	facts.Outbox, facts.BalanceVersions = r.outboxEvidence(ctx, tenantID, transferID)
-	facts.Delivery = r.deliveryEvidence(ctx, tenantID, transferID)
-	facts.Reconciliation = r.reconciliationEvidence(ctx, tenantID, transferID)
+	facts.Request = r.requestEvidence(ctx, tx, tenantID, transferID)
+	facts.JournalPostings = r.journalEvidence(ctx, tx, tenantID, transferID, journalID)
+	facts.Outbox, facts.BalanceVersions = r.outboxEvidence(ctx, tx, tenantID, transferID)
+	facts.Delivery = r.deliveryEvidence(ctx, tx, tenantID, transferID)
+	facts.Reconciliation = r.reconciliationEvidence(ctx, tx, tenantID, transferID)
 	return facts, nil
 }
 
-func (r *GuidanceRepository) requestEvidence(ctx context.Context, tenantID, transferID string) guidance.EvidenceLink {
-	rows, err := r.database.QueryContext(ctx, `SELECT state,created_at,completed_at FROM idempotency_requests WHERE tenant_id=$1 AND transfer_id=$2 ORDER BY COALESCE(completed_at,created_at),operation LIMIT 3`, tenantID, transferID)
+func (r *GuidanceRepository) requestEvidence(ctx context.Context, query scopedReadExecutor, tenantID, transferID string) guidance.EvidenceLink {
+	rows, err := query.QueryContext(ctx, `SELECT state,created_at,completed_at FROM idempotency_requests WHERE tenant_id=$1 AND transfer_id=$2 ORDER BY COALESCE(completed_at,created_at),operation LIMIT 3`, tenantID, transferID)
 	if err != nil {
 		return guidance.EvidenceLink{Unavailable: true, Items: []guidance.EvidenceItem{}}
 	}
@@ -187,20 +203,20 @@ func (r *GuidanceRepository) requestEvidence(ctx context.Context, tenantID, tran
 	return link
 }
 
-func (r *GuidanceRepository) journalEvidence(ctx context.Context, tenantID, transferID, journalID string) guidance.EvidenceLink {
+func (r *GuidanceRepository) journalEvidence(ctx context.Context, query scopedReadExecutor, tenantID, transferID, journalID string) guidance.EvidenceLink {
 	link := guidance.EvidenceLink{Items: []guidance.EvidenceItem{}}
 	if journalID == "" {
 		return link
 	}
 	var occurred time.Time
-	if err := r.database.QueryRowContext(ctx, `SELECT occurred_at FROM journal_transactions WHERE tenant_id=$1 AND transfer_id=$2 AND id=$3`, tenantID, transferID, journalID).Scan(&occurred); err != nil {
+	if err := query.QueryRowContext(ctx, `SELECT occurred_at FROM journal_transactions WHERE tenant_id=$1 AND transfer_id=$2 AND id=$3`, tenantID, transferID, journalID).Scan(&occurred); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return link
 		}
 		return guidance.EvidenceLink{Unavailable: true, Items: []guidance.EvidenceItem{}}
 	}
 	link.Items = append(link.Items, guidance.EvidenceItem{EvidenceType: "journal", EvidenceID: journalID, RelatedID: transferID, OccurredAt: guidanceTime(occurred)})
-	rows, err := r.database.QueryContext(ctx, `SELECT p.id::text,p.account_id::text,p.direction,p.amount_minor::text,p.currency,p.occurred_at FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.tenant_id=$1 AND j.transfer_id=$2 ORDER BY p.occurred_at,p.id LIMIT $3`, tenantID, transferID, maxTimelinePostings+1)
+	rows, err := query.QueryContext(ctx, `SELECT p.id::text,p.account_id::text,p.direction,p.amount_minor::text,p.currency,p.occurred_at FROM ledger_postings p JOIN journal_transactions j ON j.id=p.journal_transaction_id WHERE j.tenant_id=$1 AND j.transfer_id=$2 ORDER BY p.occurred_at,p.id LIMIT $3`, tenantID, transferID, maxTimelinePostings+1)
 	if err != nil {
 		return guidance.EvidenceLink{Unavailable: true, Items: []guidance.EvidenceItem{}}
 	}
@@ -224,8 +240,8 @@ func (r *GuidanceRepository) journalEvidence(ctx context.Context, tenantID, tran
 	return link
 }
 
-func (r *GuidanceRepository) outboxEvidence(ctx context.Context, tenantID, transferID string) (guidance.EvidenceLink, guidance.EvidenceLink) {
-	rows, err := r.database.QueryContext(ctx, `
+func (r *GuidanceRepository) outboxEvidence(ctx context.Context, query scopedReadExecutor, tenantID, transferID string) (guidance.EvidenceLink, guidance.EvidenceLink) {
+	rows, err := query.QueryContext(ctx, `
 SELECT id::text,event_type,COALESCE(account_id::text,''),aggregate_version::text,
  CASE WHEN published_at IS NOT NULL THEN 'published' WHEN dead_at IS NOT NULL THEN 'dead' WHEN last_error_code IS NOT NULL AND attempt_count>0 THEN 'retrying' ELSE 'pending' END,
  occurred_at
@@ -263,8 +279,8 @@ FROM outbox_events WHERE tenant_id=$1 AND transfer_id=$2 ORDER BY occurred_at,id
 	return outbox, versions
 }
 
-func (r *GuidanceRepository) deliveryEvidence(ctx context.Context, tenantID, transferID string) guidance.EvidenceLink {
-	rows, err := r.database.QueryContext(ctx, `
+func (r *GuidanceRepository) deliveryEvidence(ctx context.Context, query scopedReadExecutor, tenantID, transferID string) guidance.EvidenceLink {
+	rows, err := query.QueryContext(ctx, `
 SELECT attempt.id::text,COALESCE(event.id::text,''),attempt.status,attempt.attempt_number::text,COALESCE(attempt.completed_at,attempt.started_at,attempt.created_at)
 FROM delivery_attempts attempt
 LEFT JOIN outbox_events event ON event.id=attempt.outbox_event_id AND event.tenant_id=attempt.tenant_id AND event.transfer_id=attempt.transfer_id
@@ -294,10 +310,10 @@ ORDER BY attempt.created_at,attempt.id LIMIT $3`, tenantID, transferID, maxTimel
 	return link
 }
 
-func (r *GuidanceRepository) reconciliationEvidence(ctx context.Context, tenantID, transferID string) guidance.EvidenceLink {
+func (r *GuidanceRepository) reconciliationEvidence(ctx context.Context, query scopedReadExecutor, tenantID, transferID string) guidance.EvidenceLink {
 	var id, status string
 	var completed time.Time
-	err := r.database.QueryRowContext(ctx, `
+	err := query.QueryRowContext(ctx, `
 SELECT run.id::text,run.status,run.completed_at
 FROM reconciliation_runs run
 JOIN transfers transfer ON transfer.tenant_id=run.tenant_id AND transfer.id=$2

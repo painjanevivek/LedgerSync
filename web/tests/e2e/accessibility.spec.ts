@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-import { mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
+import { destinationAccount, mockOperatorConsole, run, sourceAccount, transfer } from "./fixtures";
 
 test("the operator console has no automatically detectable accessibility violations", async ({ page }) => {
   await mockOperatorConsole(page, { experienceMode: "simple" });
@@ -18,7 +18,7 @@ test("compact navigation opens, closes with Escape, and restores focus", async (
 
 test("forced colors and reduced motion preserve operable financial evidence", async ({ page }) => {
   await page.emulateMedia({ colorScheme:"light", reducedMotion:"reduce", forcedColors:"active" }); await mockOperatorConsole(page); await page.goto("/reconciliation");
-  await expect(page.getByRole("heading",{name:"Reconciliation",exact:true})).toBeVisible(); await expect(page.getByText("Passed",{exact:true}).first()).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Internal reconciliation",exact:true})).toBeVisible(); await expect(page.getByText("Passed",{exact:true}).first()).toBeVisible();
   // Chromium exposes forced system colors incompletely to axe. Preserve the
   // forced-color interaction check above, then run the complete contrast rule
   // set in the deterministic authored-color mode rather than disabling it.
@@ -68,8 +68,8 @@ test("copy controls announce completion without hiding the full identifier", asy
 test("visually shortened transfer routes retain their complete accessible account identifiers", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/transfers");
-  await expect(page.getByRole("link", { name: `Source account ${transfer.source_account_id}` }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: `Destination account ${transfer.destination_account_id}` }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: `Source account ${sourceAccount.display_name} · ${transfer.source_account_id}` }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: `Destination account ${destinationAccount.display_name} · ${transfer.destination_account_id}` }).first()).toBeVisible();
 });
 
 test("account balance and ledger history report independent truth states", async ({ page }) => {
@@ -82,16 +82,16 @@ test("account balance and ledger history report independent truth states", async
   await expect(page.getByText("No ledger entries")).toHaveCount(0);
 });
 
-test("every populated MVP route has no automatically detectable WCAG A or AA violation", async ({ page }) => {
-  await mockOperatorConsole(page);
-  const routes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/funding", "/approvals", "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
-  for (const route of routes) {
+const populatedRoutes = ["/accounts", `/accounts/${sourceAccount.account_id}`, "/funding", "/approvals", "/transfers", `/transfers/${transfer.transfer_id}`, "/reconciliation", `/reconciliation/${run.run_id}`];
+for (const route of populatedRoutes) {
+  test(`populated ${route} has no automatically detectable WCAG A or AA violation`, async ({ page }) => {
+    await mockOperatorConsole(page);
     await page.goto(route);
     await expect(page.locator("main h1")).toBeVisible();
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     expect(results.violations, `${route}: ${results.violations.map((violation) => violation.id).join(", ")}`).toEqual([]);
-  }
-});
+  });
+}
 
 test("compact approval evidence reflows through a keyboard-scrollable labelled region", async ({ page }) => {
   await page.setViewportSize({ width:320,height:640 });
@@ -130,7 +130,7 @@ test("keyboard-only transfer review announces an unknown result and preserves th
   const retry = page.getByRole("button", { name: "Retry this same request safely" });
   await retry.focus();
   await retry.press("Enter");
-  expect(keys).toHaveLength(2);
+  await expect.poll(() => keys.length).toBe(2);
   expect(keys[0]).toBeTruthy();
   expect(keys[1]).toBe(keys[0]);
 });

@@ -41,6 +41,7 @@ export function isConsoleSession(value: unknown): value is ConsoleSession {
     candidate.csrf_token.length > 0 &&
     Array.isArray(candidate.scopes) &&
     candidate.scopes.every((scope) => typeof scope === "string") &&
+    (candidate.features === undefined || (typeof candidate.features.live_investigation === "boolean" && (candidate.features.systems_lab === undefined || typeof candidate.features.systems_lab === "boolean"))) &&
     (candidate.environment === undefined ||
       candidate.environment === "local" ||
       candidate.environment === "production")
@@ -66,8 +67,8 @@ export function ConsoleSessionBoundary({ children, initialSession, onResolved }:
       if (!active) return;
       if (response.ok && isConsoleSession(response.data)) {
         setSession(response.data);
-        onResolved?.(response.data);
         setSessionError(null);
+        onResolved?.(response.data);
       } else {
         setSession(null);
         setSessionError(

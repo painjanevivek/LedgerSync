@@ -1,0 +1,21 @@
+sequenceDiagram
+  actor Operator
+  participant UI as Reconciliation screen
+  participant API as BFF and Go API
+  participant PG as PostgreSQL
+  Operator->>UI: Review tenant scope and run comparison
+  UI->>API: Idempotent reconciliation command
+  API->>PG: Reserve command and tenant run lease
+  API->>PG: Begin repeatable-read snapshot with tenant lock
+  PG->>PG: Capture ledger watermark and schema version
+  PG->>PG: Compare all accounts, opening baselines and immutable posting totals
+  PG->>PG: Check missing projections, incomplete transfers and journal balance
+  PG->>PG: Store run summary, mismatches and audit atomically
+  PG-->>API: Matched or mismatch evidence
+  API-->>UI: Run ID, scope, counts, watermark and times
+  alt Matched
+    UI-->>Operator: Comparison matched at the recorded snapshot
+  else Mismatch
+    UI-->>Operator: Open affected evidence and investigation
+    Note over Operator,PG: Investigate the cause before approved repair or correction, posted lines are immutable
+  end

@@ -1,0 +1,34 @@
+flowchart TD
+  Entry[Open LedgerSync] --> Auth{Valid session?}
+  Auth -->|No| Login[Sign in]
+  Login --> Overview[Overview: current evidence and next action]
+  Auth -->|Yes| Overview
+  Overview --> Accounts[Accounts: choose or create an account]
+  Accounts --> Eligible{Current account scope and command permission available?}
+  Eligible -->|No| Prerequisite[Refresh evidence or request required access]
+  Prerequisite --> Accounts
+  Eligible -->|Yes| Funds{Source has sufficient posted balance?}
+  Funds -->|No and funding is permitted| Funding[Funding: request, review, approve, post]
+  Funding --> FundingReceipt[Verify posted journal and current account balance]
+  FundingReceipt --> Accounts
+  Funds -->|No and funding is unavailable| NeedFunds[Inspect funding prerequisites]
+  NeedFunds --> Accounts
+  Funds -->|Yes| Draft[Transfer: source, destination, amount]
+  Draft --> Review[Review exact accounts, currency, and amount]
+  Review --> Submit[Confirm transfer]
+  Submit --> Result{Verified result?}
+  Result -->|Posted| Detail[Transfer detail: receipt and journal]
+  Result -->|Final rejection| Fix[Read reason and correct the next draft]
+  Fix --> Draft
+  Result -->|Unknown| Recover[Keep original intent and request reference]
+  Recover --> Resume{Current session, connectivity and required scope?}
+  Resume -->|No| Wait[Keep intent and restore access]
+  Wait --> Resume
+  Resume -->|Yes| Check[Check status or retry the exact intent]
+  Check --> Result
+  Detail --> Follow[Inspect related evidence]
+  Follow --> Reconcile[Reconciliation: recorded snapshot]
+  Follow --> Delivery[Events and webhooks: delivery evidence]
+  Follow --> Case[Investigation: references, handoff, findings]
+  Follow --> Export[Review and export allowed evidence]
+  Overview --> Recovery[Recovery: backup and restore evidence]

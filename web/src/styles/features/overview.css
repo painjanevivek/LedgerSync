@@ -6,7 +6,7 @@
   border-radius: var(--radius-surface);
   padding: 25px 28px 24px;
   background: var(--paper);
-  box-shadow: var(--shadow-surface);
+  box-shadow: none;
 }
 .document-topline {
   display: flex;
@@ -20,9 +20,8 @@
   margin: 0;
   color: var(--ink-soft);
   font-size: var(--type-label);
-  font-weight: 850;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }
 .document-topline span {
   color: var(--muted);
@@ -293,4 +292,65 @@
 }
 .evidence-strip.caution span {
   color: var(--amber);
+}
+
+/* Keep the first action prominent and the dependent path easy to scan. */
+.new-workspace.overview-start {
+  width: 100%;
+  box-shadow: none;
+}
+.overview-start .new-workspace-copy h2 {
+  margin-top: 0;
+}
+.overview-start .new-workspace-copy > p {
+  margin-block: 10px 0;
+  font-size: var(--type-body);
+}
+.overview-start .new-workspace-actions {
+  align-items: center;
+  gap: 22px;
+  margin-top: 24px;
+}
+.new-workspace-path.overview-start-sequence {
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: 12px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin-top: 8px;
+  padding-top: 20px;
+}
+.overview-start-sequence > li {
+  border: 0;
+  padding: 0;
+}
+.overview-start-sequence > li > a {
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: var(--target-comfortable);
+  padding: 8px;
+  background: var(--paper-subtle);
+  transition: background 160ms ease;
+}
+.overview-start-sequence > li > a:hover {
+  background: var(--surface-hover);
+}
+.overview-start-sequence > li > a:active {
+  background: var(--green-soft);
+}
+.overview-start-sequence > li > a > span {
+  font-weight: 600;
+}
+.overview-start-sequence > li > a > strong {
+  font-size: var(--type-label);
+  font-weight: 650;
+}
+.balance-document.secondary-balance {
+  background: var(--paper-subtle);
+}
+.evidence-strip > div {
+  min-width: 0;
+}
+.evidence-strip span {
+  overflow-wrap: anywhere;
 }

@@ -221,7 +221,7 @@ test("reconciliation page count, cursor, and run return context are URL reproduc
 
   await page.goto("/reconciliation");
   await page.getByText("Previous reconciliation runs", { exact: true }).click();
-  await expect(page.getByText("1 run on this page. A total is not calculated or implied. Starting a new run never replaces prior results.")).toBeVisible();
+  await expect(page.getByText("1 on this page · New runs preserve earlier results.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open result" })).toHaveAttribute("href", new RegExp(`return_to=${encodeURIComponent("/reconciliation")}`));
   await page.getByRole("link", { name: "Next page" }).click();
   await expect(page).toHaveURL(/\/reconciliation\?cursor=reconciliation-next$/);
@@ -239,6 +239,6 @@ test("invalid reconciliation URLs do not request protected run evidence", async 
 
   await page.goto("/reconciliation?cursor=one&cursor=two");
 
-  await expect(page.getByText("Invalid reconciliation investigation URL")).toBeVisible();
+  await expect(page.getByText("Invalid reconciliation link", { exact: true })).toBeVisible();
   expect(requested).toBe(false);
 });

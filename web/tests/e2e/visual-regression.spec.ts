@@ -8,9 +8,7 @@ const desktop = { width: 1440, height: 900 };
 const ultrawide = { width: 2560, height: 1440 };
 
 test.beforeEach(async ({ page }) => {
-  // Relative-time labels must not change when CI runs on a different date.
-  // Keep timers active so command, focus, and polling assertions still run.
-  await page.clock.setFixedTime(new Date("2026-08-19T12:30:00Z"));
+  await page.clock.setFixedTime(new Date("2026-10-12T00:00:00Z"));
 });
 
 function json(route: Route, body: unknown, status = 200) {
@@ -51,9 +49,9 @@ const populatedRoutes = [
   { name: "funding-records-populated", path: "/funding", heading: "Funding records" },
   { name: "approvals-populated", path: "/approvals", heading: "Approvals" },
   { name: "transfers-populated", path: "/transfers", heading: "Transfers" },
-  { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfer detail" },
-  { name: "reconciliation-populated", path: "/reconciliation", heading: "Reconciliation" },
-  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Reconciliation details" },
+  { name: "transfer-detail-posted-delivery-retrying", path: `/transfers/${transfer.transfer_id}`, heading: "Transfers" },
+  { name: "reconciliation-populated", path: "/reconciliation", heading: "Internal reconciliation" },
+  { name: "reconciliation-detail-populated", path: `/reconciliation/${run.run_id}`, heading: "Internal reconciliation result" },
   { name: "local-status-degraded", path: "/local-status", heading: "Local status" },
   { name: "events-populated", path: "/events", heading: "Delivery events" },
   { name: "event-detail-retrying", path: `/events/${deliveryEvent.event_id}`, heading: "Event detail" },
@@ -188,6 +186,7 @@ test("account detail separates balance failure from history permission", async (
 });
 
 test("unknown transfer outcome keeps the exact intent and safe retry action", async ({ page }) => {
+  await page.addInitScript(() => { crypto.randomUUID = () => "55555555-5555-4555-8555-555555555555"; });
   await mockOperatorConsole(page);
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route("**/api/transfers", (route) => route.request().method() === "POST" ? json(route, { error: { code: "transfer_outcome_unknown" } }, 504) : route.fallback());
@@ -230,7 +229,8 @@ test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, { ...destinationAccount, currency: "EUR" }], next_cursor: "" }));
   await page.goto("/");
-  await expect(page.getByText("Mixed-currency pilot data blocked")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mixed-currency pilot data blocked", exact: true })).toBeVisible();
+  await expect(page.locator(".hero-amount")).toHaveCount(0);
   await capture(page, "overview-mixed-currency-error", desktop);
 });
 

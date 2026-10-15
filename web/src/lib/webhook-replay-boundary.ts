@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emitGuardrailMetric } from "@/lib/guardrail-metrics";
+import { diagnosticTraceHeaders } from "@/lib/diagnostic-trace";
 
 import { isWebhookReplayIdempotencyKey, isWebhookReplayIdentifier } from "@/lib/api/webhook-replay";
 import { rateLimitResponse, type RateLimitStore } from "@/lib/rate-limit";
 import { hasValidCSRF, jsonError } from "@/lib/security";
 import type { Session } from "@/lib/session";
 import { isPrivateAPITimeout } from "@/lib/upstream-outcome";
-import { emitGuardrailMetric } from "@/lib/guardrail-metrics";
 
 export type WebhookReplayStage = "approval" | "execution";
 export type WebhookReplayAuthorization = Readonly<{ idempotencyKey: string }>;
@@ -55,6 +56,7 @@ export function webhookReplayPrivateHeaders(privateHeaders: Readonly<Record<stri
   }
   return {
     Authorization: authorization,
+    ...diagnosticTraceHeaders(privateHeaders),
     "X-LedgerSync-Actor-Assertion": assertion,
     "X-Request-ID": requestID,
     "Content-Type": "application/json",

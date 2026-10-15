@@ -1,0 +1,791 @@
+# LedgerSync Product Requirements Document
+
+## Document control
+
+| Field | Value |
+|---|---|
+| Product | LedgerSync |
+| Document | Product Requirements Document |
+| File | `PRD.pmd` |
+| Version | 1.0-draft |
+| Assessment date | 2026-09-08 |
+| Assessed source | Repository commit `5b4654b` on `codex/progressive-disclosure` |
+| Product owner | `[TBD — name and approval authority]` |
+| Engineering owner | `[TBD — name]` |
+| Finance/risk owner | `[TBD — name]` |
+| Security owner | `[TBD — name]` |
+| Operations owner | `[TBD — name]` |
+| Legal/compliance owner | `[TBD — name]` |
+| Status | Draft; current release candidate is not ready for MVP sign-off |
+
+## 1. Executive readiness decision
+
+### Decision
+
+**LedgerSync is functionally substantial enough to be considered a local MVP, but the current commit is not ready for release sign-off.** It may continue to be used for controlled local development and demonstrations on one workstation. It must not be represented as production-ready, deployed for shared use, or opened to design-partner traffic.
+
+### Why the current release candidate is not ready
+
+- The latest complete browser suite is red: 52 of 206 Playwright scenarios failed. The failures include account commands, onboarding/orientation, reconciliation, investigation search, session behavior, pagination/concurrency, and numerous visual-regression baselines.
+- Historical local-MVP and local-product gates passed against earlier exact commits. The repository explicitly requires requalification after source, workflow, migration, dependency, or UI changes; those older results cannot certify commit `5b4654b`.
+- The API-first developer milestone remains active, while operator information architecture and unified accessibility/design milestones remain partial.
+- Physical-device and human accessibility review, finance/product terminology approval, managed identity, managed infrastructure, provider-backed recovery, incident exercises, legal approval, and design-partner evidence remain external gates.
+- The text-only WebRTC investigation capability is feature-flagged and locally verified, but production enablement still requires approved ephemeral TURN credentials and shared Redis configuration.
+
+### What is ready today
+
+- The financial core, exact-money representation, immutable double-entry records, idempotent transfer behavior, read-your-writes protection, authorization model, reconciliation, funding, corrections, recovery evidence, and local runtime have substantial automated and historical evidence.
+- Frontend lint, TypeScript checks, unit/security/UI tests, production build, performance budgets, artifact validation, Go tests, affected-package race tests, migration tests, and the two-operator WebRTC smoke journey passed during the latest implementation cycle.
+- The normal local frontend, peer frontend, API, PostgreSQL, and Redis services were healthy after the latest verification.
+
+### Readiness classification
+
+| Target | Status | Decision |
+|---|---|---|
+| Developer workstation | **Usable with known limitations** | Continue local evaluation; do not claim current-commit release qualification. |
+| Local MVP release candidate | **Not ready** | Repair and rerun all browser and visual gates, then bind evidence to the exact commit. |
+| Shared internal environment | **Not approved** | Requires managed identity, shared infrastructure, security, operations, and access decisions. |
+| Design-partner pilot | **Blocked** | Requires all pilot gates, partner authorization, legal/finance approval, physical-device review, and managed recovery evidence. |
+| Production | **Not ready** | No production authorization, managed environment proof, live operating evidence, or go/no-go sign-off exists. |
+
+## 2. Product overview
+
+LedgerSync is an API-first, closed-loop ledger platform for teams that operate wallets, credits, internal payouts, escrow-like balances, and treasury-like account systems. The current product supports internal same-currency movement between LedgerSync accounts and gives authorized users an explainable operational workspace for accounts, funding, transfers, approvals, corrections, reconciliation, investigations, event delivery, developer integration, and recovery evidence.
+
+LedgerSync is not a bank, custodian, card processor, foreign-exchange service, or external payment rail. Recording funding represents an externally confirmed value event; it does not initiate a bank settlement.
+
+### Product problem
+
+Money systems lose user trust when retries duplicate movement, caches display stale balances, failures hide uncertain outcomes, or operators cannot prove why a balance changed. LedgerSync addresses these risks through exact money, atomic financial commits, immutable evidence, retry-safe commands, current-enough reads, explicit unavailable states, and auditable operational workflows.
+
+### Value proposition
+
+- Move internal money exactly once and preserve a durable outcome.
+- Show a balance that includes a completed transfer or report truthful unavailability.
+- Explain every posted movement through linked, immutable evidence.
+- Separate financial completion from downstream delivery status.
+- Give operators safe review, correction, investigation, and recovery tools without direct database access.
+
+## 3. Goals and success metrics
+
+### 3.1 MVP goals
+
+1. Preserve exact, balanced, immutable financial truth for every accepted money movement.
+2. Prevent duplicate movement when clients retry the same command.
+3. Prevent unauthorized or concurrent activity from overdrawing protected accounts.
+4. Provide current-enough post-transfer balances with explicit freshness evidence.
+5. Give authorized users complete account, funding, transfer, review, correction, and investigation journeys.
+6. Make failures, stale data, unavailable dependencies, and unknown outcomes explicit and recoverable.
+7. Provide auditable operations, reconciliation, delivery, recovery, and developer evidence.
+8. Operate reproducibly in the supported loopback-only local environment.
+
+### 3.2 MVP success metrics
+
+| Metric | Required threshold | Current evidence status |
+|---|---:|---|
+| Balanced completed transfers | 100% produce one balanced set of entries | Strong automated/historical evidence; exact-commit release rerun required. |
+| Duplicate-request safety | 100% of identical retries replay one outcome without new movement | Strong automated/historical evidence; exact-commit release rerun required. |
+| Concurrency overdrafts | 0 | Strong automated/historical evidence. |
+| Reconciliation differences | 0 unexplained mismatches | Local evidence exists; managed and live evidence absent. |
+| Immediate post-transfer reads | 100% meet the committed minimum version or return truthful unavailability | Strong automated/historical evidence. |
+| Valid transfer outcome latency | At least 95% within 2 seconds at agreed initial capacity | Local evidence exists; managed rerun pending. |
+| Transfer first-attempt usability | At least 95% of representative users complete the journey | `[TBD — moderated usability result]` |
+| Enabled controls | 100% perform the stated action or expose an explicit reason | Not currently proven because the full browser gate is red. |
+| Responsive core journeys | No lost financial context or page overflow at required widths and reflow settings | Historical evidence exists; current visual/browser rerun required. |
+| Accessibility | Keyboard and screen-reader core journeys pass without traps | Automation exists; physical-device/human review pending. |
+| Release quality | Every required automated, security, fault, build, and migration gate passes | Not met on the current commit because Playwright is red. |
+| Restore capability | Approved RPO/RTO met with zero unexplained financial differences | Local logical restore evidence exists; managed provider PITR pending. |
+
+### 3.3 Pilot planning targets
+
+These are repository-defined targets, not production measurements:
+
+- 2–3 controlled design partners.
+- One approved jurisdiction and one approved currency for the initial pilot.
+- At least 10,000 accounts for pilot-scale readiness.
+- Initial partner envelope of no more than 25 transfer attempts per second.
+- Transfer commit p95 below 500 ms under healthy dependencies.
+- Balance-read p95 below 200 ms under healthy dependencies.
+- Zero duplicate movements, authorization breaches, stale-current balance claims, and unexplained reconciliation mismatches.
+
+## 4. Users and permissions
+
+### 4.1 User groups
+
+| User group | Needs | Representative permissions |
+|---|---|---|
+| Account holder/operator | View owned accounts, inspect history, and initiate permitted transfers | Account and transfer read/write scopes constrained by tenant and ownership. |
+| Finance operator | Record funding, review financial evidence, approve eligible work, and reconcile balances | Funding, approval, correction, reconciliation, and export scopes as assigned. |
+| Investigator/support operator | Search records, assemble evidence, investigate uncertain transfers, and record findings | Investigation read/write/collaborate plus applicable transfer read scope. |
+| Developer/integrator | Understand API contracts, exact money, retries, events, and webhook behavior | Developer metadata access and separately managed integration credentials. |
+| Operations/recovery operator | Inspect dependency state, delivery evidence, backups, and recovery instructions | Local diagnostics, recovery, events, and audit-related scopes. |
+| Administrator | `[TBD — privileged administration contract is intentionally unreleased]` | Administration remains hidden and deny-by-default. |
+
+### 4.2 Authorization rules
+
+- Every protected request must authenticate the caller and enforce tenant, subject, role, scope, and object authorization at the server boundary.
+- Missing and inaccessible financial records must return the same non-disclosing response where required.
+- Navigation visibility must derive from server-issued capabilities; hidden navigation is not an authorization control.
+- Request, approval, posting, and correction duties must remain separate where the workflow requires dual control.
+- Production-mode demo identities and seeded authentication must fail closed.
+
+## 5. Product scope and feature list
+
+### 5.1 Required MVP functionality currently present
+
+#### Authentication and session boundary
+
+- Sign in through the supported local identity flow or configured OIDC provider.
+- Preserve safe return destinations through authentication.
+- Use bounded, signed, HttpOnly browser sessions with CSRF and fixed-origin protection.
+- Sign out and clear authentication state consistently.
+- Present expired, unavailable, invalid, and unauthorized session states without exposing financial data.
+
+#### Overview
+
+- Show authorized account and recent transfer summaries.
+- Present reconciliation freshness and errors independently from other sources.
+- Avoid false totals when account coverage is incomplete or currencies differ.
+- Surface offline, stale, loading, empty, denied, and unavailable states.
+- Provide guided orientation and safe next steps for local users.
+
+#### Accounts
+
+- List authorized accounts with filters, pagination, stable detail links, status, currency, and freshness.
+- Create an account with an exact zero opening balance through Details, Review, and Result stages.
+- Show balance version, as-of time, transaction history, and independent failure states.
+- Freeze, reactivate, and permanently close eligible zero-balance accounts using optimistic concurrency and explicit confirmation.
+- Export bounded, authorized transaction history as spreadsheet-safe CSV.
+
+#### Funding records
+
+- Record externally confirmed funding details without implying that LedgerSync initiates bank settlement.
+- Review and submit exact amount, currency, destination, and external reference.
+- Preserve requested, approved, rejected, posted, and reconciliation evidence.
+- Enforce separate approval/posting controls where configured.
+- Distinguish awaiting review from money credited through a balanced journal.
+- Support compensating corrections rather than editing posted history.
+
+#### Transfers
+
+- List and filter authorized transfers with stable details and pagination.
+- Prepare, review, explicitly confirm, and display the final outcome of an internal same-currency transfer.
+- Represent money as integer minor units and reject invalid precision, zero/negative values, same-account movement, unsupported currency, restricted accounts, insufficient funds, and configured-limit violations.
+- Require an idempotency key and reject changed intent under a reused key.
+- Show completed, rejected, in-progress, retry-safe, and unknown client outcomes distinctly.
+- Retain the exact original request and idempotency key for a safe identical retry after an unknown outcome.
+- Show transfer, journal, posting, balance-version, event, and delivery evidence without conflating their states.
+- Export bounded, authorized transfer evidence as spreadsheet-safe CSV.
+
+#### Approvals
+
+- Aggregate supported approval work into an authorized inbox.
+- Filter by domain, status, age, requested date, and actionability.
+- Link each item to its canonical source record and preserve return context.
+- Enforce separation of requester and approver where required.
+- Present stale, expired, unauthorized, empty, partial, and unavailable states truthfully.
+
+#### Corrections
+
+- Request an immutable compensating correction against an eligible posted transfer.
+- Review the original movement and proposed offsetting movement.
+- Preserve request, approval, rejection, cancellation, and posting boundaries.
+- Require explicit reasons, authorization, step-up evidence where configured, idempotency, and optimistic concurrency.
+- Never edit or delete the original financial record.
+
+#### Reconciliation
+
+- Start an authorized tenant reconciliation run with retry-safe command semantics.
+- Prevent conflicting concurrent runs.
+- List and inspect immutable run evidence, counts, watermarks, timestamps, and mismatches.
+- Never claim a match or zero mismatches without an authoritative reconciliation response.
+- Export bounded, exact reconciliation evidence as spreadsheet-safe CSV.
+
+#### Search and investigation workspaces
+
+- Search authorized records using approved immutable identifiers and references.
+- Link search results to canonical record details.
+- Save tenant/operator-scoped investigation views.
+- Create and maintain investigation workspaces with linked evidence and optimistic versions.
+- Retrieve related evidence while preserving authorization and provenance.
+- Generate bounded, redacted evidence bundles where permitted.
+
+#### Text-only live investigation rooms
+
+- Start a room only for a transfer request that remains unresolved after a safe status lookup.
+- Support exactly two authenticated, same-tenant, authorized operators.
+- Use a reliable ordered WebRTC DataChannel for text-only messages.
+- Limit messages to 2 KiB, render without HTML/linkification, and retain no more than 200 messages in browser memory.
+- Keep chat, intent summary, SDP, ICE candidates, and presence out of PostgreSQL.
+- Store signalling and presence in namespaced Redis with bounded TTLs.
+- Use a single-use invite carried in a URL fragment, expiring after 10 minutes and removed after redemption.
+- Expire the room after 30 minutes and prevent a third identity from joining.
+- Share submitted intent as operator-provided context, never as a confirmed ledger result.
+- Permit only structured findings consistent with authoritative transfer state.
+- Persist sanitized lifecycle events and one append-only finding; never persist or log chat or signalling bodies.
+- Prevent WebRTC messages from invoking transfers, retries, approvals, corrections, or any financial action.
+- Keep camera and microphone disabled.
+- Disable the capability by default and fail closed outside development without approved shared signalling and ephemeral TURN credentials.
+
+#### Events and webhooks
+
+- List delivery events and inspect sanitized delivery timelines.
+- Keep financial posting status separate from notification/webhook delivery status.
+- List and inspect webhook endpoints and delivery attempts.
+- Enforce bounded filters, pagination, authorization, redaction, and no-store responses.
+- Gate replay through explicit review, approval where required, caller-owned idempotency, and safe recovery semantics.
+
+#### Developer workspace
+
+- Present versioned API metadata and generated contract references.
+- Explain exact minor-unit money, idempotency, error envelopes, correlation, and safe retries.
+- Provide tested integration examples and webhook verification guidance.
+- Keep credentials, arbitrary request execution, and protected financial data out of browser-delivered documentation.
+
+#### Recovery and local status
+
+- Show sanitized PostgreSQL, Redis, outbox, worker, and local runtime health without exposing hosts, secrets, or raw payloads.
+- Present bounded backup/restore evidence and operator-run host commands without browser execution privileges.
+- Support documented backup, restore, cache rebuild, mismatch, database outage, Redis outage, outbox backlog, idempotency dispute, and secret-compromise runbooks.
+- Preserve financial truth when Redis is unavailable and report PostgreSQL unavailability explicitly.
+
+#### Help and orientation
+
+- Explain the supported local workflow and financial-safety model in task-oriented language.
+- Keep stored financial evidence distinct from manual orientation confirmations.
+- Allow manual confirmations to be cleared without deleting financial or recovery evidence.
+- Expose unavailable controls with a visible reason and recovery path where one exists.
+
+#### Responsive, accessible, and truthful UI
+
+- Support keyboard operation, visible focus, semantic labels, readable announcements, reduced motion, forced colors, text spacing, zoom, and reflow.
+- Preserve tenant, amount, currency, status, timestamps, identifiers, provenance, and required actions across supported widths.
+- Use shared semantic components rather than separate mobile and desktop financial logic.
+- Keep ordinary copy at readable sizes and controls at least 44 CSS pixels where required.
+- Never fill empty states with fictional financial evidence or hide urgent/unknown states inside optional disclosure.
+
+### 5.2 Optional and future functionality already documented
+
+These items are beneficial but are **not part of the verified current MVP**. They must remain gated by their existing specifications and approval requirements.
+
+| Capability | Repository status | Condition before implementation or activation |
+|---|---|---|
+| Complete API-first developer product | Active | Finish multi-language recipes, bounded bulk provisioning, replay protection, endpoint verification, and exact-commit qualification. |
+| Complete operator-console IA | Partial | Finish the bounded approval and webhook workspaces and standardize filters, sorting, counts, URL state, evidence, and exports. |
+| Unified design/accessibility completion | Partial | Reduce oversized client/CSS hotspots and complete physical-device and screen-reader review. |
+| Separate public website | Pending | Requires evidence-backed positioning, legal/privacy/accessibility review, abuse controls, and monitoring. |
+| Production identity and tenant lifecycle | Partial | Prove managed OIDC/MFA/PKCE, scopes, grants, revocation, operator lifecycle, and isolation. |
+| Managed AWS infrastructure | Pending | Requires approved account, budget, region, DNS, credentials, legal boundary, owners, and reviewed infrastructure code. |
+| Managed observability and incident operations | Partial | Bind SLOs, alerts, paging, ownership, status communication, and exercised runbooks to the managed environment. |
+| Provider-led INR outbound payouts | Proposed | Requires a licensed provider plus finance, legal, security, operations, beneficiary, clearing-account, fee, limit, and retention decisions. |
+| Controlled design-partner pilot | External gate | Requires completed technical, legal, financial, operational, device, recovery, and partner gates. |
+
+### 5.3 Explicit non-goals for the current MVP
+
+- Foreign exchange, multi-currency conversion, and cross-border settlement.
+- Direct custody, bank credentials, inbound bank collection, cards, chargebacks, or external payment-network integration.
+- Scheduled or recurring transfers.
+- Consumer wallets, native consumer applications, or public self-service onboarding.
+- Multi-region active-active financial writes.
+- Autonomous AI financial decisions or mutations.
+- General-purpose chat, stored WebRTC transcripts, audio, video, screen sharing, file transfer, or financial commands over peer connections.
+- A production administration interface until its privileged server contract and approvals exist.
+
+## 6. User stories and acceptance criteria
+
+### US-001 — Sign in and see authorized money
+
+**As an authorized operator, I want to sign in and see only the accounts I may access so that I can work without exposing another tenant’s data.**
+
+- The session is authenticated before protected data is displayed.
+- The account directory contains only authorized records.
+- Empty, denied, expired, offline, and unavailable states are distinct.
+- Session and CSRF cookies follow the configured local or production policy.
+
+### US-002 — Create and manage an account
+
+**As an authorized account operator, I want to create and manage an account safely.**
+
+- Account creation begins at an exact zero balance.
+- Details are validated before a review summary is shown.
+- The result returns a stable account identifier and authoritative state.
+- Freeze/reactivate operations use the current version and are retry-safe.
+- Permanent closure requires zero balance, an explicit reason, and typed confirmation.
+
+### US-003 — Record and post funding
+
+**As a finance operator, I want to record externally confirmed funding and post it through controlled review.**
+
+- The UI states that it records external evidence and does not initiate bank settlement.
+- Exact amount, currency, destination, and reference are reviewed before submission.
+- Required approval is performed by an eligible operator.
+- Only posting creates the immutable balanced journal and credited balance.
+- Rejection or uncertainty does not fabricate credited money.
+
+### US-004 — Complete a safe internal transfer
+
+**As an authorized account holder, I want to move exact same-currency value between eligible LedgerSync accounts.**
+
+- Details, review, confirmation, and result are distinct stages.
+- The source is authorized before transfer execution.
+- The amount is exact, positive, within limits, and supported by available funds.
+- The financial transaction, postings, versions, idempotency outcome, audit, and outbox records commit together or not at all.
+- A successful result includes a stable transfer identifier.
+
+### US-005 — Recover an uncertain transfer safely
+
+**As an operator, I want to determine whether an interrupted transfer completed without accidentally submitting a duplicate.**
+
+- The interface states that the outcome is unknown and warns against creating a new transfer.
+- The original request body and idempotency key remain available for the same safe retry.
+- A status check is read-only.
+- A confirmed completion is not erased by a later refresh failure.
+
+### US-006 — Collaborate on an unresolved transfer
+
+**As two authorized investigators, we want a temporary text room for comparing read-only evidence.**
+
+- The room is available only after the request remains unresolved.
+- Only two authorized identities from the same tenant can participate.
+- Bidirectional messages remain ephemeral and cannot invoke commands.
+- Invite, room, message, signalling, and presence limits are enforced.
+- Collaboration failure never changes or conceals the financial result.
+- A structured finding cannot contradict authoritative request state.
+
+### US-007 — Review approvals and corrections
+
+**As a finance reviewer, I want to process eligible work without modifying financial history.**
+
+- Approval items link to canonical source records and state why action is or is not available.
+- Requester and approver separation is enforced where required.
+- Corrections create traceable offsetting movements rather than editing posted records.
+- Unknown command outcomes retain the exact retry intent.
+
+### US-008 — Reconcile financial truth
+
+**As a finance or operations user, I want immutable balance-check evidence.**
+
+- At most one conflicting tenant run may execute.
+- Runs and mismatches are preserved with stable identifiers and timestamps.
+- The UI does not infer success from missing or partial data.
+- Mismatches remain visible until handled through an approved process.
+
+### US-009 — Investigate records
+
+**As a support investigator, I want to search approved identifiers and assemble evidence without database access.**
+
+- Search accepts only approved bounded query shapes.
+- Results and related evidence preserve tenant/object authorization.
+- Saved views are scoped by tenant and operator.
+- Evidence bundles are bounded, redacted, and audited.
+
+### US-010 — Understand event delivery
+
+**As an operations or integration user, I want to distinguish financial completion from downstream delivery.**
+
+- Transfer posting and delivery status are presented as separate dimensions.
+- Events and attempts are paginated, bounded, and sanitized.
+- Replay uses explicit server controls and cannot create a second financial movement.
+
+### US-011 — Integrate with the API
+
+**As a developer, I want versioned contracts and safe examples.**
+
+- Examples use integer minor units and explain idempotency.
+- Generated artifacts match the source contracts.
+- Internal-only session and WebRTC signalling contracts do not enter public SDKs.
+- The browser does not expose credentials or arbitrary private-API execution.
+
+### US-012 — Operate and recover the local system
+
+**As an operations user, I want truthful health and recovery evidence.**
+
+- Dependency failures are reported independently.
+- Redis loss does not replace PostgreSQL financial authority.
+- Backup and restore exercises produce reviewable reconciliation evidence.
+- Browser recovery views cannot execute host-level restore commands.
+
+## 7. Technical requirements
+
+### 7.1 Architecture
+
+- Browser → same-origin Next.js BFF → private Go API → PostgreSQL.
+- PostgreSQL is the financial authority.
+- Redis is disposable for balance acceleration and ephemeral for live-room signalling/presence; it must never become financial authority.
+- The transactional outbox records durable downstream work in the same financial commit.
+- Platform adapters own PostgreSQL, Redis, identity, event delivery, and telemetry concerns.
+- Domain/application modules own financial rules and use cases without HTTP/UI coupling.
+
+### 7.2 Financial correctness
+
+- Store and transport money as signed integer minor units plus an explicit uppercase ISO currency.
+- Never use floating-point values on financial paths.
+- Every posted movement must produce equal debits and credits.
+- Lock affected accounts in stable order and prevent available balance from falling below its permitted minimum.
+- Corrections must be new compensating movements.
+- No runtime service startup may alter production financial schema implicitly.
+
+### 7.3 Idempotency and unknown outcomes
+
+- Every financial mutation must use a bounded idempotency key and canonical request fingerprint.
+- Matching retries replay the original outcome.
+- Changed intent under the same key returns an idempotency conflict.
+- In-progress duplicates return a bounded, truthful state.
+- Lost responses preserve the exact original retry intent.
+
+### 7.4 Consistency and balances
+
+- Transfer commit updates both account projections and monotonically increasing balance versions.
+- The initiating user receives a short-lived signed minimum-version requirement.
+- The BFF applies the requirement automatically; raw tokens remain hidden.
+- Redis data is acceptable only if its version meets the requirement.
+- Otherwise the system performs a bounded wait, reads PostgreSQL, or reports temporary unavailability.
+
+### 7.5 Security and privacy
+
+- Require authenticated identity for all non-public financial operations.
+- Use least-privilege roles and scopes with tenant/object checks on every request.
+- Enforce CSRF, allowed origin/host, strict input parsing, body/response limits, timeouts, rate limits, correlation IDs, and no-store where appropriate.
+- Local development may use process-local rate limiting; production-capable multi-instance BFF routes require atomic shared limiting and fail closed when it is unavailable.
+- Use secure cookie prefixes and centralized lifecycle rules in production where configured.
+- Do not log passwords, access credentials, session payloads, consistency requirements, invite tokens, SDP/ICE bodies, full balances, or personal data.
+- Keep data stores and internal processing ports private.
+- Encrypt public traffic in transit.
+
+### 7.6 Data and migrations
+
+- Use forward-only ordered migrations for release advancement.
+- Maintain migration compatibility tests across supported source versions.
+- Preserve append-only financial records, audit events, and structured live-room findings.
+- Apply explicit retention policies approved by finance/legal before production use.
+- Keep generated public artifacts synchronized and filter private interfaces.
+
+### 7.7 WebRTC investigation constraints
+
+- Use one reliable ordered DataChannel named `ledgersync-investigation-v1`.
+- Use bounded, replay-resistant, room-bound signalling envelopes.
+- Use namespaced Redis keys with a 35-minute TTL.
+- Enforce one active room per workspace, two bound identities, 10-minute single-use invites, and 30-minute room expiry.
+- Production enablement requires `[TBD — approved TURN credential provider]` and `[TBD — shared Redis deployment]`.
+
+### 7.8 Performance budgets
+
+- Maximum individual JavaScript chunk: 350 KB.
+- Maximum total JavaScript: 2 MB.
+- Maximum individual font: 160 KB.
+- Maximum total fonts: 320 KB.
+- Initial transfer commit objective: p95 below 500 ms under healthy dependencies.
+- Initial balance-read objective: p95 below 200 ms under healthy dependencies.
+- Initial partner envelope: no more than 25 TPS until managed evidence approves expansion.
+
+### 7.9 Compatibility
+
+- Preserve existing protected URLs and public financial API contracts unless a versioned compatibility plan is approved.
+- Support the repository-pinned Go, Node.js, Next.js, PostgreSQL, Redis, Docker, and Playwright versions.
+- Current supported release boundary is loopback-only Windows local operation; other environments require their own exact-commit evidence.
+
+## 8. Core data model
+
+| Entity | Purpose and invariant |
+|---|---|
+| Tenant | Primary isolation boundary for data, policy, rate, and identity. |
+| Account | Currency-specific financial account with status, owner authorization, exact balance, and version. |
+| Transfer | Stable internal movement request and preserved final outcome. |
+| Journal and postings | Immutable balanced debit/credit evidence for posted movements. |
+| Idempotency request | Caller/operation/key reservation, canonical fingerprint, and durable outcome. |
+| Balance projection | Authoritative account balance and monotonic version. |
+| Outbox event | Durable downstream notification work committed with financial truth. |
+| Funding record | Externally confirmed value evidence and its review/posting lifecycle. |
+| Approval | Immutable decision evidence tied to eligible source work. |
+| Transfer correction | Request and compensating-posting lifecycle linked to the original transfer. |
+| Reconciliation run/mismatch | Immutable ledger/projection comparison evidence and discrepancies. |
+| Investigation workspace | Authorized case container with related records and evidence. |
+| Live investigation room | Time-bounded two-operator collaboration lifecycle; no transcript. |
+| Live-room finding | One structured append-only conclusion constrained by authoritative request state. |
+| Webhook endpoint/attempt | Delivery configuration and sanitized attempt evidence distinct from financial outcome. |
+| Audit event | Sanitized record of privileged actions and material state changes. |
+| Recovery evidence | Bounded backup/restore/cache-rebuild and reconciliation result references. |
+
+## 9. Design and UX requirements
+
+### 9.1 Information hierarchy
+
+1. Outcome: what happened, whether money is safe, and what needs attention.
+2. Explanation: why it happened and the safe next action.
+3. Evidence: exact identifiers, timestamps, versions, request references, and diagnostics.
+
+Errors, mismatches, unknown transfer outcomes, stale data, and urgent actions must remain visible at the first layer.
+
+### 9.2 Interaction principles
+
+- Use Details → Review → Result for financial commands.
+- Use plain language while preserving exact financial meaning.
+- Show one clear primary action in each operational context.
+- Explain every unavailable action visibly; do not rely on tooltip-only explanations.
+- Preserve list filters and return context through detail and command journeys.
+- Never convert a POST recovery action into wording that sounds like a read-only status check.
+- Require renewed confirmation when material review evidence changes.
+
+### 9.3 Responsive behavior
+
+- No page-level horizontal scrolling at 320, 360, 390, 768, 1024, 1280, 1440, and 1920 CSS pixels.
+- Registers may convert to labeled record rows on small screens.
+- Exact money must wrap safely and never be truncated or abbreviated.
+- Necessary expert tables may scroll inside a labeled keyboard-accessible region.
+- Content may scroll vertically; controls must not be squeezed or hidden to fit one viewport.
+
+### 9.4 Accessibility
+
+- WCAG AA color contrast: 4.5:1 for normal text and 3:1 for meaningful controls/graphics.
+- Minimum normal copy and form input size of 16 px; secondary copy 14 px; metadata no smaller than 12 px.
+- Minimum touch target of 44×44 CSS pixels where applicable.
+- Full keyboard operation, visible focus, focus restoration, and no keyboard trap.
+- Screen-reader names, validation announcements, live status updates, and semantic landmarks.
+- Support 200% zoom, 400% reflow, increased text spacing, reduced motion, and forced colors.
+
+## 10. API and integration requirements
+
+### 10.1 External/public product contracts
+
+- Accounts: create, list, detail, balance, transactions, and lifecycle commands.
+- Transfers: create, list, detail, retry-safe outcomes, corrections, and explainability.
+- Funding: request, review, approve/reject, post, compensate, and reconcile.
+- Approvals and corrections: list, detail, approve/reject/cancel/post as authorized.
+- Reconciliation: start, list, detail, mismatch evidence, and exports.
+- Events/webhooks: list/detail, endpoint lifecycle, attempts, verification, and controlled replay.
+- Investigations: bounded search, related evidence, saved views, workspaces, and evidence bundles.
+- Developer artifacts: OpenAPI, SDK catalogues, Postman collection, and tested examples.
+
+### 10.2 Private/BFF-only contracts
+
+- Browser session creation, resolution, rotation, revocation, and consistency updates.
+- Workload-token exchange and actor assertion handoff.
+- Live-room create/read/end, invite issue/redeem, presence, signalling, finding, and request-status resolution.
+- Local diagnostics and recovery evidence adapters.
+
+Private contracts must remain excluded from generated public SDKs.
+
+## 11. Reliability, operations, and observability
+
+- Emit redacted metrics for transfer outcomes, latency, duplicate handling, consistency fallbacks, rate limiting, session outcomes, step-up results, unavailable actions, outbox backlog, and delivery delay.
+- Maintain health signals for PostgreSQL, Redis, API, BFF, and workers without leaking topology or secrets.
+- Preserve bounded audit events for sensitive actions and access decisions.
+- Exercise documented outage, retry, reconciliation, backup, restore, and secret-rotation procedures.
+- Assign named owners, thresholds, escalation routes, and review dates before shared operation.
+- Never infer financial failure from a collaboration, cache, webhook, or UI failure.
+
+## 12. Release verification requirements
+
+### 12.1 Mandatory automated gates
+
+- Go formatting, vet, unit, authorization, contract, integration, migration compatibility, race, fault, retention, and applicable recovery tests.
+- Frontend lint, TypeScript, unit, security, UI, full Playwright, visual regression, performance, and production build.
+- Clean Linux installation and production container builds.
+- Generated artifact freshness and internal-contract filtering.
+- Dependency, secret, source, image, and infrastructure security scans required by the release workflow.
+- Real-stack smoke tests for account creation, funding, transfer success/rejection/uncertainty, approval, correction, reconciliation, event delivery, and recovery.
+- Fault tests for response loss after commit, duplicate submission, reload during uncertainty, stale reads, permission change, session expiry, storage failure, Redis loss, and primary dependency loss.
+
+### 12.2 Manual gates
+
+- Review every changed visual baseline; no blanket snapshot update.
+- Complete representative physical phone, tablet, laptop, and desktop checks.
+- Complete keyboard and screen-reader review with named evidence.
+- Run moderated core-journey usability sessions against `[TBD — participant profile and sample]`.
+- Obtain finance/product approval for balance, aggregation, funding, correction, and status language.
+
+### 12.3 Release stop conditions
+
+- Any financial invariant, authorization, idempotency, migration, or reconciliation failure.
+- Any unexplained browser failure in a supported journey.
+- Any stale balance represented as current.
+- Any unknown transfer state that permits an unsafe new transfer.
+- Any unresolved critical/high security finding.
+- Any public artifact containing private session/signalling contracts or secrets.
+- Missing exact-commit evidence for the candidate being released.
+
+## 13. Current verification matrix
+
+| Area | Latest known result | MVP implication |
+|---|---|---|
+| Frontend lint | Passed during latest implementation cycle | Positive, but insufficient alone. |
+| TypeScript | Passed | Positive. |
+| Frontend unit/security/UI | 192 tests passed | Positive. |
+| Production frontend build | Passed | Positive. |
+| Performance budget | Passed; approximately 1.79 MB total JS and 229 KB largest chunk | Within committed limits. |
+| Generated artifacts | Freshness/filter checks passed | Positive. |
+| Go suite | Passed | Positive. |
+| Affected Go race suite | Passed in Linux with CGO | Positive. |
+| PostgreSQL/Redis integration and migration compatibility | Passed in isolated verification | Positive. |
+| Two-operator WebRTC smoke | Passed locally, including invite, messages, finding, and closure | Positive for local feature behavior. |
+| Full Playwright | **Failed: 52 of 206 scenarios** | Release blocker until repaired and rerun. |
+| Visual baselines | Numerous current-run failures | Requires deliberate review and approved replacements after defects are resolved. |
+| Physical-device/accessibility review | Not supplied for current commit | External/manual blocker for shared pilot. |
+| Managed identity/infrastructure/restore | Not supplied | Production blocker. |
+| Legal/finance/partner approval | Not supplied | Pilot and production blocker. |
+
+## 14. Release roadmap
+
+Dates are placeholders because named owners, capacity, budget, and approval calendars were not provided.
+
+| Phase | Start | End | Required outcome |
+|---|---|---|---|
+| R0 — Baseline current candidate | `[TBD]` | `[TBD]` | Confirm scope, protect unrelated files, map every failed test to owner and cause, and bind the plan to one commit. |
+| R1 — Browser remediation | `[TBD]` | `[TBD]` | Fix all non-visual browser failures without relaxing assertions; rerun affected suites. |
+| R2 — Visual and accessibility requalification | `[TBD]` | `[TBD]` | Review screenshots, approve intentional baselines, pass responsive/a11y automation, and complete named device/screen-reader checks. |
+| R3 — Exact-commit local MVP qualification | `[TBD]` | `[TBD]` | Run the full Go/web/security/container/real-stack/recovery gate and publish evidence for the exact candidate SHA. |
+| R4 — Complete active product milestones | `[TBD]` | `[TBD]` | Finish API-first developer work and remaining operator IA/design items already listed in the master register. |
+| R5 — Managed-environment preparation | `[TBD]` | `[TBD]` | Approve jurisdiction, currency, identity, cloud, budget, DNS, RPO/RTO, security, legal, and operational ownership. |
+| R6 — Controlled design-partner pilot | `[TBD]` | `[TBD]` | Provision one approved partner first, operate within signed limits, collect live evidence, and decide graduate/extend/remediate/stop. |
+| R7 — Production decision | `[TBD]` | `[TBD]` | Obtain named go/no-go approval after all stop-ship gates pass. |
+
+## 15. Required resources
+
+### 15.1 Personnel
+
+| Responsibility | Required role | Named owner |
+|---|---|---|
+| Product scope and release decision | Product manager/owner | `[TBD]` |
+| Financial semantics and reconciliation | Finance/ledger engineering | `[TBD]` |
+| Go API, PostgreSQL, Redis, migrations | Backend/platform engineer | `[TBD]` |
+| Next.js BFF and operator UI | Frontend engineer | `[TBD]` |
+| Test automation and release evidence | QA/SDET or accountable engineer | `[TBD]` |
+| Identity, threat model, security review | Security engineer | `[TBD]` |
+| Runtime, observability, backup, DR | SRE/operations engineer | `[TBD]` |
+| Accessibility and usability | Accessibility/product-design reviewer | `[TBD]` |
+| Legal, privacy, retention, product boundary | Legal/compliance authority | `[TBD]` |
+| Pilot onboarding and support | Partner/operations owner | `[TBD]` |
+
+### 15.2 Tools and environments
+
+- Git and GitHub release workflow.
+- Go toolchain and pinned modules.
+- Node.js, Next.js, TypeScript, ESLint, and Playwright.
+- Docker Compose for the supported local stack.
+- PostgreSQL as financial authority.
+- Redis for disposable reads and ephemeral collaboration signalling.
+- OpenAPI and generated SDK/Postman artifact tooling.
+- Security, dependency, secret, container, and infrastructure scanners already configured in the repository.
+- `[TBD — authorized physical-device/browser matrix]`.
+- `[TBD — approved managed identity and cloud environment]`.
+- `[TBD — approved TURN credential service for production WebRTC]`.
+
+### 15.3 Budget
+
+- Local development budget: `[TBD]`.
+- Managed cloud and database budget: `[TBD — approval required before provisioning]`.
+- Identity-provider budget: `[TBD]`.
+- TURN and shared Redis budget: `[TBD]`.
+- Security review/penetration-test budget: `[TBD]`.
+- Accessibility device/reviewer budget: `[TBD]`.
+- Legal/compliance budget: `[TBD]`.
+- Design-partner support and incident-coverage budget: `[TBD]`.
+
+No cloud resource, vendor contract, secret, or production environment is authorized by this PRD.
+
+## 16. Risks and mitigations
+
+| Risk | Impact | Mitigation | Owner/status |
+|---|---|---|---|
+| Red browser suite | Broken journeys or stale expectations can ship unnoticed | Classify all 52 failures, fix defects first, approve intentional visual change manually, rerun full suite | `[TBD]`; open blocker |
+| Historical evidence applied to new code | False readiness claim | Require exact-commit evidence after every relevant change | Engineering/release; required |
+| Duplicate transfer after lost response | Double movement | Preserve intent/idempotency key, warn users, expose safe identical retry | Implemented; reverify |
+| Stale cache represented as current | Incorrect user decision | Versioned consistency requirement, bounded wait, PostgreSQL fallback, truthful failure | Implemented; reverify |
+| Cross-tenant disclosure | Financial/privacy breach | Server-side tenant/subject/object authorization and non-disclosing errors | Implemented; managed security proof pending |
+| Funding language implies settlement | Regulatory/user misunderstanding | State that funding records external confirmation and credit occurs only after balanced posting | Implemented copy requires named approval |
+| Delivery state confused with posting | Unsafe retries and support errors | Display financial and delivery states separately | Implemented; UI requalification pending |
+| WebRTC data leakage | Sensitive evidence exposure | Two participants, authorization on every request, ephemeral text, no transcript/logging, bounded envelopes, TURN gate | Implemented locally; production gate open |
+| Shared limiter/signalling unavailable | Abuse exposure or misleading failure | Fail closed for protected capability while leaving financial state unchanged | Implemented configuration contract; managed proof pending |
+| Migration collision/history drift | Deployment failure | Forward compatibility migration, ordered migration tests, no history rewrite | Implemented; exact release rehearsal required |
+| Inadequate physical accessibility evidence | Operators cannot complete critical work | Named device and assistive-technology review before shared pilot | External gate |
+| Missing legal/finance decisions | Unauthorized product operation | Obtain signed jurisdiction, currency, custody wording, retention, limits, and pause authority | External gate |
+| Managed restore unproven | Permanent loss or unacceptable recovery | Provider PITR drill, cache rebuild, reconciliation, signed RPO/RTO | External gate |
+
+## 17. Dependencies and assumptions
+
+- Initial financial movement remains internal and same-currency.
+- Account identity and ownership data exist before a transfer is enabled.
+- The first users are authenticated operators and a small explicitly authorized operations group.
+- PostgreSQL remains the source of financial truth.
+- Redis may be lost and rebuilt without changing financial truth.
+- Corrections are compensating entries, not mutations of history.
+- Production identity, cloud account, legal approval, named owners, budget, and partners are not currently supplied.
+- The current local feature flag does not authorize production WebRTC use.
+- Any conflict between this PRD and an approved finance/security/legal decision must be resolved through a versioned PRD update before release.
+
+## 18. Recommended next steps
+
+1. Assign a named release owner and freeze one candidate commit for remediation.
+2. Triage the 52 Playwright failures into product defects, stale fixtures, and intentional visual changes; record one owner and exit test for every failure.
+3. Fix account command, onboarding/orientation, reconciliation, investigation-search, session, and pagination failures before touching visual baselines.
+4. Review each visual difference manually and update only approved baselines.
+5. Rerun frontend lint, TypeScript, unit/security/UI, full Playwright, visual, performance, and production build gates.
+6. Rerun complete Go, migration, PostgreSQL/Redis integration, race, fault, recovery, and container gates.
+7. Repeat the real-stack core financial journey and two-operator investigation journey against disposable data.
+8. Publish exact-commit evidence and update the master delivery register; do not reuse historical pass claims.
+9. Conduct named physical-device, keyboard, screen-reader, and moderated operator reviews.
+10. Decide whether the release target is only the local MVP or a managed design-partner pilot; if it is a pilot, assign owners for every external gate before provisioning anything.
+
+## 19. Additional beneficial enhancements
+
+Only already-documented enhancements are included here:
+
+- Complete the API-first developer milestone: recipes, bulk provisioning, shared replay protection, endpoint verification, and exact-commit evidence.
+- Complete the operator IA and shared design-system modularization already tracked in the master register.
+- Add the separately planned public website only after legal, privacy, accessibility, abuse, and evidence requirements are approved.
+- Implement managed identity, observability, backup/PITR, and incident operations before shared use.
+- Evaluate the separately specified provider-led INR payout domain only after provider, legal, finance, security, and operations gates pass.
+
+These enhancements are not approved for production merely by appearing in this document.
+
+## 20. Requirement traceability
+
+| Requirement group | Product coverage | Verification source |
+|---|---|---|
+| Exact money and balanced records | Transfers, funding journals, corrections, reconciliation | Go domain/integration suites and reconciliation evidence |
+| Idempotency and concurrency | Financial commands, replay, optimistic versions | Go unit/integration/race/fault tests |
+| Read-your-writes | Balance versions, signed consistency requirements, Redis/PostgreSQL fallback | Consistency and fault tests |
+| Authentication/authorization | Session BFF, OIDC, scopes, tenant/object SQL boundaries | Security, handler, contract, and browser tests |
+| Operator journeys | Overview, accounts, funding, transfers, approvals, corrections | Unit/UI/Playwright and real-stack journeys |
+| Investigations | Search, related evidence, workspaces, saved views, live rooms | Security/integration/protocol and browser tests |
+| Delivery operations | Events, webhook endpoints, attempts, replay | Contract/integration/browser tests |
+| Recovery | Diagnostics, backup/restore evidence, runbooks | Local recovery and isolated-stack tests |
+| Accessibility/responsive UI | Semantic components, focus, zoom, reflow, forced colors | Playwright/axe/manual review; current release gate remains open |
+| Release quality | Build, artifacts, performance, migration compatibility, security | CI/local qualification; current full Playwright gate fails |
+
+## 21. Open placeholders
+
+- `[TBD — product owner and release authority]`
+- `[TBD — target MVP audience and permitted use statement]`
+- `[TBD — moderated usability participants and schedule]`
+- `[TBD — finance-approved terminology and limits]`
+- `[TBD — jurisdiction, legal entity, currency, custody wording, retention, and privacy decisions]`
+- `[TBD — managed identity provider configuration and lifecycle owners]`
+- `[TBD — cloud account, region, DNS, budget, and deployment authority]`
+- `[TBD — RPO, RTO, backup retention, and restore cadence]`
+- `[TBD — security assessment and penetration-test owner/date]`
+- `[TBD — physical device and assistive-technology reviewers]`
+- `[TBD — approved TURN credential provider and shared Redis design]`
+- `[TBD — design partners, contracts, support model, and observation window]`
+- `[TBD — roadmap start/end dates after owner and capacity assignment]`
+
+## 22. Definition of MVP done
+
+The current MVP is ready only when all of the following are true for one exact commit:
+
+- Every required capability in section 5.1 is implemented or explicitly removed through an approved PRD revision.
+- All financial invariants, authorization boundaries, idempotency behavior, migrations, and generated contracts pass.
+- The complete frontend and Go verification suites pass without ignored failures or weakened assertions.
+- Every visual baseline change is manually approved.
+- Real-stack financial, uncertainty, collaboration, dependency-failure, and recovery journeys pass against disposable data.
+- No enabled action lacks its stated result or a visible unavailable reason.
+- Responsive and accessibility gates pass for the supported device matrix.
+- Exact-commit release evidence and known limitations are published.
+- Named product and engineering owners approve local-MVP release.
+- Any shared/pilot/production target additionally completes its applicable security, finance, legal, operations, infrastructure, recovery, device, and partner gates.
+
+## 23. Change log
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0-draft | 2026-09-08 | Initial repository-grounded PRD and current MVP readiness assessment. |

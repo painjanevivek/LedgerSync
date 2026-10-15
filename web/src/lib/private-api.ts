@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createActorAssertion } from "@/lib/actor-assertion";
 import { canonicalizeUUIDPathSegments } from "@/lib/canonical-uuid";
+import { beginPrivateContextTrace } from "@/lib/bff-trace";
 import type { Session } from "@/lib/session";
 import { jsonError } from "@/lib/security";
 import { getPrivateAPIWorkloadCredential } from "@/lib/workload-credential";
@@ -12,14 +13,17 @@ import { isPrivateAPITimeout, privateReadTimeoutMilliseconds } from "@/lib/upstr
 export async function privateAPIContext(session: Session, requestID?: string) {
   const apiURL = process.env.LEDGERSYNC_PRIVATE_API_URL?.trim();
   if (!apiURL) throw new Error("private API URL is unavailable");
-  return {
+  const diagnostic = beginPrivateContextTrace();
+  try { return {
     apiURL: apiURL.replace(/\/$/, ""),
     headers: {
       Authorization: `Bearer ${await getPrivateAPIWorkloadCredential()}`,
       "X-LedgerSync-Actor-Assertion": createActorAssertion(session),
       "X-Request-ID": requestID ?? crypto.randomUUID(),
+      traceparent: diagnostic.traceparent,
     },
-  };
+  }; } catch (error) { diagnostic.end(true); throw error; }
+  finally { diagnostic.end(); }
 }
 
 export async function proxyPrivateGET(request: NextRequest, session: Session, path: string, allowedQuery: readonly string[] = []) {

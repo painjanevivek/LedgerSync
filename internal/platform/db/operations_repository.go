@@ -30,14 +30,16 @@ func NewOperationsRepository(database *sql.DB) (*OperationsRepository, error) {
 	return &OperationsRepository{database: database}, nil
 }
 
-func (r *OperationsRepository) Facts(ctx context.Context, tenantID string) (operations.DatabaseFacts, error) {
-	var facts operations.DatabaseFacts
-	if err := r.database.PingContext(ctx); err != nil {
-		return facts, fmt.Errorf("ping diagnostics database: %w", err)
+func (r *OperationsRepository) Facts(ctx context.Context, tenantID, actorID string) (operations.DatabaseFacts, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return operations.DatabaseFacts{}, scopeErr
 	}
+	defer func() { _ = tx.Rollback() }()
+	var facts operations.DatabaseFacts
 	var published, oldestPending, reconciled sql.NullTime
 	var runID, reconciliationStatus sql.NullString
-	err := r.database.QueryRowContext(ctx, `
+	err := tx.QueryRowContext(ctx, `
 SELECT COALESCE((SELECT max(version) FROM schema_migrations),'unknown'),
   count(*) FILTER (WHERE published_at IS NULL AND dead_at IS NULL),
   count(*) FILTER (WHERE dead_at IS NOT NULL),
@@ -69,12 +71,17 @@ type webhookEndpointCursor struct {
 }
 
 func (r *OperationsRepository) ListWebhookEndpoints(ctx context.Context, tenantID, actorID string, filter operations.WebhookEndpointFilter) (operations.WebhookEndpointPage, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return operations.WebhookEndpointPage{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	fingerprint := webhookEndpointFilterFingerprint(filter)
 	cursor, err := decodeWebhookEndpointCursor(filter.Cursor, fingerprint)
 	if err != nil {
 		return operations.WebhookEndpointPage{}, err
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,array_to_json(endpoint.subscribed_events)::text,
  COALESCE(health.latest_state,'none'),COALESCE(health.attempt_count,'0'),COALESCE(health.dead_count,'0'),
  endpoint.verified_at,endpoint.disabled_at,health.latest_at,endpoint.updated_at
@@ -121,7 +128,12 @@ ORDER BY endpoint.updated_at DESC,endpoint.id DESC LIMIT $7`, tenantID, actorID,
 }
 
 func (r *OperationsRepository) GetWebhookEndpoint(ctx context.Context, tenantID, actorID, endpointID string) (operations.WebhookEndpointDetail, error) {
-	row := r.database.QueryRowContext(ctx, `
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return operations.WebhookEndpointDetail{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
+	row := tx.QueryRowContext(ctx, `
 SELECT endpoint.id::text,endpoint.display_name,endpoint.endpoint_url,endpoint.status,array_to_json(endpoint.subscribed_events)::text,
  COALESCE(health.latest_state,'none'),COALESCE(health.attempt_count,'0'),COALESCE(health.dead_count,'0'),
  endpoint.verified_at,endpoint.disabled_at,health.latest_at,endpoint.updated_at
@@ -148,7 +160,7 @@ WHERE endpoint.tenant_id=$1 AND endpoint.id=$2
 		return operations.WebhookEndpointDetail{}, err
 	}
 	detail := operations.WebhookEndpointDetail{WebhookEndpointEvidence: item, DeliveryAttempts: []operations.WebhookDeliveryEvidence{}}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT attempt.id::text,COALESCE(attempt.outbox_event_id::text,''),attempt.transfer_id::text,attempt.status,attempt.attempt_number::text,
  COALESCE(attempt.response_class,''),COALESCE(attempt.sanitized_error_code,''),attempt.due_at,attempt.started_at,attempt.completed_at
 FROM delivery_attempts attempt
@@ -195,12 +207,17 @@ func scanWebhookEndpointEvidence(row rowScanner) (operations.WebhookEndpointEvid
 }
 
 func (r *OperationsRepository) ListEvents(ctx context.Context, tenantID, actorID string, filter operations.EventFilter) ([]operations.EventEvidence, string, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, "", scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	fingerprint := eventFilterFingerprint(filter)
 	cursor, err := decodeEventCursor(filter.Cursor, fingerprint)
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT e.id::text,e.event_type,
  CASE WHEN e.published_at IS NOT NULL THEN 'published' WHEN e.dead_at IS NOT NULL THEN 'dead' WHEN e.last_error_code IS NOT NULL AND e.attempt_count>0 THEN 'retrying' ELSE 'pending' END,
  e.aggregate_type,e.aggregate_id::text,e.aggregate_version::text,e.attempt_count::text,
@@ -251,7 +268,12 @@ ORDER BY e.occurred_at DESC,e.id DESC LIMIT $10`, tenantID, filter.EventType, fi
 }
 
 func (r *OperationsRepository) GetEvent(ctx context.Context, tenantID, actorID, eventID string) (operations.EventDetail, error) {
-	row := r.database.QueryRowContext(ctx, `
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return operations.EventDetail{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
+	row := tx.QueryRowContext(ctx, `
 SELECT e.id::text,e.event_type,
  CASE WHEN e.published_at IS NOT NULL THEN 'published' WHEN e.dead_at IS NOT NULL THEN 'dead' WHEN e.last_error_code IS NOT NULL AND e.attempt_count>0 THEN 'retrying' ELSE 'pending' END,
  e.aggregate_type,e.aggregate_id::text,e.aggregate_version::text,e.attempt_count::text,
@@ -276,7 +298,12 @@ WHERE e.tenant_id=$1 AND e.id=$2 AND (e.transfer_id IS NULL OR t.id IS NOT NULL)
 		return operations.EventDetail{}, err
 	}
 	detail := operations.EventDetail{EventEvidence: item, DeliveryAttempts: []operations.DeliveryEvidence{}, Timeline: eventTimeline(item)}
-	rows, err := r.database.QueryContext(ctx, `
+	var diagnostic sql.NullString
+	if err := tx.QueryRowContext(ctx, `SELECT substring(diagnostic_traceparent from 4 for 32) FROM outbox_events WHERE id=$1 AND tenant_id=$2`, eventID, tenantID).Scan(&diagnostic); err != nil {
+		return operations.EventDetail{}, err
+	}
+	detail.DiagnosticTraceID = diagnostic.String
+	rows, err := tx.QueryContext(ctx, `
 SELECT attempt.id::text,attempt.delivery_kind,attempt.status,attempt.attempt_number::text,COALESCE(attempt.response_class,''),COALESCE(attempt.sanitized_error_code,''),
  COALESCE(endpoint.id::text,''),COALESCE(endpoint.display_name,''),COALESCE(endpoint.endpoint_url,''),attempt.due_at,attempt.started_at,attempt.completed_at
 FROM delivery_attempts attempt
@@ -316,6 +343,9 @@ WHERE attempt.tenant_id=$1 AND attempt.outbox_event_id=$2 ORDER BY attempt.attem
 		if attempt.CompletedAt != nil {
 			appendBoundedTimeline(&detail.Timeline, operations.EventTimelineItem{Kind: "delivery_" + attempt.State, OccurredAt: *attempt.CompletedAt})
 		}
+	}
+	if err := r.loadCausalEvidence(ctx, tx, tenantID, eventID, &detail); err != nil {
+		return operations.EventDetail{}, err
 	}
 	return detail, nil
 }

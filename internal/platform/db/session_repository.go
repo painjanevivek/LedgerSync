@@ -48,17 +48,28 @@ func (r *SessionRepository) Create(ctx context.Context, record SessionRecord, ro
 	roles, _ := json.Marshal(record.Roles)
 	scopes, _ := json.Marshal(record.Scopes)
 	requirements, _ := json.Marshal(record.ConsistencyRequirements)
-	tx, err := r.database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	var oldDigest []byte
+	if rotateToken != "" {
+		var digestErr error
+		oldDigest, digestErr = sessionDigest(rotateToken)
+		if digestErr != nil {
+			return "", ErrSessionNotFound
+		}
+	}
+	scope, err := (TenantScope{TenantID: record.TenantID, ActorID: record.SubjectID}).canonical(ctx)
+	if err != nil {
+		return "", err
+	}
+	tx, err := beginSessionTransaction(ctx, r.database, digest[:], oldDigest, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		return "", fmt.Errorf("begin session creation: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := setTenantTransactionContext(ctx, tx.Tx, scope); err != nil {
+		return "", err
+	}
 	if rotateToken != "" {
-		oldDigest, digestErr := sessionDigest(rotateToken)
-		if digestErr != nil {
-			return "", ErrSessionNotFound
-		}
-		result, revokeErr := tx.ExecContext(ctx, `UPDATE bff_sessions SET revoked_at=now(),updated_at=now() WHERE token_digest=$1 AND revoked_at IS NULL`, oldDigest)
+		result, revokeErr := tx.ExecContext(ctx, `UPDATE bff_sessions SET revoked_at=now(),updated_at=now() WHERE token_digest=$1 AND tenant_id=$2 AND subject_id=$3 AND revoked_at IS NULL AND expires_at>now()`, oldDigest, record.TenantID, record.SubjectID)
 		if revokeErr != nil {
 			return "", fmt.Errorf("revoke rotated session: %w", revokeErr)
 		}
@@ -70,7 +81,7 @@ func (r *SessionRepository) Create(ctx context.Context, record SessionRecord, ro
 	if err != nil {
 		return "", fmt.Errorf("persist opaque session: %w", err)
 	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM bff_sessions WHERE token_digest IN (SELECT token_digest FROM bff_sessions WHERE expires_at<=now() OR revoked_at<=now()-interval '1 hour' ORDER BY expires_at LIMIT 100)`); err != nil {
+	if _, err = tx.ExecContext(ctx, `SELECT public.controlled_retire_bff_sessions_v1($1,$2)`, record.TenantID, record.SubjectID); err != nil {
 		return "", fmt.Errorf("retain opaque sessions: %w", err)
 	}
 	if err = tx.Commit(); err != nil {
@@ -84,10 +95,15 @@ func (r *SessionRepository) Resolve(ctx context.Context, token string) (SessionR
 	if err != nil {
 		return SessionRecord{}, ErrSessionNotFound
 	}
+	tx, err := beginSessionTransaction(ctx, r.database, digest, nil, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return SessionRecord{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
 	var record SessionRecord
 	var roles, scopes, requirements []byte
 	var authenticatedAt sql.NullTime
-	err = r.database.QueryRowContext(ctx, `SELECT tenant_id::text,subject_id,csrf_token,roles,scopes,consistency_requirements,authenticated_at,expires_at FROM bff_sessions WHERE token_digest=$1 AND revoked_at IS NULL AND expires_at>now()`, digest).
+	err = tx.QueryRowContext(ctx, `SELECT tenant_id::text,subject_id,csrf_token,roles,scopes,consistency_requirements,authenticated_at,expires_at FROM bff_sessions WHERE token_digest=$1 AND revoked_at IS NULL AND expires_at>now()`, digest).
 		Scan(&record.TenantID, &record.SubjectID, &record.CSRFToken, &roles, &scopes, &requirements, &authenticatedAt, &record.ExpiresAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return SessionRecord{}, ErrSessionNotFound
@@ -111,14 +127,19 @@ func (r *SessionRepository) Revoke(ctx context.Context, token string) error {
 	if err != nil {
 		return ErrSessionNotFound
 	}
-	result, err := r.database.ExecContext(ctx, `UPDATE bff_sessions SET revoked_at=now(),updated_at=now() WHERE token_digest=$1 AND revoked_at IS NULL`, digest)
+	tx, err := beginSessionTransaction(ctx, r.database, digest, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `UPDATE bff_sessions SET revoked_at=now(),updated_at=now() WHERE token_digest=$1 AND revoked_at IS NULL`, digest)
 	if err != nil {
 		return fmt.Errorf("revoke opaque session: %w", err)
 	}
 	if count, _ := result.RowsAffected(); count != 1 {
 		return ErrSessionNotFound
 	}
-	return nil
+	return tx.Commit()
 }
 
 func (r *SessionRepository) UpdateConsistency(ctx context.Context, token string, updates map[string]string) error {
@@ -130,14 +151,19 @@ func (r *SessionRepository) UpdateConsistency(ctx context.Context, token string,
 	if err != nil {
 		return errors.New("encode consistency requirements")
 	}
-	result, err := r.database.ExecContext(ctx, `UPDATE bff_sessions SET consistency_requirements=consistency_requirements||$2::jsonb,updated_at=now() WHERE token_digest=$1 AND revoked_at IS NULL AND expires_at>now() AND jsonb_array_length(jsonb_path_query_array(consistency_requirements||$2::jsonb, '$.*'))<=10`, digest, string(payload))
+	tx, err := beginSessionTransaction(ctx, r.database, digest, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `UPDATE bff_sessions SET consistency_requirements=consistency_requirements||$2::jsonb,updated_at=now() WHERE token_digest=$1 AND revoked_at IS NULL AND expires_at>now() AND jsonb_array_length(jsonb_path_query_array(consistency_requirements||$2::jsonb, '$.*'))<=10`, digest, string(payload))
 	if err != nil {
 		return fmt.Errorf("update session consistency: %w", err)
 	}
 	if count, _ := result.RowsAffected(); count != 1 {
 		return ErrSessionNotFound
 	}
-	return nil
+	return tx.Commit()
 }
 
 func sessionDigest(token string) ([]byte, error) {

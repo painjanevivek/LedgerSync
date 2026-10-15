@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/lease"
 	"time"
 )
 
@@ -24,15 +25,30 @@ type Event struct {
 	Payload          []byte
 	OccurredAt       time.Time
 	AttemptCount     int
+	ClaimGeneration  int64
+	Causal           *CausalMetadata
+	Delivery         *CausalMetadata
+	// DiagnosticTraceParent is optional opaque context, separate from causal and
+	// financial identity. It is never part of the public event payload.
+	DiagnosticTraceParent string
+}
+
+// CausalMetadata is optional for older event envelopes. Origin metadata is
+// immutable. A new publication attempt has separate delivery metadata.
+type CausalMetadata struct {
+	NodeID          string `json:"node_id"`
+	Timestamp       int64  `json:"-"`
+	ParentReference string `json:"parent_reference,omitempty"`
 }
 
 // Store owns the durable delivery state. A claim lease makes concurrent
 // workers safe while allowing work to be recovered after a process failure.
 type Store interface {
 	Claim(context.Context, string, int, time.Duration) ([]Event, error)
-	MarkPublished(context.Context, string, string, time.Time) error
-	Reschedule(context.Context, string, string, time.Time, string) error
-	MarkDead(context.Context, string, string, time.Time, string) error
+	RenewClaim(context.Context, string, string, int64, time.Duration) error
+	MarkPublished(context.Context, string, string, time.Time, int64) error
+	Reschedule(context.Context, string, string, time.Time, string, int64) error
+	MarkDead(context.Context, string, string, time.Time, string, int64) error
 }
 
 // Publisher must publish the event ID and aggregate version unchanged. It may
@@ -79,7 +95,10 @@ func NewWorker(store Store, publisher Publisher, metrics Metrics, clock func() t
 		return nil, errors.New("outbox worker ID is required")
 	}
 	if cfg.BatchSize <= 0 {
-		cfg.BatchSize = 50
+		cfg.BatchSize = 10
+	}
+	if cfg.BatchSize > 100 {
+		return nil, errors.New("outbox batch exceeds 100 events")
 	}
 	if cfg.ClaimLease <= 0 {
 		cfg.ClaimLease = 30 * time.Second
@@ -102,19 +121,25 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 			w.onItem(event.ID)
 		}
 		if err := validate(event); err != nil {
-			if persistErr := w.store.MarkDead(ctx, w.workerID, event.ID, w.clock().UTC(), "invalid_event"); persistErr != nil {
+			if persistErr := w.store.MarkDead(ctx, w.workerID, event.ID, w.clock().UTC(), "invalid_event", event.ClaimGeneration); persistErr != nil {
 				return len(events), fmt.Errorf("mark invalid event dead: %w", persistErr)
 			}
 			w.observeDead(event, err)
 			continue
 		}
-		if err := w.publisher.Publish(ctx, event); err != nil {
-			if persistErr := w.handlePublishFailure(ctx, event, err); persistErr != nil {
+		publishErr := lease.Run(ctx, w.claimLease, func(renewCtx context.Context) error {
+			return w.store.RenewClaim(renewCtx, w.workerID, event.ID, event.ClaimGeneration, w.claimLease)
+		}, func(publishCtx context.Context) error { return w.publisher.Publish(publishCtx, event) })
+		if publishErr != nil {
+			if errors.Is(publishErr, lease.ErrLost) {
+				return len(events), publishErr
+			}
+			if persistErr := w.handlePublishFailure(ctx, event, publishErr); persistErr != nil {
 				return len(events), persistErr
 			}
 			continue
 		}
-		if err := w.store.MarkPublished(ctx, w.workerID, event.ID, w.clock().UTC()); err != nil {
+		if err := w.store.MarkPublished(ctx, w.workerID, event.ID, w.clock().UTC(), event.ClaimGeneration); err != nil {
 			// Do not publish a compensating message here. A future claim may
 			// deliver the same immutable event; consumers handle that safely.
 			return len(events), fmt.Errorf("acknowledge published event: %w", err)
@@ -129,14 +154,14 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 func (w *Worker) handlePublishFailure(ctx context.Context, event Event, publishErr error) error {
 	now := w.clock().UTC()
 	if event.AttemptCount >= w.maxAttempts {
-		if err := w.store.MarkDead(ctx, w.workerID, event.ID, now, "publish_failed"); err != nil {
+		if err := w.store.MarkDead(ctx, w.workerID, event.ID, now, "publish_failed", event.ClaimGeneration); err != nil {
 			return fmt.Errorf("persist dead outbox event: %w", err)
 		}
 		w.observeDead(event, publishErr)
 		return nil
 	}
 	next := now.Add(backoff(event.AttemptCount))
-	if err := w.store.Reschedule(ctx, w.workerID, event.ID, next, "publish_failed"); err != nil {
+	if err := w.store.Reschedule(ctx, w.workerID, event.ID, next, "publish_failed", event.ClaimGeneration); err != nil {
 		return fmt.Errorf("persist outbox retry: %w", err)
 	}
 	if w.metrics != nil {

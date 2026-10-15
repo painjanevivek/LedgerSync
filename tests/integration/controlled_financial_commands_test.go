@@ -84,7 +84,7 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 		command := transferCommand(t, "controlled-spoof-actor-0001", "1.00")
 		command.ActorSubjectID = "spoofed-finance-actor"
 		fingerprint := transferFingerprint(t, command)
-		_, err := api.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+		_, err := tenantTestExec(context.Background(), api.db, testTenantID, testActorID, `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
 			command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt)
 		if sqlState(err) != "42501" {
@@ -110,7 +110,7 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 		command := transferCommand(t, "controlled-cross-tenant-0001", "1.00")
 		command.DebitAccountID = otherAccount
 		fingerprint := transferFingerprint(t, command)
-		_, err := api.db.ExecContext(context.Background(), `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+		_, err := tenantTestExec(context.Background(), api.db, testTenantID, testActorID, `SELECT * FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 			command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
 			command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt)
 		if sqlState(err) != "42501" {
@@ -129,6 +129,9 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 			t.Fatal(err)
 		}
 		defer func() { _ = tx.Rollback() }()
+		if _, err := tx.Exec("SELECT set_config('app.tenant_id',$1,true),set_config('app.actor_id',$2,true)", testTenantID, testActorID); err != nil {
+			t.Fatal(err)
+		}
 		if _, err = tx.Exec(`CREATE TEMP TABLE transfers(id uuid); SET LOCAL search_path=pg_temp,public`); err != nil {
 			t.Fatal(err)
 		}
@@ -155,11 +158,11 @@ func TestControlledTransferFunctionRejectsSpoofingAndRollsBackPartialState(t *te
 	})
 }
 
-func invokeControlledTransfer(t *testing.T, database queryRower, command apptransfers.Command, fingerprint []byte) (apptransfers.Result, bool) {
+func invokeControlledTransfer(t *testing.T, database *sql.DB, command apptransfers.Command, fingerprint []byte) (apptransfers.Result, bool) {
 	t.Helper()
 	var response []byte
 	var replayed bool
-	err := database.QueryRowContext(context.Background(), `SELECT response_body,replayed FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+	err := tenantTestRow(context.Background(), database, command.TenantID.String(), command.ActorSubjectID, `SELECT response_body,replayed FROM public.controlled_submit_transfer_v1($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 		command.TenantID, command.ActorSubjectID, command.DebitAccountID, command.CreditAccountID, command.Amount.Minor(), command.Amount.Currency().Code,
 		command.IdempotencyKey, fingerprint, command.CorrelationID, "USD", controlledTransferOccurredAt).Scan(&response, &replayed)
 	if err != nil {
@@ -191,8 +194,4 @@ func testDatabaseURL(t *testing.T) string {
 		t.Skip("LEDGERSYNC_TEST_DATABASE_URL is required")
 	}
 	return databaseURL
-}
-
-type queryRower interface {
-	QueryRowContext(context.Context, string, ...any) *sql.Row
 }

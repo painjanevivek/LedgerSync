@@ -7,8 +7,9 @@ export type PreparedTransfer = Readonly<{
 }>;
 
 export type StoredTransferIntent = Readonly<{
-  version: 1;
+  version: 1 | 2;
   idempotencyKey: string;
+  requestReference?: string;
   sourceAccountId: string;
   destinationAccountId: string;
   currency: string;
@@ -19,10 +20,11 @@ export function transferIntentStorageKey(tenantId: string): string {
   return `ledgersync.transfer.intent.${tenantId}`;
 }
 
-export function createStoredTransferIntent(idempotencyKey: string, prepared: PreparedTransfer): StoredTransferIntent {
+export function createStoredTransferIntent(idempotencyKey: string, requestReference: string, prepared: PreparedTransfer): StoredTransferIntent {
   return {
-    version: 1,
+    version: 2,
     idempotencyKey,
+    requestReference,
     sourceAccountId: prepared.source.account_id,
     destinationAccountId: prepared.destination.account_id,
     currency: prepared.source.currency,
@@ -42,10 +44,11 @@ export function parseStoredTransferIntent(raw: string | null): StoredTransferInt
   try {
     const value = JSON.parse(raw) as Partial<StoredTransferIntent>;
     if (
-      value.version !== 1
+      value.version !== 1 && value.version !== 2
       || typeof value.idempotencyKey !== "string"
       || value.idempotencyKey.length < 16
       || value.idempotencyKey.length > 255
+      || (value.version === 2 && (typeof value.requestReference !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(value.requestReference)))
       || typeof value.sourceAccountId !== "string"
       || value.sourceAccountId.length === 0
       || value.sourceAccountId.length > 128

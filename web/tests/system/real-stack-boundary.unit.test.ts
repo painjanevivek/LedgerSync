@@ -4,7 +4,7 @@ import test from "node:test";
 import { parseIsolatedComposeProject, parseSystemWebURL } from "./real-stack-boundary";
 
 test("real-stack web URLs are restricted to the exact loopback Compose origin", () => {
-  for (const value of ["http://127.0.0.1:3000", "http://localhost:3000/", "http://[::1]:3000"]) {
+  for (const value of ["http://127.0.0.1:3000", "http://localhost:3000/", "http://[::1]:3000", "http://127.0.0.1:3102"]) {
     assert.match(parseSystemWebURL(value), /^http:\/\//);
   }
   for (const value of [
@@ -15,6 +15,8 @@ test("real-stack web URLs are restricted to the exact loopback Compose origin", 
     "http://127.0.0.1:3000/#fragment",
     "http://127.0.0.1:3000/?project=isolated",
     "http://127.0.0.1:3001",
+    "http://127.0.0.1:3103",
+    "http://127.0.0.1:31020",
     "http://127.0.0.1",
     " http://127.0.0.1:3000",
   ]) {

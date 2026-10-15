@@ -12,6 +12,10 @@ type workerStore struct {
 	completions []Completion
 }
 
+func (s *workerStore) RenewClaim(context.Context, string, string, int64, time.Duration) error {
+	return nil
+}
+
 func (s *workerStore) Claim(context.Context, string, int, time.Duration) ([]Job, error) {
 	return s.jobs, nil
 }

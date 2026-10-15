@@ -14,6 +14,10 @@ export default defineConfig([
     "playwright-report/**",
     "playwright-report-real-stack/**",
     "test-results/**",
+    "chunks/**",
+    "*/_buildManifest.js",
+    "*/_clientMiddlewareManifest.js",
+    "*/_ssgManifest.js",
     "**/*.min.js",
   ]),
 ]);

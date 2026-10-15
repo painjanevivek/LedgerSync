@@ -14,6 +14,8 @@ import (
 
 type Config struct {
 	Environment                string
+	NodeID                     string
+	DatabaseMaxOpenConns       int
 	HTTPAddress                string
 	StartupTimeout             time.Duration
 	StartupInitialBackoff      time.Duration
@@ -29,6 +31,7 @@ type Config struct {
 	WriteRateLimitPerMinute    int
 	WriteCapacityPerSecond     int
 	RedisStreamMaxLength       int64
+	OutboxBatchSize            int
 	DatabaseURL                string
 	RedisAddress               string
 	ConsistencySigningKey      string
@@ -53,6 +56,11 @@ type Config struct {
 	WebhookSigningKeys         map[string][]byte
 	AWSRegion                  string
 	CronSecret                 string
+	CronWorkerDatabaseURL      string
+	SystemsLabEnabled          bool
+	LiveInvestigationEnabled   bool
+	LiveInvestigationNamespace string
+	LiveInvestigationTURNURL   string
 }
 
 func Load() (Config, error) {
@@ -140,12 +148,37 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	poolLimit, err := positiveInt("LEDGERSYNC_DATABASE_MAX_OPEN_CONNS", 4)
+	if err != nil || poolLimit > 64 {
+		return Config{}, fmt.Errorf("LEDGERSYNC_DATABASE_MAX_OPEN_CONNS must be between 1 and 64")
+	}
+	outboxBatch, err := positiveInt("LEDGERSYNC_OUTBOX_BATCH_SIZE", 10)
+	if err != nil || outboxBatch > 100 {
+		return Config{}, fmt.Errorf("LEDGERSYNC_OUTBOX_BATCH_SIZE must be between 1 and 100")
+	}
+	nodeID, err := configuredNodeID()
+	if err != nil {
+		return Config{}, err
+	}
 	telemetryEnabled, err := parseBool("LEDGERSYNC_TELEMETRY_ENABLED", false)
 	if err != nil {
 		return Config{}, err
 	}
+	liveInvestigationEnabled, err := optionalFlag("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED")
+	if err != nil {
+		return Config{}, err
+	}
+	studyEnabled, err := optionalFlag("LEDGERSYNC_STUDY_ENABLED")
+	if err != nil {
+		return Config{}, err
+	}
+	if err := validateOptionalFeatures(environment, studyEnabled, liveInvestigationEnabled); err != nil {
+		return Config{}, err
+	}
 	config := Config{
 		Environment:                environment,
+		NodeID:                     nodeID,
+		DatabaseMaxOpenConns:       poolLimit,
 		HTTPAddress:                httpAddress,
 		StartupTimeout:             startupTimeout,
 		StartupInitialBackoff:      startupInitialBackoff,
@@ -161,6 +194,7 @@ func Load() (Config, error) {
 		WriteRateLimitPerMinute:    writeRate,
 		WriteCapacityPerSecond:     writeCapacity,
 		RedisStreamMaxLength:       int64(streamMaxLength),
+		OutboxBatchSize:            outboxBatch,
 		DatabaseURL:                os.Getenv("LEDGERSYNC_DATABASE_URL"),
 		RedisAddress:               os.Getenv("LEDGERSYNC_REDIS_ADDR"),
 		ConsistencySigningKey:      os.Getenv("LEDGERSYNC_CONSISTENCY_SIGNING_KEY"),
@@ -185,6 +219,16 @@ func Load() (Config, error) {
 		WebhookSigningKeys:         webhookSigningKeys,
 		AWSRegion:                  strings.TrimSpace(os.Getenv("AWS_REGION")),
 		CronSecret:                 strings.TrimSpace(os.Getenv("CRON_SECRET")),
+		CronWorkerDatabaseURL:      strings.TrimSpace(os.Getenv("LEDGERSYNC_CRON_WORKER_DATABASE_URL")),
+		SystemsLabEnabled:          studyEnabled,
+		LiveInvestigationEnabled:   liveInvestigationEnabled,
+		LiveInvestigationNamespace: valueOrDefault("LEDGERSYNC_LIVE_INVESTIGATION_NAMESPACE", "ledgersync:investigation-live:v1"),
+		LiveInvestigationTURNURL:   strings.TrimSpace(os.Getenv("LEDGERSYNC_LIVE_INVESTIGATION_TURN_CREDENTIALS_URL")),
+	}
+	if config.LiveInvestigationEnabled {
+		if config.RedisAddress == "" || strings.TrimSpace(config.LiveInvestigationNamespace) == "" {
+			return Config{}, fmt.Errorf("live investigation requires Redis and an explicit namespace")
+		}
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
 		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/resource audience/client mapping, and 32-byte BFF assertion secret are required outside development")
@@ -200,6 +244,9 @@ func Load() (Config, error) {
 	}
 	if config.CronSecret != "" && (len(config.CronSecret) < 32 || len(config.CronSecret) > 256) {
 		return Config{}, fmt.Errorf("CRON_SECRET must contain 32..256 characters when configured")
+	}
+	if (config.CronSecret == "") != (config.CronWorkerDatabaseURL == "") || (config.CronSecret != "" && config.CronWorkerDatabaseURL == config.DatabaseURL) {
+		return Config{}, fmt.Errorf("cron secret and a separate restricted worker database binding must be configured together")
 	}
 	if (config.BFFAssertionPreviousSecret == "") != (config.BFFAssertionPreviousKeyID == "") || (config.BFFAssertionPreviousSecret != "" && len(config.BFFAssertionPreviousSecret) < 32) {
 		return Config{}, fmt.Errorf("previous BFF assertion key ID and 32-byte secret must be configured together")

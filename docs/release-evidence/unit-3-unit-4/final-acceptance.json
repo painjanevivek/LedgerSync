@@ -1,0 +1,95 @@
+{
+  "captured_at_utc": "2026-10-11T20:24:37.1949880Z",
+  "commit": "ed1662ebc52fbff49bd75bc957b5d2fa637fa73c",
+  "source_fingerprint_sha256": "a8576193cf172d3cf62de67b31b5b4a5063ac74c011fc4e2fc0983892640d33b",
+  "project": "ledgersync-acceptance-20261011181234-8b695d3d",
+  "images": [
+    {
+      "container": "8ddda70629ad",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-api",
+      "image_id": "sha256:0a140d486932736442027bda4ed485455a36d55910d32a8f5b6ae40778e027b1"
+    },
+    {
+      "container": "bb303c86a03c",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-api",
+      "image_id": "sha256:0a140d486932736442027bda4ed485455a36d55910d32a8f5b6ae40778e027b1"
+    },
+    {
+      "container": "f446650baa3b",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-web",
+      "image_id": "sha256:5de38e86815d6eb6450544e0374e1165552e0ea5bdfb92f0212506d0683c6315"
+    },
+    {
+      "container": "2d156bcaabec",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-web",
+      "image_id": "sha256:5de38e86815d6eb6450544e0374e1165552e0ea5bdfb92f0212506d0683c6315"
+    },
+    {
+      "container": "5702dd37640d",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-migrate",
+      "image_id": "sha256:c922f3803c0c86c538b18fcfddb11e18fa8ef70c28122e28d1e14fbdcf784067"
+    },
+    {
+      "container": "ab3e6ec07910",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-api",
+      "image_id": "sha256:0a140d486932736442027bda4ed485455a36d55910d32a8f5b6ae40778e027b1"
+    },
+    {
+      "container": "21df836cfa9f",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-api",
+      "image_id": "sha256:0a140d486932736442027bda4ed485455a36d55910d32a8f5b6ae40778e027b1"
+    },
+    {
+      "container": "203bcaa375d9",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-worker",
+      "image_id": "sha256:d70c13920fd703550f8eda56a7a8d0cab80a52697d38707e173779a965883e48"
+    },
+    {
+      "container": "bb98f6f13d7a",
+      "image": "ledgersync-acceptance-20261011181234-8b695d3d-worker",
+      "image_id": "sha256:d70c13920fd703550f8eda56a7a8d0cab80a52697d38707e173779a965883e48"
+    },
+    {
+      "container": "c981b89986a0",
+      "image": "089b987a158b",
+      "image_id": "sha256:089b987a158b72c032de4b1fe21cc068fd33a2081c5e5142a534a9a4ab394eb2"
+    },
+    {
+      "container": "39c8a72d5eef",
+      "image": "postgres:16-alpine",
+      "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777"
+    },
+    {
+      "container": "6075d222deb0",
+      "image": "redis:7.4-alpine",
+      "image_id": "sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2"
+    },
+    {
+      "container": "1f9936d8792f",
+      "image": "postgres:16-alpine",
+      "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777"
+    },
+    {
+      "container": "a94c5fdc83aa",
+      "image": "postgres:16-alpine",
+      "image_id": "sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777"
+    },
+    {
+      "container": "317f9f8ab999",
+      "image": "redis:7.4-alpine",
+      "image_id": "sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2"
+    }
+  ],
+  "operational_summary": {
+    "migration_version": "000043_reconciliation_scheduler.up.sql",
+    "migration_count": 43,
+    "outbox_pending": 0,
+    "outbox_dead": 0,
+    "reconciliation_status": "matched",
+    "reconciliation_mismatches": 0
+  },
+  "financial_journey": "passed",
+  "replay": "passed",
+  "reconciliation": "matched",
+  "financial_transfer_id": "ca2fa030-58dd-48c4-942a-8762b9978cdb"
+}

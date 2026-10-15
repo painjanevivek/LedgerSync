@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { diagnosticTraceHeaders } from "@/lib/diagnostic-trace";
 
 import { isValidReconciliationIdempotencyKey } from "@/lib/api/reconciliation";
 import { rateLimitResponse, type RateLimitStore } from "@/lib/rate-limit";
@@ -44,6 +45,7 @@ export function reconciliationPrivateHeaders(privateHeaders: Readonly<Record<str
   }
   return {
     Authorization: authorization,
+    ...diagnosticTraceHeaders(privateHeaders),
     "X-LedgerSync-Actor-Assertion": assertion,
     "X-Request-ID": requestID,
     "Content-Type": "application/json",

@@ -1,4 +1,5 @@
 import http from "k6/http";
+import { sha256 } from "k6/crypto";
 import { check, fail, sleep } from "k6";
 import { Counter, Trend } from "k6/metrics";
 
@@ -31,7 +32,7 @@ function parseAccountPairs() {
 
 const accountPairs = parseAccountPairs();
 
-const validWorkloadShape = workloadShape === "hot" || workloadShape === "mixed" || workloadShape === "retry";
+const validWorkloadShape = workloadShape === "hot" || workloadShape === "mixed" || workloadShape === "retry" || workloadShape === "independent";
 if (!baseURL || accountPairs.length === 0 || !validWorkloadShape || durationSeconds === 0) {
   fail("LEDGERSYNC_PERF_BFF_URL, a valid workload shape, and at least one account pair are required");
 }
@@ -52,6 +53,9 @@ const controlAccountCount = new Counter("ledgersync_control_accounts_created");
 const controlReconciliationCount = new Counter("ledgersync_control_reconciliations_completed");
 const simulatedLostResponseCount = new Counter("ledgersync_simulated_lost_responses");
 const unexpectedOutcomeCount = new Counter("ledgersync_unexpected_outcomes");
+const businessRejections = new Counter("ledgersync_business_rejections");
+const technicalAttempts = new Counter("ledgersync_technical_attempt_failures");
+const postedCommands = new Counter("ledgersync_posted_commands");
 
 const scenarios = {
   steady_internal_transfers: {
@@ -98,6 +102,11 @@ function recordUnexpected(response, journey, payload = undefined) {
 
 function ensureSession() {
   if (csrfToken) return;
+  if (__ENV.LEDGERSYNC_PERF_LOCAL_SIGN_IN === "true") {
+    if (!/^http:\/\/127\.0\.0\.1:(3000|3102)$/.test(baseURL)) fail("local sign-in is restricted to the loopback study");
+    const login = http.get(`${baseURL}/api/auth/sign-in?return_to=%2F`, { tags: { journey: "session" } });
+    if (login.status !== 200) fail("local sign-in failed");
+  }
   const response = http.get(`${baseURL}/api/session`, { tags: { journey: "session" } });
   const payload = decodePayload(response);
   const established = check(response, {
@@ -123,6 +132,7 @@ function sendTransfer(key, pair, journey = "transfer", timeout = undefined) {
     headers: {
       "Content-Type": "application/json",
       "Idempotency-Key": key,
+      "X-LedgerSync-Request-Reference": requestReference(key),
       "X-CSRF-Token": csrfToken,
       Origin: publicOrigin,
       // The host-networked load container reaches the exact configured public
@@ -153,14 +163,30 @@ function mutationOptions(key, journey) {
   };
 }
 
+function requestReference(key) {
+  const hash = sha256(key, "hex");
+  return `${hash.slice(0,8)}-${hash.slice(8,12)}-4${hash.slice(13,16)}-8${hash.slice(17,20)}-${hash.slice(20,32)}`;
+}
+
 function transfer(key, pair) {
-  const response = sendTransfer(key, pair);
-  transferLatency.add(response.timings.duration, { workload_shape: workloadShape });
-  const payload = decodePayload(response);
+  const started = Date.now();
+  let response, payload;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = sendTransfer(key, pair);
+    payload = decodePayload(response);
+    if (response.status === 503 && payload?.error?.code === "transaction_conflict_retryable") {
+      technicalAttempts.add(1);
+      if (attempt < 2) { sleep(0.05 * (attempt + 1)); continue; }
+    }
+    break;
+  }
+  transferLatency.add(Date.now() - started, { workload_shape: workloadShape });
   const valid = check(response, {
-    "transfer posted exactly": (result) => result.status === 201 && payload?.status === "posted" && typeof payload?.transfer_id === "string",
+    "transfer command has a controlled result": (result) => result.status === 201 && (payload?.status === "posted" || payload?.status === "rejected") && typeof payload?.transfer_id === "string",
   });
   if (!valid) recordUnexpected(response, "transfer", payload);
+  else if (payload.status === "rejected") businessRejections.add(1);
+  else if (response.headers["Idempotent-Replay"] !== "true") postedCommands.add(1);
   return { response, payload };
 }
 
@@ -184,11 +210,16 @@ function transferAfterSimulatedLostResponse(key, pair) {
 }
 
 function accountPair() {
+  if (workloadShape === "independent") return accountPairs[(__VU - 1) % accountPairs.length];
   return accountPairs[(__ITER + __VU) % accountPairs.length];
 }
 
 export function transferTraffic() {
   const iterationStartedAt = Date.now();
+  unexpectedOutcomeCount.add(0);
+  businessRejections.add(0);
+  technicalAttempts.add(0);
+  postedCommands.add(0);
   ensureSession();
   transferIterationCount.add(1);
   const pair = accountPair();

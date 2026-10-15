@@ -49,8 +49,13 @@ func encodeHistoryCursor(entry transactions.Entry) string {
 }
 
 func (r *TransactionHistoryRepository) ListAccountHistory(ctx context.Context, tenantID, actorID, accountID, rawCursor string, limit int) ([]transactions.Entry, string, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return nil, "", scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var allowed bool
-	if err := r.database.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM account_owners WHERE tenant_id=$1 AND account_id=$2 AND subject_id=$3 AND permission IN ('read','debit'))`, tenantID, accountID, actorID).Scan(&allowed); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM account_owners WHERE tenant_id=$1 AND account_id=$2 AND subject_id=$3 AND permission IN ('read','debit'))`, tenantID, accountID, actorID).Scan(&allowed); err != nil {
 		return nil, "", fmt.Errorf("authorize history: %w", err)
 	}
 	if !allowed {
@@ -60,7 +65,7 @@ func (r *TransactionHistoryRepository) ListAccountHistory(ctx context.Context, t
 	if err != nil {
 		return nil, "", err
 	}
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT transfer.id, CASE WHEN transfer.debit_account_id = $2 THEN 'debit' ELSE 'credit' END, transfer.amount_minor,
  transfer.currency,transfer.status,transfer.completed_at,COALESCE(correction.id::text,''),COALESCE(correction.status,''),
  CASE WHEN correction.id IS NULL THEN '' WHEN correction.original_transfer_id=transfer.id THEN 'original' ELSE 'compensation' END,

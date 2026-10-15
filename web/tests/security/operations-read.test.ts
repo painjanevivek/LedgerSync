@@ -78,6 +78,17 @@ test("webhook endpoint sanitizers preserve bounded safe origins and reject crede
   assert.equal(sanitizeWebhookEndpointDetail(200, {...detail,delivery_attempts:[{...detail.delivery_attempts[0],error_code:"bearer_token"}]}).status, 503);
 });
 
+test("event diagnostic context is optional, bounded and separate from causal order", () => {
+  const detail = { ...event, delivery_attempts: [], delivery_attempts_truncated: false, timeline: [] };
+  assert.equal(sanitizeEventDetail(200, detail).status, 200);
+  const id = "12345678901234567890123456789012";
+  const accepted = sanitizeEventDetail(200, { ...detail, diagnostic_trace_id: id });
+  assert.equal(accepted.status, 200); assert.equal(accepted.body.diagnostic_trace_id, id);
+  for (const value of ["0".repeat(32), "private-account", id + "?token=private", { amount: "100" }])
+    assert.equal(sanitizeEventDetail(200, { ...detail, diagnostic_trace_id: value }).status, 503);
+  assert.equal(sanitizeEventDetail(200, { ...detail, trace_viewer_available: true }).status, 503);
+});
+
 test("upstream parsing is capped before decode and malformed or oversized bodies fail closed", async () => {
   await assert.rejects(() => readBoundedOperationsResponse(new Response("{}", { headers:{ "content-length":"262145" } })), /response_too_large/);
   const oversized = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(new Uint8Array(262_145)); controller.close(); } });

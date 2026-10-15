@@ -1,0 +1,230 @@
+{
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "BFF session established": {
+                    "fails": 0,
+                    "name": "BFF session established",
+                    "path": "::BFF session established",
+                    "id": "9e91519b0c2da71bf03dbcacf476984d",
+                    "passes": 10
+                },
+                "transfer command has a controlled result": {
+                    "name": "transfer command has a controlled result",
+                    "path": "::transfer command has a controlled result",
+                    "id": "b7c897ae6eea929d574e799e7a8408fe",
+                    "passes": 55,
+                    "fails": 0
+                },
+                "current exact balance returned": {
+                    "name": "current exact balance returned",
+                    "path": "::current exact balance returned",
+                    "id": "dff58d9045eef887378d436eb80120fb",
+                    "passes": 50,
+                    "fails": 0
+                },
+                "account page available": {
+                    "path": "::account page available",
+                    "id": "8ca50497166f6a77a729dd3e6b31512e",
+                    "passes": 10,
+                    "fails": 0,
+                    "name": "account page available"
+                },
+                "history page available": {
+                    "id": "a5119956967d52c438b8b8e9a724f513",
+                    "passes": 10,
+                    "fails": 0,
+                    "name": "history page available",
+                    "path": "::history page available"
+                },
+                "same-key retry replays one transfer": {
+                    "passes": 5,
+                    "fails": 0,
+                    "name": "same-key retry replays one transfer",
+                    "path": "::same-key retry replays one transfer",
+                    "id": "e6dabeb8801c1898b24f0aa83fd8b034"
+                }
+            },
+        "name": "",
+        "path": ""
+    },
+    "metrics": {
+        "iterations": {
+            "count": 50,
+            "rate": 11.94220462020982
+        },
+        "ledgersync_business_rejections": {
+            "count": 0,
+            "rate": 0
+        },
+        "http_req_waiting": {
+            "avg": 83.13005032903227,
+            "min": 4.384462,
+            "med": 53.326242,
+            "p(50)": 53.326242,
+            "p(95)": 218.8734575999998,
+            "p(99)": 263.53760188,
+            "max": 273.207008
+        },
+        "http_req_receiving": {
+            "min": 0.044345,
+            "med": 0.118139,
+            "p(50)": 0.118139,
+            "p(95)": 0.31518789999999997,
+            "p(99)": 0.5320367000000005,
+            "max": 0.652267,
+            "avg": 0.14526196774193548
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(95)": 219.1220163999998,
+            "p(99)": 263.66192732,
+            "max": 273.366126,
+            "avg": 83.30711504516131,
+            "min": 4.470259,
+            "med": 53.5152,
+            "p(50)": 53.5152
+        },
+        "http_req_connecting": {
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0.11761959999999837,
+            "p(99)": 0.39368108000000007,
+            "max": 0.421281,
+            "avg": 0.017467090322580647,
+            "min": 0
+        },
+        "ledgersync_transfer_iterations": {
+            "count": 50,
+            "rate": 11.94220462020982
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 155,
+            "value": 0
+        },
+        "http_req_duration": {
+            "avg": 83.30711504516131,
+            "min": 4.470259,
+            "med": 53.5152,
+            "p(50)": 53.5152,
+            "p(95)": 219.1220163999998,
+            "p(99)": 263.66192732,
+            "max": 273.366126
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "http_reqs": {
+            "count": 155,
+            "rate": 37.020834322650444
+        },
+        "http_req_tls_handshaking": {
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "p(50)": 0,
+            "p(95)": 0
+        },
+        "ledgersync_technical_attempt_failures": {
+            "count": 0,
+            "rate": 0
+        },
+        "ledgersync_balance_duration": {
+            "med": 14.678185500000001,
+            "p(50)": 14.678185500000001,
+            "p(95)": 67.48423604999999,
+            "p(99)": 79.06278068999997,
+            "max": 87.726431,
+            "avg": 23.315055500000003,
+            "min": 4.470259,
+            "thresholds": {
+                "p(95)<200": false
+            }
+        },
+        "checks": {
+            "fails": 0,
+            "passes": 140,
+            "value": 1
+        },
+        "ledgersync_posted_commands": {
+            "count": 50,
+            "rate": 11.94220462020982
+        },
+        "iteration_duration": {
+            "min": 76.417977,
+            "med": 1000.3633085,
+            "p(50)": 1000.3633085,
+            "p(95)": 1001.2745444,
+            "p(99)": 1001.81044073,
+            "max": 1001.836618,
+            "avg": 826.0320314799999
+        },
+        "ledgersync_transfer_duration": {
+            "max": 273,
+            "avg": 158.27272727272728,
+            "min": 24,
+            "med": 158,
+            "p(50)": 158,
+            "p(95)": 260.5,
+            "p(99)": 268.14,
+            "thresholds": {
+                "p(95)<500": false
+            }
+        },
+        "http_req_failed{journey:transfer}": {
+            "passes": 0,
+            "fails": 55,
+            "thresholds": {
+                "rate<0.001": false
+            },
+            "value": 0
+        },
+        "http_req_sending": {
+            "min": 0.004269,
+            "med": 0.010488,
+            "p(50)": 0.010488,
+            "p(95)": 0.1953818999999997,
+            "p(99)": 0.2806366000000001,
+            "max": 0.31959,
+            "avg": 0.03180274838709676
+        },
+        "ledgersync_unexpected_outcomes": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "ledgersync_same_key_replays": {
+            "rate": 1.194220462020982,
+            "count": 5
+        },
+        "data_sent": {
+            "count": 322478,
+            "rate": 77021.96523032045
+        },
+        "http_req_blocked": {
+            "avg": 0.0231609483870968,
+            "min": 0.000953,
+            "med": 0.002323,
+            "p(50)": 0.002323,
+            "p(95)": 0.18135479999999937,
+            "p(99)": 0.4480869000000001,
+            "max": 0.462454
+        },
+        "vus": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "data_received": {
+            "count": 484803,
+            "rate": 115792.33252983163
+        }
+    }
+}

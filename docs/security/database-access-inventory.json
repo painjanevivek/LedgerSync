@@ -1,0 +1,2410 @@
+{
+    "roles": [
+        {
+            "name": "ledgersync_api",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        },
+        {
+            "name": "ledgersync_break_glass",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        },
+        {
+            "name": "ledgersync_migration_owner",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        },
+        {
+            "name": "ledgersync_provisioning",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        },
+        {
+            "name": "ledgersync_reconciliation",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        },
+        {
+            "name": "ledgersync_scheduler",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        },
+        {
+            "name": "ledgersync_support_readonly",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        },
+        {
+            "name": "ledgersync_worker",
+            "inherits": true,
+            "can_login": false,
+            "superuser": false,
+            "bypass_rls": false,
+            "create_role": false,
+            "memberships": [
+            ],
+            "create_database": false
+        }
+    ],
+    "views": [
+        {
+            "name": "ledger_semantic_key_validation",
+            "owner": "ledgersync",
+            "options": null
+        }
+    ],
+    "grants": [
+        {
+            "role": "ledgersync_api",
+            "table": "account_balance_projections",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_balance_projections",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_balance_projections",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_credit_permissions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_credit_permissions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_opening_balances",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_opening_balances",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_owners",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "account_owners",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "accounts",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "accounts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "accounts",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "api_rate_limit_windows",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "api_rate_limit_windows",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "api_rate_limit_windows",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "approval_records",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "approval_records",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "audit_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "audit_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "bff_actor_assertion_replays",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "bff_actor_assertion_replays",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "bff_actor_assertion_replays",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "delivery_attempts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "delivery_replay_actions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "delivery_replay_actions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_command_idempotency",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_command_idempotency",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_command_idempotency",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_credential_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_credential_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_credentials",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_credentials",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_credentials",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_command_idempotency",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_command_idempotency",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_command_idempotency",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_endpoints",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_endpoints",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_endpoints",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "developer_webhook_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "funding_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "funding_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "funding_events",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "funding_velocity_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "funding_velocity_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "idempotency_requests",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "idempotency_requests",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "idempotency_requests",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_live_room_findings",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_live_room_findings",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_live_room_operations",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_live_room_operations",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_live_rooms",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_live_rooms",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_live_rooms",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_saved_views",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_saved_views",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_saved_views",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_saved_views",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_workspace_references",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_workspace_references",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_workspaces",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_workspaces",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "investigation_workspaces",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "journal_transactions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "journal_transactions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "ledger_postings",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "ledger_postings",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "logical_message_receipts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "logical_node_clocks",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "operator_onboarding_preferences",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "operator_onboarding_preferences",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "operator_onboarding_preferences",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "outbox_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "outbox_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "outbox_publication_attempts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "outbox_replay_actions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "partner_credential_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_mismatches",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_mismatches",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_run_commands",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_run_commands",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_run_commands",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_runs",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_runs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_scheduled_jobs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "reconciliation_scheduler_leases",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "retention_runs",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "schema_migrations",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "tenant_funding_policies",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "tenant_subject_roles",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "tenant_transfer_policies",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "tenants",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_corrections",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_corrections",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_corrections",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_policy_versions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_recovery_intents",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_velocity_events",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_velocity_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_velocity_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_velocity_totals",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_velocity_totals",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfer_velocity_totals",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfers",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfers",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "transfers",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "webhook_delivery_jobs",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "webhook_delivery_jobs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_api",
+            "table": "webhook_endpoint_verification_jobs",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_balance_projections",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_balance_projections",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_balance_projections",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_credit_permissions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_credit_permissions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_opening_balances",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_opening_balances",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_owners",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "account_owners",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "accounts",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "accounts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "accounts",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "approval_records",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "approval_records",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "audit_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "developer_webhook_endpoints",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "funding_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "funding_events",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "funding_velocity_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "funding_velocity_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "idempotency_requests",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "idempotency_requests",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "idempotency_requests",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "journal_transactions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "journal_transactions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "ledger_postings",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "ledger_postings",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "outbox_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "tenant_funding_policies",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "tenant_subject_roles",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "tenant_transfer_policies",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "tenant_transfer_policies",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "tenants",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_corrections",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_corrections",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_recovery_intents",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_recovery_intents",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_velocity_events",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_velocity_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_velocity_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_velocity_totals",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_velocity_totals",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfer_velocity_totals",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfers",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfers",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "transfers",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_migration_owner",
+            "table": "webhook_delivery_jobs",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "account_balance_projections",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "account_credit_permissions",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "account_credit_permissions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "account_opening_balances",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "account_owners",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "account_owners",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "accounts",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "accounts",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "audit_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "partner_credential_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "partner_credential_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "partner_provisioning_requests",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "partner_provisioning_requests",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "tenant_subject_roles",
+            "privilege": "DELETE"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "tenant_subject_roles",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "tenant_transfer_policies",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "tenants",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "tenants",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_provisioning",
+            "table": "transfers",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "account_balance_projections",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "account_opening_balances",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "accounts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "audit_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "journal_transactions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "ledger_postings",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "outbox_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "reconciliation_mismatches",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "reconciliation_runs",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "schema_migrations",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "tenants",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_reconciliation",
+            "table": "transfers",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_scheduler",
+            "table": "audit_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_scheduler",
+            "table": "reconciliation_mismatches",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_scheduler",
+            "table": "reconciliation_runs",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "account_balance_projections",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "account_owners",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "accounts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "audit_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "delivery_attempts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "delivery_replay_actions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "developer_credential_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "developer_credentials",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "developer_webhook_endpoints",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "developer_webhook_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "investigation_live_room_findings",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "investigation_live_rooms",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "investigation_saved_views",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "investigation_workspace_references",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "investigation_workspaces",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "journal_transactions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "ledger_postings",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "outbox_replay_actions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "partner_credential_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "partner_provisioning_requests",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "reconciliation_mismatches",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "reconciliation_runs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "retention_runs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "tenant_subject_roles",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "tenants",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "transfers",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_support_readonly",
+            "table": "webhook_delivery_jobs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "audit_events",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "delivery_attempts",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "delivery_attempts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "delivery_replay_actions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "delivery_replay_actions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "developer_webhook_endpoints",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "logical_message_receipts",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "logical_message_receipts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "logical_node_clocks",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "outbox_events",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "outbox_events",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "outbox_publication_attempts",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "outbox_publication_attempts",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "outbox_publication_attempts",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "outbox_replay_actions",
+            "privilege": "INSERT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "outbox_replay_actions",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "tenants",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "transfers",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "webhook_delivery_jobs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "webhook_delivery_jobs",
+            "privilege": "UPDATE"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "webhook_endpoint_verification_jobs",
+            "privilege": "SELECT"
+        },
+        {
+            "role": "ledgersync_worker",
+            "table": "webhook_endpoint_verification_jobs",
+            "privilege": "UPDATE"
+        }
+    ],
+    "tables": [
+        {
+            "name": "account_balance_projections",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "account_credit_permissions",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "account_opening_balances",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "account_owners",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "accounts",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "api_rate_limit_windows",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "approval_records",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "audit_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "bff_actor_assertion_replays",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "delivery_attempts",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "delivery_replay_actions",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "developer_command_idempotency",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "developer_credential_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "developer_credentials",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "developer_webhook_command_idempotency",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "developer_webhook_endpoints",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "developer_webhook_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "funding_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "funding_velocity_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "idempotency_requests",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "investigation_live_room_findings",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "investigation_live_room_operations",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "investigation_live_rooms",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "investigation_saved_views",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "investigation_workspace_references",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "investigation_workspaces",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "journal_transactions",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "ledger_postings",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "ledger_semantic_control_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "logical_message_receipts",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "logical_node_clocks",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "operator_onboarding_preferences",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "outbox_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "outbox_publication_attempts",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "outbox_replay_actions",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "partner_credential_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "partner_provisioning_requests",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "reconciliation_mismatches",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "reconciliation_run_commands",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "reconciliation_runs",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "reconciliation_scheduled_jobs",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "reconciliation_scheduler_leases",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "reconciliation_scheduler_tenants",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "retention_runs",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "schema_migrations",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "tenant_funding_policies",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "tenant_subject_roles",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "tenant_transfer_policies",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "tenants",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": false
+        },
+        {
+            "name": "transfer_corrections",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "transfer_policy_versions",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "transfer_recovery_intents",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "transfer_velocity_events",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "transfer_velocity_totals",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "transfers",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "webhook_delivery_jobs",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        },
+        {
+            "name": "webhook_endpoint_verification_jobs",
+            "owner": "ledgersync",
+            "policies": [
+            ],
+            "rls_forced": false,
+            "rls_enabled": false,
+            "tenant_column": true
+        }
+    ],
+    "target": "isolated-test-database",
+    "functions": [
+        {
+            "name": "acquire_reconciliation_scheduler",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "p_tenant uuid, p_owner text, p_duration_ms integer",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "advance_logical_clock",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "p_node_id text, p_received bigint",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "armor",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "armor",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text[], text[]",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "claim_reconciliation_schedule",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "p_tenant uuid, p_owner text, p_generation bigint, p_interval_seconds integer",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "complete_reconciliation_schedule",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "p_tenant uuid, p_owner text, p_generation bigint, p_job uuid, p_run uuid, p_outcome text",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "controlled_attach_transfer_request_reference_v1",
+            "owner": "ledgersync_migration_owner",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "p_tenant_id uuid, p_actor_subject_id text, p_idempotency_key text, p_request_fingerprint bytea, p_request_reference uuid",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "controlled_post_funding_v1",
+            "owner": "ledgersync_migration_owner",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "p_tenant_id uuid, p_actor_subject_id text, p_funding_event_id uuid, p_idempotency_key text, p_correlation_id uuid, p_occurred_at timestamp with time zone",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "controlled_post_transfer_correction_v1",
+            "owner": "ledgersync_migration_owner",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "p_tenant_id uuid, p_actor_subject_id text, p_correction_id uuid, p_idempotency_key text, p_correlation_id uuid, p_occurred_at timestamp with time zone, p_step_up_authenticated_at timestamp with time zone",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "controlled_prepare_transfer_recovery_v1",
+            "owner": "ledgersync_migration_owner",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "p_tenant uuid, p_actor text, p_reference uuid, p_key text, p_source uuid, p_destination uuid, p_currency text, p_amount bigint, p_fingerprint bytea",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "controlled_provision_account_v1",
+            "owner": "ledgersync_migration_owner",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "p_tenant_id uuid, p_actor_subject_id text, p_account_id uuid, p_currency text, p_display_name text, p_category text, p_external_reference text, p_read_subject_ids text[], p_debit_subject_ids text[], p_credit_subject_ids text[], p_correlation_id uuid, p_occurred_at timestamp with time zone",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "controlled_submit_transfer_v1",
+            "owner": "ledgersync_migration_owner",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "p_tenant_id uuid, p_actor_subject_id text, p_debit_account_id uuid, p_credit_account_id uuid, p_amount_minor bigint, p_currency text, p_idempotency_key text, p_request_fingerprint bytea, p_correlation_id uuid, p_pilot_currency text, p_occurred_at timestamp with time zone",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "crypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "dearmor",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "decrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "decrypt_iv",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "digest",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "digest",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "encrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "encrypt_iv",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "enforce_ledger_semantic_shape",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "enforce_posting_account_currency",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "enforce_system_negative_balance_policy",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "gen_random_bytes",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "integer",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "gen_random_uuid",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "gen_salt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, integer",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "gen_salt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "hmac",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "hmac",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "hydrate_journal_semantic_keys",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "",
+            "public_execute": false,
+            "security_definer": false
+        },
+        {
+            "name": "hydrate_posting_tenant_key",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "",
+            "public_execute": false,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_armor_headers",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, OUT key text, OUT value text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_key_id",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_decrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_decrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_decrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_decrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_decrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_decrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_encrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_encrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, bytea",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_encrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_pub_encrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_decrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_decrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_decrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_decrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_encrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_encrypt",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_encrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "pgp_sym_encrypt_bytea",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "bytea, text",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "protect_account_identity_and_terminal_status",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "protect_final_transfer",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "protect_funding_event",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "protect_outbox_clock",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "protect_resolved_idempotency",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "protect_transfer_correction",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "protect_webhook_delivery_job_evidence",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "reject_ledger_mutation",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "reject_row_mutation",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "release_reconciliation_scheduler",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "p_tenant uuid, p_owner text, p_generation bigint",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "renew_reconciliation_scheduler",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "p_tenant uuid, p_owner text, p_generation bigint, p_duration_ms integer",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "restrict_scheduler_evidence_insert",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "scheduler_tenant_allowed",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "p_tenant uuid",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "snapshot_transfer_policy",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        },
+        {
+            "name": "stamp_outbox_logical_clock",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=public, pg_temp"
+            ],
+            "signature": "",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "validate_ledger_semantic_shape",
+            "owner": "ledgersync",
+            "settings": [
+                "search_path=pg_catalog, public"
+            ],
+            "signature": "target_journal_id uuid",
+            "public_execute": false,
+            "security_definer": true
+        },
+        {
+            "name": "version_transfer_policy",
+            "owner": "ledgersync",
+            "settings": null,
+            "signature": "",
+            "public_execute": true,
+            "security_definer": false
+        }
+    ],
+    "captured_at": "2026-10-14T18:35:02.979314+00:00",
+    "schema_version": "ledgersync-database-access-inventory/v1",
+    "default_privileges": [
+    ]
+}

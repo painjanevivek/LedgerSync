@@ -1,0 +1,11 @@
+=== RUN   TestOutboxCrashHelper
+    worker_crash_test.go:37: process crash helper
+--- SKIP: TestOutboxCrashHelper (0.00s)
+=== RUN   TestOutboxProcessCrashRecovery
+=== RUN   TestOutboxProcessCrashRecovery/before_publish
+=== RUN   TestOutboxProcessCrashRecovery/after_publish
+--- PASS: TestOutboxProcessCrashRecovery (2.99s)
+    --- PASS: TestOutboxProcessCrashRecovery/before_publish (1.52s)
+    --- PASS: TestOutboxProcessCrashRecovery/after_publish (1.47s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	3.585s

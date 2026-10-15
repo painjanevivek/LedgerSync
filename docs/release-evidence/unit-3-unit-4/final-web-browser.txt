@@ -1,0 +1,2502 @@
+
+> ledgersync-web@0.1.0 test:e2e
+> playwright test --grep-invert @performance --workers=2
+
+[WebServer] (node:408340) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:408340) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425228) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:407876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:422416) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:426524) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427284) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:419280) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:405204) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:419004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:426932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427460) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425056) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427900) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425232) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:417124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:413376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:404760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:427820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425148) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:423360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:424884) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425752) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:425560) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:434896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 233 tests using 2 workers
+
+(node:431628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:425356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok   2 [chromium] › tests\e2e\accessibility.spec.ts:14:5 › compact navigation opens, closes with Escape, and restores focus (8.7s)
+  ok   1 [chromium] › tests\e2e\accessibility.spec.ts:6:5 › the operator console has no automatically detectable accessibility violations (11.5s)
+  ok   4 [chromium] › tests\e2e\accessibility.spec.ts:29:5 › 320 CSS-pixel reflow, equivalent to 400% desktop zoom, keeps evidence available (4.8s)
+  ok   3 [chromium] › tests\e2e\accessibility.spec.ts:19:5 › forced colors and reduced motion preserve operable financial evidence (7.4s)
+  ok   5 [chromium] › tests\e2e\accessibility.spec.ts:48:5 › 200% desktop zoom preserves the exact-value table and its primary action (4.6s)
+  ok   6 [chromium] › tests\e2e\accessibility.spec.ts:63:5 › copy controls announce completion without hiding the full identifier (4.6s)
+  ok   8 [chromium] › tests\e2e\accessibility.spec.ts:75:5 › account balance and ledger history report independent truth states (6.4s)
+  ok   7 [chromium] › tests\e2e\accessibility.spec.ts:68:5 › visually shortened transfer routes retain their complete accessible account identifiers (6.4s)
+  ok   9 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /accounts has no automatically detectable WCAG A or AA violation (14.4s)
+  ok  10 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /accounts/11111111-1111-4111-8111-111111111111 has no automatically detectable WCAG A or AA violation (15.5s)
+  ok  12 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /approvals has no automatically detectable WCAG A or AA violation (16.8s)
+  ok  11 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /funding has no automatically detectable WCAG A or AA violation (19.0s)
+  ok  14 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /transfers/33333333-3333-4333-8333-333333333333 has no automatically detectable WCAG A or AA violation (22.8s)
+  ok  13 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /transfers has no automatically detectable WCAG A or AA violation (24.0s)
+  ok  15 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /reconciliation has no automatically detectable WCAG A or AA violation (13.9s)
+  ok  16 [chromium] › tests\e2e\accessibility.spec.ts:87:7 › populated /reconciliation/55555555-5555-4555-8555-555555555555 has no automatically detectable WCAG A or AA violation (13.9s)
+  x   18 [chromium] › tests\e2e\accessibility.spec.ts:110:5 › keyboard-only transfer review announces an unknown result and preserves the retry key (4.9s)
+(node:437880) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  17 [chromium] › tests\e2e\accessibility.spec.ts:96:5 › compact approval evidence reflows through a keyboard-scrollable labelled region (7.4s)
+  ok  20 [chromium] › tests\e2e\accessibility.spec.ts:153:5 › WCAG text-spacing overrides preserve compact evidence and controls (4.8s)
+  ok  21 [chromium] › tests\e2e\accessibility.spec.ts:169:5 › compact primary actions and navigation meet the 44 CSS-pixel touch target (4.7s)
+  ok  19 [chromium] › tests\e2e\accessibility.spec.ts:138:5 › exact-money input survives phone rotation and retains maximum signed-64-bit evidence (9.6s)
+  ok  22 [chromium] › tests\e2e\account-commands.spec.ts:31:5 › create account preserves directory context and proves the zero-INR boundary (4.9s)
+  ok  23 [chromium] › tests\e2e\account-commands.spec.ts:54:5 › unknown create result survives reload and retries the exact body and key (5.1s)
+  ok  24 [chromium] › tests\e2e\account-commands.spec.ts:73:5 › duplicate create rejection unlocks editing and a replay is labeled explicitly (4.8s)
+  ok  25 [chromium] › tests\e2e\account-commands.spec.ts:96:5 › close account binds authoritative account_version, reason and typed reference (4.9s)
+  ok  27 [chromium] › tests\e2e\account-commands.spec.ts:149:5 › lifecycle confirmation is keyboard-modal, accessible, and 44px minimum (7.3s)
+  ok  26 [chromium] › tests\e2e\account-commands.spec.ts:123:5 › account create states remain accessible and retain draft through compact and zoom-equivalent reflow (12.2s)
+  ok  28 [chromium] › tests\e2e\account-commands.spec.ts:171:5 › fund destination applies after async accounts load but never replaces retained transfer intent (4.9s)
+  ok  29 [chromium] › tests\e2e\account-commands.spec.ts:181:5 › funding fails closed when no different authorized INR source has positive exact minor units (4.7s)
+  ok  30 [chromium] › tests\e2e\account-commands.spec.ts:195:5 › account and transfer scopes independently govern create, lifecycle, and funding (5.2s)
+  ok  31 [chromium] › tests\e2e\account-commands.spec.ts:224:5 › detail funding fails closed when the bounded authorized picker is incomplete (4.5s)
+  ok  32 [chromium] › tests\e2e\account-commands.spec.ts:242:5 › close dialog refreshes account configuration and both balances before enabling confirmation (4.8s)
+  ok  33 [chromium] › tests\e2e\account-commands.spec.ts:267:5 › unknown lifecycle outcome locks fields and retries exact body and key inside the active dialog (5.6s)
+  ok  34 [chromium] › tests\e2e\account-commands.spec.ts:290:5 › account version conflict closes stale confirmation and refreshes current evidence (5.5s)
+  ok  35 [chromium] › tests\e2e\account-commands.spec.ts:314:5 › lifecycle dialog reflows at compact, tablet, and desktop sizes with forced colors (5.2s)
+  ok  36 [chromium] › tests\e2e\account-directory.spec.ts:5:5 › account filters and cursor context survive an object-specific investigation (5.8s)
+  ok  37 [chromium] › tests\e2e\account-directory.spec.ts:44:5 › invalid account URLs fail closed before protected directory reads (5.2s)
+  ok  38 [chromium] › tests\e2e\account-directory.spec.ts:59:5 › account directory distinguishes empty, unavailable, and offline states (9.6s)
+  ok  39 [chromium] › tests\e2e\account-directory.spec.ts:78:5 › large exact account evidence reflows without page-level overflow (11.4s)
+  ok  40 [chromium] › tests\e2e\administration-boundary.spec.ts:7:5 › invented production administration scope still receives a non-disclosing missing route (10.2s)
+  ok  41 [chromium] › tests\e2e\administration-boundary.spec.ts:32:5 › admin and an unknown route expose the same public not-found outcome (6.9s)
+  ok  42 [chromium] › tests\e2e\approvals.spec.ts:9:5 › approval inbox keeps typed evidence, bounded counts, and exact return context (5.0s)
+  ok  43 [chromium] › tests\e2e\approvals.spec.ts:28:5 › approval filters persist in the URL and are sent as typed server filters (5.2s)
+  ok  44 [chromium] › tests\e2e\approvals.spec.ts:53:5 › approval denial does not request protected evidence (4.2s)
+  ok  45 [chromium] › tests\e2e\approvals.spec.ts:66:5 › approval unavailability is never presented as an empty queue (4.4s)
+  ok  46 [chromium] › tests\e2e\approvals.spec.ts:76:5 › invalid shared approval queries fail before protected evidence is requested (4.5s)
+  ok  47 [chromium] › tests\e2e\capability-navigation.spec.ts:40:5 › local finance operator sees grouped work, investigation, platform, and environment navigation (4.6s)
+  ok  48 [chromium] › tests\e2e\capability-navigation.spec.ts:57:5 › production read role sees only relevant navigation and never local status (4.5s)
+  ok  49 [chromium] › tests\e2e\capability-navigation.spec.ts:74:5 › production direct local-status access is denied without requesting diagnostics (4.2s)
+  ok  50 [chromium] › tests\e2e\capability-navigation.spec.ts:84:5 › missing account scope denies a direct route without starting protected reads (4.3s)
+  ok  51 [chromium] › tests\e2e\capability-navigation.spec.ts:93:5 › filtered compact navigation keeps dialog focus and Escape restoration (4.5s)
+  ok  52 [chromium] › tests\e2e\controller-ownership.spec.ts:14:5 › account controller does not start transfer, reconciliation, or orientation graphs (4.4s)
+  ok  53 [chromium] › tests\e2e\controller-ownership.spec.ts:27:5 › transfer detail controller owns account selection, transfer proof, and the latest ledger check (4.5s)
+  ok  54 [chromium] › tests\e2e\controller-ownership.spec.ts:40:5 › transfer detail does not request ledger checks or explainability without their scopes (5.5s)
+  ok  55 [chromium] › tests\e2e\controller-ownership.spec.ts:54:5 › reconciliation controller does not load account or transfer graphs (5.2s)
+  ok  56 [chromium] › tests\e2e\controller-ownership.spec.ts:66:5 › guide controller has no financial or operational evidence graph (4.9s)
+  ok  57 [chromium] › tests\e2e\convergence.spec.ts:5:5 › same-account refresh failure retains timestamped historical balance and history (8.7s)
+  ok  58 [chromium] › tests\e2e\convergence.spec.ts:19:5 › same-filter event refresh failure retains its last verified page (11.0s)
+  ok  59 [chromium] › tests\e2e\convergence.spec.ts:31:5 › an offline transition during refresh retains the last verified event page (6.9s)
+  ok  60 [chromium] › tests\e2e\convergence.spec.ts:67:5 › failed account picker is unavailable rather than an unfunded-account business state (6.5s)
+  ok  61 [chromium] › tests\e2e\convergence.spec.ts:78:5 › overview preserves independent evidence when transfer history is unavailable (6.4s)
+  ok  62 [chromium] › tests\e2e\convergence.spec.ts:90:5 › reconciliation command waits for verified history instead of treating failure as idle (5.1s)
+  ok  63 [chromium] › tests\e2e\convergence.spec.ts:101:5 › compact navigation is modal, traps focus, and excludes the background (5.1s)
+  ok  64 [chromium] › tests\e2e\convergence.spec.ts:118:5 › canonical type, touch targets, and reduced motion hold at tablet width (4.9s)
+  ok  65 [chromium] › tests\e2e\convergence.spec.ts:147:5 › local evidence reflows at 320 CSS pixels without page-level clipping (5.2s)
+  ok  66 [chromium] › tests\e2e\corrections.spec.ts:67:5 › independent approver reviews and posts one paired compensation (7.8s)
+  ok  67 [chromium] › tests\e2e\corrections.spec.ts:144:5 › a sensitive correction request turns step-up failure into a safe return path (7.7s)
+  ok  69 [chromium] › tests\e2e\corrections.spec.ts:197:5 › invalid correction URLs do not request protected correction evidence (8.4s)
+  ok  68 [chromium] › tests\e2e\corrections.spec.ts:171:5 › correction status, page count, cursor, and detail return context are URL reproducible (10.3s)
+  ok  71 [chromium] › tests\e2e\developer.spec.ts:33:5 › developer explains every mutation replay rule and the complete partner journey (11.6s)
+  ok  70 [chromium] › tests\e2e\developer.spec.ts:9:5 › developer sees the local boundary, distinct auth lanes, and versioned endpoint groups (16.7s)
+  ok  72 [chromium] › tests\e2e\developer.spec.ts:47:5 › generated server recipes preserve canonical money without accepting credentials (11.1s)
+  ok  73 [chromium] › tests\e2e\developer.spec.ts:63:5 › server-initiated webhook verification never exposes a challenge (10.3s)
+  ok  74 [chromium] › tests\e2e\developer.spec.ts:72:5 › exact transfer and zero-account examples preserve string money and announce non-secret copy (11.2s)
+  ok  75 [chromium] › tests\e2e\developer.spec.ts:92:5 › retry and error evidence gives safe actions without exposing an HTTP runner (10.4s)
+  ok  76 [chromium] › tests\e2e\developer.spec.ts:105:5 › OpenAPI is an authenticated full YAML download with no browser credential (9.6s)
+  ok  77 [chromium] › tests\e2e\developer.spec.ts:117:5 › developer scope denial is distinct and suppresses metadata requests (8.3s)
+  ok  79 [chromium] › tests\e2e\developer.spec.ts:142:5 › offline state preserves loaded metadata and disables refresh and download (7.1s)
+  ok  78 [chromium] › tests\e2e\developer.spec.ts:129:5 › long code and contract tables reflow at 320px and 200-percent-equivalent width (11.6s)
+  ok  80 [chromium] › tests\e2e\financial-posting.spec.ts:18:5 › funding posting refreshes authoritative evidence and requires an accessible confirmation (5.0s)
+  ok  81 [chromium] › tests\e2e\financial-posting.spec.ts:51:5 › unknown funding posting survives reload and retries the identical key (9.3s)
+  ok  82 [chromium] › tests\e2e\financial-posting.spec.ts:79:5 › an unprovable successful response remains an unknown posting outcome (10.3s)
+  ok  83 [chromium] › tests\e2e\financial-posting.spec.ts:93:5 › posting fails closed before dispatch when safe retry storage is unavailable (7.1s)
+  ok  84 [chromium] › tests\e2e\funding-list-contract.spec.ts:13:5 › funding status, page count, cursor, and detail return context are URL reproducible (5.5s)
+  ok  85 [chromium] › tests\e2e\funding-list-contract.spec.ts:38:5 › invalid funding URLs do not request funding or account evidence (4.2s)
+  ok  86 [chromium] › tests\e2e\investigation-search.spec.ts:22:5 › keyboard navigation opens exact search and typed locators lead to canonical detail (3.9s)
+  ok  87 [chromium] › tests\e2e\investigation-search.spec.ts:48:5 › invalid partial lookup and missing scope make no protected search request (3.9s)
+  ok  88 [chromium] › tests\e2e\investigation-search.spec.ts:62:5 › empty and unavailable search outcomes remain distinct and non-inferential (4.1s)
+  ok  89 [chromium] › tests\e2e\investigation-search.spec.ts:75:5 › compact exact search reflows and passes automated accessibility checks (11.7s)
+  ok  90 [chromium] › tests\e2e\investigation-workspaces.spec.ts:6:5 › investigation workspaces reopen historical context beside current evidence and support lifecycle changes (12.1s)
+  ok  91 [chromium] › tests\e2e\investigation-workspaces.spec.ts:48:5 › exact search creates a server-owned workspace without copied financial fields or browser persistence (6.1s)
+  ok  92 [chromium] › tests\e2e\journey-alignment.spec.ts:7:5 › guide includes funding posting and the original-request follow-up path (6.8s)
+  ok  93 [chromium] › tests\e2e\journey-alignment.spec.ts:23:5 › account balance timestamps remain UTC in a different browser timezone (8.3s)
+  ok  94 [chromium] › tests\e2e\journey-alignment.spec.ts:36:5 › selected transfer evidence precedes history on narrow screens and stays beside it on desktop (7.7s)
+  ok  96 [chromium] › tests\e2e\journey-alignment.spec.ts:73:5 › secondary navigation remains operable on the transfer screen by keyboard (5.7s)
+  ok  95 [chromium] › tests\e2e\journey-alignment.spec.ts:56:5 › the requested destination opens the transfer form before any financial command (7.9s)
+  ok  97 [chromium] › tests\e2e\journey-alignment.spec.ts:88:5 › account filters precede records and versions remain separate from timestamps (3.6s)
+  ok  98 [chromium] › tests\e2e\journey-alignment.spec.ts:106:5 › funding filters appear before the records they control (3.7s)
+  ok  99 [chromium] › tests\e2e\journey-alignment.spec.ts:120:5 › saved work can be reopened before a search query is entered (6.1s)
+  ok 100 [chromium] › tests\e2e\journey-alignment.spec.ts:134:5 › a delivery retry does not imply that a rejected transfer posted money (5.6s)
+  ok 102 [chromium] › tests\e2e\journey-alignment.spec.ts:159:5 › a missing requested destination blocks preparation instead of choosing a different account (4.8s)
+  ok 101 [chromium] › tests\e2e\journey-alignment.spec.ts:149:5 › transfer account links retain the current filter as return context (5.1s)
+  ok 104 [chromium] › tests\e2e\journey-alignment.spec.ts:177:5 › initial offline transfer access does not claim an empty verified history (6.8s)
+  ok 103 [chromium] › tests\e2e\journey-alignment.spec.ts:166:5 › a failed transfer refresh retains the result with a historical warning (7.2s)
+  ok 105 [chromium] › tests\e2e\onboarding.spec.ts:13:5 › signed-out visitors receive a deliberate login layer (5.6s)
+  ok 106 [chromium] › tests\e2e\onboarding.spec.ts:29:5 › a new local user sees an actionable zero-data dashboard and guide (5.7s)
+  ok 108 [chromium] › tests\e2e\operations.spec.ts:28:5 › partial dependency failure remains a truthful partial snapshot (4.8s)
+  ok 107 [chromium] › tests\e2e\operations.spec.ts:13:5 › local status orders financial authority, delivery, and disposable cache without conflating them (9.0s)
+  ok 109 [chromium] › tests\e2e\operations.spec.ts:37:5 › event filters use the exact allowlisted query and an empty result is explicit (7.0s)
+  ok 110 [chromium] › tests\e2e\operations.spec.ts:62:5 › dead event detail is read-only and sends the operator to authoritative related evidence (8.4s)
+  ok 111 [chromium] › tests\e2e\operations.spec.ts:76:5 › event list exposes authorized related evidence links (5.4s)
+  ok 113 [chromium] › tests\e2e\operations.spec.ts:101:5 › dead webhook detail links event and financial evidence without implying rollback (6.9s)
+  ok 112 [chromium] › tests\e2e\operations.spec.ts:84:5 › webhook endpoint list exposes safe origin and exact URL-backed filters (7.1s)
+  ok 114 [chromium] › tests\e2e\operations.spec.ts:114:5 › webhook replay approval is an exact independently handed-off command (6.3s)
+  ok 115 [chromium] › tests\e2e\operations.spec.ts:133:5 › unknown webhook replay execution retains the exact approved command (7.1s)
+  ok 116 [chromium] › tests\e2e\operations.spec.ts:152:5 › disabled webhook status is explicit and does not erase prior delivered evidence (3.7s)
+  ok 117 [chromium] › tests\e2e\operations.spec.ts:161:5 › missing operations scopes are distinct from empty evidence and do not call the BFF (3.6s)
+  ok 119 [chromium] › tests\e2e\operations.spec.ts:194:5 › offline status retains its timestamp but disables refresh (3.3s)
+  ok 118 [chromium] › tests\e2e\operations.spec.ts:178:5 › operations screens reflow at 320px and 200-percent-equivalent width with forced colors and reduced motion (6.1s)
+  ok 120 [chromium] › tests\e2e\operations.spec.ts:205:5 › event cursor and detail return context preserve the exact filtered investigation (3.6s)
+  ok 121 [chromium] › tests\e2e\operations.spec.ts:223:5 › webhook cursor and detail return context preserve the exact filtered investigation (3.4s)
+  ok 122 [chromium] › tests\e2e\operations.spec.ts:241:5 › invalid event and webhook URLs do not request protected evidence (3.7s)
+  ok 124 [chromium] › tests\e2e\orientation-explainability.spec.ts:48:5 › unknown preference response refreshes server truth without optimistic completion (3.9s)
+  ok 123 [chromium] › tests\e2e\orientation-explainability.spec.ts:10:5 › local guide persists confirmation, dismissal, and reopening in server-owned preferences (6.8s)
+  ok 125 [chromium] › tests\e2e\orientation-explainability.spec.ts:63:5 › orientation reports empty and unavailable durable evidence without browser-only completion claims (3.8s)
+  ok 126 [chromium] › tests\e2e\orientation-explainability.spec.ts:79:5 › workspace and local guide fill the browser canvas on phone, tablet, and desktop (4.0s)
+  ok 127 [chromium] › tests\e2e\orientation-explainability.spec.ts:114:5 › transfer detail renders seven linked stored-evidence stages and preserves filtered return context (7.1s)
+  ok 128 [chromium] › tests\e2e\orientation-explainability.spec.ts:131:5 › partial, out-of-order, denied, and compact timeline states remain explicit and accessible (7.2s)
+  ok 129 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 320x800 (5.4s)
+  ok 130 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 390x844 (5.1s)
+  ok 131 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 768x1024 (5.6s)
+  ok 132 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1024x768 (5.4s)
+  ok 133 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1366x768 (5.8s)
+  ok 134 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1440x900 (5.8s)
+  ok 135 [chromium] › tests\e2e\phase9-matrix.spec.ts:33:7 › every populated route reflows at 1920x1080 (6.7s)
+  ok 137 [chromium] › tests\e2e\read-concurrency.spec.ts:19:5 › funding cursor navigation dispatches one URL-bound page request (3.7s)
+  ok 138 [chromium] › tests\e2e\read-concurrency.spec.ts:40:5 › rapid account-history pagination dispatches once and removes page overlap (3.5s)
+  ok 139 [chromium] › tests\e2e\read-concurrency.spec.ts:63:5 › a later transfer refresh wins when responses resolve out of order (3.1s)
+  ok 140 [chromium] › tests\e2e\read-concurrency.spec.ts:91:5 › a correction filter change rejects an in-flight cursor page (11.4s)
+  ok 141 [chromium] › tests\e2e\reconciliation-command.spec.ts:53:5 › operator reviews exact scope and a completed run preserves prior history (3.1s)
+  ok 142 [chromium] › tests\e2e\reconciliation-command.spec.ts:83:5 › running state never infers a result and manual refresh resolves one stable run ID (3.1s)
+  x  136 [chromium] › tests\e2e\phase9-matrix.spec.ts:67:5 › every populated route passes the complete authored-color WCAG A and AA rules (31.3s)
+(node:449640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 143 [chromium] › tests\e2e\reconciliation-command.spec.ts:100:5 › response unknown survives reload and retries the exact same key and body (3.9s)
+  ok 145 [chromium] › tests\e2e\reconciliation-command.spec.ts:132:5 › polling stops at its fixed deadline and manual refresh remains single-flight (4.6s)
+  ok 144 [chromium] › tests\e2e\reconciliation-command.spec.ts:122:5 › request in progress is a stable already-running state with active run evidence (7.2s)
+  ok 146 [chromium] › tests\e2e\reconciliation-command.spec.ts:169:5 › read-only and offline operators retain history without an enabled run action (4.4s)
+  ok 147 [chromium] › tests\e2e\reconciliation-command.spec.ts:184:5 › mismatch evidence links affected authorized accounts and never presents all clear (4.8s)
+  ok 149 [chromium] › tests\e2e\reconciliation-command.spec.ts:212:5 › reconciliation page count, cursor, and run return context are URL reproducible (3.5s)
+  ok 148 [chromium] › tests\e2e\reconciliation-command.spec.ts:194:5 › review and running controls pass axe and reflow across compact, zoom-equivalent, and forced-color states (8.1s)
+  ok 150 [chromium] › tests\e2e\reconciliation-command.spec.ts:231:5 › invalid reconciliation URLs do not request protected run evidence (2.9s)
+  ok 151 [chromium] › tests\e2e\recovery-export.spec.ts:6:5 › Recovery labels an older schema as historical and recommends a current backup (3.1s)
+  ok 152 [chromium] › tests\e2e\recovery-export.spec.ts:14:5 › Recovery requires a restore of the exact latest backup and limits snapshot claims (3.5s)
+  ok 154 [chromium] › tests\e2e\recovery-export.spec.ts:46:5 › Recovery shows truthful empty and partial evidence without inventing readiness (3.3s)
+  ok 153 [chromium] › tests\e2e\recovery-export.spec.ts:32:5 › Recovery separates current truth, backup, restore, retention, and copy-only host guidance (5.6s)
+  ok 155 [chromium] › tests\e2e\recovery-export.spec.ts:58:5 › transfer export review discloses exact filters and uses one native bounded download (4.0s)
+  ok 156 [chromium] › tests\e2e\recovery-export.spec.ts:73:5 › account and reconciliation exports retain their exact contextual scope (3.7s)
+  ok 158 [chromium] › tests\e2e\related-evidence.spec.ts:5:5 › canonical detail pages progressively disclose bounded deterministic relationships (3.4s)
+  ok 157 [chromium] › tests\e2e\recovery-export.spec.ts:85:5 › recovery and export controls reflow, deny missing scopes, and fail closed offline (6.2s)
+  ok 159 [chromium] › tests\e2e\related-evidence.spec.ts:17:5 › relationship failure is explicit and never becomes a verified empty state (3.2s)
+  ok 160 [chromium] › tests\e2e\responsive.spec.ts:8:7 › core evidence journeys reflow at 390x844 (3.8s)
+  ok 161 [chromium] › tests\e2e\responsive.spec.ts:8:7 › core evidence journeys reflow at 768x1024 (4.2s)
+  ok 162 [chromium] › tests\e2e\responsive.spec.ts:8:7 › core evidence journeys reflow at 1024x768 (4.3s)
+  ok 163 [chromium] › tests\e2e\responsive.spec.ts:8:7 › core evidence journeys reflow at 1280x800 (4.7s)
+  ok 164 [chromium] › tests\e2e\responsive.spec.ts:8:7 › core evidence journeys reflow at 1440x900 (4.9s)
+  ok 165 [chromium] › tests\e2e\responsive.spec.ts:8:7 › core evidence journeys reflow at 1920x1080 (4.4s)
+  ok 166 [chromium] › tests\e2e\responsive.spec.ts:8:7 › core evidence journeys reflow at 2560x1440 (5.6s)
+  ok 167 [chromium] › tests\e2e\responsive.spec.ts:21:5 › funding uses the full operator workspace without widening exact-value controls (6.2s)
+  ok 168 [chromium] › tests\e2e\responsive.spec.ts:67:5 › funding collapses its contextual rail at zoom-equivalent reflow widths (4.1s)
+  ok 169 [chromium] › tests\e2e\responsive.spec.ts:80:5 › funding explains why its four inputs are required (3.6s)
+  ok 170 [chromium] › tests\e2e\responsive.spec.ts:94:5 › shared field labels show the server-backed required or optional state (3.6s)
+  ok 171 [chromium] › tests\e2e\responsive.spec.ts:114:5 › approval filters and exact decision evidence remain usable from compact to ultrawide (4.4s)
+[WebServer] ⨯ Error: confidential-render-probe-must-never-reach-the-browser
+[WebServer]     at h (D:\Work\Project\Dev\LedgerSync\web\.next\standalone\.next\server\chunks\ssr\_0ikjg1m._.js:1:24528) {
+[WebServer]   digest: '2754451910'
+[WebServer] }
+  ok 172 [chromium] › tests\e2e\route-boundaries.spec.ts:9:5 › unknown routes are non-disclosing and return safely to the overview (5.0s)
+  ok 173 [chromium] › tests\e2e\route-boundaries.spec.ts:24:5 › a render failure exposes no raw error and a same-page retry recovers (5.0s)
+  ok 174 [chromium] › tests\e2e\route-boundaries.spec.ts:41:5 › hidden administration and an unknown route remain indistinguishable (3.0s)
+  ok 175 [chromium] › tests\e2e\saved-investigation-views.spec.ts:6:5 › saved operational views open current evidence and support audited preference maintenance (3.0s)
+  ok 176 [chromium] › tests\e2e\saved-investigation-views.spec.ts:29:5 › filter capture sends only the versioned allowlisted definition and never uses browser storage (5.1s)
+  ok 177 [chromium] › tests\e2e\session-boundary.spec.ts:5:5 › session and connectivity authority persist across console route families (3.8s)
+  ok 179 [chromium] › tests\e2e\session-boundary.spec.ts:57:5 › confirmed sign-out clears the shared session and returns to the login layer (3.4s)
+  ok 180 [chromium] › tests\e2e\transfer-list-contract.spec.ts:13:5 › transfer filters, cursor, export scope, and detail return context share one URL contract (3.9s)
+  x  178 [chromium] › tests\e2e\session-boundary.spec.ts:32:5 › failed sign-out keeps the proven session visible and exposes a retryable error (8.5s)
+(node:457660) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 181 [chromium] › tests\e2e\transfer-list-contract.spec.ts:51:5 › invalid transfer URLs do not request transfer or account-picker evidence (4.2s)
+  ok 183 [chromium] › tests\e2e\transfer-recovery.spec.ts:26:5 › a known receipt is read without posting and reflows at 320 pixels (8.4s)
+  ok 182 [chromium] › tests\e2e\transfer-recovery.spec.ts:8:5 › saved recovery requires exact review, sends no replacement body, and opens receipt (9.5s)
+  ok 184 [chromium] › tests\e2e\transfer-recovery.spec.ts:36:5 › read-only recovery cannot submit and failed refresh cannot mean empty scope (4.7s)
+  ok 185 [chromium] › tests\e2e\transfer-recovery.spec.ts:45:5 › a failed durable prepare cannot send a posting command (5.9s)
+  ok 186 [chromium] › tests\e2e\transfer.spec.ts:5:5 › an unauthenticated visitor sees the login layer and no invented financial data (3.8s)
+  ok 187 [chromium] › tests\e2e\transfer.spec.ts:15:5 › an authorized operator retries a lost response with the same idempotency key (5.6s)
+  ok 188 [chromium] › tests\e2e\transfer.spec.ts:39:5 › rapid repeated activation dispatches only one transfer request (5.3s)
+  ok 189 [chromium] › tests\e2e\transfer.spec.ts:55:5 › an unknown transfer survives reload with its exact intent and only the same-key retry action (6.5s)
+  x  190 [chromium] › tests\e2e\transfer.spec.ts:84:5 › a final rejection clears its key before a genuinely new intent (6.4s)
+(node:457564) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 191 [chromium] › tests\e2e\transfer.spec.ts:106:5 › a posted confirmation exposes journal, UTC, and committed balance-version evidence (4.8s)
+  ok 193 [chromium] › tests\e2e\transfer.spec.ts:169:5 › an insufficient-funds outcome clearly states that no movement occurred (4.7s)
+  ok 192 [chromium] › tests\e2e\transfer.spec.ts:153:5 › a malformed exact-money amount is rejected before it reaches the API (7.6s)
+  x  194 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › overview-populated has a reviewed desktop baseline (4.8s)
+(node:457428) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  195 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › accounts-populated has a reviewed desktop baseline (4.9s)
+(node:457872) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  196 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › account-detail-populated has a reviewed desktop baseline (8.4s)
+(node:448672) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  197 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › funding-records-populated has a reviewed desktop baseline (7.6s)
+(node:410628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  198 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › approvals-populated has a reviewed desktop baseline (9.6s)
+(node:458700) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  199 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › transfers-populated has a reviewed desktop baseline (8.9s)
+(node:456768) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  200 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › transfer-detail-posted-delivery-retrying has a reviewed desktop baseline (11.4s)
+(node:456292) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  201 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › reconciliation-populated has a reviewed desktop baseline (11.1s)
+(node:439424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  203 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › local-status-degraded has a reviewed desktop baseline (7.3s)
+(node:432408) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  202 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › reconciliation-detail-populated has a reviewed desktop baseline (10.8s)
+(node:457360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  204 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › events-populated has a reviewed desktop baseline (7.5s)
+(node:459844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  205 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › event-detail-retrying has a reviewed desktop baseline (7.7s)
+(node:460460) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  206 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › webhooks-populated has a reviewed desktop baseline (8.2s)
+(node:460964) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  207 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › webhook-detail-dead has a reviewed desktop baseline (8.0s)
+(node:461324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  209 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › recovery-evidence has a reviewed desktop baseline (8.7s)
+(node:462320) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  208 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › developer-contract has a reviewed desktop baseline (14.5s)
+(node:391544) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  210 [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › investigation-search-populated has a reviewed desktop baseline (12.1s)
+(node:439116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  211 [chromium] › tests\e2e\visual-regression.spec.ts:67:5 › funding records use the reviewed contextual rail on ultrawide screens (19.2s)
+(node:462236) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  213 [chromium] › tests\e2e\visual-regression.spec.ts:83:5 › compact account directory preserves the selected information hierarchy (13.7s)
+  x  212 [chromium] › tests\e2e\visual-regression.spec.ts:74:5 › funding intake keeps its financial controls readable from desktop to ultrawide (23.4s)
+(node:463772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:462956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  215 [chromium] › tests\e2e\visual-regression.spec.ts:98:5 › compact developer contract preserves code and retry hierarchy (12.0s)
+  x  214 [chromium] › tests\e2e\visual-regression.spec.ts:90:5 › compact exact search preserves locator evidence without page overflow (9.6s)
+(node:456460) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:461004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  217 [chromium] › tests\e2e\visual-regression.spec.ts:114:5 › loading state does not imply empty account evidence (8.7s)
+  x  216 [chromium] › tests\e2e\visual-regression.spec.ts:105:5 › transfer export review preserves the exact evidence hierarchy (10.1s)
+(node:456472) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:463716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  218 [chromium] › tests\e2e\visual-regression.spec.ts:122:5 › empty account scope is explicit (6.2s)
+  x  219 [chromium] › tests\e2e\visual-regression.spec.ts:130:5 › account dependency failure does not render stale balances (6.3s)
+(node:450168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:464864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  220 [chromium] › tests\e2e\visual-regression.spec.ts:138:5 › permission denial remains distinct from an empty directory (7.9s)
+(node:461020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  221 [chromium] › tests\e2e\visual-regression.spec.ts:146:5 › offline state preserves already verified evidence and disables writes (8.7s)
+(node:458820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  222 [chromium] › tests\e2e\visual-regression.spec.ts:157:5 › account detail separates balance failure from history permission (17.8s)
+  x  223 [chromium] › tests\e2e\visual-regression.spec.ts:167:5 › unknown transfer outcome keeps the exact intent and safe retry action (16.7s)
+(node:424384) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:464444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  225 [chromium] › tests\e2e\visual-regression.spec.ts:189:5 › missing session renders the login layer with no financial evidence (6.5s)
+  x  224 [chromium] › tests\e2e\visual-regression.spec.ts:180:5 › reconciliation mismatch is visually stop-ship (6.7s)
+(node:462164) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:460756) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  226 [chromium] › tests\e2e\visual-regression.spec.ts:196:5 › read-only transfer role explains why posting is disabled (14.2s)
+  x  227 [chromium] › tests\e2e\visual-regression.spec.ts:206:5 › mixed-currency overview refuses a false aggregate (14.2s)
+(node:466216) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:462968) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] ⨯ Error: confidential-render-probe-must-never-reach-the-browser
+[WebServer]     at h (D:\Work\Project\Dev\LedgerSync\web\.next\standalone\.next\server\chunks\ssr\_0ikjg1m._.js:1:24528) {
+[WebServer]   digest: '2754451910'
+[WebServer] }
+  x  228 [chromium] › tests\e2e\visual-regression.spec.ts:214:5 › an unavailable route has a reviewed non-disclosing baseline (7.2s)
+  x  229 [chromium] › tests\e2e\visual-regression.spec.ts:223:5 › a render interruption has a reviewed safe-retry baseline (7.3s)
+(node:467812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:465240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  230 [chromium] › tests\e2e\visual-regression.spec.ts:232:5 › account create review has a Windows local-console baseline (9.6s)
+  x  231 [chromium] › tests\e2e\visual-regression.spec.ts:246:5 › account lifecycle guard has a Windows local-console baseline (9.7s)
+(node:468284) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:468588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  232 [chromium] › tests\e2e\visual-regression.spec.ts:268:5 › reconciliation command review has a Windows local-console baseline (10.9s)
+  x  233 [chromium] › tests\e2e\visual-regression.spec.ts:278:5 › reconciliation running control has a Windows local-console baseline (10.9s)
+
+
+  1) [chromium] › tests\e2e\accessibility.spec.ts:110:5 › keyboard-only transfer review announces an unknown result and preserves the retry key 
+
+    Error: expect(received).toHaveLength(expected)
+
+    Expected length: 2
+    Received length: 1
+    Received array:  ["1f44154c-bc46-40d7-916b-99900258c3af"]
+
+      131 |   await retry.focus();
+      132 |   await retry.press("Enter");
+    > 133 |   expect(keys).toHaveLength(2);
+          |                ^
+      134 |   expect(keys[0]).toBeTruthy();
+      135 |   expect(keys[1]).toBe(keys[0]);
+      136 | });
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\accessibility.spec.ts:133:16
+
+    Error Context: test-results\accessibility-keyboard-onl-987ff-and-preserves-the-retry-key-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\accessibility-keyboard-onl-987ff-and-preserves-the-retry-key-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\accessibility-keyboard-onl-987ff-and-preserves-the-retry-key-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests\e2e\phase9-matrix.spec.ts:67:5 › every populated route passes the complete authored-color WCAG A and AA rules 
+
+    Test timeout of 30000ms exceeded.
+
+    Error Context: test-results\phase9-matrix-every-popula-3b6cf-d-color-WCAG-A-and-AA-rules-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\phase9-matrix-every-popula-3b6cf-d-color-WCAG-A-and-AA-rules-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\phase9-matrix-every-popula-3b6cf-d-color-WCAG-A-and-AA-rules-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests\e2e\session-boundary.spec.ts:32:5 › failed sign-out keeps the proven session visible and exposes a retryable error 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('#sign-out-error')
+    Expected substring: "Sign-out was not confirmed (503). The current workspace remains signed in."
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('#sign-out-error')
+
+
+      47 |   await signOut.dblclick();
+      48 |
+    > 49 |   await expect(page.locator("#sign-out-error")).toContainText(
+         |                                                 ^
+      50 |     "Sign-out was not confirmed (503). The current workspace remains signed in.",
+      51 |   );
+      52 |   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\session-boundary.spec.ts:49:49
+
+    Error Context: test-results\session-boundary-failed-si-689b0-d-exposes-a-retryable-error-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\session-boundary-failed-si-689b0-d-exposes-a-retryable-error-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\session-boundary-failed-si-689b0-d-exposes-a-retryable-error-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests\e2e\transfer.spec.ts:84:5 › a final rejection clears its key before a genuinely new intent 
+
+    Error: expect(received).toHaveLength(expected)
+
+    Expected length: 2
+    Received length: 1
+    Received array:  ["cc333319-8850-4a95-a9ac-3f98940896cb"]
+
+       98 |   await page.getByRole("button", { name: "Review transfer" }).click();
+       99 |   await page.getByRole("button", { name: "Confirm and post" }).click();
+    > 100 |   expect(keys).toHaveLength(2);
+          |                ^
+      101 |   expect(keys[0]).toBeTruthy();
+      102 |   expect(keys[1]).toBeTruthy();
+      103 |   expect(keys[1]).not.toBe(keys[0]);
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\transfer.spec.ts:100:16
+
+    Error Context: test-results\transfer-a-final-rejection-b58e6-fore-a-genuinely-new-intent-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\transfer-a-final-rejection-b58e6-fore-a-genuinely-new-intent-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\transfer-a-final-rejection-b58e6-fore-a-genuinely-new-intent-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › overview-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 959px, received 1440px by 900px. 117671 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: overview-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(overview-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 959px, received 1440px by 900px. 117671 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 959px, received 1440px by 900px. 117671 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: overview-populated-1440x900 (image/png) ─────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\overview-populated-1440x900.png
+    Received: test-results\visual-regression-overview-7d1ae-a-reviewed-desktop-baseline-chromium\overview-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-overview-7d1ae-a-reviewed-desktop-baseline-chromium\overview-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-overview-7d1ae-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-overview-7d1ae-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-overview-7d1ae-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › accounts-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 903px, received 1440px by 932px. 116967 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: accounts-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(accounts-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 903px, received 1440px by 932px. 116967 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 903px, received 1440px by 932px. 116967 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: accounts-populated-1440x900 (image/png) ─────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\accounts-populated-1440x900.png
+    Received: test-results\visual-regression-accounts-8a8e1-a-reviewed-desktop-baseline-chromium\accounts-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-accounts-8a8e1-a-reviewed-desktop-baseline-chromium\accounts-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-accounts-8a8e1-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-accounts-8a8e1-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-accounts-8a8e1-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › account-detail-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1642px, received 1440px by 1210px. 162421 pixels (ratio 0.07 of all image pixels) are different.
+
+      Snapshot: account-detail-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(account-detail-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1642px, received 1440px by 1210px. 162421 pixels (ratio 0.07 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1642px, received 1440px by 1210px. 162421 pixels (ratio 0.07 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: account-detail-populated-1440x900 (image/png) ───────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\account-detail-populated-1440x900.png
+    Received: test-results\visual-regression-account--2822f-a-reviewed-desktop-baseline-chromium\account-detail-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-account--2822f-a-reviewed-desktop-baseline-chromium\account-detail-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-account--2822f-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-account--2822f-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-account--2822f-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › funding-records-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      112582 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: funding-records-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(funding-records-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 112582 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 112582 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: funding-records-populated-1440x900 (image/png) ──────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\funding-records-populated-1440x900.png
+    Received: test-results\visual-regression-funding--2f9a3-a-reviewed-desktop-baseline-chromium\funding-records-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-funding--2f9a3-a-reviewed-desktop-baseline-chromium\funding-records-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-funding--2f9a3-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-funding--2f9a3-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-funding--2f9a3-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › approvals-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1303px, received 1440px by 1404px. 157604 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: approvals-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(approvals-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1303px, received 1440px by 1404px. 157604 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1303px, received 1440px by 1404px. 157604 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: approvals-populated-1440x900 (image/png) ────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\approvals-populated-1440x900.png
+    Received: test-results\visual-regression-approval-1a962-a-reviewed-desktop-baseline-chromium\approvals-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-approval-1a962-a-reviewed-desktop-baseline-chromium\approvals-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-approval-1a962-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-approval-1a962-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-approval-1a962-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › transfers-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1595px, received 1440px by 1470px. 187998 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: transfers-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(transfers-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1595px, received 1440px by 1470px. 187998 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1595px, received 1440px by 1470px. 187998 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: transfers-populated-1440x900 (image/png) ────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\transfers-populated-1440x900.png
+    Received: test-results\visual-regression-transfer-ce262-a-reviewed-desktop-baseline-chromium\transfers-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-transfer-ce262-a-reviewed-desktop-baseline-chromium\transfers-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-transfer-ce262-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-transfer-ce262-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-transfer-ce262-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › transfer-detail-posted-delivery-retrying has a reviewed desktop baseline 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Transfer detail', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Transfer detail', exact: true })
+
+
+      59 |     await mockOperatorConsole(page);
+      60 |     await page.goto(route.path);
+    > 61 |     await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
+         |                                                                                                                                                        ^
+      62 |     await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+      63 |     await capture(page, route.name);
+      64 |   });
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:61:152
+
+    Error Context: test-results\visual-regression-transfer-7d424-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-transfer-7d424-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-transfer-7d424-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › reconciliation-populated has a reviewed desktop baseline 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Reconciliation', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Reconciliation', exact: true })
+
+
+      59 |     await mockOperatorConsole(page);
+      60 |     await page.goto(route.path);
+    > 61 |     await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
+         |                                                                                                                                                        ^
+      62 |     await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+      63 |     await capture(page, route.name);
+      64 |   });
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:61:152
+
+    Error Context: test-results\visual-regression-reconcil-5ae3c-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-reconcil-5ae3c-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-reconcil-5ae3c-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  13) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › reconciliation-detail-populated has a reviewed desktop baseline 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Reconciliation details', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Reconciliation details', exact: true })
+
+
+      59 |     await mockOperatorConsole(page);
+      60 |     await page.goto(route.path);
+    > 61 |     await expect(page.getByRole("heading", { name: route.heading, exact: true, ...( "headingLevel" in route ? { level: route.headingLevel } : {} ) })).toBeVisible();
+         |                                                                                                                                                        ^
+      62 |     await expect(page.getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+      63 |     await capture(page, route.name);
+      64 |   });
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:61:152
+
+    Error Context: test-results\visual-regression-reconcil-1163e-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-reconcil-1163e-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-reconcil-1163e-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  14) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › local-status-degraded has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1713px, received 1440px by 1732px. 151907 pixels (ratio 0.07 of all image pixels) are different.
+
+      Snapshot: local-status-degraded-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(local-status-degraded-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1713px, received 1440px by 1732px. 151907 pixels (ratio 0.07 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1713px, received 1440px by 1732px. 151907 pixels (ratio 0.07 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: local-status-degraded-1440x900 (image/png) ──────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\local-status-degraded-1440x900.png
+    Received: test-results\visual-regression-local-st-107ee-a-reviewed-desktop-baseline-chromium\local-status-degraded-1440x900-actual.png
+    Diff:     test-results\visual-regression-local-st-107ee-a-reviewed-desktop-baseline-chromium\local-status-degraded-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-local-st-107ee-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-local-st-107ee-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-local-st-107ee-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  15) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › events-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1191px, received 1440px by 1006px. 117545 pixels (ratio 0.07 of all image pixels) are different.
+
+      Snapshot: events-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(events-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1191px, received 1440px by 1006px. 117545 pixels (ratio 0.07 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1191px, received 1440px by 1006px. 117545 pixels (ratio 0.07 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: events-populated-1440x900 (image/png) ───────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\events-populated-1440x900.png
+    Received: test-results\visual-regression-events-p-4d480-a-reviewed-desktop-baseline-chromium\events-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-events-p-4d480-a-reviewed-desktop-baseline-chromium\events-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-events-p-4d480-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-events-p-4d480-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-events-p-4d480-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  16) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › event-detail-retrying has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 2004px, received 1440px by 1663px. 140306 pixels (ratio 0.05 of all image pixels) are different.
+
+      Snapshot: event-detail-retrying-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(event-detail-retrying-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 2004px, received 1440px by 1663px. 140306 pixels (ratio 0.05 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 2004px, received 1440px by 1663px. 140306 pixels (ratio 0.05 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: event-detail-retrying-1440x900 (image/png) ──────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\event-detail-retrying-1440x900.png
+    Received: test-results\visual-regression-event-de-2ef31-a-reviewed-desktop-baseline-chromium\event-detail-retrying-1440x900-actual.png
+    Diff:     test-results\visual-regression-event-de-2ef31-a-reviewed-desktop-baseline-chromium\event-detail-retrying-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-event-de-2ef31-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-event-de-2ef31-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-event-de-2ef31-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  17) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › webhooks-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1127px, received 1440px by 1024px. 113731 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: webhooks-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(webhooks-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1127px, received 1440px by 1024px. 113731 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1127px, received 1440px by 1024px. 113731 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: webhooks-populated-1440x900 (image/png) ─────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\webhooks-populated-1440x900.png
+    Received: test-results\visual-regression-webhooks-78d5e-a-reviewed-desktop-baseline-chromium\webhooks-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-webhooks-78d5e-a-reviewed-desktop-baseline-chromium\webhooks-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-webhooks-78d5e-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-webhooks-78d5e-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-webhooks-78d5e-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  18) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › webhook-detail-dead has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1394px, received 1440px by 1492px. 124177 pixels (ratio 0.06 of all image pixels) are different.
+
+      Snapshot: webhook-detail-dead-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(webhook-detail-dead-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1394px, received 1440px by 1492px. 124177 pixels (ratio 0.06 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1394px, received 1440px by 1492px. 124177 pixels (ratio 0.06 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: webhook-detail-dead-1440x900 (image/png) ────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\webhook-detail-dead-1440x900.png
+    Received: test-results\visual-regression-webhook--0f9e9-a-reviewed-desktop-baseline-chromium\webhook-detail-dead-1440x900-actual.png
+    Diff:     test-results\visual-regression-webhook--0f9e9-a-reviewed-desktop-baseline-chromium\webhook-detail-dead-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-webhook--0f9e9-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-webhook--0f9e9-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-webhook--0f9e9-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  19) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › developer-contract has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 8285px, received 1440px by 6555px. 2411747 pixels (ratio 0.21 of all image pixels) are different.
+
+      Snapshot: developer-contract-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(developer-contract-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 8285px, received 1440px by 6555px. 2411747 pixels (ratio 0.21 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 8285px, received 1440px by 6555px. 2411747 pixels (ratio 0.21 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: developer-contract-1440x900 (image/png) ─────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\developer-contract-1440x900.png
+    Received: test-results\visual-regression-develope-db12c-a-reviewed-desktop-baseline-chromium\developer-contract-1440x900-actual.png
+    Diff:     test-results\visual-regression-develope-db12c-a-reviewed-desktop-baseline-chromium\developer-contract-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-develope-db12c-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-develope-db12c-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-develope-db12c-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  20) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › recovery-evidence has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1485px, received 1440px by 1357px. 153314 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: recovery-evidence-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(recovery-evidence-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1485px, received 1440px by 1357px. 153314 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1485px, received 1440px by 1357px. 153314 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: recovery-evidence-1440x900 (image/png) ──────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\recovery-evidence-1440x900.png
+    Received: test-results\visual-regression-recovery-bfc14-a-reviewed-desktop-baseline-chromium\recovery-evidence-1440x900-actual.png
+    Diff:     test-results\visual-regression-recovery-bfc14-a-reviewed-desktop-baseline-chromium\recovery-evidence-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-recovery-bfc14-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-recovery-bfc14-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-recovery-bfc14-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  21) [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › investigation-search-populated has a reviewed desktop baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1961px, received 1440px by 1214px. 162826 pixels (ratio 0.06 of all image pixels) are different.
+
+      Snapshot: investigation-search-populated-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(investigation-search-populated-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1961px, received 1440px by 1214px. 162826 pixels (ratio 0.06 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1961px, received 1440px by 1214px. 162826 pixels (ratio 0.06 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:63:5
+
+    attachment #1: investigation-search-populated-1440x900 (image/png) ─────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\investigation-search-populated-1440x900.png
+    Received: test-results\visual-regression-investig-ab8dc-a-reviewed-desktop-baseline-chromium\investigation-search-populated-1440x900-actual.png
+    Diff:     test-results\visual-regression-investig-ab8dc-a-reviewed-desktop-baseline-chromium\investigation-search-populated-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-investig-ab8dc-a-reviewed-desktop-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-investig-ab8dc-a-reviewed-desktop-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-investig-ab8dc-a-reviewed-desktop-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  22) [chromium] › tests\e2e\visual-regression.spec.ts:67:5 › funding records use the reviewed contextual rail on ultrawide screens 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      119090 pixels (ratio 0.04 of all image pixels) are different.
+
+      Snapshot: funding-records-populated-ultrawide-2560x1440.png
+
+    Call log:
+      - Expect "toHaveScreenshot(funding-records-populated-ultrawide-2560x1440.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 119090 pixels (ratio 0.04 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 119090 pixels (ratio 0.04 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:71:3
+
+    attachment #1: funding-records-populated-ultrawide-2560x1440 (image/png) ───────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\funding-records-populated-ultrawide-2560x1440.png
+    Received: test-results\visual-regression-funding--b525c-l-rail-on-ultrawide-screens-chromium\funding-records-populated-ultrawide-2560x1440-actual.png
+    Diff:     test-results\visual-regression-funding--b525c-l-rail-on-ultrawide-screens-chromium\funding-records-populated-ultrawide-2560x1440-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-funding--b525c-l-rail-on-ultrawide-screens-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-funding--b525c-l-rail-on-ultrawide-screens-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-funding--b525c-l-rail-on-ultrawide-screens-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  23) [chromium] › tests\e2e\visual-regression.spec.ts:74:5 › funding intake keeps its financial controls readable from desktop to ultrawide 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1437px, received 1440px by 1300px. 161853 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: funding-intake-desktop-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(funding-intake-desktop-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1437px, received 1440px by 1300px. 161853 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1437px, received 1440px by 1300px. 161853 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:79:3
+
+    attachment #1: funding-intake-desktop-1440x900 (image/png) ─────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\funding-intake-desktop-1440x900.png
+    Received: test-results\visual-regression-funding--7ac10-e-from-desktop-to-ultrawide-chromium\funding-intake-desktop-1440x900-actual.png
+    Diff:     test-results\visual-regression-funding--7ac10-e-from-desktop-to-ultrawide-chromium\funding-intake-desktop-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-funding--7ac10-e-from-desktop-to-ultrawide-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-funding--7ac10-e-from-desktop-to-ultrawide-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-funding--7ac10-e-from-desktop-to-ultrawide-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  24) [chromium] › tests\e2e\visual-regression.spec.ts:83:5 › compact account directory preserves the selected information hierarchy 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 1471px, received 390px by 1416px. 46398 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: accounts-populated-compact-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(accounts-populated-compact-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 1471px, received 390px by 1416px. 46398 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 1471px, received 390px by 1416px. 46398 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:87:3
+
+    attachment #1: accounts-populated-compact-390x844 (image/png) ──────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\accounts-populated-compact-390x844.png
+    Received: test-results\visual-regression-compact--db89d-ected-information-hierarchy-chromium\accounts-populated-compact-390x844-actual.png
+    Diff:     test-results\visual-regression-compact--db89d-ected-information-hierarchy-chromium\accounts-populated-compact-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-compact--db89d-ected-information-hierarchy-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-compact--db89d-ected-information-hierarchy-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-compact--db89d-ected-information-hierarchy-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  25) [chromium] › tests\e2e\visual-regression.spec.ts:90:5 › compact exact search preserves locator evidence without page overflow 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 2789px, received 390px by 1774px. 87121 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: investigation-search-populated-compact-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(investigation-search-populated-compact-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 2789px, received 390px by 1774px. 87121 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 2789px, received 390px by 1774px. 87121 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:95:3
+
+    attachment #1: investigation-search-populated-compact-390x844 (image/png) ──────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\investigation-search-populated-compact-390x844.png
+    Received: test-results\visual-regression-compact--71d56-dence-without-page-overflow-chromium\investigation-search-populated-compact-390x844-actual.png
+    Diff:     test-results\visual-regression-compact--71d56-dence-without-page-overflow-chromium\investigation-search-populated-compact-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-compact--71d56-dence-without-page-overflow-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-compact--71d56-dence-without-page-overflow-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-compact--71d56-dence-without-page-overflow-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  26) [chromium] › tests\e2e\visual-regression.spec.ts:98:5 › compact developer contract preserves code and retry hierarchy 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 12716px, received 390px by 10711px. 987167 pixels (ratio 0.20 of all image pixels) are different.
+
+      Snapshot: developer-contract-compact-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(developer-contract-compact-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 12716px, received 390px by 10711px. 987167 pixels (ratio 0.20 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 12716px, received 390px by 10711px. 987167 pixels (ratio 0.20 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:102:3
+
+    attachment #1: developer-contract-compact-390x844 (image/png) ──────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\developer-contract-compact-390x844.png
+    Received: test-results\visual-regression-compact--e6725-es-code-and-retry-hierarchy-chromium\developer-contract-compact-390x844-actual.png
+    Diff:     test-results\visual-regression-compact--e6725-es-code-and-retry-hierarchy-chromium\developer-contract-compact-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-compact--e6725-es-code-and-retry-hierarchy-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-compact--e6725-es-code-and-retry-hierarchy-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-compact--e6725-es-code-and-retry-hierarchy-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  27) [chromium] › tests\e2e\visual-regression.spec.ts:105:5 › transfer export review preserves the exact evidence hierarchy 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1595px, received 1440px by 1470px. 178234 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: transfer-export-review-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(transfer-export-review-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1595px, received 1440px by 1470px. 178234 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1595px, received 1440px by 1470px. 178234 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:110:3
+
+    attachment #1: transfer-export-review-1440x900 (image/png) ─────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\transfer-export-review-1440x900.png
+    Received: test-results\visual-regression-transfer-4b66d-he-exact-evidence-hierarchy-chromium\transfer-export-review-1440x900-actual.png
+    Diff:     test-results\visual-regression-transfer-4b66d-he-exact-evidence-hierarchy-chromium\transfer-export-review-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-transfer-4b66d-he-exact-evidence-hierarchy-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-transfer-4b66d-he-exact-evidence-hierarchy-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-transfer-4b66d-he-exact-evidence-hierarchy-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  28) [chromium] › tests\e2e\visual-regression.spec.ts:114:5 › loading state does not imply empty account evidence 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      51887 pixels (ratio 0.07 of all image pixels) are different.
+
+      Snapshot: accounts-loading-768x1024.png
+
+    Call log:
+      - Expect "toHaveScreenshot(accounts-loading-768x1024.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 51887 pixels (ratio 0.07 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 51887 pixels (ratio 0.07 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:119:3
+
+    attachment #1: accounts-loading-768x1024 (image/png) ───────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\accounts-loading-768x1024.png
+    Received: test-results\visual-regression-loading--d740a-mply-empty-account-evidence-chromium\accounts-loading-768x1024-actual.png
+    Diff:     test-results\visual-regression-loading--d740a-mply-empty-account-evidence-chromium\accounts-loading-768x1024-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-loading--d740a-mply-empty-account-evidence-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-loading--d740a-mply-empty-account-evidence-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-loading--d740a-mply-empty-account-evidence-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  29) [chromium] › tests\e2e\visual-regression.spec.ts:122:5 › empty account scope is explicit ─────
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 1189px, received 390px by 844px. 109735 pixels (ratio 0.24 of all image pixels) are different.
+
+      Snapshot: accounts-empty-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(accounts-empty-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 1189px, received 390px by 844px. 109735 pixels (ratio 0.24 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 1189px, received 390px by 844px. 109735 pixels (ratio 0.24 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:127:3
+
+    attachment #1: accounts-empty-390x844 (image/png) ──────────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\accounts-empty-390x844.png
+    Received: test-results\visual-regression-empty-account-scope-is-explicit-chromium\accounts-empty-390x844-actual.png
+    Diff:     test-results\visual-regression-empty-account-scope-is-explicit-chromium\accounts-empty-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-empty-account-scope-is-explicit-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-empty-account-scope-is-explicit-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-empty-account-scope-is-explicit-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  30) [chromium] › tests\e2e\visual-regression.spec.ts:130:5 › account dependency failure does not render stale balances 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      59809 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: accounts-error-768x1024.png
+
+    Call log:
+      - Expect "toHaveScreenshot(accounts-error-768x1024.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 59809 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 59809 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:135:3
+
+    attachment #1: accounts-error-768x1024 (image/png) ─────────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\accounts-error-768x1024.png
+    Received: test-results\visual-regression-account--6bf02-s-not-render-stale-balances-chromium\accounts-error-768x1024-actual.png
+    Diff:     test-results\visual-regression-account--6bf02-s-not-render-stale-balances-chromium\accounts-error-768x1024-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-account--6bf02-s-not-render-stale-balances-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-account--6bf02-s-not-render-stale-balances-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-account--6bf02-s-not-render-stale-balances-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  31) [chromium] › tests\e2e\visual-regression.spec.ts:138:5 › permission denial remains distinct from an empty directory 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 1245px, received 390px by 844px. 85037 pixels (ratio 0.18 of all image pixels) are different.
+
+      Snapshot: accounts-permission-denied-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(accounts-permission-denied-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 1245px, received 390px by 844px. 85037 pixels (ratio 0.18 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 1245px, received 390px by 844px. 85037 pixels (ratio 0.18 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:143:3
+
+    attachment #1: accounts-permission-denied-390x844 (image/png) ──────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\accounts-permission-denied-390x844.png
+    Received: test-results\visual-regression-permissi-3b155-nct-from-an-empty-directory-chromium\accounts-permission-denied-390x844-actual.png
+    Diff:     test-results\visual-regression-permissi-3b155-nct-from-an-empty-directory-chromium\accounts-permission-denied-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-permissi-3b155-nct-from-an-empty-directory-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-permissi-3b155-nct-from-an-empty-directory-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-permissi-3b155-nct-from-an-empty-directory-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  32) [chromium] › tests\e2e\visual-regression.spec.ts:146:5 › offline state preserves already verified evidence and disables writes 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 1601px, received 390px by 1547px. 67964 pixels (ratio 0.11 of all image pixels) are different.
+
+      Snapshot: accounts-offline-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(accounts-offline-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 1601px, received 390px by 1547px. 67964 pixels (ratio 0.11 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 1601px, received 390px by 1547px. 67964 pixels (ratio 0.11 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:153:3
+
+    attachment #1: accounts-offline-390x844 (image/png) ────────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\accounts-offline-390x844.png
+    Received: test-results\visual-regression-offline--1f5d6-vidence-and-disables-writes-chromium\accounts-offline-390x844-actual.png
+    Diff:     test-results\visual-regression-offline--1f5d6-vidence-and-disables-writes-chromium\accounts-offline-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-offline--1f5d6-vidence-and-disables-writes-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-offline--1f5d6-vidence-and-disables-writes-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-offline--1f5d6-vidence-and-disables-writes-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  33) [chromium] › tests\e2e\visual-regression.spec.ts:157:5 › account detail separates balance failure from history permission 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1672px, received 1440px by 1501px. 179307 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: account-detail-independent-failures-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(account-detail-independent-failures-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1672px, received 1440px by 1501px. 179307 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1672px, received 1440px by 1501px. 179307 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:164:3
+
+    attachment #1: account-detail-independent-failures-1440x900 (image/png) ────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\account-detail-independent-failures-1440x900.png
+    Received: test-results\visual-regression-account--99c2d-ure-from-history-permission-chromium\account-detail-independent-failures-1440x900-actual.png
+    Diff:     test-results\visual-regression-account--99c2d-ure-from-history-permission-chromium\account-detail-independent-failures-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-account--99c2d-ure-from-history-permission-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-account--99c2d-ure-from-history-permission-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-account--99c2d-ure-from-history-permission-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  34) [chromium] › tests\e2e\visual-regression.spec.ts:167:5 › unknown transfer outcome keeps the exact intent and safe retry action 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 2807px, received 390px by 2401px. 96898 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: transfer-unknown-outcome-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(transfer-unknown-outcome-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 2807px, received 390px by 2401px. 96898 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 2807px, received 390px by 2401px. 96898 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:177:3
+
+    attachment #1: transfer-unknown-outcome-390x844 (image/png) ────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\transfer-unknown-outcome-390x844.png
+    Received: test-results\visual-regression-unknown--9f3f5-ntent-and-safe-retry-action-chromium\transfer-unknown-outcome-390x844-actual.png
+    Diff:     test-results\visual-regression-unknown--9f3f5-ntent-and-safe-retry-action-chromium\transfer-unknown-outcome-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-unknown--9f3f5-ntent-and-safe-retry-action-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-unknown--9f3f5-ntent-and-safe-retry-action-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-unknown--9f3f5-ntent-and-safe-retry-action-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  35) [chromium] › tests\e2e\visual-regression.spec.ts:180:5 › reconciliation mismatch is visually stop-ship 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 390px by 1815px, received 390px by 1433px. 67402 pixels (ratio 0.10 of all image pixels) are different.
+
+      Snapshot: reconciliation-mismatch-390x844.png
+
+    Call log:
+      - Expect "toHaveScreenshot(reconciliation-mismatch-390x844.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 390px by 1815px, received 390px by 1433px. 67402 pixels (ratio 0.10 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 390px by 1815px, received 390px by 1433px. 67402 pixels (ratio 0.10 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:186:3
+
+    attachment #1: reconciliation-mismatch-390x844 (image/png) ─────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-mismatch-390x844.png
+    Received: test-results\visual-regression-reconcil-238de-match-is-visually-stop-ship-chromium\reconciliation-mismatch-390x844-actual.png
+    Diff:     test-results\visual-regression-reconcil-238de-match-is-visually-stop-ship-chromium\reconciliation-mismatch-390x844-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-reconcil-238de-match-is-visually-stop-ship-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-reconcil-238de-match-is-visually-stop-ship-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-reconcil-238de-match-is-visually-stop-ship-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  36) [chromium] › tests\e2e\visual-regression.spec.ts:189:5 › missing session renders the login layer with no financial evidence 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      15354 pixels (ratio 0.02 of all image pixels) are different.
+
+      Snapshot: shell-permission-denied-768x1024.png
+
+    Call log:
+      - Expect "toHaveScreenshot(shell-permission-denied-768x1024.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 15354 pixels (ratio 0.02 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 15354 pixels (ratio 0.02 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:193:3
+
+    attachment #1: shell-permission-denied-768x1024 (image/png) ────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\shell-permission-denied-768x1024.png
+    Received: test-results\visual-regression-missing--05b93--with-no-financial-evidence-chromium\shell-permission-denied-768x1024-actual.png
+    Diff:     test-results\visual-regression-missing--05b93--with-no-financial-evidence-chromium\shell-permission-denied-768x1024-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-missing--05b93--with-no-financial-evidence-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-missing--05b93--with-no-financial-evidence-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-missing--05b93--with-no-financial-evidence-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  37) [chromium] › tests\e2e\visual-regression.spec.ts:196:5 › read-only transfer role explains why posting is disabled 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: getByRole('region', { name: 'Internal transfer' }).locator('#transfer-disabled-reason')
+    Expected: "Read-only role: transfer posting is not permitted."
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for getByRole('region', { name: 'Internal transfer' }).locator('#transfer-disabled-reason')
+
+
+      200 |   await expect(
+      201 |     page.getByRole("region", { name: "Internal transfer" }).locator("#transfer-disabled-reason"),
+    > 202 |   ).toHaveText("Read-only role: transfer posting is not permitted.");
+          |     ^
+      203 |   await capture(page, "transfers-read-only-capability", desktop);
+      204 | });
+      205 |
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:202:5
+
+    Error Context: test-results\visual-regression-read-onl-ba13e-ins-why-posting-is-disabled-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-read-onl-ba13e-ins-why-posting-is-disabled-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-read-onl-ba13e-ins-why-posting-is-disabled-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  38) [chromium] › tests\e2e\visual-regression.spec.ts:206:5 › mixed-currency overview refuses a false aggregate 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Mixed-currency pilot data blocked')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Mixed-currency pilot data blocked')
+
+
+      208 |   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, { ...destinationAccount, currency: "EUR" }], next_cursor: "" }));
+      209 |   await page.goto("/");
+    > 210 |   await expect(page.getByText("Mixed-currency pilot data blocked")).toBeVisible();
+          |                                                                     ^
+      211 |   await capture(page, "overview-mixed-currency-error", desktop);
+      212 | });
+      213 |
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:210:69
+
+    Error Context: test-results\visual-regression-mixed-cu-fa345-w-refuses-a-false-aggregate-chromium\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-mixed-cu-fa345-w-refuses-a-false-aggregate-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-mixed-cu-fa345-w-refuses-a-false-aggregate-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  39) [chromium] › tests\e2e\visual-regression.spec.ts:214:5 › an unavailable route has a reviewed non-disclosing baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      2827 pixels (ratio 0.01 of all image pixels) are different.
+
+      Snapshot: route-unavailable-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(route-unavailable-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 2827 pixels (ratio 0.01 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 2827 pixels (ratio 0.01 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:219:3
+
+    attachment #1: route-unavailable-1440x900 (image/png) ──────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\route-unavailable-1440x900.png
+    Received: test-results\visual-regression-an-unava-61b2c-wed-non-disclosing-baseline-chromium\route-unavailable-1440x900-actual.png
+    Diff:     test-results\visual-regression-an-unava-61b2c-wed-non-disclosing-baseline-chromium\route-unavailable-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-an-unava-61b2c-wed-non-disclosing-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-an-unava-61b2c-wed-non-disclosing-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-an-unava-61b2c-wed-non-disclosing-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  40) [chromium] › tests\e2e\visual-regression.spec.ts:223:5 › a render interruption has a reviewed safe-retry baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      6834 pixels (ratio 0.01 of all image pixels) are different.
+
+      Snapshot: route-render-error-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(route-render-error-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 6834 pixels (ratio 0.01 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 6834 pixels (ratio 0.01 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:228:3
+
+    attachment #1: route-render-error-1440x900 (image/png) ─────────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\route-render-error-1440x900.png
+    Received: test-results\visual-regression-a-render-d6012-eviewed-safe-retry-baseline-chromium\route-render-error-1440x900-actual.png
+    Diff:     test-results\visual-regression-a-render-d6012-eviewed-safe-retry-baseline-chromium\route-render-error-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-a-render-d6012-eviewed-safe-retry-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-a-render-d6012-eviewed-safe-retry-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-a-render-d6012-eviewed-safe-retry-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  41) [chromium] › tests\e2e\visual-regression.spec.ts:232:5 › account create review has a Windows local-console baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 981px, received 1440px by 931px. 120522 pixels (ratio 0.09 of all image pixels) are different.
+
+      Snapshot: account-create-review-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(account-create-review-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 981px, received 1440px by 931px. 120522 pixels (ratio 0.09 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 981px, received 1440px by 931px. 120522 pixels (ratio 0.09 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:242:3
+
+    attachment #1: account-create-review-1440x900 (image/png) ──────────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\account-create-review-1440x900.png
+    Received: test-results\visual-regression-account--fbd54-dows-local-console-baseline-chromium\account-create-review-1440x900-actual.png
+    Diff:     test-results\visual-regression-account--fbd54-dows-local-console-baseline-chromium\account-create-review-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-account--fbd54-dows-local-console-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-account--fbd54-dows-local-console-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-account--fbd54-dows-local-console-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  42) [chromium] › tests\e2e\visual-regression.spec.ts:246:5 › account lifecycle guard has a Windows local-console baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      118459 pixels (ratio 0.10 of all image pixels) are different.
+
+      Snapshot: account-freeze-confirmation-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(account-freeze-confirmation-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 118459 pixels (ratio 0.10 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 118459 pixels (ratio 0.10 of all image pixels) are different.
+
+
+      256 |   await page.setViewportSize(desktop);
+      257 |   await page.evaluate(() => document.fonts.ready);
+    > 258 |   await expect(page).toHaveScreenshot("account-freeze-confirmation-1440x900.png", { animations: "disabled", caret: "hide", fullPage: false, maxDiffPixelRatio: 0.002 });
+          |                      ^
+      259 |   await page.keyboard.press("Escape");
+      260 |   await page.setViewportSize(compact);
+      261 |   await page.getByRole("button", { name: "Freeze account" }).click();
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:258:22
+
+    attachment #1: account-freeze-confirmation-1440x900 (image/png) ────────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\account-freeze-confirmation-1440x900.png
+    Received: test-results\visual-regression-account--736b2-dows-local-console-baseline-chromium\account-freeze-confirmation-1440x900-actual.png
+    Diff:     test-results\visual-regression-account--736b2-dows-local-console-baseline-chromium\account-freeze-confirmation-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-account--736b2-dows-local-console-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-account--736b2-dows-local-console-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-account--736b2-dows-local-console-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  43) [chromium] › tests\e2e\visual-regression.spec.ts:268:5 › reconciliation command review has a Windows local-console baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1499px, received 1440px by 1262px. 171857 pixels (ratio 0.08 of all image pixels) are different.
+
+      Snapshot: reconciliation-command-review-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(reconciliation-command-review-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1499px, received 1440px by 1262px. 171857 pixels (ratio 0.08 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1499px, received 1440px by 1262px. 171857 pixels (ratio 0.08 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:274:3
+
+    attachment #1: reconciliation-command-review-1440x900 (image/png) ──────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-command-review-1440x900.png
+    Received: test-results\visual-regression-reconcil-0c351-dows-local-console-baseline-chromium\reconciliation-command-review-1440x900-actual.png
+    Diff:     test-results\visual-regression-reconcil-0c351-dows-local-console-baseline-chromium\reconciliation-command-review-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-reconcil-0c351-dows-local-console-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-reconcil-0c351-dows-local-console-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-reconcil-0c351-dows-local-console-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  44) [chromium] › tests\e2e\visual-regression.spec.ts:278:5 › reconciliation running control has a Windows local-console baseline 
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      Expected an image 1440px by 1564px, received 1440px by 1256px. 150814 pixels (ratio 0.07 of all image pixels) are different.
+
+      Snapshot: reconciliation-command-running-1440x900.png
+
+    Call log:
+      - Expect "toHaveScreenshot(reconciliation-command-running-1440x900.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - Expected an image 1440px by 1564px, received 1440px by 1256px. 150814 pixels (ratio 0.07 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - Expected an image 1440px by 1564px, received 1440px by 1256px. 150814 pixels (ratio 0.07 of all image pixels) are different.
+
+
+      25 |   });
+      26 |   await expect.poll(() => page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }))).toEqual({ x: 0, y: 0 });
+    > 27 |   await expect(page).toHaveScreenshot(`${name}-${viewport.width}x${viewport.height}.png`, {
+         |                      ^
+      28 |     animations: "disabled",
+      29 |     caret: "hide",
+      30 |     fullPage: true,
+        at capture (D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:27:22)
+        at D:\Work\Project\Dev\LedgerSync\web\tests\e2e\visual-regression.spec.ts:289:3
+
+    attachment #1: reconciliation-command-running-1440x900 (image/png) ─────────────────────────────
+    Expected: ..\docs\design\qa\responsive\baselines\win32\chromium\reconciliation-command-running-1440x900.png
+    Received: test-results\visual-regression-reconcil-fe570-dows-local-console-baseline-chromium\reconciliation-command-running-1440x900-actual.png
+    Diff:     test-results\visual-regression-reconcil-fe570-dows-local-console-baseline-chromium\reconciliation-command-running-1440x900-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\visual-regression-reconcil-fe570-dows-local-console-baseline-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\visual-regression-reconcil-fe570-dows-local-console-baseline-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\visual-regression-reconcil-fe570-dows-local-console-baseline-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  44 failed
+    [chromium] › tests\e2e\accessibility.spec.ts:110:5 › keyboard-only transfer review announces an unknown result and preserves the retry key 
+    [chromium] › tests\e2e\phase9-matrix.spec.ts:67:5 › every populated route passes the complete authored-color WCAG A and AA rules 
+    [chromium] › tests\e2e\session-boundary.spec.ts:32:5 › failed sign-out keeps the proven session visible and exposes a retryable error 
+    [chromium] › tests\e2e\transfer.spec.ts:84:5 › a final rejection clears its key before a genuinely new intent 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › overview-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › accounts-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › account-detail-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › funding-records-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › approvals-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › transfers-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › transfer-detail-posted-delivery-retrying has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › reconciliation-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › reconciliation-detail-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › local-status-degraded has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › events-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › event-detail-retrying has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › webhooks-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › webhook-detail-dead has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › developer-contract has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › recovery-evidence has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:58:7 › investigation-search-populated has a reviewed desktop baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:67:5 › funding records use the reviewed contextual rail on ultrawide screens 
+    [chromium] › tests\e2e\visual-regression.spec.ts:74:5 › funding intake keeps its financial controls readable from desktop to ultrawide 
+    [chromium] › tests\e2e\visual-regression.spec.ts:83:5 › compact account directory preserves the selected information hierarchy 
+    [chromium] › tests\e2e\visual-regression.spec.ts:90:5 › compact exact search preserves locator evidence without page overflow 
+    [chromium] › tests\e2e\visual-regression.spec.ts:98:5 › compact developer contract preserves code and retry hierarchy 
+    [chromium] › tests\e2e\visual-regression.spec.ts:105:5 › transfer export review preserves the exact evidence hierarchy 
+    [chromium] › tests\e2e\visual-regression.spec.ts:114:5 › loading state does not imply empty account evidence 
+    [chromium] › tests\e2e\visual-regression.spec.ts:122:5 › empty account scope is explicit ───────
+    [chromium] › tests\e2e\visual-regression.spec.ts:130:5 › account dependency failure does not render stale balances 
+    [chromium] › tests\e2e\visual-regression.spec.ts:138:5 › permission denial remains distinct from an empty directory 
+    [chromium] › tests\e2e\visual-regression.spec.ts:146:5 › offline state preserves already verified evidence and disables writes 
+    [chromium] › tests\e2e\visual-regression.spec.ts:157:5 › account detail separates balance failure from history permission 
+    [chromium] › tests\e2e\visual-regression.spec.ts:167:5 › unknown transfer outcome keeps the exact intent and safe retry action 
+    [chromium] › tests\e2e\visual-regression.spec.ts:180:5 › reconciliation mismatch is visually stop-ship 
+    [chromium] › tests\e2e\visual-regression.spec.ts:189:5 › missing session renders the login layer with no financial evidence 
+    [chromium] › tests\e2e\visual-regression.spec.ts:196:5 › read-only transfer role explains why posting is disabled 
+    [chromium] › tests\e2e\visual-regression.spec.ts:206:5 › mixed-currency overview refuses a false aggregate 
+    [chromium] › tests\e2e\visual-regression.spec.ts:214:5 › an unavailable route has a reviewed non-disclosing baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:223:5 › a render interruption has a reviewed safe-retry baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:232:5 › account create review has a Windows local-console baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:246:5 › account lifecycle guard has a Windows local-console baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:268:5 › reconciliation command review has a Windows local-console baseline 
+    [chromium] › tests\e2e\visual-regression.spec.ts:278:5 › reconciliation running control has a Windows local-console baseline 
+  189 passed (16.4m)

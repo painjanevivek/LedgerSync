@@ -1,0 +1,88 @@
+
+> ledgersync-web@0.1.0 test:e2e:real-stack
+> playwright test --config playwright.real-stack.config.ts --workers=1
+
+
+Running 6 tests using 1 worker
+
+(node:421712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PHASE3_FIXTURES run=study-6871a48c935b account=d725567f-41b4-4705-842c-4795aa304f82 funding_transfer=97dd8237-f4ae-4570-ba9e-504730a67079 return_transfer=47ad50cf-4aa0-427e-9673-59c629f69066 reconciliation_run=b3037425-aeec-4d7b-9319-cab696624877
+  ok 1 tests\system\account-lifecycle.real-stack.spec.ts:267:7 › @real-stack account product lifecycle › creates, replays, funds, freezes, reactivates, returns to zero, and closes through normal commands (23.4s)
+  x  2 tests\system\account-lifecycle.real-stack.spec.ts:405:7 › @real-stack account product lifecycle › investigates the accepted records across filters, exports, local tools, and responsive accessibility (25.3s)
+(node:407140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok 3 tests\system\distributed-evidence.real-stack.spec.ts:5:5 › distributed evidence stays behind an accessible disclosure (17.2s)
+Journey: funding reference recorded; balance still zero.
+Journey: local approval recorded; journal still separate.
+Journey: one funding journal posted and verified.
+  ok 4 tests\system\funding-transfer-journey.real-stack.spec.ts:35:5 › @real-stack first account, controlled funding, lost-response transfer, exact retry, and follow-up (12.2s)
+  ok 5 tests\system\investigation-handoff.real-stack.spec.ts:23:5 › @real-stack saved filters, audited bundle, and reauthorized peer handoff (22.2s)
+  ok 6 tests\system\transfer-recovery.real-stack.spec.ts:11:5 › @real-stack clean-device recovery survives lost request and lost committed response without duplicate money (46.9s)
+
+
+  1) tests\system\account-lifecycle.real-stack.spec.ts:405:7 › @real-stack account product lifecycle › investigates the accepted records across filters, exports, local tools, and responsive accessibility 
+
+    Error: expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+    @@ -9,11 +9,11 @@
+            "state": "reachable",
+          },
+        },
+        "financial_authority": Object {
+          "latest_reconciliation": Object {
+    -       "run_id": "b3037425-aeec-4d7b-9319-cab696624877",
+    +       "run_id": "628c5461-1048-4a27-a2b1-29ad9f2d05b1",
+            "state": "available",
+            "status": "matched",
+          },
+          "postgres": Object {
+            "state": "reachable",
+
+      491 |     expect(diagnosticsResponse.status()).toBe(200);
+      492 |     expect(diagnosticsResponse.headers()["cache-control"]).toContain("no-store");
+    > 493 |     expect(await diagnosticsResponse.json()).toMatchObject({
+          |                                              ^
+      494 |       overall_state: "ready",
+      495 |       financial_authority: { postgres: { state: "reachable" }, latest_reconciliation: { state: "available", status: "matched", run_id: reconciliation.runID } },
+      496 |       delivery_cache: { outbox: { state: "reachable", dead_count: "0" }, redis: { state: "reachable", label: "disposable_cache" } },
+        at D:\Work\Project\Dev\LedgerSync\web\tests\system\account-lifecycle.real-stack.spec.ts:493:46
+
+    Error: ENOENT: no such file or directory, unlink 'D:\Work\Project\Dev\LedgerSync\web\test-results\real-stack\.playwright-artifacts-0\b2cb4fde22da6b8c206db2538b435e98.zip'
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\video-3.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\video-1.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\video-2.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #6: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\video-4.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #7: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\video-5.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\real-stack\account-lifecycle.real-sta-c82fb-nd-responsive-accessibility\error-context.md
+
+  1 failed
+    tests\system\account-lifecycle.real-stack.spec.ts:405:7 › @real-stack account product lifecycle › investigates the accepted records across filters, exports, local tools, and responsive accessibility 
+  5 passed (2.8m)

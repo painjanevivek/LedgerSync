@@ -108,7 +108,7 @@ func (h *RecoveryExportHandler) TransfersCSV(writer http.ResponseWriter, request
 	}
 	fingerprint := appexports.FilterFingerprint(filter.AccountID, filter.Status, filter.Query, utcQuery(filter.From), utcQuery(filter.To), strconv.Itoa(rows))
 	h.streamCSV(writer, request, principal, "transfers", "transfers", rows, fingerprint, func(ctx context.Context, destination *delayedCSVWriter) (appexports.Result, error) {
-		return h.exports.StreamTransfers(ctx, principal.TenantID, filter, rows, destination)
+		return h.exports.StreamTransfers(ctx, principal.TenantID, principal.SubjectID, filter, rows, destination)
 	})
 }
 
@@ -149,7 +149,7 @@ func (h *RecoveryExportHandler) ReconciliationCSV(writer http.ResponseWriter, re
 	}
 	fingerprint := appexports.FilterFingerprint(filter.RunID, filter.Status, utcQuery(filter.From), utcQuery(filter.To), strconv.Itoa(rows))
 	h.streamCSV(writer, request, principal, "reconciliation", "reconciliation", rows, fingerprint, func(ctx context.Context, destination *delayedCSVWriter) (appexports.Result, error) {
-		return h.exports.StreamReconciliation(ctx, principal.TenantID, filter, rows, destination)
+		return h.exports.StreamReconciliation(ctx, principal.TenantID, principal.SubjectID, filter, rows, destination)
 	})
 }
 

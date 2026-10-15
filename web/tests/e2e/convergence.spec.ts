@@ -81,7 +81,7 @@ test("overview preserves independent evidence when transfer history is unavailab
   await page.route("**/api/transfers?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
   await page.goto("/");
   await expect(page.getByText("Operating-controlled balances", { exact: true })).toBeVisible();
-  await expect(page.getByText("Latest reconciliation passed", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Reconciliation results state" }).getByText("Internal reconciliation passed", { exact: true })).toBeVisible();
   await expect(page.getByText("Transfer history unavailable", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Retry transfers only" })).toBeVisible();
   await expect(page.getByText("No transfer records", { exact: true })).toHaveCount(0);
@@ -107,8 +107,10 @@ test("compact navigation is modal, traps focus, and excludes the background", as
   await expect(drawer).toBeVisible();
   await expect(page.locator(".workspace-column")).toHaveAttribute("inert", "");
   await expect(drawer.getByRole("button", { name: "Close navigation" })).toBeFocused();
+  const lastVisibleFocusable = drawer.locator("a[href], button:not([disabled]), summary, [tabindex]:not([tabindex='-1'])").filter({ visible: true }).last();
+  await expect(lastVisibleFocusable).toHaveText("Expert tools ");
   await page.keyboard.press("Shift+Tab");
-  await expect(drawer.getByText("Expert tools", { exact: true })).toBeFocused();
+  await expect(lastVisibleFocusable).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(drawer.getByRole("button", { name: "Close navigation" })).toBeFocused();
 });
@@ -118,14 +120,26 @@ test("canonical type, touch targets, and reduced motion hold at tablet width", a
   await page.emulateMedia({ reducedMotion: "reduce" });
   await mockOperatorConsole(page);
   await page.goto("/transfers");
+  await expect(page.locator(".transfer-page-heading").getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Transfer comparison" })).toBeVisible();
   const metrics = await page.evaluate(() => {
-    const px = (selector: string) => getComputedStyle(document.querySelector(selector)!).fontSize;
-    const targetHeights = [...document.querySelectorAll<HTMLElement>("button:not([disabled]), a.button")].filter((element) => element.getClientRects().length > 0).map((element) => element.getBoundingClientRect().height);
+    const px = (selector: string) => {
+      const element = document.querySelector(selector);
+      if (!element) throw new Error(`Typography source is missing: ${selector}`);
+      return Number.parseFloat(getComputedStyle(element).fontSize);
+    };
+    const targetHeights = [...document.querySelectorAll<HTMLElement>("button:not([disabled]), a.button, input:not([type='hidden']):not([disabled]), select:not([disabled]), summary")].filter((element) => element.checkVisibility({ visibilityProperty: true })).map((element) => element.getBoundingClientRect().height);
+    const metadataSizes = [...document.querySelectorAll<HTMLElement>(".eyebrow, .evidence-freshness, .proof-label-row, .folio-field-label, .data-table th, .data-table code, .data-table .status-label")].filter((element) => element.checkVisibility({ visibilityProperty: true })).map((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+    const tokens = getComputedStyle(document.documentElement);
     const duration = getComputedStyle(document.querySelector(".guided-topbar")!).transitionDuration;
-    return { h1: px(".page-header h1"), h2: px("main h2"), row: px(".data-table td"), label: px(".data-table th"), minimumTarget: Math.min(...targetHeights), duration, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    return { h1: px(".transfer-page-heading h1"), row: px(".transfer-table td"), label: px(".transfer-table th"), bodyToken: Number.parseFloat(tokens.getPropertyValue("--type-body")), metaToken: Number.parseFloat(tokens.getPropertyValue("--type-meta")), metadataFloor: Math.min(...metadataSizes), minimumTarget: Math.min(...targetHeights), duration, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
-  expect(metrics).toMatchObject({ h1: "34px", h2: "24px", row: "16px", label: "14px", overflow: false });
+  expect(metrics).toMatchObject({ row: 14, label: 12, bodyToken: 14, metaToken: 12, overflow: false });
+  expect(metrics.row).toBe(metrics.bodyToken);
+  expect(metrics.label).toBe(metrics.metaToken);
+  expect(metrics.h1).toBeGreaterThanOrEqual(27);
+  expect(metrics.h1).toBeLessThanOrEqual(36);
+  expect(metrics.metadataFloor).toBeGreaterThanOrEqual(12);
   expect(metrics.minimumTarget).toBeGreaterThanOrEqual(44);
   expect(metrics.duration === "0s" || metrics.duration === "1e-05s" || metrics.duration === "0.00001s").toBe(true);
 });

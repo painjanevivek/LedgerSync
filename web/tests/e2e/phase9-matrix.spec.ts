@@ -64,15 +64,14 @@ for (const viewport of viewports) {
   });
 }
 
-test("every populated route passes the complete authored-color WCAG A and AA rules", async ({ page }) => {
-  await mockOperatorConsole(page);
-
-  for (const path of routes) {
+for (const path of routes) {
+  test(`${path} passes the complete authored-color WCAG A and AA rules`, async ({ page }) => {
+    await mockOperatorConsole(page);
     await page.goto(path);
     await expect(page.locator("main h1:visible")).toHaveCount(1);
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(results.violations, `${path}: ${results.violations.map((violation) => violation.id).join(", ")}`).toEqual([]);
-  }
-});
+  });
+}

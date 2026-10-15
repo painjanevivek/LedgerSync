@@ -15,7 +15,13 @@ func TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses(t *t
 	if _, err := database.ExecContext(context.Background(), `DELETE FROM account_balance_projections WHERE account_id=$1`, testDestinationID); err != nil {
 		t.Fatal(err)
 	}
-	repository, err := db.NewReconciliationRepository(database)
+	requireWorkloadRoles(t, database)
+	workload := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_reconciliation")
+	if _, err := database.Exec(`REVOKE INSERT ON reconciliation_runs,reconciliation_mismatches FROM ledgersync_reconciliation`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { provisionLiveMigrationRoles(t, database) })
+	repository, err := db.NewReconciliationRepository(workload.db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +43,7 @@ func TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	detail, err := investigation.GetReconciliationRun(context.Background(), testTenantID, result.ID)
+	detail, err := investigation.GetReconciliationRun(context.Background(), testTenantID, testActorID, result.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +75,7 @@ func TestTransferDeliveryStatusRequiresDurableAttemptEvidence(t *testing.T) {
 		t.Fatal(err)
 	}
 	investigation, _ := db.NewInvestigationRepository(database)
-	detail, err := investigation.GetTransfer(context.Background(), testTenantID, submission.Result.TransferID)
+	detail, err := investigation.GetTransfer(context.Background(), testTenantID, testActorID, submission.Result.TransferID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +87,7 @@ func TestTransferDeliveryStatusRequiresDurableAttemptEvidence(t *testing.T) {
 	if err := deliveryRepository.Record(context.Background(), delivery.Attempt{ID: "00000000-0000-4000-8000-000000000088", TenantID: testTenantID, TransferID: submission.Result.TransferID, Kind: "webhook", EndpointReference: "partner-primary", AttemptNumber: 1, Status: delivery.StatusRetrying, DueAt: time.Now().UTC()}); err != nil {
 		t.Fatal(err)
 	}
-	detail, err = investigation.GetTransfer(context.Background(), testTenantID, submission.Result.TransferID)
+	detail, err = investigation.GetTransfer(context.Background(), testTenantID, testActorID, submission.Result.TransferID)
 	if err != nil {
 		t.Fatal(err)
 	}

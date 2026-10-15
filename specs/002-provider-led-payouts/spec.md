@@ -1,6 +1,6 @@
 # Provider-led outbound payouts
 
-**Status:** Proposed engineering feature; live-provider activation remains externally gated.
+**Status:** Deferred design. No payout implementation is authorized by this specification; resume only after a separate product scope decision and external gates.
 **Scope:** INR-only, provider-led B2B outbound payouts.
 **Authority:** `docs/plans/provider-led-payout-production-program.md`.
 

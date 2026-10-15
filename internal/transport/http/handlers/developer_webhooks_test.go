@@ -15,14 +15,14 @@ import (
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/transport/http/middleware"
 )
 
-type webhookHandlerRepository struct{}
+type webhookHandlerRepository struct{ readTenant, readActor string }
 
 type webhookReplayHandlerRepository struct {
 	approval recovery.DeliveryApproval
 	replay   recovery.DeliveryReplay
 }
 
-func (r *webhookReplayHandlerRepository) Inspect(context.Context, string, string) (recovery.DeadDelivery, error) {
+func (r *webhookReplayHandlerRepository) Inspect(context.Context, string, string, string) (recovery.DeadDelivery, error) {
 	return recovery.DeadDelivery{AttemptID: "70000000-0000-4000-8000-000000000002", Kind: "webhook", EndpointReference: "70000000-0000-4000-8000-000000000001"}, nil
 }
 func (r *webhookReplayHandlerRepository) Approve(_ context.Context, command recovery.DeliveryApproval) (recovery.DeliveryApprovalResult, error) {
@@ -46,14 +46,30 @@ func (*webhookHandlerRepository) RotateWebhook(context.Context, developerplatfor
 func (*webhookHandlerRepository) DisableWebhook(context.Context, developerplatform.DisableWebhookCommand, [sha256.Size]byte) (developerplatform.WebhookSubmission, error) {
 	return developerplatform.WebhookSubmission{}, nil
 }
-func (*webhookHandlerRepository) GetWebhook(context.Context, string, string) (developerplatform.Webhook, error) {
+func (*webhookHandlerRepository) GetWebhook(context.Context, string, string, string) (developerplatform.Webhook, error) {
 	return developerplatform.Webhook{}, developerplatform.ErrNotFound
 }
-func (*webhookHandlerRepository) ListWebhooks(context.Context, string, developerplatform.WebhookQuery) (developerplatform.WebhookPage, error) {
+func (r *webhookHandlerRepository) ListWebhooks(_ context.Context, tenantID, actorID string, _ developerplatform.WebhookQuery) (developerplatform.WebhookPage, error) {
+	r.readTenant, r.readActor = tenantID, actorID
 	return developerplatform.WebhookPage{}, nil
 }
-func (*webhookHandlerRepository) ListWebhookDeliveries(context.Context, string, string, developerplatform.DeliveryQuery) (developerplatform.DeliveryPage, error) {
+func (*webhookHandlerRepository) ListWebhookDeliveries(context.Context, string, string, string, developerplatform.DeliveryQuery) (developerplatform.DeliveryPage, error) {
 	return developerplatform.DeliveryPage{}, nil
+}
+
+func TestDeveloperWebhookReadUsesVerifiedPrincipal(t *testing.T) {
+	repository := &webhookHandlerRepository{}
+	service, _ := developerplatform.NewWebhookService(repository, nil, "production", time.Now, nil)
+	handler := NewDeveloperWebhookHandler(service, identity.DevelopmentProvider{SubjectID: "verified-operator", TenantID: "verified-tenant", Scopes: []string{"webhooks:read"}})
+	request := httptest.NewRequest(http.MethodGet, "/api/developer/webhooks", nil)
+	request.Header.Set("Authorization", "Bearer development-local-only")
+	request.Header.Set("X-Tenant-ID", "forged-tenant")
+	request.Header.Set("X-Actor-ID", "forged-operator")
+	response := httptest.NewRecorder()
+	middleware.Correlation(http.HandlerFunc(handler.List)).ServeHTTP(response, request)
+	if response.Code != http.StatusOK || repository.readTenant != "verified-tenant" || repository.readActor != "verified-operator" {
+		t.Fatalf("read did not use verified principal: status=%d tenant=%q actor=%q", response.Code, repository.readTenant, repository.readActor)
+	}
 }
 
 func TestDeveloperWebhookRegistrationIsStrictScopedAndOneTime(t *testing.T) {

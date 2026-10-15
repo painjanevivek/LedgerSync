@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "phase": "R10",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T14:12:13.063Z",
+  "summary": "A fixed local recovery profile now backs up an unfiltered synthetic candidate, validates bounded source/schema/checksum metadata, restores into a distinct temporary PostgreSQL target, reapplies restricted grants, and checks complete row fingerprints before new commands. It verifies original receipts, unresolved recovery, approved replay, exact financial invariants, reconciliation, cache rebuild and real worker progress. Separate migration checks cover the oldest supported local snapshot, known legacy room history, the previous ordered candidate, real transaction cancellation/retry, and bounded retention. Recovery displays a separate authorized read-only candidate proof.",
+  "verification": {
+    "go_packages_passed": 44,
+    "vet": "passed",
+    "host_tests_passed": 39,
+    "web_tests_passed": 220,
+    "typecheck": "passed",
+    "targeted_lint": "passed",
+    "web_build": "passed",
+    "browser_tests_passed": 8,
+    "recovery_scenarios_passed": 3,
+    "migration_subtests_passed": 5,
+    "restored_tables": 57,
+    "artifacts": 29,
+    "artifact_bytes": 44838990,
+    "backup_seconds": 1.405,
+    "restore_setup_seconds": 5.487,
+    "backup_and_full_validation_seconds": 20.75,
+    "final_run": "demo-20261015140934-45e3fe02",
+    "normal_financial_fingerprint": "unchanged"
+  },
+  "source": {
+    "head": "65e45ae1ac399c2c09f612941fa2e2c6ed178269",
+    "dirty": true,
+    "original_files": 1729,
+    "original_manifest_path": "data/portfolio/r10-20261015/source-resume-65e45ae.json",
+    "original_manifest_sha256": "24ce35384adf0e1194ee14281ae238d9dfb40554d9a7a0dbd08b3ba76ba0b2a7",
+    "authorized_git_checkpoint": "Owner requested commit 65e45ae and push to codex/portfolio-restructuring-r00-r10 with draft PR 23. Original R10 source-before.json and all earlier completion records remain unchanged.",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "c3586256bb3bf2a8e401b4cdfe4d0c22624adc003b55c8429adcef58c21b4c41",
+    "changed_original_files": [
+      {
+        "path": ".github/workflows/quality.yml",
+        "before_sha256": "c23d4475121661028d97e279181c09cf62934f0f813e303bae188648add7c222",
+        "sha256": "a5db87bfa8a22a6fd802556f8f0ae3014b147329c38ba50f70ac616cd45efeef"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "a68570381962c4de5d5e74fbd1c5964345d71cb8e999ac8c7b69fcdc44c94180",
+        "sha256": "fc8bbd1dd6f1e8c4d0053ced4103a12d7ac9b8384c72ccb3e26ed3b62f1896ae"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "2df2dc4778ecbe7f98215ce25964e5339c5967a709067ce7aec99bccb85dbae1",
+        "sha256": "0157b34f51b188dbdf9dd9304a8faf748a1adedff525c841c5093d1525e4f04f"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "935de3a777448e7c46866a9fd19408f194bf5b1e60152947a10211ef3bba8152",
+        "sha256": "8165a114859031ff0b20682c29331628b88c581fccbd0c2c11dd5abfc28a71fd"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "3141f697880c9a904deb61d6e7c73152f5801f19e7a1d96172094d4aeb8dcf4f",
+        "sha256": "524a3cff440173e4d682af02c1ccb861e09dc5571748de743a8390c9d0d46ae7"
+      },
+      {
+        "path": "scripts/portfolio/run-demo.mjs",
+        "before_sha256": "b6103a65007510e8b9f403c7d15db04fdc48bf11c537aa477b8b9cfd9974d4ac",
+        "sha256": "11c2ed364f758416e9a38a1006703d04a6abafa20df62cc1f7402e8d098fbd98"
+      },
+      {
+        "path": "tests/integration/candidate_recovery_test.go",
+        "before_sha256": "2cfdfcb7d6faac77f5040168aaa73ba85ed87b0885c79fccd69e890686fb2120",
+        "sha256": "6abeaabc42d311e139331430bf57130a2c7dda4791737233197ffe28a4ca32d1"
+      },
+      {
+        "path": "web/src/features/recovery/RecoveryView.tsx",
+        "before_sha256": "2edb7594cd283254ea7ba2825fb78576cc7a55fbc06fa7ec8aeaad694edae49b",
+        "sha256": "c685009918fe115259a04cb33a24538dc7e4e1b8a69e0307273973009ab4ce66"
+      },
+      {
+        "path": "web/tests/e2e/recovery-export.spec.ts",
+        "before_sha256": "7422b419d422118203696a38ad3e019c7fe58272e10ea6e318c3dc83a9bcaaaf",
+        "sha256": "6325cf6361e42d19216c471ebd3e2feea93205c927bd6412a7e95dd4d9effdc8"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/recovery.md",
+        "sha256": "45dbbe9c279259d32a5a012f6a29c48225ee74ae8758ad018a28a9b3dccb32a8"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/recovery/demo-20261015140457-e13b773e.json",
+        "sha256": "4cd362430b7d66ee6f899b4c783a4610b7de62292c30eb4951545c56d034a444"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/recovery/demo-20261015140934-45e3fe02.json",
+        "sha256": "e9738eb9c17c8ea787cae213d6cbc9f9c5de1eba3f30a35f01e05df0d1b24b9a"
+      },
+      {
+        "path": "scripts/portfolio/recovery-summary.mjs",
+        "sha256": "7f403d4a21cad28d904954c4bc97c71f1a124e51064fb1b15cda4b4176fd9e5c"
+      },
+      {
+        "path": "scripts/portfolio/recovery-summary.test.mjs",
+        "sha256": "66fc1aa50c181270dd1a4f0f771744cb1dca665945f07bb090b692aa1e7c362f"
+      },
+      {
+        "path": "scripts/portfolio/verify-recovery.mjs",
+        "sha256": "5810a12b261a1fb55b7ff0ff81d39d9e8fddd6f7a8b95da9a0d3040f00dfcabf"
+      },
+      {
+        "path": "tests/integration/candidate_migration_recovery_test.go",
+        "sha256": "3de3148cc497ed83667ec08a20eb10fb4cd574e691e29f2adde8d706bbe902f6"
+      },
+      {
+        "path": "web/src/features/recovery/CandidateRecoveryEvidence.tsx",
+        "sha256": "442ae93c9f183c0c3cd1af6f2eb1ac89de0d75bfa5e620ec79bad11658e0911c"
+      },
+      {
+        "path": "web/src/lib/portfolio-recovery.generated.json",
+        "sha256": "e9738eb9c17c8ea787cae213d6cbc9f9c5de1eba3f30a35f01e05df0d1b24b9a"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r10-20261015/go-final.txt",
+      "sha256": "f5e2dc83f635b12175e2f75086339f0aa6192fda5f85e2a706174b5dd7b29829",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/vet-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/host-final.txt",
+      "sha256": "44ab45c13de4fc40bb2689e97093efb5f86ae5d2d942ffe221d4ef688280ad06",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/web-final.txt",
+      "sha256": "40132399839a1501a86768504d086fba6ab4941f19d6706b634f5d1d96ff5c5c",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/typecheck-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/lint-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/browser-final.txt",
+      "sha256": "e8d3b12f03cc561bb4c282a043737f533b8c201f9eb5e0c2bed3c7020a5a756d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/recovery-first.txt",
+      "sha256": "7fef060a2f4f9b46b6614fff47286e5c763057855f25061ae966e75e3b82d52e",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/recovery-second.txt",
+      "sha256": "17d4bbc8155d53657fcaa4fb5aae9fc0fdc609c208c68b9d291d0a93f64e2535",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/recovery-third.txt",
+      "sha256": "073795d740fa79c2b1901285e19172f1fd5df5e702af4700dc4b8fd171565638",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/recovery-final.txt",
+      "sha256": "7c2f5866a0e342cfc52232d51ea6b6336c384bdfa8a6e1a10eef0fa51cb8d6ed",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/final-run-manifest.json",
+      "sha256": "776e2934c381f303a141eabf8438a4587928af876a6dc83d9032b92217dbc206",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/final-candidate-restore.json",
+      "sha256": "b11f170b3c9b2f8e7b3711ab2336668fc2e8cc6d92c6b0c1d46eca4a0963d548",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/final-candidate-recovery-result.json",
+      "sha256": "40ee4989359d3867e690b6733d102b119f1ac4fde5bbce67f9c4faaa29304c22",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/final-cleanup.json",
+      "sha256": "2358e30d0ab654b538e7d5d9ac9b49317997f8e101c3661adf063f02ae11949b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/normal-financial-before.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r10-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "03915165a3294d3b68f84e0cab4e11b45125dd5b2a05b0e7aa7ac661386a50e1"
+  },
+  "limits": [
+    "This is a one-host synthetic Go-binary recovery proof, not a candidate API image or managed point-in-time recovery claim.",
+    "The normal-runtime backup index remains separate; a passing candidate drill does not establish current normal backup coverage.",
+    "The supported old snapshot is the existing phase-seven migration fixture; arbitrary historical databases are not qualified.",
+    "Two failed harness runs remain: the first rejected a valid explicit pg_temp-last search path; the second passed financial checks but closed the admin pool before ephemeral-role cleanup. Both were repaired and final checks passed.",
+    "Documentation and public summary updates occur after the recorded run; they do not change its source identity.",
+    "Repeat the complete drill after the selected statement and reservation schema changes. R11-R17 remain selected work."
+  ]
+}

@@ -55,12 +55,17 @@ func encodeAccountCursor(createdAt time.Time, id string) string {
 }
 
 func (r *AccountRepository) ListOwnedPage(ctx context.Context, tenantID, actorID string, query accounts.Query) (accounts.Page, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return accounts.Page{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	cursor, err := decodeAccountCursor(query.Cursor)
 	if err != nil {
 		return accounts.Page{}, err
 	}
 	search := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query.Search)
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT a.id, a.version, a.currency, a.status, COALESCE(a.display_name, ''), COALESCE(a.category, 'operating'), COALESCE(a.external_reference, ''), b.available_minor, b.ledger_minor, b.balance_version, b.updated_at, a.created_at
 FROM accounts a
 JOIN account_owners owner ON owner.tenant_id = a.tenant_id AND owner.account_id = a.id
@@ -109,8 +114,13 @@ ORDER BY a.created_at ASC, a.id ASC LIMIT $8`, tenantID, actorID, query.Status, 
 }
 
 func (r *AccountRepository) GetOwned(ctx context.Context, tenantID, actorID, accountID string) (accounts.Summary, error) {
+	tx, scopeErr := beginTenantRead(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID})
+	if scopeErr != nil {
+		return accounts.Summary{}, scopeErr
+	}
+	defer func() { _ = tx.Rollback() }()
 	var item accounts.Summary
-	err := r.database.QueryRowContext(ctx, `
+	err := tx.QueryRowContext(ctx, `
 SELECT a.id,a.version,a.currency,a.status,COALESCE(a.display_name,''),COALESCE(a.category,'operating'),COALESCE(a.external_reference,''),b.available_minor,b.ledger_minor,b.balance_version,b.updated_at
 FROM accounts a
 JOIN account_owners owner ON owner.tenant_id=a.tenant_id AND owner.account_id=a.id
@@ -124,7 +134,7 @@ WHERE a.tenant_id=$1 AND a.id=$2 AND a.account_kind='customer' AND owner.subject
 	}
 	item.Balance.TenantID, item.Balance.AccountID, item.Balance.Currency = tenantID, item.AccountID, item.Currency
 	item.Balance.AsOf = item.Balance.AsOf.UTC()
-	rows, err := r.database.QueryContext(ctx, `
+	rows, err := tx.QueryContext(ctx, `
 SELECT id,event_type,COALESCE(actor_subject_id,''),outcome,correlation_id,
 	CASE
 		WHEN event_type='account.status_changed'

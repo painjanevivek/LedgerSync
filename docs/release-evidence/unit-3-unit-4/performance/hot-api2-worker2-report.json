@@ -1,0 +1,827 @@
+{
+  "name": "hot-api2-worker2",
+  "load": {
+    "samples": [
+      {
+        "database": {
+          "dead": 0,
+          "pending": 12,
+          "accounts": 6,
+          "journals": 88,
+          "postings": 176,
+          "published": 246,
+          "transfers": 89,
+          "unbalanced": 0,
+          "opening_total": "260691419",
+          "database_bytes": 14064663,
+          "duplicate_journals": 0,
+          "oldest_pending_seconds": 0.068013
+        },
+        "at": "2026-10-11T20:03:17.8849715Z",
+        "containers": [
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "13.68%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "ID": "24de8080d18a",
+            "MemPerc": "14.70%",
+            "MemUsage": "75.29MiB / 512MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "NetIO": "921kB / 1.32MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "2.01%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "ID": "b93ccd0fa3da",
+            "MemPerc": "10.07%",
+            "MemUsage": "6.445MiB / 64MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "NetIO": "647kB / 661kB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.69%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "ID": "e783ad559e61",
+            "MemPerc": "3.50%",
+            "MemUsage": "8.949MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "NetIO": "393kB / 446kB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.55%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "ID": "099d57d2f1f8",
+            "MemPerc": "3.32%",
+            "MemUsage": "8.512MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "NetIO": "386kB / 440kB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.74%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "ID": "869a794c7a14",
+            "MemPerc": "2.88%",
+            "MemUsage": "7.379MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "NetIO": "396kB / 616kB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "2.79%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "ID": "d03241446e4d",
+            "MemPerc": "2.90%",
+            "MemUsage": "7.426MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "NetIO": "535kB / 757kB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 77.1MB",
+            "CPUPerc": "26.14%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "ID": "840136cf0106",
+            "MemPerc": "0.72%",
+            "MemUsage": "84.52MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "NetIO": "1.56MB / 893kB",
+            "PIDs": "16"
+          },
+          {
+            "BlockIO": "36.9kB / 373kB",
+            "CPUPerc": "1.18%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "ID": "913a130c4de8",
+            "MemPerc": "0.04%",
+            "MemUsage": "4.484MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "NetIO": "667kB / 435kB",
+            "PIDs": "6"
+          }
+        ]
+      },
+      {
+        "database": {
+          "dead": 0,
+          "pending": 21,
+          "accounts": 6,
+          "journals": 162,
+          "postings": 324,
+          "published": 459,
+          "transfers": 163,
+          "unbalanced": 0,
+          "opening_total": "260691419",
+          "database_bytes": 15514647,
+          "duplicate_journals": 0,
+          "oldest_pending_seconds": 0.16108
+        },
+        "at": "2026-10-11T20:03:25.0036545Z",
+        "containers": [
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "11.44%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "ID": "24de8080d18a",
+            "MemPerc": "14.78%",
+            "MemUsage": "75.68MiB / 512MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "NetIO": "1.7MB / 2.2MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.46%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "ID": "b93ccd0fa3da",
+            "MemPerc": "12.84%",
+            "MemUsage": "8.219MiB / 64MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "NetIO": "1.36MB / 1.4MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "3.83%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "ID": "e783ad559e61",
+            "MemPerc": "3.52%",
+            "MemUsage": "9.02MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "NetIO": "740kB / 858kB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "3.81%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "ID": "099d57d2f1f8",
+            "MemPerc": "3.79%",
+            "MemUsage": "9.695MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "NetIO": "745kB / 867kB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.12%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "ID": "869a794c7a14",
+            "MemPerc": "2.98%",
+            "MemUsage": "7.629MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "NetIO": "678kB / 988kB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "3.17%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "ID": "d03241446e4d",
+            "MemPerc": "2.95%",
+            "MemUsage": "7.547MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "NetIO": "988kB / 1.38MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 108MB",
+            "CPUPerc": "35.34%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "ID": "840136cf0106",
+            "MemPerc": "0.65%",
+            "MemUsage": "76.56MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "NetIO": "2.63MB / 1.67MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "65.5kB / 795kB",
+            "CPUPerc": "1.22%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "ID": "913a130c4de8",
+            "MemPerc": "0.04%",
+            "MemUsage": "4.465MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "NetIO": "1.21MB / 774kB",
+            "PIDs": "6"
+          }
+        ]
+      },
+      {
+        "database": {
+          "dead": 0,
+          "pending": 0,
+          "accounts": 6,
+          "journals": 222,
+          "postings": 444,
+          "published": 660,
+          "transfers": 223,
+          "unbalanced": 0,
+          "opening_total": "260691419",
+          "database_bytes": 16555031,
+          "duplicate_journals": 0,
+          "oldest_pending_seconds": 0
+        },
+        "at": "2026-10-11T20:03:31.4086414Z",
+        "containers": [
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "18.82%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "ID": "24de8080d18a",
+            "MemPerc": "15.19%",
+            "MemUsage": "77.76MiB / 512MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "NetIO": "2.45MB / 3.02MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "3.34%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "ID": "b93ccd0fa3da",
+            "MemPerc": "11.74%",
+            "MemUsage": "7.512MiB / 64MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "NetIO": "1.99MB / 2.06MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "2.55%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "ID": "e783ad559e61",
+            "MemPerc": "3.81%",
+            "MemUsage": "9.766MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "NetIO": "1.07MB / 1.24MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "2.34%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "ID": "099d57d2f1f8",
+            "MemPerc": "3.56%",
+            "MemUsage": "9.113MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "NetIO": "1.08MB / 1.26MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.48%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "ID": "869a794c7a14",
+            "MemPerc": "2.99%",
+            "MemUsage": "7.66MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "NetIO": "1MB / 1.45MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "2.59%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "ID": "d03241446e4d",
+            "MemPerc": "3.11%",
+            "MemUsage": "7.961MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "NetIO": "1.43MB / 1.96MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 120MB",
+            "CPUPerc": "28.14%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "ID": "840136cf0106",
+            "MemPerc": "0.67%",
+            "MemUsage": "78.93MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "NetIO": "3.58MB / 2.4MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "94.2kB / 1.2MB",
+            "CPUPerc": "1.09%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "ID": "913a130c4de8",
+            "MemPerc": "0.04%",
+            "MemUsage": "4.727MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "NetIO": "1.7MB / 1.08MB",
+            "PIDs": "6"
+          }
+        ]
+      },
+      {
+        "database": {
+          "dead": 0,
+          "pending": 0,
+          "accounts": 6,
+          "journals": 292,
+          "postings": 584,
+          "published": 870,
+          "transfers": 293,
+          "unbalanced": 0,
+          "opening_total": "260691419",
+          "database_bytes": 17767447,
+          "duplicate_journals": 0,
+          "oldest_pending_seconds": 0
+        },
+        "at": "2026-10-11T20:03:38.3423845Z",
+        "containers": [
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "9.82%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "ID": "24de8080d18a",
+            "MemPerc": "15.53%",
+            "MemUsage": "79.49MiB / 512MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "NetIO": "3.17MB / 3.82MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "0.96%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "ID": "b93ccd0fa3da",
+            "MemPerc": "11.33%",
+            "MemUsage": "7.25MiB / 64MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "NetIO": "2.58MB / 2.67MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.76%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "ID": "e783ad559e61",
+            "MemPerc": "3.81%",
+            "MemUsage": "9.766MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "NetIO": "1.4MB / 1.62MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.72%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "ID": "099d57d2f1f8",
+            "MemPerc": "3.72%",
+            "MemUsage": "9.52MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "NetIO": "1.36MB / 1.58MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "1.46%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "ID": "869a794c7a14",
+            "MemPerc": "2.99%",
+            "MemUsage": "7.66MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "NetIO": "1.27MB / 1.83MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "3.47%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "ID": "d03241446e4d",
+            "MemPerc": "3.06%",
+            "MemUsage": "7.832MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "NetIO": "1.92MB / 2.6MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 131MB",
+            "CPUPerc": "26.67%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "ID": "840136cf0106",
+            "MemPerc": "0.68%",
+            "MemUsage": "80.41MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "NetIO": "4.42MB / 3.02MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "123kB / 1.62MB",
+            "CPUPerc": "1.14%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "ID": "913a130c4de8",
+            "MemPerc": "0.04%",
+            "MemUsage": "5.164MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "NetIO": "2.21MB / 1.41MB",
+            "PIDs": "6"
+          }
+        ]
+      },
+      {
+        "database": {
+          "dead": 0,
+          "pending": 0,
+          "accounts": 6,
+          "journals": 352,
+          "postings": 704,
+          "published": 1050,
+          "transfers": 353,
+          "unbalanced": 0,
+          "opening_total": "260691419",
+          "database_bytes": 18873367,
+          "duplicate_journals": 0,
+          "oldest_pending_seconds": 0
+        },
+        "at": "2026-10-11T20:03:45.3918341Z",
+        "containers": [
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "6.21%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "ID": "24de8080d18a",
+            "MemPerc": "15.77%",
+            "MemUsage": "80.76MiB / 512MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-web-1",
+            "NetIO": "3.87MB / 4.62MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "2.60%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "ID": "b93ccd0fa3da",
+            "MemPerc": "11.79%",
+            "MemUsage": "7.547MiB / 64MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-study-proxy-1",
+            "NetIO": "3.17MB / 3.29MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "3.42%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "ID": "e783ad559e61",
+            "MemPerc": "3.86%",
+            "MemUsage": "9.875MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-2",
+            "NetIO": "1.72MB / 2MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "10.00%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "ID": "099d57d2f1f8",
+            "MemPerc": "3.73%",
+            "MemUsage": "9.539MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-api-1",
+            "NetIO": "1.73MB / 2.01MB",
+            "PIDs": "9"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "4.18%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "ID": "869a794c7a14",
+            "MemPerc": "3.02%",
+            "MemUsage": "7.738MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-2",
+            "NetIO": "1.56MB / 2.25MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 0B",
+            "CPUPerc": "4.74%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "ID": "d03241446e4d",
+            "MemPerc": "3.14%",
+            "MemUsage": "8.047MiB / 256MiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-outbox-worker-1",
+            "NetIO": "2.38MB / 3.2MB",
+            "PIDs": "8"
+          },
+          {
+            "BlockIO": "0B / 146MB",
+            "CPUPerc": "26.06%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "ID": "840136cf0106",
+            "MemPerc": "0.68%",
+            "MemUsage": "80.11MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-postgres-1",
+            "NetIO": "5.58MB / 3.87MB",
+            "PIDs": "12"
+          },
+          {
+            "BlockIO": "147kB / 1.98MB",
+            "CPUPerc": "0.98%",
+            "Container": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "ID": "913a130c4de8",
+            "MemPerc": "0.05%",
+            "MemUsage": "5.355MiB / 11.49GiB",
+            "Name": "ledgersync-acceptance-20261011195302-1b0ae0eb-redis-1",
+            "NetIO": "2.65MB / 1.67MB",
+            "PIDs": "6"
+          }
+        ]
+      }
+    ],
+    "exit_code": 0,
+    "summary": {
+      "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+          "BFF session established": {
+            "id": "9e91519b0c2da71bf03dbcacf476984d",
+            "passes": 10,
+            "fails": 0,
+            "name": "BFF session established",
+            "path": "::BFF session established"
+          },
+          "transfer command has a controlled result": {
+            "passes": 330,
+            "fails": 0,
+            "name": "transfer command has a controlled result",
+            "path": "::transfer command has a controlled result",
+            "id": "b7c897ae6eea929d574e799e7a8408fe"
+          },
+          "current exact balance returned": {
+            "passes": 300,
+            "fails": 0,
+            "name": "current exact balance returned",
+            "path": "::current exact balance returned",
+            "id": "dff58d9045eef887378d436eb80120fb"
+          },
+          "same-key retry replays one transfer": {
+            "passes": 30,
+            "fails": 0,
+            "name": "same-key retry replays one transfer",
+            "path": "::same-key retry replays one transfer",
+            "id": "e6dabeb8801c1898b24f0aa83fd8b034"
+          },
+          "account page available": {
+            "name": "account page available",
+            "path": "::account page available",
+            "id": "8ca50497166f6a77a729dd3e6b31512e",
+            "passes": 60,
+            "fails": 0
+          },
+          "history page available": {
+            "name": "history page available",
+            "path": "::history page available",
+            "id": "a5119956967d52c438b8b8e9a724f513",
+            "passes": 60,
+            "fails": 0
+          }
+        }
+      },
+      "metrics": {
+        "ledgersync_posted_commands": {
+          "count": 300,
+          "rate": 10.28138188094433
+        },
+        "iteration_duration": {
+          "med": 1000.6993689999999,
+          "p(50)": 1000.6993689999999,
+          "p(95)": 1001.5945329,
+          "p(99)": 1001.87762999,
+          "max": 1001.907993,
+          "avg": 970.5881465933332,
+          "min": 39.812194
+        },
+        "ledgersync_transfer_iterations": {
+          "count": 300,
+          "rate": 10.28138188094433
+        },
+        "http_req_duration": {
+          "med": 29.291228500000003,
+          "p(50)": 29.291228500000003,
+          "p(95)": 188.1363347,
+          "p(99)": 228.56909105000017,
+          "max": 275.292261,
+          "avg": 59.318396082051315,
+          "min": 2.985744
+        },
+        "checks": {
+          "passes": 790,
+          "fails": 0,
+          "value": 1
+        },
+        "http_req_waiting": {
+          "p(99)": 228.48427567000016,
+          "max": 275.191889,
+          "avg": 59.148853830769205,
+          "min": 2.676349,
+          "med": 28.840300999999997,
+          "p(50)": 28.840300999999997,
+          "p(95)": 188.07450125
+        },
+        "http_reqs": {
+          "rate": 26.73159289045526,
+          "count": 780
+        },
+        "http_req_connecting": {
+          "avg": 0.002585524358974359,
+          "min": 0,
+          "med": 0,
+          "p(50)": 0,
+          "p(95)": 0,
+          "p(99)": 0.18056304000000073,
+          "max": 0.277164
+        },
+        "ledgersync_transfer_duration": {
+          "p(50)": 113.5,
+          "p(95)": 214.10000000000002,
+          "p(99)": 249.5499999999999,
+          "max": 275,
+          "avg": 116.95757575757575,
+          "min": 10,
+          "med": 113.5,
+          "thresholds": {
+            "p(95)<500": false
+          }
+        },
+        "data_sent": {
+          "count": 1864761,
+          "rate": 63907.73319230544
+        },
+        "data_received": {
+          "count": 2181390,
+          "rate": 74759.01207091051
+        },
+        "http_req_failed{journey:transfer}": {
+          "passes": 0,
+          "fails": 330,
+          "thresholds": {
+            "rate<0.001": false
+          },
+          "value": 0
+        },
+        "http_req_failed": {
+          "passes": 0,
+          "fails": 780,
+          "value": 0
+        },
+        "ledgersync_same_key_replays": {
+          "count": 30,
+          "rate": 1.0281381880944331
+        },
+        "http_req_duration{expected_response:true}": {
+          "min": 2.985744,
+          "med": 29.291228500000003,
+          "p(50)": 29.291228500000003,
+          "p(95)": 188.1363347,
+          "p(99)": 228.56909105000017,
+          "max": 275.292261,
+          "avg": 59.318396082051315
+        },
+        "http_req_tls_handshaking": {
+          "p(50)": 0,
+          "p(95)": 0,
+          "p(99)": 0,
+          "max": 0,
+          "avg": 0,
+          "min": 0,
+          "med": 0
+        },
+        "http_req_blocked": {
+          "p(99)": 0.21302225000000016,
+          "max": 0.301444,
+          "avg": 0.0056042782051282,
+          "min": 0.000907,
+          "med": 0.002434,
+          "p(50)": 0.002434,
+          "p(95)": 0.004373599999999998
+        },
+        "http_req_receiving": {
+          "med": 0.08688799999999999,
+          "p(50)": 0.08688799999999999,
+          "p(95)": 0.18021749999999997,
+          "p(99)": 0.5109210700000026,
+          "max": 42.208414,
+          "avg": 0.15328245641025634,
+          "min": 0.033063
+        },
+        "ledgersync_balance_duration": {
+          "avg": 14.214090166666656,
+          "min": 4.619024,
+          "med": 8.139792499999999,
+          "p(50)": 8.139792499999999,
+          "p(95)": 42.7280668,
+          "p(99)": 70.72706179999996,
+          "max": 91.98768,
+          "thresholds": {
+            "p(95)<200": false
+          }
+        },
+        "ledgersync_business_rejections": {
+          "count": 0,
+          "rate": 0
+        },
+        "ledgersync_technical_attempt_failures": {
+          "count": 0,
+          "rate": 0
+        },
+        "vus_max": {
+          "value": 10,
+          "min": 10,
+          "max": 10
+        },
+        "http_req_sending": {
+          "max": 0.611336,
+          "avg": 0.01625979487179489,
+          "min": 0.004021,
+          "med": 0.009582,
+          "p(50)": 0.009582,
+          "p(95)": 0.03606639999999997,
+          "p(99)": 0.14222735000000003
+        },
+        "iterations": {
+          "count": 300,
+          "rate": 10.28138188094433
+        },
+        "vus": {
+          "value": 10,
+          "min": 10,
+          "max": 10
+        },
+        "ledgersync_unexpected_outcomes": {
+          "count": 0,
+          "rate": 0,
+          "thresholds": {
+            "count==0": false
+          }
+        }
+      }
+    }
+  },
+  "before": {
+    "dead": 0,
+    "pending": 0,
+    "accounts": 6,
+    "journals": 52,
+    "postings": 104,
+    "published": 150,
+    "transfers": 53,
+    "unbalanced": 0,
+    "opening_total": "260691419",
+    "database_bytes": 13409303,
+    "duplicate_journals": 0,
+    "oldest_pending_seconds": 0
+  },
+  "captured_at": "2026-10-11T20:03:53.4567161Z",
+  "correctness_passed": true,
+  "seed": {
+    "dead": 0,
+    "pending": 0,
+    "accounts": 6,
+    "journals": 2,
+    "postings": 4,
+    "published": 0,
+    "transfers": 3,
+    "unbalanced": 0,
+    "opening_total": "260691419",
+    "database_bytes": 12188695,
+    "duplicate_journals": 0,
+    "oldest_pending_seconds": 0
+  },
+  "after": {
+    "dead": 0,
+    "pending": 0,
+    "accounts": 6,
+    "journals": 352,
+    "postings": 704,
+    "published": 1050,
+    "transfers": 353,
+    "unbalanced": 0,
+    "opening_total": "260691419",
+    "database_bytes": 18873367,
+    "duplicate_journals": 0,
+    "oldest_pending_seconds": 0
+  },
+  "api_replicas": 2,
+  "worker_replicas": 2,
+  "reconciliation": {
+    "migration_version": "000043_reconciliation_scheduler.up.sql",
+    "migration_count": 43,
+    "outbox_pending": 0,
+    "outbox_dead": 0,
+    "reconciliation_status": "matched",
+    "reconciliation_mismatches": 0
+  }
+}

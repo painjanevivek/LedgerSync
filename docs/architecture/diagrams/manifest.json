@@ -1,0 +1,159 @@
+{
+  "source": "../ledgersync-system-design.md",
+  "renderer": "mermaid@12.1.0",
+  "diagramCount": 19,
+  "diagrams": [
+    {
+      "title": "2. User journey and screen responsibilities",
+      "name": "01-2-user-journey-and-screen-responsibilities",
+      "sourceLine": 31,
+      "sha256": "289f76639fde2ef598710db2e2ce58051e848808319b821e63bcace0fb4404ff",
+      "width": 1581,
+      "height": 2958
+    },
+    {
+      "title": "3. System context and trust boundaries",
+      "name": "02-3-system-context-and-trust-boundaries",
+      "sourceLine": 106,
+      "sha256": "f32e5e2f24f6c6edfe6f4d2657a67d1705f567649a310e216d562cde1c41d818",
+      "width": 1736,
+      "height": 618
+    },
+    {
+      "title": "4. Component architecture",
+      "name": "03-4-component-architecture",
+      "sourceLine": 141,
+      "sha256": "f6a9ab7518ad77c6d06a7f407dfa069b726be5487d4876d4ec8c133f67ec5ab6",
+      "width": 1488,
+      "height": 1553
+    },
+    {
+      "title": "5. Financial data model and invariants",
+      "name": "04-5-financial-data-model-and-invariants",
+      "sourceLine": 191,
+      "sha256": "1690a03ac132306e34e4b8c5777643a10e52aec27fab8c9700c96eb9175e45e5",
+      "width": 2499,
+      "height": 900
+    },
+    {
+      "title": "6.1 Managed OIDC flow: implemented, requires provider configuration",
+      "name": "05-6-1-managed-oidc-flow-implemented-requires-provider-configuration",
+      "sourceLine": 233,
+      "sha256": "897bd79500bba6fe3d16cb30b0ce7d75e4a286e98b90cd1986d505580daeffd9",
+      "width": 1960,
+      "height": 1273
+    },
+    {
+      "title": "7.1 Create an account: implemented",
+      "name": "06-7-1-create-an-account-implemented",
+      "sourceLine": 274,
+      "sha256": "6c7dd3df2f996e178970242213fbef25ef5e74223451c6f203e5845cc65a69c9",
+      "width": 1915,
+      "height": 1287
+    },
+    {
+      "title": "7.2 Record and post funding: implemented controlled workflow",
+      "name": "07-7-2-record-and-post-funding-implemented-controlled-workflow",
+      "sourceLine": 305,
+      "sha256": "48a1ea3452765776f2dbbf619c7119263e5b62d49346c2e055a76227354a86b3",
+      "width": 1757,
+      "height": 1547
+    },
+    {
+      "title": "7.3 Internal transfer with verified success: implemented",
+      "name": "08-7-3-internal-transfer-with-verified-success-implemented",
+      "sourceLine": 347,
+      "sha256": "6b1b7dab00de888163cd72976c27e8dff99ae4c27118d13a216ffd24c42f46ec",
+      "width": 2343,
+      "height": 2796
+    },
+    {
+      "title": "7.4 Unknown transfer result and follow-up: implemented safety rule",
+      "name": "09-7-4-unknown-transfer-result-and-follow-up-implemented-safety-rule",
+      "sourceLine": 406,
+      "sha256": "65507903c7f10d99368e6db1aa17df7c89d02a6c69061d769969aa917cf96e60",
+      "width": 2338,
+      "height": 2000
+    },
+    {
+      "title": "7.5 Read after a committed write: current primary-read design",
+      "name": "10-7-5-read-after-a-committed-write-current-primary-read-design",
+      "sourceLine": 466,
+      "sha256": "828e37f123756ef96bd0c1d8733d73cf72bc76ede98aa940ae91eb6e4faeaa72",
+      "width": 1804,
+      "height": 928
+    },
+    {
+      "title": "8.1 Outbox, cache projection, and webhook delivery: implemented processors",
+      "name": "11-8-1-outbox-cache-projection-and-webhook-delivery-implemented-processors",
+      "sourceLine": 495,
+      "sha256": "ccae86f032a34b2749b44cca3f85efd267878aa842d88ede0349e282102ec370",
+      "width": 2217,
+      "height": 1208
+    },
+    {
+      "title": "8.2 Reconciliation: implemented comparison, no automatic repair",
+      "name": "12-8-2-reconciliation-implemented-comparison-no-automatic-repair",
+      "sourceLine": 533,
+      "sha256": "e16c85c8071118dcc8ee67f235f1e91fad62b1b408bae459778f3929932dd5dd",
+      "width": 1621,
+      "height": 1122
+    },
+    {
+      "title": "9. Investigation and handoff",
+      "name": "13-9-investigation-and-handoff",
+      "sourceLine": 563,
+      "sha256": "96963c761e26abb51342c97afec34f7bfa6efeebbd53d424770127aac02b33ed",
+      "width": 1788,
+      "height": 1217
+    },
+    {
+      "title": "10. Recovery and retention",
+      "name": "14-10-recovery-and-retention",
+      "sourceLine": 599,
+      "sha256": "a8ec71bd58a42564312d8bbf80ade710a050e3fef2e18f003bbfc25a3ab5e15f",
+      "width": 1925,
+      "height": 1057
+    },
+    {
+      "title": "11. Local deployment: actual repository topology",
+      "name": "15-11-local-deployment-actual-repository-topology",
+      "sourceLine": 635,
+      "sha256": "1f031b12ffc158515fc53f9b868434a99aedae6ef2326f2138897f325a622fda",
+      "width": 776,
+      "height": 2068
+    },
+    {
+      "title": "12.1 Vercel: configured target, deployment not established by this review",
+      "name": "16-12-1-vercel-configured-target-deployment-not-established-by-this-review",
+      "sourceLine": 678,
+      "sha256": "862aaf3822bbb695e3688bf92b0958bdce2a95677b925a3d32b32f9516d78b1f",
+      "width": 1024,
+      "height": 916
+    },
+    {
+      "title": "12.2 AWS container deployment: proposed target",
+      "name": "17-12-2-aws-container-deployment-proposed-target",
+      "sourceLine": 709,
+      "sha256": "132b99bc077489cdcbdf5c80a852940981213699b48697b7f72aebfeb2e72f03",
+      "width": 1368,
+      "height": 1012
+    },
+    {
+      "title": "12.3 Proposed release sequence",
+      "name": "18-12-3-proposed-release-sequence",
+      "sourceLine": 741,
+      "sha256": "201d463939cc8861c29986c5b0055399e3e2508152c7f735f0f122413930e1e1",
+      "width": 360,
+      "height": 2102
+    },
+    {
+      "title": "13. Deferred provider payout sequence: proposed only",
+      "name": "19-13-deferred-provider-payout-sequence-proposed-only",
+      "sourceLine": 762,
+      "sha256": "48adcce5953af23709dea759bac02440a0cbeae910ba4c6ae2f01bd7c8bf52b4",
+      "width": 2240,
+      "height": 1377
+    }
+  ]
+}

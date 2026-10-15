@@ -33,6 +33,7 @@ type Props = Readonly<{
   online: boolean;
   canWrite: boolean;
   canTransfer: boolean;
+  canRecordFunding: boolean;
   fundingScopeComplete: boolean;
   fundedSourceAvailable: boolean;
   returnTo: string;
@@ -66,7 +67,7 @@ function validateIdentity(fields: CreateAccountFields) {
   return errors;
 }
 
-export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csrfToken, online, canWrite, canTransfer, fundingScopeComplete, fundedSourceAvailable, returnTo, onCreated }: Props) {
+export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csrfToken, online, canWrite, canTransfer, canRecordFunding, fundingScopeComplete, fundedSourceAvailable, returnTo, onCreated }: Props) {
   const storageKey = useMemo(() => createAccountStorageKey(tenantId), [tenantId]);
   const [intent, setIntent] = useState<CreateAccountIntent>(() => newIntent(tenantId));
   const [restored, setRestored] = useState(false);
@@ -123,7 +124,7 @@ export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csr
     const result = await send("/api/me/accounts", "POST", locked.request, locked.idempotencyKey);
     if (result.kind === "success") {
       try { sessionStorage.removeItem(storageKey); } catch { setStorageBlocked(true); }
-      await onCreated().catch(() => undefined);
+      await Promise.resolve().then(onCreated).catch(() => undefined);
     } else if (result.kind !== "unknown") {
       setIntent((current) => ({ ...current, stage: "review", idempotencyKey: newAccountIdempotencyKey() }));
     }
@@ -151,10 +152,11 @@ export function AccountCreateFlow({ tenantId, tenantLabel, environmentLabel, csr
         {success.requestReference && <div><dt>Request reference</dt><dd><CopyControl value={success.requestReference} label="Copy request reference" /></dd></div>}
       </dl></TechnicalDetails>
       <div className="action-row account-command-actions">
-        {success.account.status === "active" && canTransfer && fundingScopeComplete && fundedSourceAvailable && <Link className="button primary" href={`/transfers?destination=${encodeURIComponent(success.account.account_id)}&return_to=${encodeURIComponent(`/accounts/${success.account.account_id}`)}`}>Fund account</Link>}
+        {success.account.status === "active" && canRecordFunding && <Link className="button primary" href="/funding">Record funding</Link>}
+        {success.account.status === "active" && canTransfer && fundingScopeComplete && fundedSourceAvailable && <Link className="button primary" href={`/transfers?destination=${encodeURIComponent(success.account.account_id)}&return_to=${encodeURIComponent(`/accounts/${success.account.account_id}`)}`}>Transfer into account</Link>}
         <Link className="button secondary" href={`/accounts/${encodeURIComponent(success.account.account_id)}?return_to=${encodeURIComponent(returnTo)}`}>View account</Link>
       </div>
-      {!canTransfer && <p className="permission-note">Your current role can configure accounts but cannot post the separate transfer required to fund one.</p>}
+      {!canTransfer && !canRecordFunding && <p className="permission-note">Your current role can configure accounts but cannot post the separate transfer required to fund one.</p>}
       {canTransfer && !fundingScopeComplete && <p className="permission-note">The authorized account picker exceeds its bounded scope. LedgerSync cannot prove a funded source, so funding remains unavailable.</p>}
       {canTransfer && fundingScopeComplete && !fundedSourceAvailable && <p className="permission-note">No different active, authorized INR source has a positive available balance. Funding remains unavailable.</p>}
     </section> : intent.stage === "identity" ? <section className="surface account-create-document" aria-labelledby="identity-heading">

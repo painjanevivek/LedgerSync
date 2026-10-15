@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { investigationSearchPage, mockOperatorConsole, sourceAccount, transfer } from "./fixtures";
+import { openExpertTools, investigationSearchPage, mockOperatorConsole, sourceAccount, transfer } from "./fixtures";
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -22,11 +22,8 @@ async function useSession(page: Page, scopes: string[]) {
 test("keyboard navigation opens exact search and typed locators lead to canonical detail", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/accounts");
-  await page.getByText("Profile", { exact: true }).click();
-  await expect(page.getByRole("button", { name: "Switch to Simple view" })).toBeVisible();
-  await page.getByText("Profile", { exact: true }).click();
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  await navigation.getByText("Expert tools", { exact: true }).click();
+  await openExpertTools(page);
   const searchLink = navigation.getByRole("link", { name: "Search records" });
   await searchLink.focus();
   await expect(searchLink).toBeFocused();
@@ -34,14 +31,18 @@ test("keyboard navigation opens exact search and typed locators lead to canonica
   await expect(page).toHaveURL(/\/search$/u);
 
   await page.getByLabel("Exact ID or approved reference").fill(sourceAccount.account_id);
-  await page.getByRole("button", { name: "Search exact evidence" }).click();
+  await page.getByRole("button", { name: "Find record" }).click();
   await expect(page).toHaveURL(new RegExp(`/search\\?q=${sourceAccount.account_id}$`, "u"));
   await expect(page.getByText("2 authorized locators")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open authoritative detail" })).toHaveAttribute("href", `/accounts/${sourceAccount.account_id}`);
-  await expect(page.getByRole("link", { name: "Open referenced evidence" })).toHaveAttribute("href", `/transfers/${transfer.transfer_id}`);
+  const returnQuery = `?return_to=${encodeURIComponent(`/search?q=${sourceAccount.account_id}`)}`;
+  await expect(page.getByRole("link", { name: "Open authoritative detail" })).toHaveAttribute("href", `/accounts/${sourceAccount.account_id}${returnQuery}`);
+  await expect(page.getByRole("link", { name: "Open referenced evidence" })).toHaveAttribute("href", `/transfers/${transfer.transfer_id}${returnQuery}`);
   await expect(page.getByText("PostgreSQL · search snapshot").first()).toBeVisible();
   const renderedLocators = await page.locator(".investigation-results").textContent();
   expect(renderedLocators).not.toMatch(/125000|balance_minor|available_minor|payload|token/iu);
+  await page.getByRole("link", { name: "Open authoritative detail" }).click();
+  await page.getByRole("link", { name: "Back to previous view" }).click();
+  await expect(page).toHaveURL(new RegExp(`/search\\?q=${sourceAccount.account_id}$`, "u"));
 });
 
 test("invalid partial lookup and missing scope make no protected search request", async ({ page }) => {

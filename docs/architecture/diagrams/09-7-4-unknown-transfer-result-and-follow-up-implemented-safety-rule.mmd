@@ -1,0 +1,43 @@
+sequenceDiagram
+  actor Operator
+  participant UI as Original browser
+  participant Other as New browser or device
+  participant BFF
+  participant API
+  participant PG as PostgreSQL
+  UI->>BFF: Save confirmed exact intent with original key and reference
+  BFF->>API: Authenticated prepare request
+  API->>PG: Retain immutable actor-scoped intent, no funds reserved
+  PG-->>UI: Durable save acknowledged via API and BFF
+  UI->>BFF: Submit exact intent with original key and reference
+  BFF->>API: Authenticated command
+  API->>PG: Financial transaction
+  PG-->>API: Commit may have completed
+  Note over UI,API: Network response is lost or times out
+  BFF-->>UI: Unknown or temporary unavailable when reachable
+  UI->>UI: Keep original key, payload and reference, lock editing
+  UI-->>Operator: Result unconfirmed, offer exact retry and evidence lookup
+  Operator->>Other: Sign in as same user and tenant after browser data loss
+  Other->>BFF: Open Recover a saved transfer
+  opt Read bounded saved requests and original outcomes
+    BFF->>API: Fresh authenticated read
+    API->>PG: Original actor and current account authority
+    PG-->>Other: Saved exact intent and outcome, no retry key, via API and BFF
+  end
+  alt Known posted or rejected outcome
+    Operator->>Other: Open original receipt, no financial write
+  else Outcome not yet confirmed
+  Operator->>Other: Review original accounts and exact amount, confirm retry
+  Other->>BFF: Saved reference with CSRF and empty body
+  BFF->>API: Fresh actor assertion, no replacement details
+  API->>PG: Reload immutable intent under current authority
+  API->>PG: Resolve original key first
+  alt Original transaction committed
+    PG-->>API: Original posted or rejected result
+  else No committed original outcome exists
+    PG->>PG: Execute original intent once under normal policy
+    PG-->>API: New definitive result
+  end
+  API-->>Other: Original result and permitted consistency metadata via BFF
+  Other->>BFF: Refresh saved outcome, receipt and balances
+  end

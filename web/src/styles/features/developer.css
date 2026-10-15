@@ -297,11 +297,9 @@
 }
 .developer-journey li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 12px;
   min-width: 0;
-  overflow-wrap: anywhere;
   border-right: 1px solid var(--line);
   padding: 17px 13px;
   background: var(--paper);
@@ -485,6 +483,7 @@
 }
 .request-proof-sheet {
   display: grid;
+  min-width: 0;
   gap: 0;
   border: 1px solid var(--line);
   border-top: 3px solid var(--blue);
@@ -496,6 +495,15 @@
   justify-content: space-between;
   gap: 18px;
   padding: 24px;
+}
+.request-proof-sheet > header > div,
+.request-proof-line > * {
+  min-width: 0;
+}
+.request-proof-sheet > header code,
+.request-proof-line code {
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .request-proof-sheet > header h3 {
   margin: 3px 0 6px;

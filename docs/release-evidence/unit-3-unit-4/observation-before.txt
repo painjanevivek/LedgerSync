@@ -1,0 +1,6 @@
+--- FAIL: TestDistributedEvidenceDoesNotInferMissingReplicaCount (0.00s)
+    --- FAIL: TestDistributedEvidenceDoesNotInferMissingReplicaCount/missing_count (0.00s)
+        distributed_evidence_test.go:32: replica observation {State:available SampledAt:2026-10-11 20:11:01.2996342 +0000 UTC Count:0 OwnerID: Generation: ExpiresAt:<nil> LatestPublishedAt:<nil>}
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/db	1.079s
+FAIL

@@ -166,18 +166,19 @@ func (h *ReconciliationCommandHandler) authenticate(request *http.Request) (iden
 }
 
 type reconciliationCommandResponse struct {
-	RunID               string `json:"run_id"`
-	Status              string `json:"status"`
-	CorrelationID       string `json:"correlation_id"`
-	Scope               string `json:"scope"`
-	LedgerWatermark     string `json:"ledger_watermark"`
-	ApplicationVersion  string `json:"application_version"`
-	SchemaVersion       string `json:"schema_version"`
-	CheckedAccountCount string `json:"checked_account_count"`
-	PostingCount        string `json:"posting_count"`
-	MismatchCount       string `json:"mismatch_count"`
-	StartedAt           string `json:"started_at"`
-	CompletedAt         string `json:"completed_at"`
+	OutboxSnapshot      *reconciliation.OutboxSnapshot `json:"outbox_snapshot,omitempty"`
+	RunID               string                         `json:"run_id"`
+	Status              string                         `json:"status"`
+	CorrelationID       string                         `json:"correlation_id"`
+	Scope               string                         `json:"scope"`
+	LedgerWatermark     string                         `json:"ledger_watermark"`
+	ApplicationVersion  string                         `json:"application_version"`
+	SchemaVersion       string                         `json:"schema_version"`
+	CheckedAccountCount string                         `json:"checked_account_count"`
+	PostingCount        string                         `json:"posting_count"`
+	MismatchCount       string                         `json:"mismatch_count"`
+	StartedAt           string                         `json:"started_at"`
+	CompletedAt         string                         `json:"completed_at"`
 }
 
 func writeReconciliationCommandResult(writer http.ResponseWriter, submission reconciliation.CommandSubmission) {
@@ -189,7 +190,8 @@ func writeReconciliationCommandResult(writer http.ResponseWriter, submission rec
 	}
 	writer.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(writer).Encode(reconciliationCommandResponse{
-		RunID: result.ID, Status: string(result.Status), CorrelationID: result.CorrelationID, Scope: result.Scope,
+		OutboxSnapshot: result.OutboxSnapshot,
+		RunID:          result.ID, Status: string(result.Status), CorrelationID: result.CorrelationID, Scope: result.Scope,
 		LedgerWatermark: result.LedgerWatermark, ApplicationVersion: result.ApplicationVersion, SchemaVersion: result.SchemaVersion,
 		CheckedAccountCount: strconv.Itoa(result.CheckedAccountCount), PostingCount: strconv.Itoa(result.PostingCount), MismatchCount: strconv.Itoa(result.MismatchCount),
 		StartedAt: result.StartedAt.UTC().Format("2006-01-02T15:04:05.000000Z"), CompletedAt: result.CompletedAt.UTC().Format("2006-01-02T15:04:05.000000Z"),

@@ -97,8 +97,8 @@ type CredentialRepository interface {
 	CreateCredential(context.Context, CreateCredentialCommand, [sha256.Size]byte) (CredentialSubmission, error)
 	RotateCredential(context.Context, RotateCredentialCommand, [sha256.Size]byte) (CredentialSubmission, error)
 	RevokeCredential(context.Context, RevokeCredentialCommand, [sha256.Size]byte) (CredentialSubmission, error)
-	GetCredential(context.Context, string, string) (Credential, error)
-	ListCredentials(context.Context, string, CredentialQuery) (CredentialPage, error)
+	GetCredential(context.Context, string, string, string) (Credential, error)
+	ListCredentials(context.Context, string, string, CredentialQuery) (CredentialPage, error)
 }
 
 type CredentialService struct {
@@ -141,23 +141,23 @@ func (s *CredentialService) Revoke(ctx context.Context, command RevokeCredential
 	return s.repository.RevokeCredential(ctx, command, fingerprint(RevokeCredentialOperation, command.CredentialID, command.ExpectedVersion, command.Reason))
 }
 
-func (s *CredentialService) Get(ctx context.Context, tenantID, credentialID string) (Credential, error) {
+func (s *CredentialService) Get(ctx context.Context, tenantID, actorID, credentialID string) (Credential, error) {
 	tenantID, credentialID = strings.TrimSpace(tenantID), strings.ToLower(strings.TrimSpace(credentialID))
-	if tenantID == "" || !canonicalUUID.MatchString(credentialID) {
+	if tenantID == "" || strings.TrimSpace(actorID) == "" || len(actorID) > 256 || !canonicalUUID.MatchString(credentialID) {
 		return Credential{}, ErrInvalidCommand
 	}
-	return s.repository.GetCredential(ctx, tenantID, credentialID)
+	return s.repository.GetCredential(ctx, tenantID, actorID, credentialID)
 }
 
-func (s *CredentialService) List(ctx context.Context, tenantID string, query CredentialQuery) (CredentialPage, error) {
+func (s *CredentialService) List(ctx context.Context, tenantID, actorID string, query CredentialQuery) (CredentialPage, error) {
 	tenantID, query.Status, query.Cursor = strings.TrimSpace(tenantID), strings.ToLower(strings.TrimSpace(query.Status)), strings.TrimSpace(query.Cursor)
 	if query.Limit == 0 {
 		query.Limit = 50
 	}
-	if tenantID == "" || query.Limit < 1 || query.Limit > 100 || query.Status != "" && !slices.Contains([]string{"active", "expired", "revoked"}, query.Status) || len(query.Cursor) > 512 {
+	if tenantID == "" || strings.TrimSpace(actorID) == "" || len(actorID) > 256 || query.Limit < 1 || query.Limit > 100 || query.Status != "" && !slices.Contains([]string{"active", "expired", "revoked"}, query.Status) || len(query.Cursor) > 512 {
 		return CredentialPage{}, ErrInvalidCommand
 	}
-	return s.repository.ListCredentials(ctx, tenantID, query)
+	return s.repository.ListCredentials(ctx, tenantID, actorID, query)
 }
 
 func normalizeCreate(command *CreateCredentialCommand) {

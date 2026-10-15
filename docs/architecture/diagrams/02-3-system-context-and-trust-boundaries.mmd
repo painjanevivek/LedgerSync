@@ -1,0 +1,15 @@
+flowchart LR
+  Operator[Invited operator] --> Browser[Browser]
+  Partner[Authorized partner API client] -->|Scoped workload token| API[Go API]
+  Browser -->|Same-origin requests and session cookie| Web[Next.js workspace and BFF]
+  Browser -->|Managed sign in| IdP[Configured OIDC identity provider]
+  Web -->|Code exchange or workload token request| IdP
+  Web -->|Workload token and signed actor assertion| API
+  API --> PG[(PostgreSQL authority)]
+  API -->|Disposable cache writes and live signals| Redis[(Redis)]
+  Worker[Background worker] --> PG
+  Worker --> Redis
+  Worker -.->|HTTPS where egress is configured| Receiver[Verified webhook receiver]
+  Tools[Migration, backup, restore and reconciliation tools] --> PG
+  API --> Telemetry[Configured telemetry]
+  Worker --> Telemetry

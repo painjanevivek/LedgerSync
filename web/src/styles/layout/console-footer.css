@@ -2,18 +2,23 @@
 
 .console-footer {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   gap: 24px;
   width: min(1080px, 100%);
   margin-top: 42px;
   border-top: 1px solid var(--line);
   padding: 13px 0 0;
   color: var(--faint);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: var(--type-label);
 }
 .console-footer.is-pending {
   visibility: hidden;
+}
+.console-footer a {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .boot-screen {
   display: grid;

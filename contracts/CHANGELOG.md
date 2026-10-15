@@ -1,5 +1,35 @@
 # LedgerSync API changelog
 
+## 3.7.0 — 2026-10-15
+
+- Document existing own-principal trusted backend authentication and mandatory fresh assertions for delegating workloads.
+- Preserve the configured `/api` prefix in the generated TypeScript client. Bound timeouts and reject paths that escape that API base.
+- Support a per-call assertion factory and omit assertions for own-principal workloads. Keep browser workloads behind the BFF.
+- Document the optional study route gate. Financial posting and event contracts stay compatible.
+
+## 3.6.0 — 2026-10-15
+
+- Add an optional opaque origin trace ID to authorized event details.
+- Keep historical records valid when no trace exists.
+- Preserve financial outcomes, event payloads, Lamport order and record permissions.
+- Keep trace viewer authorization separate from financial evidence.
+
+## 3.5.0 — 2026-10-12
+
+- Add optional Lamport origin metadata to authorized event details.
+- Add bounded publication attempts and message receipt evidence.
+- Preserve older envelopes, exact counters, tenant authorization, and event identity.
+- Keep event order separate from financial posting and cache aggregate versions.
+
+## 3.4.0 — 2026-10-10
+
+- Added immutable confirmed transfer preparation, a bounded original-user inbox,
+  and an empty-body server reconstruction retry for browser data loss.
+- Original financial keys remain private. Discovery uses current tenant, actor,
+  and account authority. Recovery creates no automatic movement or reservation.
+- Reused existing atomic posting, original outcome replay, rate limits, and
+  consistency metadata. Known receipts are read without a financial command.
+
 ## 3.3.0 — 2026-09-01
 
 - Added an audited, bounded investigation evidence bundle download requiring

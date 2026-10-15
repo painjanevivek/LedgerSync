@@ -1,0 +1,622 @@
+{
+  "schema": "ledgersync-writer-inventory/v1",
+  "scope": "Go string-literal SQL in production platform adapters; includes direct writes and controlled calls. Dynamic SQL and migration bodies require separate review.",
+  "entries": [
+    {
+      "file": "internal/platform/db/account_command_idempotency.go",
+      "function": "reserveAccountCommand",
+      "line": 20,
+      "operation": "INSERT INTO",
+      "table": "idempotency_requests"
+    },
+    {
+      "file": "internal/platform/db/account_command_idempotency.go",
+      "function": "storeAccountOutcome",
+      "line": 73,
+      "operation": "UPDATE",
+      "table": "idempotency_requests"
+    },
+    {
+      "file": "internal/platform/db/account_command_idempotency.go",
+      "function": "storeAccountFailure",
+      "line": 92,
+      "operation": "UPDATE",
+      "table": "idempotency_requests"
+    },
+    {
+      "file": "internal/platform/db/account_command_store.go",
+      "function": "controlled_provision_account_v1",
+      "line": 37,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_provision_account_v1"
+    },
+    {
+      "file": "internal/platform/db/account_command_store.go",
+      "function": "controlled_lock_owned_account_v1",
+      "line": 71,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_lock_owned_account_v1"
+    },
+    {
+      "file": "internal/platform/db/account_command_store.go",
+      "function": "controlled_update_account_v1",
+      "line": 126,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_update_account_v1"
+    },
+    {
+      "file": "internal/platform/db/account_command_store.go",
+      "function": "controlled_append_audit_v1",
+      "line": 158,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/account_command_store.go",
+      "function": "insertAccountOutbox",
+      "line": 185,
+      "operation": "INSERT INTO",
+      "table": "outbox_events"
+    },
+    {
+      "file": "internal/platform/db/audit_repository.go",
+      "function": "controlled_append_audit_v1",
+      "line": 55,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/delivery_replay_repository.go",
+      "function": "controlled_delivery_recovery_v1",
+      "line": 50,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_delivery_recovery_v1"
+    },
+    {
+      "file": "internal/platform/db/delivery_replay_repository.go",
+      "function": "controlled_delivery_recovery_v1",
+      "line": 60,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_delivery_recovery_v1"
+    },
+    {
+      "file": "internal/platform/db/delivery_repository.go",
+      "function": "controlled_import_delivery_evidence_v1",
+      "line": 28,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_import_delivery_evidence_v1"
+    },
+    {
+      "file": "internal/platform/db/developer_credential_repository.go",
+      "function": "CreateCredential",
+      "line": 48,
+      "operation": "INSERT INTO",
+      "table": "developer_credentials"
+    },
+    {
+      "file": "internal/platform/db/developer_credential_repository.go",
+      "function": "RotateCredential",
+      "line": 84,
+      "operation": "UPDATE",
+      "table": "developer_credentials"
+    },
+    {
+      "file": "internal/platform/db/developer_credential_repository.go",
+      "function": "RevokeCredential",
+      "line": 123,
+      "operation": "UPDATE",
+      "table": "developer_credentials"
+    },
+    {
+      "file": "internal/platform/db/developer_credential_repository.go",
+      "function": "RecordUsage",
+      "line": 194,
+      "operation": "UPDATE",
+      "table": "developer_credentials"
+    },
+    {
+      "file": "internal/platform/db/developer_credential_repository.go",
+      "function": "reserveDeveloperCommand",
+      "line": 229,
+      "operation": "INSERT INTO",
+      "table": "developer_command_idempotency"
+    },
+    {
+      "file": "internal/platform/db/developer_credential_repository.go",
+      "function": "completeDeveloperCommand",
+      "line": 260,
+      "operation": "UPDATE",
+      "table": "developer_command_idempotency"
+    },
+    {
+      "file": "internal/platform/db/developer_credential_repository.go",
+      "function": "insertDeveloperCredentialEvent",
+      "line": 279,
+      "operation": "INSERT INTO",
+      "table": "developer_credential_events"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "RegisterWebhook",
+      "line": 49,
+      "operation": "INSERT INTO",
+      "table": "developer_webhook_endpoints"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "RegisterWebhook",
+      "line": 62,
+      "operation": "INSERT INTO",
+      "table": "webhook_endpoint_verification_jobs"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "VerifyWebhook",
+      "line": 95,
+      "operation": "UPDATE",
+      "table": "developer_webhook_endpoints"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "RotateWebhook",
+      "line": 135,
+      "operation": "UPDATE",
+      "table": "developer_webhook_endpoints"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "DisableWebhook",
+      "line": 174,
+      "operation": "UPDATE",
+      "table": "developer_webhook_endpoints"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "reserveWebhookCommand",
+      "line": 316,
+      "operation": "INSERT INTO",
+      "table": "developer_webhook_command_idempotency"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "completeWebhookCommand",
+      "line": 345,
+      "operation": "UPDATE",
+      "table": "developer_webhook_command_idempotency"
+    },
+    {
+      "file": "internal/platform/db/developer_webhook_repository.go",
+      "function": "insertWebhookEvent",
+      "line": 363,
+      "operation": "INSERT INTO",
+      "table": "developer_webhook_events"
+    },
+    {
+      "file": "internal/platform/db/funding_repository.go",
+      "function": "controlled_request_funding_v1",
+      "line": 49,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_request_funding_v1"
+    },
+    {
+      "file": "internal/platform/db/funding_repository.go",
+      "function": "controlled_decide_funding_v1",
+      "line": 69,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_decide_funding_v1"
+    },
+    {
+      "file": "internal/platform/db/funding_repository.go",
+      "function": "controlled_post_funding_v1",
+      "line": 82,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_post_funding_v1"
+    },
+    {
+      "file": "internal/platform/db/funding_repository.go",
+      "function": "controlled_request_funding_compensation_v1",
+      "line": 126,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_request_funding_compensation_v1"
+    },
+    {
+      "file": "internal/platform/db/guidance_repository.go",
+      "function": "UpdateOrientationPreference",
+      "line": 107,
+      "operation": "INSERT INTO",
+      "table": "operator_onboarding_preferences"
+    },
+    {
+      "file": "internal/platform/db/guidance_repository.go",
+      "function": "UpdateOrientationPreference",
+      "line": 109,
+      "operation": "UPDATE",
+      "table": "operator_onboarding_preferences"
+    },
+    {
+      "file": "internal/platform/db/investigation_saved_view_repository.go",
+      "function": "CreateSavedView",
+      "line": 85,
+      "operation": "INSERT INTO",
+      "table": "investigation_saved_views"
+    },
+    {
+      "file": "internal/platform/db/investigation_saved_view_repository.go",
+      "function": "RenameSavedView",
+      "line": 116,
+      "operation": "UPDATE",
+      "table": "investigation_saved_views"
+    },
+    {
+      "file": "internal/platform/db/investigation_saved_view_repository.go",
+      "function": "DeleteSavedView",
+      "line": 153,
+      "operation": "DELETE FROM",
+      "table": "investigation_saved_views"
+    },
+    {
+      "file": "internal/platform/db/investigation_saved_view_repository.go",
+      "function": "controlled_append_audit_v1",
+      "line": 219,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/investigation_workspace_repository.go",
+      "function": "CreateWorkspace",
+      "line": 97,
+      "operation": "INSERT INTO",
+      "table": "investigation_workspaces"
+    },
+    {
+      "file": "internal/platform/db/investigation_workspace_repository.go",
+      "function": "CreateWorkspace",
+      "line": 101,
+      "operation": "INSERT INTO",
+      "table": "investigation_workspace_references"
+    },
+    {
+      "file": "internal/platform/db/investigation_workspace_repository.go",
+      "function": "mutateWorkspace",
+      "line": 361,
+      "operation": "UPDATE",
+      "table": "investigation_workspaces"
+    },
+    {
+      "file": "internal/platform/db/investigation_workspace_repository.go",
+      "function": "mutateWorkspace",
+      "line": 370,
+      "operation": "UPDATE",
+      "table": "investigation_workspaces"
+    },
+    {
+      "file": "internal/platform/db/investigation_workspace_repository.go",
+      "function": "controlled_append_audit_v1",
+      "line": 393,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "StartLiveRoom",
+      "line": 76,
+      "operation": "UPDATE",
+      "table": "investigation_live_rooms"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "StartLiveRoom",
+      "line": 99,
+      "operation": "INSERT INTO",
+      "table": "investigation_workspaces"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "StartLiveRoom",
+      "line": 103,
+      "operation": "INSERT INTO",
+      "table": "investigation_workspace_references"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "StartLiveRoom",
+      "line": 107,
+      "operation": "INSERT INTO",
+      "table": "investigation_live_rooms"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "IssueLiveRoomInvite",
+      "line": 148,
+      "operation": "UPDATE",
+      "table": "investigation_live_rooms"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "JoinLiveRoom",
+      "line": 175,
+      "operation": "UPDATE",
+      "table": "investigation_live_rooms"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "liveRoomReceiptMutation",
+      "line": 246,
+      "operation": "UPDATE",
+      "table": "investigation_live_rooms"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "RecordLiveRoomFinding",
+      "line": 290,
+      "operation": "INSERT INTO",
+      "table": "investigation_live_room_findings"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "RecordLiveRoomFinding",
+      "line": 294,
+      "operation": "UPDATE",
+      "table": "investigation_live_rooms"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "readLiveRoom",
+      "line": 326,
+      "operation": "UPDATE",
+      "table": "investigation_live_rooms"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "withLiveOperation",
+      "line": 433,
+      "operation": "INSERT INTO",
+      "table": "investigation_live_room_operations"
+    },
+    {
+      "file": "internal/platform/db/live_investigation_repository.go",
+      "function": "controlled_append_audit_v1",
+      "line": 464,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/logical_clock_repository.go",
+      "function": "controlled_prepare_publication_v1",
+      "line": 33,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_prepare_publication_v1"
+    },
+    {
+      "file": "internal/platform/db/logical_clock_repository.go",
+      "function": "controlled_receive_message_v1",
+      "line": 65,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_receive_message_v1"
+    },
+    {
+      "file": "internal/platform/db/outbox_replay_repository.go",
+      "function": "controlled_outbox_recovery_v1",
+      "line": 56,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_outbox_recovery_v1"
+    },
+    {
+      "file": "internal/platform/db/outbox_repository.go",
+      "function": "controlled_claim_outbox_v1",
+      "line": 36,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_claim_outbox_v1"
+    },
+    {
+      "file": "internal/platform/db/outbox_repository.go",
+      "function": "controlled_complete_outbox_v1",
+      "line": 79,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_complete_outbox_v1"
+    },
+    {
+      "file": "internal/platform/db/pilot_currency.go",
+      "function": "controlled_pilot_currency_valid_v1",
+      "line": 13,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_pilot_currency_valid_v1"
+    },
+    {
+      "file": "internal/platform/db/provisioning_repository.go",
+      "function": "controlled_apply_partner_v1",
+      "line": 40,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_apply_partner_v1"
+    },
+    {
+      "file": "internal/platform/db/provisioning_repository.go",
+      "function": "controlled_rollback_partner_v1",
+      "line": 50,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_rollback_partner_v1"
+    },
+    {
+      "file": "internal/platform/db/rate_limit_repository.go",
+      "function": "Consume",
+      "line": 45,
+      "operation": "INSERT INTO",
+      "table": "api_rate_limit_windows"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "RunCommand",
+      "line": 61,
+      "operation": "INSERT INTO",
+      "table": "reconciliation_run_commands"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "RunCommand",
+      "line": 88,
+      "operation": "DELETE FROM",
+      "table": "reconciliation_run_commands"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "RunCommand",
+      "line": 91,
+      "operation": "INSERT INTO",
+      "table": "reconciliation_run_commands"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "executeReconciliationCommand",
+      "line": 153,
+      "operation": "DELETE FROM",
+      "table": "reconciliation_run_commands"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "reserveReconciliationCommand",
+      "line": 178,
+      "operation": "INSERT INTO",
+      "table": "idempotency_requests"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "updateReconciliationIdempotency",
+      "line": 236,
+      "operation": "UPDATE",
+      "table": "idempotency_requests"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "controlled_append_audit_v1",
+      "line": 249,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_command_repository.go",
+      "function": "controlled_append_audit_v1",
+      "line": 262,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/reconciliation_repository.go",
+      "function": "controlled_record_reconciliation_v1",
+      "line": 160,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_record_reconciliation_v1"
+    },
+    {
+      "file": "internal/platform/db/retention_repository.go",
+      "function": "controlled_run_retention_v1",
+      "line": 38,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_run_retention_v1"
+    },
+    {
+      "file": "internal/platform/db/transfer_correction_repository.go",
+      "function": "controlled_request_correction_v1",
+      "line": 44,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_request_correction_v1"
+    },
+    {
+      "file": "internal/platform/db/transfer_correction_repository.go",
+      "function": "controlled_decide_correction_v1",
+      "line": 68,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_decide_correction_v1"
+    },
+    {
+      "file": "internal/platform/db/transfer_correction_repository.go",
+      "function": "controlled_post_transfer_correction_v1",
+      "line": 81,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_post_transfer_correction_v1"
+    },
+    {
+      "file": "internal/platform/db/transfer_recovery_repository.go",
+      "function": "controlled_prepare_transfer_recovery_v1",
+      "line": 20,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_prepare_transfer_recovery_v1"
+    },
+    {
+      "file": "internal/platform/db/transfer_repository.go",
+      "function": "controlled_submit_transfer_v1",
+      "line": 79,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_submit_transfer_v1"
+    },
+    {
+      "file": "internal/platform/db/transfer_repository.go",
+      "function": "controlled_attach_transfer_request_reference_v1",
+      "line": 94,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_attach_transfer_request_reference_v1"
+    },
+    {
+      "file": "internal/platform/db/transfer_repository.go",
+      "function": "controlled_append_audit_v1",
+      "line": 208,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_append_audit_v1"
+    },
+    {
+      "file": "internal/platform/db/webhook_delivery_job_repository.go",
+      "function": "controlled_claim_webhook_delivery_v1",
+      "line": 35,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_claim_webhook_delivery_v1"
+    },
+    {
+      "file": "internal/platform/db/webhook_delivery_job_repository.go",
+      "function": "controlled_complete_delivery_v1",
+      "line": 71,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_complete_delivery_v1"
+    },
+    {
+      "file": "internal/platform/db/webhook_verification_job_repository.go",
+      "function": "controlled_claim_webhook_verification_v1",
+      "line": 36,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_claim_webhook_verification_v1"
+    },
+    {
+      "file": "internal/platform/db/webhook_verification_job_repository.go",
+      "function": "controlled_complete_webhook_verification_v1",
+      "line": 69,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_complete_webhook_verification_v1"
+    },
+    {
+      "file": "internal/platform/db/worker_tenant_context.go",
+      "function": "controlled_claim_tenant_v1",
+      "line": 15,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_claim_tenant_v1"
+    },
+    {
+      "file": "internal/platform/db/worker_tenant_context.go",
+      "function": "controlled_renew_claim_v1",
+      "line": 35,
+      "operation": "CONTROLLED CALL",
+      "table": "controlled_renew_claim_v1"
+    },
+    {
+      "file": "internal/platform/identity/postgres_replay_guard.go",
+      "function": "Use",
+      "line": 44,
+      "operation": "DELETE FROM",
+      "table": "bff_actor_assertion_replays"
+    },
+    {
+      "file": "internal/platform/identity/postgres_replay_guard.go",
+      "function": "Use",
+      "line": 48,
+      "operation": "INSERT INTO",
+      "table": "bff_actor_assertion_replays"
+    }
+  ]
+}

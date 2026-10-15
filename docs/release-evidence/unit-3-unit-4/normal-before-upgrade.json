@@ -1,0 +1,15 @@
+{
+  "captured_at_utc": "2026-10-11T20:27:05.7160376Z",
+  "project": "compose",
+  "initial_service_state": "stopped before final handover",
+  "financial": {
+    "migration_version": "000040_transfer_recovery_intents.up.sql",
+    "migration_count": 42,
+    "accounts": 6,
+    "transfers": 4,
+    "ledger_postings": 10,
+    "balance_fingerprint": "55cbbd7ca9711d8d364b9a0184db6e8d",
+    "transfer_fingerprint": "9db43d69c2b18331db1260b5da733bba",
+    "posting_fingerprint": "5d030a60876a8b9b3f2fe7f12f057b88"
+  }
+}

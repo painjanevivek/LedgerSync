@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.3.0",
-    "_postman_id": "ledgersync-27e7922f-8cb10d26-b74af21c"
+    "version": "3.7.0",
+    "_postman_id": "ledgersync-a37011ae-1596ded8-d98f4802"
   },
   "variable": [
     {
@@ -412,6 +412,23 @@
           }
         ],
         "url": "{{baseUrl}}/developer/webhooks/{webhookId}"
+      }
+    },
+    {
+      "name": "getDistributedEvidence",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/developer/distributed"
       }
     },
     {
@@ -840,6 +857,23 @@
       }
     },
     {
+      "name": "listTransferRecoveryRequests",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers/recovery"
+      }
+    },
+    {
       "name": "listTransfers",
       "request": {
         "method": "GET",
@@ -913,6 +947,27 @@
           }
         ],
         "url": "{{baseUrl}}/transfer-corrections/{correctionId}/post"
+      }
+    },
+    {
+      "name": "prepareTransferRecoveryRequest",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-prepareTransferRecoveryRequest-key"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers/recovery"
       }
     },
     {
@@ -1103,6 +1158,23 @@
           }
         ],
         "url": "{{baseUrl}}/transfers/{transferId}/corrections"
+      }
+    },
+    {
+      "name": "retryOriginalTransferRecoveryRequest",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/transfers/recovery/{requestReference}/retry"
       }
     },
     {

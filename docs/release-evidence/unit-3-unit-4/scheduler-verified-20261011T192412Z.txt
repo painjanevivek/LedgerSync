@@ -1,0 +1,6 @@
+=== RUN   TestSchedulerLeaseTakeoverRejectsStaleJobs
+--- PASS: TestSchedulerLeaseTakeoverRejectsStaleJobs (1.72s)
+=== RUN   TestSchedulerIdentityCannotReadOrWriteOtherTenants
+--- PASS: TestSchedulerIdentityCannotReadOrWriteOtherTenants (0.48s)
+PASS
+ok  	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	2.818s

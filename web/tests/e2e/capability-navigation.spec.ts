@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { mockOperatorConsole } from "./fixtures";
+import { openExpertTools, mockOperatorConsole } from "./fixtures";
 
 function json(route: Route, body: unknown) {
   return route.fulfill({
@@ -37,7 +37,7 @@ function captureAPIPaths(page: Page) {
   return paths;
 }
 
-test("local finance operator sees grouped workspace, review, and system navigation", async ({ page }) => {
+test("local finance operator sees grouped work, investigation, operations, and developer navigation", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto("/accounts");
   await expect(page.getByRole("heading", { name: "Accounts", exact: true })).toBeVisible();
@@ -46,13 +46,15 @@ test("local finance operator sees grouped workspace, review, and system navigati
   await page.getByText("Profile", { exact: true }).click();
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  await navigation.getByText("Expert tools", { exact: true }).click();
-  await expect(navigation.getByText("Workspace", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("Review & investigate", { exact: true })).toBeVisible();
-  await expect(navigation.getByText("System tools", { exact: true })).toBeVisible();
-  await expect(navigation.getByRole("link", { name: "Approvals" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Accounts", exact: true })).toBeVisible();
+  await openExpertTools(page);
+  await expect(navigation.getByRole("heading", { name: "Review & investigate", exact: true })).toBeVisible();
+  await expect(navigation.getByRole("heading", { name: "System tools", exact: true })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Developer", exact: true })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Approvals", exact: true })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Delivery activity" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "System status" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Data recovery" })).toBeVisible();
 });
 
 test("production read role sees only relevant navigation and never local status", async ({ page }) => {
@@ -66,12 +68,13 @@ test("production read role sees only relevant navigation and never local status"
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(navigation.getByRole("link", { name: "Accounts" })).toBeVisible();
-  await navigation.getByText("Expert tools", { exact: true }).click();
+  await openExpertTools(page);
   await expect(navigation.getByRole("link", { name: "Delivery activity" })).toBeVisible();
   await expect(navigation.getByRole("link", { name: "Approvals" })).toHaveCount(0);
   await expect(navigation.getByRole("link", { name: "System status" })).toHaveCount(0);
   await expect(navigation.getByRole("link", { name: "Developer" })).toHaveCount(0);
-  await expect(navigation.getByText("System tools", { exact: true })).toHaveCount(0);
+  await expect(navigation.locator("summary").filter({ hasText: "Developer" })).toHaveCount(0);
+  await expect(navigation.getByRole("link", { name: "Data recovery" })).toHaveCount(0);
 });
 
 test("production direct local-status access is denied without requesting diagnostics", async ({ page }) => {

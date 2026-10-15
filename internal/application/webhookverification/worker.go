@@ -6,6 +6,7 @@ package webhookverification
 import (
 	"context"
 	"errors"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/lease"
 	"strings"
 	"time"
 )
@@ -24,6 +25,7 @@ type Job struct {
 	Challenge                                                               []byte
 	ExpiresAt                                                               time.Time
 	AttemptNumber                                                           int
+	ClaimGeneration                                                         int64
 }
 
 type Outcome struct {
@@ -33,6 +35,7 @@ type Outcome struct {
 
 type Completion struct {
 	JobID, WorkerID, ResponseClass, ErrorCode string
+	ClaimGeneration                           int64
 	Status                                    Status
 	CompletedAt                               time.Time
 	RetryAt                                   *time.Time
@@ -41,6 +44,7 @@ type Completion struct {
 type Store interface {
 	Claim(context.Context, string, int, time.Duration) ([]Job, error)
 	Complete(context.Context, Completion) error
+	RenewClaim(context.Context, string, string, int64, time.Duration) error
 }
 
 type Sender interface {
@@ -74,7 +78,10 @@ func NewWorker(store Store, sender Sender, clock func() time.Time, config Config
 		clock = time.Now
 	}
 	if config.BatchSize < 1 {
-		config.BatchSize = 25
+		config.BatchSize = 5
+	}
+	if config.BatchSize > 100 {
+		return nil, errors.New("verification batch exceeds 100 jobs")
 	}
 	if config.ClaimLease <= 0 {
 		config.ClaimLease = 30 * time.Second
@@ -95,11 +102,23 @@ func (w *Worker) RunOnce(ctx context.Context) (int, error) {
 			w.onItem(job.ID)
 		}
 		now := w.clock().UTC()
-		completion := Completion{JobID: job.ID, WorkerID: w.workerID, CompletedAt: now}
+		completion := Completion{JobID: job.ID, WorkerID: w.workerID, CompletedAt: now, ClaimGeneration: job.ClaimGeneration}
 		if !job.ExpiresAt.After(now) {
 			completion.Status, completion.ResponseClass, completion.ErrorCode = StatusDead, "challenge_expired", "challenge_expired"
 		} else {
-			outcome, verifyErr := w.sender.Verify(ctx, job)
+			var outcome Outcome
+			verifyErr := lease.Run(ctx, w.claimLease, func(c context.Context) error {
+				return w.store.RenewClaim(c, w.workerID, job.ID, job.ClaimGeneration, w.claimLease)
+			}, func(c context.Context) error {
+				var err error
+				outcome, err = w.sender.Verify(c, job)
+				return err
+			})
+			if errors.Is(verifyErr, lease.ErrLost) {
+				return 0, verifyErr
+			}
+			now = w.clock().UTC()
+			completion.CompletedAt = now
 			completion.ResponseClass = outcome.ResponseClass
 			if completion.ResponseClass == "" {
 				completion.ResponseClass = "verification_error"

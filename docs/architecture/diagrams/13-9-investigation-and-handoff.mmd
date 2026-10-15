@@ -1,0 +1,27 @@
+sequenceDiagram
+  actor OperatorA as First operator
+  actor OperatorB as Next operator
+  participant UI as Investigation screen
+  participant API as BFF and Go API
+  participant PG as PostgreSQL
+  participant Redis as Disposable live signals
+  OperatorA->>UI: Search request, transfer or evidence reference
+  UI->>API: Authorized bounded search and related-evidence read
+  API->>PG: Read tenant-scoped evidence
+  PG-->>UI: Current evidence through API
+  OperatorA->>UI: Save case or record finding
+  UI->>API: Scoped command with expected workspace version
+  API->>PG: Save allowed references, history or durable finding
+  PG-->>UI: Versioned receipt
+  opt Live investigation is enabled
+    UI->>API: Join room and publish allowed presence/signal
+    API->>PG: Validate durable room membership
+    API->>Redis: Short-lived presence and collaboration signal
+  end
+  OperatorA->>UI: Handoff with current version
+  UI->>API: Handoff command
+  API->>PG: Append handoff history and advance version
+  OperatorB->>UI: Open handed-off case
+  UI->>API: Re-read current authorized evidence
+  API->>PG: Read stored references and current records
+  PG-->>UI: Historical context plus current evidence state

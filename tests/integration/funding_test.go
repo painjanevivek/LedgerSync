@@ -31,7 +31,13 @@ INSERT INTO tenant_funding_policies(
 		t.Fatal(err)
 	}
 	clock := func() time.Time { return time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC) }
-	repository, err := db.NewFundingRepository(database, clock)
+	requireWorkloadRoles(t, database)
+	api := provisionWorkloadSession(t, database, testDatabaseURL(t), "ledgersync_api")
+	if _, err := database.Exec(`REVOKE INSERT,UPDATE ON funding_events FROM ledgersync_api`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { provisionLiveMigrationRoles(t, database) })
+	repository, err := db.NewFundingRepository(api.db, clock)
 	if err != nil {
 		t.Fatal(err)
 	}

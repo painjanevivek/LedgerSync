@@ -1,0 +1,74 @@
+{
+  "captured_at": "2026-10-11T19:04:12.4439511Z",
+  "trace": {
+    "origin": [
+      {
+        "id": "ce00b2ea-54cc-4d4d-b0f7-7397353c7e95",
+        "node_id": "ledgersync/api/27c5101b162d",
+        "parent_reference": "transfer/2475659e-477d-4633-ab1e-85748beef226",
+        "logical_timestamp": "5"
+      },
+      {
+        "id": "1a69acc6-9fc9-4cd3-a957-cd6c009f0c9b",
+        "node_id": "ledgersync/api/27c5101b162d",
+        "parent_reference": "transfer/2475659e-477d-4633-ab1e-85748beef226",
+        "logical_timestamp": "4"
+      },
+      {
+        "id": "1d44cb2e-9af3-4801-ae9d-1fdf55d1d396",
+        "node_id": "ledgersync/api/27c5101b162d",
+        "parent_reference": "transfer/2475659e-477d-4633-ab1e-85748beef226",
+        "logical_timestamp": "6"
+      }
+    ],
+    "receipts": [
+      {
+        "node_id": "ledgersync/worker/503c6ab507c2",
+        "event_id": "1a69acc6-9fc9-4cd3-a957-cd6c009f0c9b",
+        "received_at": "2026-10-12T00:34:08.572749+05:30",
+        "sender_counter": "6",
+        "receive_counter": "11"
+      },
+      {
+        "node_id": "ledgersync/worker/b6ad09833a5d",
+        "event_id": "1d44cb2e-9af3-4801-ae9d-1fdf55d1d396",
+        "received_at": "2026-10-12T00:34:08.578681+05:30",
+        "sender_counter": "8",
+        "receive_counter": "11"
+      },
+      {
+        "node_id": "ledgersync/worker/b6ad09833a5d",
+        "event_id": "ce00b2ea-54cc-4d4d-b0f7-7397353c7e95",
+        "received_at": "2026-10-12T00:34:08.580282+05:30",
+        "sender_counter": "10",
+        "receive_counter": "12"
+      }
+    ],
+    "publication": [
+      {
+        "status": "published",
+        "node_id": "ledgersync/worker/b6ad09833a5d",
+        "event_id": "1a69acc6-9fc9-4cd3-a957-cd6c009f0c9b",
+        "send_counter": "6",
+        "receive_counter": "5"
+      },
+      {
+        "status": "published",
+        "node_id": "ledgersync/worker/b6ad09833a5d",
+        "event_id": "1d44cb2e-9af3-4801-ae9d-1fdf55d1d396",
+        "send_counter": "8",
+        "receive_counter": "7"
+      },
+      {
+        "status": "published",
+        "node_id": "ledgersync/worker/b6ad09833a5d",
+        "event_id": "ce00b2ea-54cc-4d4d-b0f7-7397353c7e95",
+        "send_counter": "10",
+        "receive_counter": "9"
+      }
+    ],
+    "transfer_id": "2475659e-477d-4633-ab1e-85748beef226",
+    "invalid_order": 0
+  },
+  "reconciliation": "matched"
+}

@@ -1,5 +1,7 @@
 # Implementation plan: Provider-led outbound payouts
 
+**Status:** Deferred design as of 2026-09-27. The sequence below is historical planning, not the current implementation queue; migration numbers must be reassigned if this program resumes.
+
 ## Architecture
 
 The Go API remains the financial command boundary. PostgreSQL owns payout,

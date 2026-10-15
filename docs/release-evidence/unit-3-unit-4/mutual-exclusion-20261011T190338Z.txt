@@ -1,0 +1,16 @@
+=== RUN   TestConcurrentCloseAndTransferSerializeOnAccountProjectionLocks
+    account_commands_test.go:482: account command dependency is temporarily unavailable: execute controlled account provisioning: ERROR: role "ledgersync_provisioning" does not exist (SQLSTATE 42704)
+--- FAIL: TestConcurrentCloseAndTransferSerializeOnAccountProjectionLocks (1.21s)
+=== RUN   TestCompetingTransfersNeverOverdrawSourceAccount
+--- PASS: TestCompetingTransfersNeverOverdrawSourceAccount (0.47s)
+=== RUN   TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses
+--- PASS: TestReconciliationPersistsMissingProjectionEvidenceAndNeverFalsePasses (0.40s)
+=== RUN   TestReconciliationTreatsUnintendedEmptyScopeAsMismatch
+--- PASS: TestReconciliationTreatsUnintendedEmptyScopeAsMismatch (0.41s)
+=== RUN   TestConcurrentSameKeyRequestsResolveToOneMovement
+--- PASS: TestConcurrentSameKeyRequestsResolveToOneMovement (0.48s)
+=== RUN   TestConcurrentTransfersCannotBypassRollingActorLimit
+--- PASS: TestConcurrentTransfersCannotBypassRollingActorLimit (0.41s)
+FAIL
+FAIL	github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/tests/integration	3.992s
+FAIL

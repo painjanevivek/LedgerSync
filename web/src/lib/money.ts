@@ -18,16 +18,27 @@ export function minorUnitsFromDecimal(currency: string, input: string): string {
   return normalized;
 }
 
-export function formatMinorUnits(currency: string, minorUnits: string): string {
+export function formatMinorUnits(
+  currency: string,
+  minorUnits: string,
+  options: Readonly<{ groupThousands?: boolean; showCurrencyCode?: boolean }> = {},
+): string {
   const code = currency.trim().toUpperCase();
   const exponent = exponents[code];
   const value = minorUnits.trim();
   if (exponent === undefined || !/^\d+$/.test(value) || exceedsSigned64BitMinorUnits(value)) return "Unavailable";
-  if (exponent === 0) return `${code} ${value}`;
-  const padded = value.padStart(exponent + 1, "0");
-  const whole = padded.slice(0, -exponent).replace(/^0+(?=\d)/, "");
-  const fractional = padded.slice(-exponent);
-  return `${code} ${whole}.${fractional}`;
+  let whole: string;
+  let fractional: string | undefined;
+  if (exponent === 0) {
+    whole = value;
+  } else {
+    const padded = value.padStart(exponent + 1, "0");
+    whole = padded.slice(0, -exponent).replace(/^0+(?=\d)/, "");
+    fractional = padded.slice(-exponent);
+  }
+  if (options.groupThousands) whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const amount = fractional === undefined ? whole : `${whole}.${fractional}`;
+  return options.showCurrencyCode === false ? amount : `${code} ${amount}`;
 }
 
 /** Locale grouping without converting any financial value through a floating-point number. */
