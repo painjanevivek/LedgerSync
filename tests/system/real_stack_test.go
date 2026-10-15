@@ -357,7 +357,11 @@ func TestSystemTransferFixturePreservesDurableIntentAcrossClients(t *testing.T) 
 			t.Error(err)
 		}
 		reference := r.Header.Get("X-LedgerSync-Request-Reference")
-		requests <- observation{r.URL.Path, reference, r.Header.Get("Idempotency-Key"), string(body)}
+		select {
+		case requests <- observation{r.URL.Path, reference, r.Header.Get("Idempotency-Key"), string(body)}:
+		default:
+			t.Error("unexpected extra transfer fixture request")
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		if r.URL.Path == "/api/transfers/recovery" {
@@ -371,6 +375,9 @@ func TestSystemTransferFixturePreservesDurableIntentAcrossClients(t *testing.T) 
 	body := []byte(`{"amount":{"currency":"INR","minorUnits":"100"}}`)
 	postTransfer(t, server.Client(), server.URL, "fixture-csrf", key, body)
 	postTransfer(t, &http.Client{Timeout: time.Second}, server.URL, "fixture-csrf", key, body)
+	if len(requests) != 4 {
+		t.Fatalf("transfer fixture sent %d requests, want one prepare and post per client", len(requests))
+	}
 	var reference string
 	for index := 0; index < 4; index++ {
 		item := <-requests
