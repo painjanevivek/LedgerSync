@@ -148,6 +148,12 @@ END $$;
 
 DO $$
 BEGIN
+  IF to_regclass('public.bff_sessions') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE,DELETE ON bff_sessions TO ledgersync_api';
+  END IF;
+  IF to_regclass('public.operator_ui_preferences') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,INSERT,UPDATE ON operator_ui_preferences TO ledgersync_api';
+  END IF;
   IF to_regclass('public.operator_onboarding_preferences') IS NOT NULL THEN
     EXECUTE 'GRANT SELECT,INSERT,UPDATE ON operator_onboarding_preferences TO ledgersync_api';
   END IF;
