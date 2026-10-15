@@ -1,2 +1,5 @@
 # Generated reports are binary artifacts; do not apply text normalization or show textual diffs.
 *.pdf binary
+
+# SQL function rewrites and migration digests require stable line endings.
+*.sql text eol=lf
