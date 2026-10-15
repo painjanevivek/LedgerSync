@@ -88,6 +88,9 @@ func TestDeveloperEndpointCatalogueAndExamplesTrackOpenAPI(t *testing.T) {
 				continue
 			}
 			operation := asObject(t, rawOperation)
+			if internal, _ := operation["x-internal"].(bool); internal {
+				continue
+			}
 			operationID := stringAt(t, operation, "operationId")
 			key := strings.ToUpper(method) + " " + path
 			contractOperations[key] = true

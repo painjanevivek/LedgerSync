@@ -11,6 +11,11 @@ and invokes its bounded background drain once per minute.
 - Clear dashboard install/build/output overrides so `web/vercel.json` owns them.
 - Add the variables listed in `web/.env.example` separately for Preview and
   Production. Never expose a secret with a `NEXT_PUBLIC_` prefix.
+- Provision an isolated Upstash Redis integration for each environment. The BFF
+  uses its REST credentials for atomic, cross-instance rate limiting and fails
+  closed with `503` if the shared limiter is unavailable.
+- Give Preview and Production distinct `LEDGERSYNC_RATE_LIMIT_NAMESPACE` values,
+  even when provider isolation already exists, to prevent accidental key overlap.
 - Set `LEDGERSYNC_PRIVATE_API_URL` to the backend project's stable URL.
 - Configure the private API OAuth client variables. The BFF exchanges them for
   short-lived workload access tokens and caches each token only until shortly
@@ -59,7 +64,8 @@ their owning project.
 
 ## 4. Data and release sequence
 
-1. Provision isolated Preview and Production PostgreSQL and Redis resources.
+1. Provision isolated Preview and Production PostgreSQL, backend Redis, and
+   frontend Upstash rate-limit resources.
 2. Run `cmd/migrate` against the target database from a controlled release job.
    Never run migrations in a Vercel build or application cold start.
 3. Deploy the backend Preview project and verify `/healthz` and `/readyz`.

@@ -93,8 +93,8 @@ func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 	if err := json.Unmarshal([]byte(readContractFile(t, filepath.Join(root, "web", "package.json"))), &packageManifest); err != nil {
 		t.Fatal(err)
 	}
-	if got := packageManifest.DevDependencies["@redocly/cli"]; got != "1.34.0" {
-		t.Fatalf("package.json @redocly/cli version = %q, want exact version 1.34.0", got)
+	if got := packageManifest.DevDependencies["@redocly/cli"]; got != "2.51.2" {
+		t.Fatalf("package.json @redocly/cli version = %q, want exact version 2.51.2", got)
 	}
 
 	var packageLock struct {
@@ -108,11 +108,11 @@ func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 	if err := json.Unmarshal([]byte(readContractFile(t, filepath.Join(root, "web", "package-lock.json"))), &packageLock); err != nil {
 		t.Fatal(err)
 	}
-	if got := packageLock.Packages[""].DevDependencies["@redocly/cli"]; got != "1.34.0" {
-		t.Fatalf("package-lock root @redocly/cli version = %q, want exact version 1.34.0", got)
+	if got := packageLock.Packages[""].DevDependencies["@redocly/cli"]; got != "2.51.2" {
+		t.Fatalf("package-lock root @redocly/cli version = %q, want exact version 2.51.2", got)
 	}
 	lockedCLI := packageLock.Packages["node_modules/@redocly/cli"]
-	if lockedCLI.Version != "1.34.0" || lockedCLI.Resolved == "" || lockedCLI.Integrity == "" {
+	if lockedCLI.Version != "2.51.2" || lockedCLI.Resolved == "" || lockedCLI.Integrity == "" {
 		t.Fatalf("package-lock @redocly/cli entry is incomplete: version=%q resolved=%t integrity=%t", lockedCLI.Version, lockedCLI.Resolved != "", lockedCLI.Integrity != "")
 	}
 }
