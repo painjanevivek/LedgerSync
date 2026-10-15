@@ -91,7 +91,7 @@ test("missing account scope denies a direct route without starting protected rea
   await page.goto("/accounts");
   await expect(page.getByText("Account read authority required")).toBeVisible();
   expect(paths).toContain("/api/session");
-  expect(paths).toContain("/api/preferences");
+  await expect.poll(() => paths).toContain("/api/preferences");
   expect(paths).not.toContain("/api/me/accounts");
 });
 
