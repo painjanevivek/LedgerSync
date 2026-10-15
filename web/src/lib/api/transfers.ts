@@ -18,6 +18,12 @@ export type TransferResult = Readonly<{
   minimum_balance_versions: Record<string, string>;
   balances?: Record<string, TransferBalance>;
   rejection_code?: string;
+  metadata_status?: "complete" | "partial" | "unavailable";
+  warnings?: readonly (
+    | "destination_consistency_unavailable"
+    | "consistency_requirement_unavailable"
+    | "consistency_header_unavailable"
+  )[];
 }>;
 
 export type TransferBalance = Readonly<{

@@ -33,6 +33,7 @@ func TestDatabaseRoleContractKeepsSupportReadOnlyAndBreakGlassGrantless(t *testi
 func TestLocalComposeUsesSeparateLeastPrivilegeWorkloadLogins(t *testing.T) {
 	root := repositoryRoot(t)
 	compose := readContractFile(t, filepath.Join(root, "deploy", "compose", "docker-compose.yml"))
+	compose = strings.ReplaceAll(compose, "\r\n", "\n")
 	logins := readContractFile(t, filepath.Join(root, "deploy", "postgres", "local-workload-logins.sql"))
 	dockerfile := readContractFile(t, filepath.Join(root, "deploy", "docker", "api.Dockerfile"))
 	runtime := readContractFile(t, filepath.Join(root, "scripts", "local-runtime-common.ps1"))
