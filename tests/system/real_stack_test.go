@@ -6,11 +6,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type sessionPayload struct {
@@ -298,6 +301,31 @@ func postJSON(t *testing.T, client *http.Client, url, origin, csrfToken, idempot
 
 func postTransfer(t *testing.T, client *http.Client, baseURL, csrfToken, key string, body []byte) transferPayload {
 	t.Helper()
+	// Test references are stable across clients and test-process restarts. Save
+	// the identical intent before sending the financial command, as the UI does.
+	reference := uuid.NewSHA1(uuid.NameSpaceURL, []byte("ledgersync-system-transfer:"+key)).String()
+	prepare, err := http.NewRequest(http.MethodPost, baseURL+"/api/transfers/recovery", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepare.Header.Set("Content-Type", "application/json")
+	prepare.Header.Set("Origin", baseURL)
+	prepare.Header.Set("X-CSRF-Token", csrfToken)
+	prepare.Header.Set("Idempotency-Key", key)
+	prepare.Header.Set("X-LedgerSync-Request-Reference", reference)
+	saved, err := client.Do(prepare)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = saved.Body.Close() }()
+	var proof struct {
+		Reference string `json:"request_reference"`
+		State     string `json:"state"`
+	}
+	decodeResponse(t, saved, &proof)
+	if proof.Reference != reference || proof.State != "saved" {
+		t.Fatalf("durable transfer intent was not verified: %+v", proof)
+	}
 	request, err := http.NewRequest(http.MethodPost, baseURL+"/api/transfers", bytes.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
@@ -306,6 +334,7 @@ func postTransfer(t *testing.T, client *http.Client, baseURL, csrfToken, key str
 	request.Header.Set("Origin", baseURL)
 	request.Header.Set("X-CSRF-Token", csrfToken)
 	request.Header.Set("Idempotency-Key", key)
+	request.Header.Set("X-LedgerSync-Request-Reference", reference)
 	response, err := client.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -317,6 +346,48 @@ func postTransfer(t *testing.T, client *http.Client, baseURL, csrfToken, key str
 	decodeResponse(t, response, &payload)
 	payload.Replayed = replayed
 	return payload
+}
+
+func TestSystemTransferFixturePreservesDurableIntentAcrossClients(t *testing.T) {
+	type observation struct{ path, reference, key, body string }
+	requests := make(chan observation, 4)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(io.LimitReader(r.Body, 4096))
+		if err != nil {
+			t.Error(err)
+		}
+		reference := r.Header.Get("X-LedgerSync-Request-Reference")
+		requests <- observation{r.URL.Path, reference, r.Header.Get("Idempotency-Key"), string(body)}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		if r.URL.Path == "/api/transfers/recovery" {
+			_ = json.NewEncoder(w).Encode(map[string]string{"request_reference": reference, "state": "saved"})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]string{"transfer_id": "fixture-transfer", "status": "posted"})
+	}))
+	defer server.Close()
+	const key = "system-fixture-original-intent-0001"
+	body := []byte(`{"amount":{"currency":"INR","minorUnits":"100"}}`)
+	postTransfer(t, server.Client(), server.URL, "fixture-csrf", key, body)
+	postTransfer(t, &http.Client{Timeout: time.Second}, server.URL, "fixture-csrf", key, body)
+	var reference string
+	for index := 0; index < 4; index++ {
+		item := <-requests
+		path := "/api/transfers/recovery"
+		if index%2 == 1 {
+			path = "/api/transfers"
+		}
+		parsed, err := uuid.Parse(item.reference)
+		if err != nil || parsed.Version() != 5 || item.path != path || item.key != key || item.body != string(body) {
+			t.Fatalf("request %d changed the durable transfer envelope: %+v", index, item)
+		}
+		if index == 0 {
+			reference = item.reference
+		} else if item.reference != reference {
+			t.Fatalf("request reference changed across retries or clients: %q != %q", item.reference, reference)
+		}
+	}
 }
 
 func decodeResponse(t *testing.T, response *http.Response, target any) {
