@@ -21,6 +21,18 @@ const (
 func TestControlledOpeningImportFunctionsUseFixedDefinerBoundary(t *testing.T) {
 	_, database := requireTransferService(t, 10_000)
 	requireWorkloadRoles(t, database)
+	for _, table := range []string{"opening_import_batches", "opening_import_rows", "opening_import_approvals", "opening_import_executions"} {
+		var enabled, forced, scoped bool
+		if err := database.QueryRow(`SELECT c.relrowsecurity,c.relforcerowsecurity,
+ EXISTS(SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=c.relname
+ AND p.qual LIKE '%tenant_scope_allows%' AND p.with_check LIKE '%tenant_scope_allows%')
+ FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=$1`, table).Scan(&enabled, &forced, &scoped); err != nil {
+			t.Fatal(err)
+		}
+		if !enabled || !forced || !scoped {
+			t.Fatalf("opening evidence table %s lacks forced tenant scope", table)
+		}
+	}
 	for _, function := range []struct {
 		name      string
 		signature string
