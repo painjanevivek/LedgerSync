@@ -21,6 +21,7 @@ test("transfer filters, cursor, export scope, and detail return context share on
 
   await page.goto("/transfers");
   await page.getByLabel("Search transfers").fill("ABC-1");
+  await page.getByText("Advanced filters", { exact: true }).click();
   await page.getByLabel("Exact account ID").fill(sourceAccount.account_id);
   await page.getByLabel("Financial status").selectOption("pending");
   await page.getByLabel("From date (UTC)").fill("2026-08-01");

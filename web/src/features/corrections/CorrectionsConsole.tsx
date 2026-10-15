@@ -31,6 +31,7 @@ import { ConfirmationDialog } from "@/ui/overlays/ConfirmationDialog.client";
 import { beginEvidenceRequest, createEvidenceRequestCoordinator, finishEvidenceRequest, invalidateEvidenceRequests, isEvidenceRequestCurrent } from "@/features/console/evidenceRequestCoordinator";
 import { correctionsURL } from "@/lib/page-query/corrections";
 import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
+import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
 
 const statusOptions: ReadonlyArray<CorrectionStatus | "all"> = [
   "all",
@@ -618,7 +619,6 @@ function CorrectionDetail({
           <strong><Timestamp value={event.updated_at} /></strong>
         </div>
       </section>
-      <RelatedEvidenceRail sourceType="correction" sourceId={event.correction_id} />
       {verifiedAt && (
         <EvidenceFreshness
           state={
@@ -781,6 +781,14 @@ function CorrectionDetail({
           )}
         </dl>
       </section>
+      <DisclosureSection
+        id="correction-related-evidence"
+        title="Lifecycle and related evidence"
+        summary="Inspect authorized records linked to this correction after reviewing the original and requested reversal."
+        lazy
+      >
+        <RelatedEvidenceRail sourceType="correction" sourceId={event.correction_id} />
+      </DisclosureSection>
       {(canDecide || canPost || canCancel) && (
         <section className="correction-actions">
           <header>

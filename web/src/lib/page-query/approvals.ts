@@ -56,7 +56,7 @@ export function parseApprovalPageQuery(input: StrictListQueryInput): ApprovalPag
       age: (values.age ?? "") as ApprovalFilters["age"],
       requestedAfter: values.requested_after ?? "",
       requestedBefore: values.requested_before ?? "",
-      actionableByMe: values.actionable_by_me === "true",
+      actionableByMe: values.actionable_by_me === "true" || (values.actionable_by_me === undefined && emptyApprovalFilters.actionableByMe),
       cursor: values.cursor,
     },
   };

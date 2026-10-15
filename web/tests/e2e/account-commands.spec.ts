@@ -116,6 +116,7 @@ test("close account binds authoritative account_version, reason and typed refere
   await page.getByLabel("Confirm external reference").fill(sourceAccount.external_reference);
   await page.getByRole("button", { name: "Confirm close account" }).click();
   await expect(page.getByText("Account lifecycle is terminal")).toBeVisible();
+  await page.getByText("Configuration and audit history", { exact: true }).click();
   await expect(page.getByText("Audited reason:").locator("..")).toContainText("Retired after exact zero review");
 });
 

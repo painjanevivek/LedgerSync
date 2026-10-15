@@ -20,6 +20,7 @@ test("funding status, page count, cursor, and detail return context are URL repr
   });
 
   await page.goto("/funding");
+  await page.getByText("Filter records", { exact: true }).click();
   await page.getByLabel("Exact funding status").selectOption("requested");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page).toHaveURL(/\/funding\?status=requested$/);

@@ -20,6 +20,7 @@
 @import "../styles/primitives/controls.css";
 @import "../styles/primitives/states.css";
 @import "../styles/patterns/filters.css";
+@import "../styles/patterns/disclosure.css";
 @import "../styles/primitives/evidence-freshness.css";
 @import "../styles/patterns/detail-evidence.css";
 @import "../styles/patterns/related-evidence.css";

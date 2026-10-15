@@ -152,6 +152,7 @@ test("large bounded history progressively renders without blocking navigation", 
   });
 
   await page.goto(`/accounts/${sourceAccount.account_id}`);
+  await page.getByText("Transactions and export", { exact: true }).click();
   await expect(page.getByText("Loading ledger history")).toBeVisible();
   await expect(page.locator(".ledger-row")).toHaveCount(100);
   await expect(page.getByRole("link", { name: "Transfers" })).toBeVisible();

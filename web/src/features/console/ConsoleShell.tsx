@@ -64,24 +64,28 @@ type Props = Readonly<{
   operatorMeta: string;
 }>;
 
+type NavigationItem = Readonly<{
+  section: ConsoleSection;
+  label: string;
+  href: string;
+  icon: typeof Bank;
+  visible: (capabilities: ConsoleCapabilities) => boolean;
+}>;
+
+type NavigationGroupDefinition = Readonly<{
+  id: "work" | "investigate" | "platform" | "environment";
+  label: string;
+  priority: "primary" | "secondary";
+  items: ReadonlyArray<NavigationItem>;
+}>;
+
 const always = () => true;
 
-const navigation: ReadonlyArray<
-  Readonly<{
-    label: string;
-    items: ReadonlyArray<
-      Readonly<{
-        section: ConsoleSection;
-        label: string;
-        href: string;
-        icon: typeof Bank;
-        visible: (capabilities: ConsoleCapabilities) => boolean;
-      }>
-    >;
-  }>
-> = [
+const navigation: ReadonlyArray<NavigationGroupDefinition> = [
   {
+    id: "work",
     label: "Work",
+    priority: "primary",
     items: [
       {
         section: "overview" as const,
@@ -121,7 +125,9 @@ const navigation: ReadonlyArray<
     ],
   },
   {
+    id: "investigate",
     label: "Investigate",
+    priority: "secondary",
     items: [
       {
         section: "search" as const,
@@ -154,7 +160,9 @@ const navigation: ReadonlyArray<
     ],
   },
   {
+    id: "platform",
     label: "Platform",
+    priority: "secondary",
     items: [
       {
         section: "developer" as const,
@@ -173,7 +181,9 @@ const navigation: ReadonlyArray<
     ],
   },
   {
+    id: "environment",
     label: "Environment",
+    priority: "secondary",
     items: [
       {
         section: "local-status" as const,
@@ -185,6 +195,84 @@ const navigation: ReadonlyArray<
     ],
   },
 ];
+
+function NavigationLinks({
+  items,
+  section,
+  closeNavigation,
+}: Readonly<{
+  items: ReadonlyArray<NavigationItem>;
+  section: ConsoleSection;
+  closeNavigation: () => void;
+}>) {
+  return items.map((item) => {
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.section}
+        href={item.href}
+        prefetch={false}
+        onClick={closeNavigation}
+        className={section === item.section ? "nav-item active" : "nav-item"}
+        aria-current={section === item.section ? "page" : undefined}
+      >
+        <Icon
+          weight={section === item.section ? "fill" : "regular"}
+          aria-hidden="true"
+        />
+        <span>{item.label}</span>
+      </Link>
+    );
+  });
+}
+
+function NavigationGroup({
+  definition,
+  items,
+  section,
+  closeNavigation,
+}: Readonly<{
+  definition: NavigationGroupDefinition;
+  items: ReadonlyArray<NavigationItem>;
+  section: ConsoleSection;
+  closeNavigation: () => void;
+}>) {
+  const active = items.some((item) => item.section === section);
+  const [open, setOpen] = useState(definition.priority === "primary" || active);
+
+  if (definition.priority === "primary") {
+    return (
+      <div className="nav-group nav-group-primary">
+        <p className="nav-section-label">{definition.label}</p>
+        <NavigationLinks
+          items={items}
+          section={section}
+          closeNavigation={closeNavigation}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <details
+      className="nav-group nav-group-secondary"
+      open={active || open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <span>{definition.label}</span>
+        <small>{items.length}</small>
+      </summary>
+      <div className="nav-group-links">
+        <NavigationLinks
+          items={items}
+          section={section}
+          closeNavigation={closeNavigation}
+        />
+      </div>
+    </details>
+  );
+}
 
 export function ConsoleShell({
   section,
@@ -330,30 +418,13 @@ export function ConsoleShell({
             const items = group.items.filter((item) => item.visible(capabilities));
             if (items.length === 0) return null;
             return (
-            <div className="nav-group" key={group.label}>
-              <p className="nav-section-label">{group.label}</p>
-              {items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.section}
-                    href={item.href}
-                    prefetch={false}
-                    onClick={() => setNavigationOpen(false)}
-                    className={
-                      section === item.section ? "nav-item active" : "nav-item"
-                    }
-                    aria-current={section === item.section ? "page" : undefined}
-                  >
-                    <Icon
-                      weight={section === item.section ? "fill" : "regular"}
-                      aria-hidden="true"
-                    />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
+              <NavigationGroup
+                key={group.id}
+                definition={group}
+                items={items}
+                section={section}
+                closeNavigation={() => setNavigationOpen(false)}
+              />
             );
           })}
         </nav>
