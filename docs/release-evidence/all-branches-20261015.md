@@ -56,6 +56,9 @@ The screenshot fork `yashmahajan11234567/Real-Time-Balance-Visibility-in-Microse
 
 ## Verification and limits
 
+- PR #26 recreated twelve inert policy-role identities before isolated pg_restore. PostgreSQL database dumps omit cluster roles, so the previous restore failed on `ledgersync_preflight_owner`. The fix merged only after all nine required checks passed.
+- The exact normal backup restored and upgraded through 000063/000064 without changing any of the three financial fingerprints or the 8/5/20 account/transfer/posting counts. Unsafe login attributes and memberships were rejected, repeat bootstrap passed, and the disposable target was removed. The preserved normal database was not changed by that rehearsal. Its two historical live-investigation filename records remain in migration history; the intentional upgrade therefore changes 62/64 (latest prefix/record count) to 64/66.
+
 - Candidate `6c7f389` (`candidate-20261015190754-666deb05`) passed all six browser journeys, the Go BFF system suite and two original-key replays after API process restart. Source and normal-container identities were preserved.
 - CI exposed two old fixture assumptions: a fixed five-service shutdown count and transfer posts without a recovery reference. The runtime check now verifies each of the six configured services. Go system and retry-lab clients save the exact intent and reuse its reference, key and body. Production validation remains strict.
 - PR #25 corrected effective-limit variables and approved those three exact fixture paths. It merged only after all nine required checks passed. Normal limits, expiry, branch binding and required CI remain enforced.
