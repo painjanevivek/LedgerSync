@@ -52,10 +52,15 @@ type Config struct {
 	RecoveryEvidenceRoot       string
 	WebhookSigningKeys         map[string][]byte
 	AWSRegion                  string
+	CronSecret                 string
 }
 
 func Load() (Config, error) {
 	environment := valueOrDefault("LEDGERSYNC_ENV", "development")
+	httpAddress, err := configuredHTTPAddress()
+	if err != nil {
+		return Config{}, err
+	}
 	pilotCurrency := strings.ToUpper(strings.TrimSpace(os.Getenv("LEDGERSYNC_PILOT_CURRENCY")))
 	if pilotCurrency == "" {
 		if environment != "development" {
@@ -141,7 +146,7 @@ func Load() (Config, error) {
 	}
 	config := Config{
 		Environment:                environment,
-		HTTPAddress:                valueOrDefault("LEDGERSYNC_HTTP_ADDR", ":8080"),
+		HTTPAddress:                httpAddress,
 		StartupTimeout:             startupTimeout,
 		StartupInitialBackoff:      startupInitialBackoff,
 		StartupMaxBackoff:          startupMaxBackoff,
@@ -179,6 +184,7 @@ func Load() (Config, error) {
 		RecoveryEvidenceRoot:       valueOrDefault("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "/run/ledgersync/recovery"),
 		WebhookSigningKeys:         webhookSigningKeys,
 		AWSRegion:                  strings.TrimSpace(os.Getenv("AWS_REGION")),
+		CronSecret:                 strings.TrimSpace(os.Getenv("CRON_SECRET")),
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
 		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/resource audience/client mapping, and 32-byte BFF assertion secret are required outside development")
@@ -191,6 +197,9 @@ func Load() (Config, error) {
 	}
 	if config.Environment != "development" && len(config.WebhookSigningKeys) > 0 {
 		return Config{}, fmt.Errorf("LEDGERSYNC_WEBHOOK_SIGNING_KEYS_JSON is development-only; use AWS Secrets Manager outside development")
+	}
+	if config.CronSecret != "" && (len(config.CronSecret) < 32 || len(config.CronSecret) > 256) {
+		return Config{}, fmt.Errorf("CRON_SECRET must contain 32..256 characters when configured")
 	}
 	if (config.BFFAssertionPreviousSecret == "") != (config.BFFAssertionPreviousKeyID == "") || (config.BFFAssertionPreviousSecret != "" && len(config.BFFAssertionPreviousSecret) < 32) {
 		return Config{}, fmt.Errorf("previous BFF assertion key ID and 32-byte secret must be configured together")
@@ -205,6 +214,18 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT must be an absolute directory")
 	}
 	return config, nil
+}
+
+func configuredHTTPAddress() (string, error) {
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		return valueOrDefault("LEDGERSYNC_HTTP_ADDR", ":8080"), nil
+	}
+	value, err := strconv.Atoi(port)
+	if err != nil || value < 1 || value > 65535 {
+		return "", fmt.Errorf("PORT must be an integer between 1 and 65535")
+	}
+	return ":" + strconv.Itoa(value), nil
 }
 
 // parseWebhookSigningKeys accepts only a JSON object mapping a non-secret key
