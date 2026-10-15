@@ -1,0 +1,123 @@
+/* Final shell ownership: no legacy sidebar selectors or feature DOM coupling. */
+.guided-shell { display: flex; flex-direction: column; min-height: 100dvh; background: var(--paper); }
+.guided-shell .workspace-column { width: 100%; min-width: 0; min-height: 0; flex: 1; }
+.guided-shell .console-main { display: flex; flex-direction: column; width: 100%; max-width: 1440px; min-width: 0; min-height: calc(100dvh - 80px); margin: 0 auto; padding: 40px; }
+.guided-shell .console-footer { margin-top: auto; padding-top: 32px; }
+.guided-shell .console-main > .console-footer { width: 100%; }
+.guided-topbar { min-height: 80px; display: flex; align-items: center; gap: 24px; padding: 12px 32px; border-bottom: 1px solid var(--line); background: var(--paper); }
+.guided-topbar .brand { color: var(--ink); margin: 0; white-space: nowrap; font-family: Georgia, serif; font-size: 26px; }
+.guided-topbar .brand span { color: var(--green); }
+.guided-workspace-name { max-width: 170px; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.guided-desktop-nav { display: flex; gap: 16px; align-items: center; margin-left: auto; }
+.guided-desktop-nav > a { display: flex; align-items: center; min-height: 44px; text-decoration: none; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.guided-desktop-nav > a[aria-current="page"] { color: var(--blue); box-shadow: inset 0 -2px var(--blue); }
+.workspace-popover { position: relative; }
+.workspace-popover:not([open]) > .workspace-popover-content { display: none; }
+.workspace-popover > summary { min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--ink); font-size: 14px; font-weight: 600; list-style: none; }
+.workspace-popover > summary::-webkit-details-marker { display: none; }
+.workspace-popover > summary svg { width: 20px; height: 20px; flex-shrink: 0; }
+.profile-popover { margin-left: auto; }
+.guided-mode-indicator { margin-left: auto; font-size: 12px; color: var(--muted); }
+.is-focused .profile-popover { margin-left: 0; }
+.workspace-popover-content { position: absolute; z-index: var(--z-drawer); top: calc(100% + 12px); right: 0; width: 280px; max-width: calc(100vw - 32px); padding: 20px; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow-popover); }
+.workspace-popover-content h2 { font-size: 14px; color: var(--muted); margin: 16px 0 4px; }
+.workspace-popover-content p { font-size: 14px; color: var(--muted); line-height: 1.5; }
+.workspace-popover-content a { display: flex; align-items: center; min-height: 44px; font-size: 14px; text-decoration: none; }
+.workspace-popover-content a:hover { color: var(--blue); }
+.workspace-popover-content .button { width: 100%; margin-top: 12px; }
+.guided-menu-button { display: none; }
+.guided-nav-backdrop { position: fixed; inset: 0; z-index: var(--z-backdrop); border: 0; background: var(--drawer-backdrop); }
+.guided-nav-drawer { position: fixed; z-index: var(--z-drawer); inset: 0 0 0 auto; width: min(360px, 90vw); padding: 24px; background: var(--paper); overflow-y: auto; }
+.guided-nav-drawer nav { display: grid; gap: 8px; margin-top: 24px; }
+.guided-nav-drawer nav a { display: flex; align-items: center; min-height: 44px; text-decoration: none; }
+.guided-nav-drawer .workspace-popover-content { position: static; width: 100%; box-shadow: none; border: 0; padding: 8px 0; }
+.guided-breadcrumb { display: flex; align-items: center; gap: 12px; min-width: 0; color: var(--muted); font-size: 14px; }
+.guided-breadcrumb a { min-height: 44px; display: flex; align-items: center; }
+.guided-breadcrumb span:last-child { overflow-wrap: anywhere; }
+.guided-shell.is-focused .console-main { max-width: 1440px; padding-top: 0; }
+.guided-shell.is-focused .console-footer { margin-top: 24px; }
+.command-frame { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 48px; }
+.command-primary { min-width: 0; padding: 24px 0 40px; }
+.command-back { display: inline-flex; align-items: center; min-height: 44px; gap: 8px; text-decoration: none; color: var(--blue); font-size: 14px; font-weight: 600; }
+.command-back svg { width: 18px; height: 18px; }
+.command-primary h1 { font: 700 34px / 1.2 var(--font-sans); letter-spacing: -.025em; margin: 20px 0 12px; }
+.command-description { color: var(--muted); font-size: 16px; margin: 0 0 32px; }
+.command-help { background: var(--guidance); padding: 48px 28px; min-width: 0; }
+.command-help h2 { font-size: 20px; margin: 24px 0; }
+.command-help p, .command-help li { font-size: 16px; line-height: 1.65; color: var(--muted); }
+.command-help ul { padding-left: 20px; }
+.command-help li { margin-bottom: 24px; }
+.command-help a { display: inline-flex; align-items: center; min-height: 44px; color: var(--blue); text-decoration: none; font-weight: 600; }
+.command-help-note { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+.command-help-note svg { width: 20px; height: 20px; color: var(--muted); }
+.command-help-note p { font-size: 14px; }
+.guided-command-steps { display: flex; padding: 0; margin: 32px 0 40px; list-style: none; gap: 16px; }
+.guided-command-steps li { display: flex; align-items: center; flex: 1; gap: 10px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.guided-command-steps li:not(:last-child)::after { content: ""; height: 1px; flex: 1; background: var(--line); margin-left: 8px; }
+.guided-step-marker { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border: 1px solid var(--line-strong); border-radius: 50%; }
+.guided-step-marker svg { width: 18px; height: 18px; }
+.guided-command-steps .current { color: var(--blue); }
+.guided-command-steps .current .guided-step-marker { color: var(--white); background: var(--blue); border-color: var(--blue); }
+.guided-command-steps .complete .guided-step-marker { color: var(--white); background: var(--green); border-color: var(--green); }
+.review-money { font-size: 36px; font-weight: 700; line-height: 1.25; margin: 8px 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.record-identity-full { display: block; max-width: 100%; overflow-wrap: anywhere; font: 12px / 1.6 var(--font-mono); }
+.guided-transfer-review { min-width: 0; }
+.command-primary .transfer-review { padding: 0; }
+.command-primary .transfer-review > h2 { margin-block: 0 20px; }
+.command-primary .transfer-form { padding: 0; }
+.review-account-route { display: grid; gap: 16px; margin: 24px 0; }
+.review-account-route > svg { display: none; }
+.review-account-route > div svg { width: 48px; height: 48px; padding: 12px; border-radius: 50%; background: var(--guidance); }
+.review-account-route strong { font-size: 18px; }
+.review-account-route > div { display: flex; align-items: center; gap: 20px; }
+.review-account-route svg { width: 28px; height: 28px; color: var(--blue); flex-shrink: 0; }
+.review-account-route span { display: grid; gap: 8px; }
+.review-account-route small { color: var(--muted); font-size: 14px; }
+.expected-effects { border-top: 1px solid var(--line); padding-top: 24px; margin: 24px 0; }
+.expected-effects h2 { font-size: 20px; margin: 0 0 16px; }
+.expected-effects h3 { font-size: 20px; margin: 0 0 12px; }
+.expected-effects dl > div { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 16px 0; }
+.expected-effects dd { display: flex; gap: 16px; margin: 0; font-variant-numeric: tabular-nums; }
+.expected-effects dt small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }
+.expected-effects dd > svg { width: 18px; height: 18px; flex-shrink: 0; align-self: center; }
+.expected-effects dd > span { overflow-wrap: anywhere; min-width: 0; }
+.expected-effects p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.command-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
+.guided-shell .button.primary { min-height: 48px; }
+.guided-shell h1, .guided-shell h2, .guided-shell h3, .guided-shell .balance-figure, .guided-shell .financial-summary strong { font-family: var(--font-sans); }
+.guided-shell .trust-strip, .guided-shell .task-card, .guided-shell .financial-summary { box-shadow: none; }
+.guided-shell .page-header h1 { font-size: 34px; }
+.guided-shell .technical-details > summary { min-height: 44px; display: flex; align-items: center; }
+.task-source-coverage { list-style: none; padding: 0; }
+.task-source-coverage li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; border-bottom: 1px solid var(--line); padding: 12px 0; }
+.task-source-coverage a { display: inline-flex; align-items: center; min-height: 44px; }
+.task-source-coverage span { color: var(--muted); font-size: 14px; }
+@media (max-width: 1279px) {
+  .guided-desktop-nav { display: none; }
+  .guided-menu-button { display: inline-flex; }
+  .guided-topbar { gap: 16px; padding-inline: 24px; }
+  .command-frame { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .command-help { padding: 24px; }
+  .command-help h2 { margin-top: 0; }
+  .command-help-note { margin-top: 24px; }
+  .guided-shell .console-main { padding: 24px; }
+}
+@media (max-width: 767px) {
+  .guided-topbar { flex-wrap: wrap; min-height: 72px; padding: 12px 16px; gap: 12px; }
+  .guided-topbar .brand { font-size: 23px; }
+  .guided-workspace-name { display: none; }
+  .profile-popover > summary > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .guided-breadcrumb { order: 3; flex-basis: 100%; }
+  .guided-shell .console-main { padding: 24px 16px; }
+  .command-primary h1, .guided-shell .page-header h1 { font-size: 28px; }
+  .guided-command-steps { gap: 8px; }
+  .guided-command-steps li { flex-direction: column; gap: 6px; min-width: 0; font-size: 14px; }
+  .guided-command-steps li:not(:last-child)::after { display: none; }
+  .guided-step-marker { width: 28px; height: 28px; }
+  .expected-effects dl > div { flex-direction: column; }
+  .expected-effects dd { flex-wrap: wrap; }
+  .command-actions > * { width: 100%; }
+  .review-money { font-size: 30px; }
+  .command-help { padding: 20px; }
+}
+@media (forced-colors: active) { .guided-step-marker { border-color: ButtonText; } .guided-command-steps .current { outline: 2px solid Highlight; } }

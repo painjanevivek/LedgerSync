@@ -1,9 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { readPublicOrigin } from "@/lib/security";
+import { getPrivateAPIWorkloadCredential } from "@/lib/workload-credential";
+import { emitGuardrailMetric } from "@/lib/guardrail-metrics";
+import { authenticationCookiePolicy } from "@/lib/cookie-policy";
 
-export const sessionCookieName = "ledgersync_session";
+export const sessionCookieName = authenticationCookiePolicy().sessionName;
 export const maxSessionCookieValueBytes = 3_584;
+export const opaqueSessionTokenBytes = 32;
 
 const maxSessionRoles = 16;
 const maxSessionScopes = 40;
@@ -108,16 +112,136 @@ function validStringList(value: unknown, maximumItems: number): value is string[
 
 export function sessionCookie(value: string) {
   readPublicOrigin();
-  const deploymentEnvironment = (process.env.LEDGERSYNC_DEPLOYMENT_ENV ?? process.env.NODE_ENV ?? "development").trim().toLowerCase();
-  const production = deploymentEnvironment === "production" || deploymentEnvironment === "prod";
-  const explicitlyInsecureLocal = process.env.LEDGERSYNC_COOKIE_SECURE === "false" && !production;
+  const policy = authenticationCookiePolicy();
   return {
-    name: sessionCookieName,
+    name: policy.sessionName,
     value,
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: !explicitlyInsecureLocal,
+    secure: policy.secure,
     path: "/",
     maxAge: 60 * 30,
   };
+}
+
+export function expiredSessionCookie() {
+  return { ...sessionCookie(""), maxAge: 0, expires: new Date(0) };
+}
+
+type SessionStoreResponse = Readonly<{
+  token?: unknown;
+  subject_id?: unknown;
+  tenant_id?: unknown;
+  csrf_token?: unknown;
+  expires_at?: unknown;
+  authenticated_at?: unknown;
+  roles?: unknown;
+  scopes?: unknown;
+  consistency_requirements?: unknown;
+}>;
+
+async function sessionStoreRequest(
+  path: string,
+  method: "POST" | "PATCH",
+  body: Readonly<Record<string, unknown>>,
+): Promise<SessionStoreResponse | null> {
+  const apiURL = process.env.LEDGERSYNC_PRIVATE_API_URL?.trim().replace(/\/$/, "");
+  if (!apiURL) throw new Error("private session store is unavailable");
+  let response: Response;
+  try {
+    response = await fetch(`${apiURL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${await getPrivateAPIWorkloadCredential()}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "X-Request-ID": crypto.randomUUID(),
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+    signal: AbortSignal.timeout(3_000),
+    });
+  } catch {
+    emitGuardrailMetric("session", "unavailable");
+    throw new Error("private session store request failed");
+  }
+  if (response.status === 401 || response.status === 404) {
+    emitGuardrailMetric("session", "rejected");
+    return null;
+  }
+  if (!response.ok) {
+    emitGuardrailMetric("session", "unavailable");
+    throw new Error("private session store request failed");
+  }
+  const outcome = path.endsWith("/resolve")
+    ? "resolved"
+    : path.endsWith("/revoke")
+      ? "revoked"
+      : path.endsWith("/consistency")
+        ? "consistency_updated"
+        : body.rotate_token
+          ? "rotated"
+          : "created";
+  emitGuardrailMetric("session", outcome);
+  if (response.status === 204) return {};
+  const raw = await response.text();
+  if (Buffer.byteLength(raw, "utf8") > 16 * 1024) throw new Error("private session response is too large");
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return value && typeof value === "object" && !Array.isArray(value) ? value as SessionStoreResponse : null;
+  } catch {
+    throw new Error("private session response is malformed");
+  }
+}
+
+function opaqueToken(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{43}$/.test(value);
+}
+
+function sessionFromStore(value: SessionStoreResponse | null): Session | null {
+  if (!value || typeof value.subject_id !== "string" || typeof value.tenant_id !== "string" || typeof value.csrf_token !== "string" || typeof value.expires_at !== "number" || value.expires_at <= Date.now()) return null;
+  if (!validStringList(value.roles, maxSessionRoles) || !validStringList(value.scopes, maxSessionScopes)) return null;
+  const requirements = value.consistency_requirements;
+  if (requirements !== undefined && (typeof requirements !== "object" || requirements === null || Array.isArray(requirements) || Object.entries(requirements).length > maxConsistencyRequirements || Object.entries(requirements).some(([accountId, token]) => accountId.length < 1 || accountId.length > maxConsistencyAccountIDLength || typeof token !== "string" || token.length < 1 || token.length > maxConsistencyTokenLength))) return null;
+  return {
+    subjectId: value.subject_id,
+    tenantId: value.tenant_id,
+    csrfToken: value.csrf_token,
+    expiresAt: value.expires_at,
+    roles: value.roles,
+    scopes: value.scopes,
+    consistencyRequirements: requirements as Record<string, string> | undefined,
+    ...(typeof value.authenticated_at === "number" && value.authenticated_at > 0 ? { authenticatedAt: value.authenticated_at } : {}),
+  };
+}
+
+export async function createOpaqueSession(payload: Session, rotateToken?: string): Promise<string> {
+  const bounded = boundedSession(payload);
+  const response = await sessionStoreRequest("/api/internal/bff/sessions", "POST", {
+    subject_id: bounded.subjectId,
+    tenant_id: bounded.tenantId,
+    csrf_token: bounded.csrfToken,
+    expires_at: bounded.expiresAt,
+    authenticated_at: bounded.authenticatedAt ?? 0,
+    roles: bounded.roles ?? [],
+    scopes: bounded.scopes ?? [],
+    ...(rotateToken && opaqueToken(rotateToken) ? { rotate_token: rotateToken } : {}),
+  });
+  if (!opaqueToken(response?.token)) throw new Error("private session creation failed");
+  return response.token;
+}
+
+export async function resolveOpaqueSession(token: string): Promise<Session | null> {
+  if (!opaqueToken(token)) return null;
+  return sessionFromStore(await sessionStoreRequest("/api/internal/bff/sessions/resolve", "POST", { token }));
+}
+
+export async function revokeOpaqueSession(token: string): Promise<boolean> {
+  if (!opaqueToken(token)) return false;
+  return (await sessionStoreRequest("/api/internal/bff/sessions/revoke", "POST", { token })) !== null;
+}
+
+export async function updateOpaqueSessionConsistency(token: string, requirements: Readonly<Record<string, string>>): Promise<boolean> {
+  if (!opaqueToken(token)) return false;
+  return (await sessionStoreRequest("/api/internal/bff/sessions/consistency", "PATCH", { token, consistency_requirements: requirements })) !== null;
 }

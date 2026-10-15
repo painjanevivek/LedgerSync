@@ -68,9 +68,9 @@ test("failed account picker is unavailable rather than an unfunded-account busin
   await mockOperatorConsole(page);
   await page.unroute("**/api/me/accounts?*");
   await page.route("**/api/me/accounts?*", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
-  await page.goto("/transfers");
-  await expect(page.getByText("Account picker unavailable", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Retry account picker only" })).toBeVisible();
+  await page.goto("/transfers/new");
+  await expect(page.getByText("Accounts could not be checked", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry account check" })).toBeVisible();
   await expect(page.getByText("No funded source account", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Review transfer" })).toHaveCount(0);
 });
@@ -105,7 +105,7 @@ test("compact navigation is modal, traps focus, and excludes the background", as
   await page.getByRole("button", { name: /menu/i }).click();
   const drawer = page.getByRole("dialog", { name: "LedgerSync workspace" });
   await expect(drawer).toBeVisible();
-  await expect(page.locator("main")).toHaveAttribute("inert", "");
+  await expect(page.locator(".workspace-column")).toHaveAttribute("inert", "");
   await expect(drawer.getByRole("button", { name: "Close navigation" })).toBeFocused();
   const lastVisibleFocusable = drawer.locator("a[href], button:not([disabled]), summary, [tabindex]:not([tabindex='-1'])").filter({ visible: true }).last();
   await expect(lastVisibleFocusable).toHaveText("Developer");

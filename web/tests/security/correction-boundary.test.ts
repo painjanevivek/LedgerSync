@@ -207,16 +207,20 @@ test("correction browser surface stays fixed-route and exposes paired evidence",
     "src/features/corrections/CorrectionsConsole.tsx",
     "utf8",
   );
+  const detail = await readFile(
+    "src/features/corrections/CorrectionDetail.tsx",
+    "utf8",
+  );
   const requestPanel = await readFile(
     "src/features/corrections/TransferCorrectionPanel.tsx",
     "utf8",
   );
-  assert.match(workspace, /Original · permanent/);
-  assert.match(workspace, /Compensation · additive/);
+  assert.match(detail, /Original · permanent/);
+  assert.match(detail, /Compensation · additive/);
   assert.match(
-    `${workspace}\n${requestPanel}`,
+    `${workspace}\n${detail}\n${requestPanel}`,
     /different\s+authorized (?:operator|subject)/i,
   );
-  assert.match(`${workspace}\n${requestPanel}`, /never (?:change|edits?)/i);
+  assert.match(`${workspace}\n${detail}\n${requestPanel}`, /never (?:change|edits?)/i);
   assert.match(sources.at(-1) ?? "", /idempotencyKey/);
 });

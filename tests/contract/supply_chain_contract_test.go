@@ -93,8 +93,8 @@ func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 	if err := json.Unmarshal([]byte(readContractFile(t, filepath.Join(root, "web", "package.json"))), &packageManifest); err != nil {
 		t.Fatal(err)
 	}
-	if got := packageManifest.DevDependencies["@redocly/cli"]; got != "1.34.0" {
-		t.Fatalf("package.json @redocly/cli version = %q, want exact version 1.34.0", got)
+	if got := packageManifest.DevDependencies["@redocly/cli"]; got != "2.51.2" {
+		t.Fatalf("package.json @redocly/cli version = %q, want exact version 2.51.2", got)
 	}
 
 	var packageLock struct {
@@ -108,11 +108,11 @@ func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 	if err := json.Unmarshal([]byte(readContractFile(t, filepath.Join(root, "web", "package-lock.json"))), &packageLock); err != nil {
 		t.Fatal(err)
 	}
-	if got := packageLock.Packages[""].DevDependencies["@redocly/cli"]; got != "1.34.0" {
-		t.Fatalf("package-lock root @redocly/cli version = %q, want exact version 1.34.0", got)
+	if got := packageLock.Packages[""].DevDependencies["@redocly/cli"]; got != "2.51.2" {
+		t.Fatalf("package-lock root @redocly/cli version = %q, want exact version 2.51.2", got)
 	}
 	lockedCLI := packageLock.Packages["node_modules/@redocly/cli"]
-	if lockedCLI.Version != "1.34.0" || lockedCLI.Resolved == "" || lockedCLI.Integrity == "" {
+	if lockedCLI.Version != "2.51.2" || lockedCLI.Resolved == "" || lockedCLI.Integrity == "" {
 		t.Fatalf("package-lock @redocly/cli entry is incomplete: version=%q resolved=%t integrity=%t", lockedCLI.Version, lockedCLI.Resolved != "", lockedCLI.Integrity != "")
 	}
 }
@@ -120,8 +120,10 @@ func TestOpenAPIValidatorIsLockedAndInstalledOffline(t *testing.T) {
 func TestSecretHistoryExceptionsAreExactReviewedFingerprints(t *testing.T) {
 	root := repositoryRoot(t)
 	content := readContractFile(t, filepath.Join(root, ".gitleaksignore"))
-	fingerprintPattern := regexp.MustCompile(`^[0-9a-f]{40}:(?:internal|tests|docs)/[^:]+:generic-api-key:[1-9][0-9]*$`)
-	fingerprints := make([]string, 0, 12)
+	// Generated public provenance is limited to these three exact artifacts.
+	// Credential-bearing configuration and general contract paths stay excluded.
+	fingerprintPattern := regexp.MustCompile(`^[0-9a-f]{40}:(?:(?:internal|tests|docs)/[^:]+|contracts/generated/(?:sdk-manifest\.json|go/ledgersync\.go|typescript/ledgersync\.ts)):generic-api-key:[1-9][0-9]*$`)
+	fingerprints := make([]string, 0, 24)
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -132,8 +134,8 @@ func TestSecretHistoryExceptionsAreExactReviewedFingerprints(t *testing.T) {
 		}
 		fingerprints = append(fingerprints, line)
 	}
-	if len(fingerprints) != 12 {
-		t.Fatalf("reviewed secret-history exception count = %d, want exactly 12", len(fingerprints))
+	if len(fingerprints) != 24 {
+		t.Fatalf("reviewed secret-history exception count = %d, want exactly 24", len(fingerprints))
 	}
 	if strings.Contains(content, "allowlist") || strings.Contains(content, "regex") || strings.Contains(content, "path =") {
 		t.Fatal("secret-history exceptions must not introduce rule-, regex-, or path-wide allowlisting")

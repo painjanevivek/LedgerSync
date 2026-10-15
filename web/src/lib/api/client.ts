@@ -23,13 +23,13 @@ function requestReference(): string {
   return globalThis.crypto?.randomUUID?.() ?? `browser-${Date.now().toString(36)}`;
 }
 
-export async function readJSON<T>(path: string): Promise<ReadJSONResult<T>> {
+export async function readJSON<T>(path: string, signal?: AbortSignal): Promise<ReadJSONResult<T>> {
   const localReference = requestReference();
   try {
     const response = await fetch(path, {
       cache: "no-store",
       headers: { "X-Request-ID": localReference },
-      signal: AbortSignal.timeout(8_000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8_000)]) : AbortSignal.timeout(8_000),
     });
     const data = await response.json().catch(() => ({})) as T & APIError;
     return {

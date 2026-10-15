@@ -4,6 +4,7 @@ import { Redis } from "@upstash/redis";
 import { NextResponse } from "next/server";
 
 import { jsonError } from "@/lib/security";
+import { emitGuardrailMetric } from "@/lib/guardrail-metrics";
 
 export type RateLimitDecision = Readonly<{
   allowed: boolean;
@@ -30,6 +31,7 @@ export function rateLimitDenial(decision: RateLimitDecision): RateLimitDenial | 
 export function rateLimitResponse(decision: RateLimitDecision): NextResponse | null {
   const denial = rateLimitDenial(decision);
   if (!denial) return null;
+  emitGuardrailMetric("rate_limit", denial.code === "rate_limited" ? "denied" : "unavailable");
   const response = jsonError(denial.code, denial.status);
   if (denial.retryAfterSeconds !== undefined) {
     response.headers.set("Retry-After", String(denial.retryAfterSeconds));
