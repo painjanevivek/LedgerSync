@@ -56,6 +56,10 @@ The screenshot fork `yashmahajan11234567/Real-Time-Balance-Visibility-in-Microse
 
 ## Verification and limits
 
+- Candidate `6c7f389` (`candidate-20261015190754-666deb05`) passed all six browser journeys, the Go BFF system suite and two original-key replays after API process restart. Source and normal-container identities were preserved.
+- CI exposed two old fixture assumptions: a fixed five-service shutdown count and transfer posts without a recovery reference. The runtime check now verifies each of the six configured services. Go system and retry-lab clients save the exact intent and reuse its reference, key and body. Production validation remains strict.
+- PR #25 corrected effective-limit variables and approved those three exact fixture paths. It merged only after all nine required checks passed. Normal limits, expiry, branch binding and required CI remain enforced.
+
 - Go deterministic production, unit, contract, architecture and model packages passed before history consolidation.
 - Disposable full integration and fault inventories passed at source `6bd4363`; no normal container or source changes were made during that run.
 - Immutable candidate `a346e05` passed all six full-stack browser journeys, including clean-device recovery. Its source and normal-container identities were preserved. The earlier failed funding-artifact run remains retained; the fix writes proof into the owning Playwright output directory.
