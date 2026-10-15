@@ -121,7 +121,9 @@ func TestSecretHistoryExceptionsAreExactReviewedFingerprints(t *testing.T) {
 	root := repositoryRoot(t)
 	content := readContractFile(t, filepath.Join(root, ".gitleaksignore"))
 	fingerprintPattern := regexp.MustCompile(`^[0-9a-f]{40}:(?:(?:internal|tests|docs)/[^:]+|contracts/generated/(?:sdk-manifest\.json|go/ledgersync\.go|typescript/ledgersync\.ts)):generic-api-key:[1-9][0-9]*$`)
-	fingerprints := make([]string, 0, 66)
+	// 66 earlier findings plus 39 reviewed test-evidence identifiers in the PR #23 squash.
+	fingerprints := make([]string, 0, 105)
+	seen := make(map[string]bool, 105)
 	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -130,10 +132,14 @@ func TestSecretHistoryExceptionsAreExactReviewedFingerprints(t *testing.T) {
 		if !fingerprintPattern.MatchString(line) {
 			t.Fatalf("secret-history exception is broader than one exact finding fingerprint: %q", line)
 		}
+		if seen[line] {
+			t.Fatalf("duplicate secret-history fingerprint: %q", line)
+		}
+		seen[line] = true
 		fingerprints = append(fingerprints, line)
 	}
-	if len(fingerprints) != 66 {
-		t.Fatalf("reviewed secret-history exception count = %d, want exactly 66", len(fingerprints))
+	if len(fingerprints) != 105 {
+		t.Fatalf("reviewed secret-history exception count = %d, want exactly 105", len(fingerprints))
 	}
 	if strings.Contains(content, "allowlist") || strings.Contains(content, "regex") || strings.Contains(content, "path =") {
 		t.Fatal("secret-history exceptions must not introduce rule-, regex-, or path-wide allowlisting")
