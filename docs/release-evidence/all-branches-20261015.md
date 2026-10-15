@@ -27,14 +27,14 @@ The merge below records branch ancestry **in the integration branch**. Main requ
 | `origin/codex/main-production-hardening` | `8a6177aec99aac1fbfdf48e648f3ace1c6997c2e` | Yes |
 | `origin/codex/portfolio-restructuring-r00-r10` | `65e45ae1ac399c2c09f612941fa2e2c6ed178269` | Yes |
 | `origin/codex/pr11-01-worker-response-ci` | `3520861181258fb19066dbe860c5dfe20de7451e` | Yes |
-| `origin/codex/pr11-02-identifiers` | `483e18d360f435c8de182c554a07c4a6859581f1`  Yes |
-| `origin/codex/pr11-03-controlled-ledger` | `7948df3105f421b197e61b3390eb0ee97cd22b6b`  Yes |
-| `origin/codex/pr11-04-progressive-disclosure` | `4139a5717f091ab4539668df3f86a0b428eaa461`  Yes |
-| `origin/codex/pr11-05-deployment` | `df604a7f43aff0a33bf3960dcb699307175e407e`  Yes |
-| `origin/codex/pr11-06-opaque-sessions` | `76832764f8ff8a25ecfdf3fca3122083b939c58a`  Yes |
-| `origin/codex/pr11-07-bff-boundaries` | `ed085da0eba1cc41f481fac6d1e8a062b93bb77e`  Yes |
-| `origin/codex/pr11-08-ui-foundations` | `80a9200ab46eb07bf512c7b40098aa50fdcf9f92`  Yes |
-| `origin/codex/pr11-09-guided-workflows` | `dd65cbd9e08dca4e3d92fb2afa0296552717f994`  Yes |
+| `origin/codex/pr11-02-identifiers` | `483e18d360f435c8de182c554a07c4a6859581f1` | Yes |
+| `origin/codex/pr11-03-controlled-ledger` | `7948df3105f421b197e61b3390eb0ee97cd22b6b` | Yes |
+| `origin/codex/pr11-04-progressive-disclosure` | `4139a5717f091ab4539668df3f86a0b428eaa461` | Yes |
+| `origin/codex/pr11-05-deployment` | `df604a7f43aff0a33bf3960dcb699307175e407e` | Yes |
+| `origin/codex/pr11-06-opaque-sessions` | `76832764f8ff8a25ecfdf3fca3122083b939c58a` | Yes |
+| `origin/codex/pr11-07-bff-boundaries` | `ed085da0eba1cc41f481fac6d1e8a062b93bb77e` | Yes |
+| `origin/codex/pr11-08-ui-foundations` | `80a9200ab46eb07bf512c7b40098aa50fdcf9f92` | Yes |
+| `origin/codex/pr11-09-guided-workflows` | `dd65cbd9e08dca4e3d92fb2afa0296552717f994` | Yes |
 | `origin/codex/pr11-10-study-documentation` | `81e1a1d61f109d3e66c6aad9d03277f13407255c` | Yes |
 | `origin/codex/production-hardening` | `49ab793ff3036802e65f164336f1e12c9ba4784a` | Yes |
 | `origin/codex/production-hardening-pr003` | `be3638593dbceaa30f392080d6f8a717c67a72ec` | Yes |
@@ -44,8 +44,8 @@ The merge below records branch ancestry **in the integration branch**. Main requ
 | `origin/codex/production-hardening-pr006-ledger-semantic-keys` | `9aa285fa0587ceed13db523bce143ce6b459c31e` | Yes |
 | `origin/codex/production-hardening-pr007-ledger-semantic-validation` | `4b368afbc4130ed9cced199a2cb4735640b46bcc` | Yes |
 | `origin/codex/production-hardening-pr008-controlled-financial-commands` | `777f90827c5637b57a3455c7466bf772af343485` | Yes |
-| `origin/codex/production-hardening-pr008-funding-corrections` | `1cfadec01e8dd1a7cb6ca8bb19f2935c382a1fbe`  Yes |
-| `origin/codex/production-hardening-pr009-revoke-financial-dml` | `b9edecbd8bd9a5281bd64ad1f6e15fe401943e9f`  Yes |
+| `origin/codex/production-hardening-pr008-funding-corrections` | `1cfadec01e8dd1a7cb6ca8bb19f2935c382a1fbe` | Yes |
+| `origin/codex/production-hardening-pr009-revoke-financial-dml` | `b9edecbd8bd9a5281bd64ad1f6e15fe401943e9f` | Yes |
 | `origin/codex/production-hardening-pr010-tenant-rls` | `52bf5c0df6ecec7b52cecceeb921cb81f6b1d323` | Yes |
 | `origin/codex/progressive-disclosure` | `5b4654ba8bf71d9b9c29b1edfd739c1fb4e2dee1` | Yes |
 | `origin/codex/secure-transfer-foundation` | `57ef4afca9c2a91259375837915e9979cc74d28a` | Yes |
@@ -59,4 +59,4 @@ The screenshot fork `yashmahajan11234567/Real-Time-Balance-Visibility-in-Microse
 - Go deterministic production, unit, contract, architecture and model packages passed before history consolidation.
 - Disposable full integration and fault inventories passed at source `b3b8a99`; no normal container or source changes were made during that run.
 - Linux visuals, complete browser checks, final image journeys and hosted CI remain pending at this checkpoint. A pending check is not a pass.
-- R13 remains in progress. R14–R17 are not completed by this consolidation. No managed environment, real provider, independent human accessibility review or production approval is claimed.
+- R13 remains in progress. R14-R17 are not completed by this consolidation. No managed environment, real provider, independent human accessibility review or production approval is claimed.

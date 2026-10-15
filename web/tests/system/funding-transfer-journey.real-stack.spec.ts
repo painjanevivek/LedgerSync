@@ -33,7 +33,7 @@ async function createAccount(page: Page, name: string, reference: string) {
   return { id, result };
 }
 
-test("@real-stack first account, controlled funding, lost-response transfer, exact retry, and follow-up", async ({ page }) => {
+test("@real-stack first account, controlled funding, lost-response transfer, exact retry, and follow-up", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
   page.setDefaultTimeout(10_000);
   const run = requireIsolatedJourney();
@@ -140,5 +140,5 @@ test("@real-stack first account, controlled funding, lost-response transfer, exa
   const proof = JSON.parse(execFileSync("docker", ["exec", "-i", run.postgresContainerID, "psql", "-X", "-U", "ledgersync", "-d", "ledgersync", "-At", "-v", "ON_ERROR_STOP=1"], { input: proofSQL, encoding: "utf8", windowsHide: true, timeout: 15_000 }));
   expect(proof).toEqual({ funding_count: 1, transfer_count: 1, posting_count: 2, funding_journal_count: 1 });
   expect(errors).toEqual([]);
-  writeFileSync("../.tmp/journey-validation/funding-journey.json", JSON.stringify({ sourceAccountID: source.id, destinationAccountID: destination.id, fundingEventID: funding.funding_event_id, transferID: committed!.transfer_id, proof }, null, 2));
+  writeFileSync(testInfo.outputPath("funding-journey.json"), JSON.stringify({ sourceAccountID: source.id, destinationAccountID: destination.id, fundingEventID: funding.funding_event_id, transferID: committed!.transfer_id, proof }, null, 2));
 });
