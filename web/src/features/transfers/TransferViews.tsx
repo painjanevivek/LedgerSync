@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useCallback, useSyncExternalStore, useState } from "react";
 
 import type {
   Account,
@@ -22,6 +22,10 @@ import { EvidenceExportControl } from "@/features/exports/EvidenceExportControl"
 import { TransferEvidenceTimeline } from "@/features/transfers/TransferEvidenceTimeline";
 import { RelatedEvidenceRail } from "@/features/investigation/RelatedEvidenceRail";
 import { SavedViewCapture } from "@/features/investigation/SavedViewCapture";
+import { transferIntentStorageKey } from "./transferIntent";
+import { useRouter } from "next/navigation";
+import { useExperienceMode } from "@/features/console/ExperienceModeBoundary";
+import { SimpleTransferReceipt } from "./SimpleTransferReceipt";
 import { TransferForm } from "@/features/transfers/TransferForm";
 import { TransferRecovery } from "@/features/transfers/TransferRecovery";
 import type { TransferExplainability } from "@/lib/api/orientation";
@@ -683,7 +687,12 @@ export function TransfersView({
   onRefresh: () => Promise<void>;
   onRefreshExplainability: () => void;
 }>) {
-  const [createOpen, setCreateOpen] = useState(Boolean(preferredDestinationId) || (!detailRequested && canWrite));
+  const { mode } = useExperienceMode();
+  const router = useRouter();
+  const subscribeIntent = useCallback((notify: () => void) => { window.addEventListener("ledgersync-transfer-intent", notify); window.addEventListener("storage", notify); return () => { window.removeEventListener("ledgersync-transfer-intent", notify); window.removeEventListener("storage", notify); }; }, []);
+  const intentSnapshot = useCallback(() => { try { return sessionStorage.getItem(transferIntentStorageKey(tenantId)); } catch { return "storage-unavailable"; } }, [tenantId]);
+  const retainedRequest = useSyncExternalStore(subscribeIntent, intentSnapshot, () => null);
+  const [createOpen, setCreateOpen] = useState(Boolean(preferredDestinationId));
   const createDisclosure = useRef<HTMLDetailsElement>(null);
   const openTransferForm = () => {
     setCreateOpen(true);
@@ -707,6 +716,27 @@ export function TransfersView({
   ];
   const historyReturn = transferURL(initialFilters);
   const nextHref = nextCursor ? transferURL({ ...initialFilters, cursor: nextCursor }) : undefined;
+  const selectedEvidence = detailRequested ? (<TransferEvidenceFolio
+          detail={detail}
+          detailRequested={detailRequested}
+          selectedTransferId={selectedTransferId}
+          detailError={detailError}
+          detailLoading={detailLoading}
+          detailVerifiedAt={detailVerifiedAt}
+          accounts={accounts}
+          explainability={explainability}
+          explainabilityLoading={explainabilityLoading}
+          explainabilityError={explainabilityError}
+          online={online}
+          canReadExplainability={canReadExplainability}
+          canReadCorrections={canReadCorrections}
+          canWriteCorrections={canWriteCorrections}
+          csrfToken={csrfToken}
+          returnTo={returnTo}
+          onRefresh={onRefreshDetail}
+          onRefreshExplainability={onRefreshExplainability}
+        />) : null;
+  if (mode === "simple" && detailRequested && detail) return <SimpleTransferReceipt detail={detail} verifiedAt={detailVerifiedAt} historical={Boolean(detailError)||!online} returnTo={returnTo ?? historyReturn} evidence={selectedEvidence} />;
   return (
     <>
       <header className="transfer-page-heading">
@@ -716,6 +746,7 @@ export function TransfersView({
         </div>
         {canWrite && !createOpen && <button className="button primary" type="button" onClick={openTransferForm} disabled={!online}>New transfer</button>}
       </header>
+      {retainedRequest ? <StatePanel kind="unknown" title="An earlier transfer needs checking" message="Keep the original request. Check its result before creating another transfer." action={<Link className="button primary" href={`/transfers/new?return_to=${encodeURIComponent(historyReturn)}`}>Review original request</Link>} /> : <button className="button primary" type="button" disabled={!online || !canWrite} onClick={() => router.push(`/transfers/new?return_to=${encodeURIComponent(historyReturn)}`)}>Make a transfer</button>}
       <TransferRecovery />
       <TransferProofBand
         accounts={accounts}
@@ -782,26 +813,7 @@ export function TransfersView({
       </details>
 
       <div className={`transfer-register-layout${detailRequested ? "" : " transfer-register-only"}`}>
-        {detailRequested && <TransferEvidenceFolio
-          detail={detail}
-          detailRequested={detailRequested}
-          selectedTransferId={selectedTransferId}
-          detailError={detailError}
-          detailLoading={detailLoading}
-          detailVerifiedAt={detailVerifiedAt}
-          accounts={accounts}
-          explainability={explainability}
-          explainabilityLoading={explainabilityLoading}
-          explainabilityError={explainabilityError}
-          online={online}
-          canReadExplainability={canReadExplainability}
-          canReadCorrections={canReadCorrections}
-          canWriteCorrections={canWriteCorrections}
-          csrfToken={csrfToken}
-          returnTo={returnTo}
-          onRefresh={onRefreshDetail}
-          onRefreshExplainability={onRefreshExplainability}
-        />}
+        {selectedEvidence}
         <div className="transfer-register-column">
       <details className="transfer-filter-disclosure">
         <summary>

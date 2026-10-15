@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 for (const path of ["/", "/welcome"]) {
-  test(`${path} introduces the product without reading workspace data`, async ({ page }) => {
+  test(`${path} introduces the product without reading workspace data`, async ({ page }, testInfo) => {
     const protectedReads: string[] = [];
     page.on("request", request => {
       const url = new URL(request.url());
@@ -18,9 +18,9 @@ for (const path of ["/", "/welcome"]) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     }
     if (path === "/welcome") {
-      await page.screenshot({ path: "../docs/design/qa/guided-landing-desktop.png", fullPage: true, animations: "disabled" });
+      await page.screenshot({ path: testInfo.outputPath("guided-landing-desktop.png"), fullPage: true, animations: "disabled" });
       await page.setViewportSize({ width: 390, height: 844 });
-      await page.screenshot({ path: "../docs/design/qa/guided-landing-mobile.png", fullPage: true, animations: "disabled" });
+      await page.screenshot({ path: testInfo.outputPath("guided-landing-mobile.png"), fullPage: true, animations: "disabled" });
     }
   });
 }

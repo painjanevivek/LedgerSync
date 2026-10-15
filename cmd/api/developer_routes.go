@@ -31,8 +31,10 @@ func registerDeveloperRoutes(router *http.ServeMux, config developerRouteConfig)
 		handler.WithRequestAuthenticator(config.Authenticator)
 	}
 	router.HandleFunc("GET /api/developer/metadata", handler.Metadata)
-	handler.WithDistributedReader(db.NewDistributedEvidenceRepository(config.Database, config.StudyEnabled))
-	router.HandleFunc("GET /api/developer/distributed", handler.Distributed)
+	if config.StudyEnabled {
+		handler.WithDistributedReader(db.NewDistributedEvidenceRepository(config.Database, true))
+		router.HandleFunc("GET /api/developer/distributed", handler.Distributed)
+	}
 	router.HandleFunc("GET /api/openapi.yaml", handler.OpenAPI)
 	return nil
 }

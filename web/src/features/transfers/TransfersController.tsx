@@ -9,11 +9,13 @@ import { useConsoleSession } from "@/features/console/ConsoleSessionBoundary";
 import { useReconciliationWorkspace } from "@/features/reconciliation/useReconciliationWorkspace";
 import { PageHeader } from "@/ui/display/PageHeader";
 import { StatePanel } from "@/ui/display/StatePanel";
+import { GuidedTransferForm } from "./GuidedTransferForm";
 import { TransfersView } from "@/features/transfers/TransferViews";
 import { useTransferWorkspace } from "@/features/transfers/useTransferWorkspace";
 import { emptyTransferFilters, transferURL, type TransferFilters } from "@/lib/page-query/transfers";
 
 type Props = Readonly<{
+  creating?: boolean;
   transferId?: string;
   preferredDestinationId?: string;
   returnTo?: string;
@@ -21,7 +23,7 @@ type Props = Readonly<{
   invalidQuery?: boolean;
 }>;
 
-export function TransfersController({ transferId, preferredDestinationId, returnTo, filters = emptyTransferFilters, invalidQuery = false }: Props) {
+export function TransfersController({ creating = false, transferId, preferredDestinationId, returnTo, filters = emptyTransferFilters, invalidQuery = false }: Props) {
   const router = useRouter();
   const { session, online, hasScope } = useConsoleSession();
   const accounts = useAccountWorkspace(undefined, emptyAccountFilters);
@@ -60,6 +62,8 @@ export function TransfersController({ transferId, preferredDestinationId, return
         <><PageHeader eyebrow="Work / Transfers" title="Transfers" description="Move an exact amount between authorized accounts, then check the immutable result."/><StatePanel kind="denied" title="Transfer read authority required" message="Your server-issued session does not include transfers:read. No protected transfer or account-picker request was made."/></>
       ) : session && invalidQuery && !transferId ? (
         <><PageHeader eyebrow="Ledger / Transfers" title="Transfers" description="Move an exact amount between your accounts, then check the result."/><StatePanel kind="error" title="Invalid transfer investigation URL" message="The shared URL contains an unknown, repeated, empty, oversized, malformed, or reversed filter. No protected transfer or account-picker request was made." action={<button className="button secondary" type="button" onClick={() => router.replace("/transfers")}>Clear invalid filters</button>}/></>
+      ) : session && (creating || preferredDestinationId) ? (
+        <GuidedTransferForm accounts={accounts.accounts} accountsLoading={accounts.directoryLoading} accountsError={accounts.error} accountsVerifiedAt={accounts.directoryVerifiedAt} tenantId={session.tenant_id} csrfToken={session.csrf_token} disabled={!online || !hasScope("transfers:write") || !hasScope("accounts:read") || !accounts.scopeComplete} disabledReason={!online ? "Reconnect before submitting or retrying a request." : !hasScope("accounts:read") ? "Account read authority is required." : !accounts.scopeComplete ? "The bounded account picker is incomplete. Use the API until account selection is configured." : !hasScope("transfers:write") ? "Your role does not allow transfers." : undefined} preferredDestinationId={preferredDestinationId} returnTo={returnTo} onRetryAccounts={() => { if (hasScope("accounts:read")) void accounts.load(emptyAccountFilters, 100); }} onPosted={async () => { await Promise.all([workspace.loadList(), hasScope("accounts:read") ? accounts.load(emptyAccountFilters, 100) : Promise.resolve()]); }} />
       ) : session && (
         <TransfersView
           key={`${transferId ?? transferURL(filters)}:${preferredDestinationId ?? "register"}`}

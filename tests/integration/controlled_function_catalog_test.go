@@ -16,7 +16,7 @@ func TestControlledFunctionOwnersPathsAndDefaultPrivileges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	count := 0
 	owners := map[string]bool{"ledgersync_migration_owner": true, "ledgersync_queue_owner": true, "ledgersync_preflight_owner": true, "ledgersync_maintenance_owner": true}
 	for rows.Next() {
@@ -40,7 +40,7 @@ func TestControlledFunctionOwnersPathsAndDefaultPrivileges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if _, err := tx.Exec(`CREATE FUNCTION public.portfolio_default_acl_probe() RETURNS integer LANGUAGE sql AS 'SELECT 1'`); err != nil {
 		t.Fatal(err)
 	}

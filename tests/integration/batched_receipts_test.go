@@ -33,7 +33,11 @@ func TestBatchedLogicalReceiptsPreserveScopeOrderAndRollback(t *testing.T) {
 		}
 		messages = append(messages, projection.Message{ID: fmt.Sprintf("100-%d", len(messages)), Event: outbox.Event{ID: id, TenantID: testTenantID, Delivery: &outbox.CausalMetadata{NodeID: "sender", Timestamp: 200}}})
 	}
-	rows.Close()
+	func() {
+		if err := rows.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 	if len(messages) != 3 {
 		t.Fatal("three source events required")
 	}

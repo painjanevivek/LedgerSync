@@ -5,6 +5,22 @@ import { mockOperatorConsole, sourceAccount, destinationAccount } from "./fixtur
 const reference="50000000-0000-4000-8000-000000000001";
 const saved={request_reference:reference,source_account_id:sourceAccount.account_id,destination_account_id:destinationAccount.account_id,currency:"INR",amount_minor:"100",created_at:"2026-10-10T12:00:00Z",state:"unresolved"};
 
+test("confirmed detailed transfer stays visible when browser retry cleanup fails",async({page})=>{
+ await mockOperatorConsole(page);
+ await page.addInitScript(()=>{Storage.prototype.removeItem=()=>{throw new DOMException("Storage blocked","SecurityError");};});
+ let posts=0;
+ await page.route("**/api/transfers",route=>{posts++;return route.fulfill({status:201,json:{transfer_id:"33333333-3333-4333-8333-333333333333",status:"posted",currency:"INR",amount_minor:"100",balances:{}}});});
+ await page.goto("/transfers");
+ await page.getByText("Create a transfer",{exact:true}).click();
+ await page.getByLabel("Amount").fill("1.00");
+ await page.getByRole("button",{name:"Review transfer",exact:true}).click();
+ await page.getByRole("button",{name:"Confirm and post",exact:true}).click();
+ await expect(page.getByRole("heading",{name:"Transfer posted",exact:true})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Prepare another transfer"})).toBeDisabled();
+ await expect(page.getByText(/completed, but its local retry information could not be cleared/)).toBeVisible();
+ expect(posts).toBe(1);
+});
+
 test("saved recovery requires exact review, sends no replacement body, and opens receipt",async({page})=>{
  await mockOperatorConsole(page);
  await page.route("**/api/transfers/recovery",route=>route.fulfill({json:{requests:[saved]}}));
@@ -45,6 +61,6 @@ test("read-only recovery cannot submit and failed refresh cannot mean empty scop
 test("a failed durable prepare cannot send a posting command",async({page})=>{
  await mockOperatorConsole(page);let posts=0;await page.route("**/api/transfers",route=>{posts++;return route.abort();});
  await page.route("**/api/transfers/recovery",route=>route.fulfill({status:503,json:{error:{code:"temporary_unavailable"}}}));
- await page.goto("/transfers");await page.getByLabel("Amount").fill("1.00");await page.getByRole("button",{name:"Review transfer"}).click();await page.getByRole("button",{name:"Confirm and post"}).click();
+ await page.goto("/transfers/new");await page.getByLabel("Amount").fill("1.00");await page.getByRole("button",{name:"Review transfer"}).click();await page.getByRole("button",{name:"Confirm transfer"}).click();
  await expect(page.getByText(/No posting command was sent in this attempt/)).toBeVisible();expect(posts).toBe(0);
 });

@@ -19,7 +19,34 @@ const liveTestReference = "12345678-1234-4234-8234-123456789014"
 
 type liveRepositoryStub struct {
 	investigation.Repository
-	started investigation.LiveRoomStart
+	started      investigation.LiveRoomStart
+	historyCalls int
+}
+
+func (r *liveRepositoryStub) GetLiveRoomHistory(context.Context, string, string, string) (investigation.LiveRoom, error) {
+	r.historyCalls++
+	return investigation.LiveRoom{RoomID: liveTestRoomID, Status: "active", ParticipantRole: "owner", Version: "2", Finding: &investigation.LiveFinding{Code: "still_unresolved"}}, nil
+}
+
+func TestDisabledLiveFeatureDeniesAllActiveOperationsAndKeepsHistory(t *testing.T) {
+	repository := &liveRepositoryStub{}
+	handler := NewInvestigationHandler(repository, livePrincipal("investigation:collaborate", "investigation:read", "investigation:write", "transfers:read"))
+	for _, operation := range []http.HandlerFunc{handler.StartLiveRoom, handler.JoinLiveRoom, handler.IssueLiveRoomInvite, handler.LeaveLiveRoom, handler.EndLiveRoom, handler.RecordLiveRoomFinding, handler.LiveRoomSignals, handler.LiveRoomPresence} {
+		request := httptest.NewRequest(http.MethodPost, "/private/investigation/live-rooms/"+liveTestRoomID, strings.NewReader(`{}`))
+		request.SetPathValue("roomId", liveTestRoomID)
+		response := httptest.NewRecorder()
+		operation(response, request)
+		if response.Code != http.StatusNotFound {
+			t.Fatalf("disabled active operation returned %d", response.Code)
+		}
+	}
+	request := httptest.NewRequest(http.MethodGet, "/private/investigation/live-rooms/"+liveTestRoomID, nil)
+	request.SetPathValue("roomId", liveTestRoomID)
+	response := httptest.NewRecorder()
+	handler.LiveRoom(response, request)
+	if response.Code != http.StatusOK || repository.historyCalls != 1 || repository.started.ActorID != "" || !strings.Contains(response.Body.String(), "still_unresolved") {
+		t.Fatal("disabled feature did not use only authorized history", response.Code, response.Body.String())
+	}
 }
 
 func (r *liveRepositoryStub) TransferRequestStatus(context.Context, string, string, string) (investigation.TransferRequestStatus, error) {

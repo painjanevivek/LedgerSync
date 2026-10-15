@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-import { investigationSearchPage, mockOperatorConsole, sourceAccount, transfer } from "./fixtures";
+import { openExpertTools, investigationSearchPage, mockOperatorConsole, sourceAccount, transfer } from "./fixtures";
 
 function json(route: Route, body: unknown, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -23,7 +23,7 @@ test("keyboard navigation opens exact search and typed locators lead to canonica
   await mockOperatorConsole(page);
   await page.goto("/accounts");
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  await navigation.getByText("Investigate", { exact: true }).click();
+  await openExpertTools(page);
   const searchLink = navigation.getByRole("link", { name: "Search records" });
   await searchLink.focus();
   await expect(searchLink).toBeFocused();

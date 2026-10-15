@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "phase": "R11",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T14:30:09.708Z",
+  "summary": "Optional features now use strict server-owned core, study and collaboration sets. The API and BFF deny disabled active routes, and the session drives Systems Lab visibility. Authorized old room links use a separate scoped read-only history reader with no expiry, audit, presence or signalling writes. The cron adapter owns a separate database pool and verifies an exact restricted worker LOGIN before it can claim work. Base Compose and examples default to core; dedicated overlays retain study and collaboration. Deferred payouts and denied Administration remain preserved.",
+  "verification": {
+    "go_packages_passed": 44,
+    "vet": "passed",
+    "web_tests_passed": 221,
+    "typecheck": "passed",
+    "targeted_lint": "passed",
+    "web_build": "passed",
+    "browser_tests_passed": 3,
+    "optional_integration_subtests_passed": 6,
+    "compose_sets_validated": 3,
+    "artifacts": 15,
+    "artifact_bytes": 44339110,
+    "final_run": "demo-20261015142740-0ff82ac1"
+  },
+  "source": {
+    "head": "65e45ae1ac399c2c09f612941fa2e2c6ed178269",
+    "dirty": true,
+    "original_files": 1739,
+    "original_manifest_path": "data/portfolio/r11-20261015/source-before.json",
+    "original_manifest_sha256": "94ea1bbf210c57618f6fc9956eb9bbda79c563da1734daee9f3fe7c3b35be1c5",
+    "authorized_git_checkpoint": null,
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "c3586256bb3bf2a8e401b4cdfe4d0c22624adc003b55c8429adcef58c21b4c41",
+    "changed_original_files": [
+      {
+        "path": ".env.example",
+        "before_sha256": "57a3bac715e65236db1362731fa45a67b9b827f7e318ddc4db99b1766055895d",
+        "sha256": "a0c82ace0af5c34837056d49b0c5e22d7575e66fd8f607f36f9c644151d9fa2a"
+      },
+      {
+        "path": "cmd/api/developer_routes.go",
+        "before_sha256": "fb94da3174f12139c0aa2d293463a0e6db7980278207041e384aeb40bf97ea5c",
+        "sha256": "f8168819bf99ae8ebd966c0895fa95d59521f740cd6e80481b47a785c8b76fee"
+      },
+      {
+        "path": "cmd/api/developer_routes_test.go",
+        "before_sha256": "219ae91cca4a1646675a224e22b6946164c1e9dca8a85dba44f5c151a5f2a04d",
+        "sha256": "e4373d7a4cf4669531787fa6f93192033e99efcb743fe33b1d89c7c8f1946c4a"
+      },
+      {
+        "path": "cmd/api/main.go",
+        "before_sha256": "633646bacbaa5f70a47cf354ffe966f25c876028035e9fb2d1590645ece0eac9",
+        "sha256": "4383ebdd5259d88781a34e4db0a53a220e3a3ee7c42d2dde819032e1df1f280a"
+      },
+      {
+        "path": "deploy/compose/docker-compose.study.yml",
+        "before_sha256": "00b9f6ee1a3357c93ce68c2b2ccacb845ea58295148b1dbb4ea58ccf5de26244",
+        "sha256": "283d2494d8450920023e6a4b4f05ec7a8d1e35114b1bb0e787fc6b278d7c0a91"
+      },
+      {
+        "path": "deploy/compose/docker-compose.yml",
+        "before_sha256": "c9202c1d4123081c2b0deaf0723dd0afac4e0b9d79a8884b9b1f0db73474180d",
+        "sha256": "29000f4ae8eb78c8520caa7a8d46555e3ccd1b06a725a8c870c211fb637a07eb"
+      },
+      {
+        "path": "deploy/vercel/backend.env.example",
+        "before_sha256": "322559fd346765140a3d085d5dd38cc10d85061f6e222c0a71b5f5440a957340",
+        "sha256": "5d4f8a07ebdd1a525b3dbdb5d67a07d275526b0e10fbf11ecf33ea97e05a3d19"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "fc8bbd1dd6f1e8c4d0053ced4103a12d7ac9b8384c72ccb3e26ed3b62f1896ae",
+        "sha256": "bb96e08e107c5237725565cdab81ad94dd5045d912e8c7dd622a39d44066cd1e"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "0157b34f51b188dbdf9dd9304a8faf748a1adedff525c841c5093d1525e4f04f",
+        "sha256": "05329954155b7300f79c1b5718d3fe7305434edb4d21b99a207b41b393f92481"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "8165a114859031ff0b20682c29331628b88c581fccbd0c2c11dd5abfc28a71fd",
+        "sha256": "bb435106e1266256f31a8f4ffc24134ef4c0f59d69aad14f7e9f3562db44eb5f"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "524a3cff440173e4d682af02c1ccb861e09dc5571748de743a8390c9d0d46ae7",
+        "sha256": "b53431f1e7a133056ce934c7e17ef8f816654f8aa3293b932d08638a7ee4f85b"
+      },
+      {
+        "path": "internal/application/investigation/live_rooms.go",
+        "before_sha256": "0400e347c70ad1eb106778b309830e0e9a913343f21102d42eeebb90a5d04eae",
+        "sha256": "2bc446d3ef05c1b65777a204c557df93c6f52e1a2e86a82e8ea7c2522b5e9e00"
+      },
+      {
+        "path": "internal/application/payouts/provider.go",
+        "before_sha256": "da070b98ee105eb234ec17e534addb1a97617d28bc5ade98fcfe7dd7b8b67983",
+        "sha256": "62951f59016fc88241eb1b14395b3b8f4f9f815e9dc3ea8b7b0895c77889a561"
+      },
+      {
+        "path": "internal/platform/config/config.go",
+        "before_sha256": "60e4d6b92cec2fdee794a667d5a193f03565426737a1bbb40c21da3598772922",
+        "sha256": "dcd9627c5d62c17b054f01187bd5d8eb03bff5d3d6b04a8ccc2acbefcce3407e"
+      },
+      {
+        "path": "internal/platform/db/live_investigation_repository.go",
+        "before_sha256": "1fef3ea11f0476fd29f4a8b4bf51a80b5c39371255ffe9b26e6d39aa05395c95",
+        "sha256": "53e8b0bafe6afabe55ff6cb52b42b3796436d030b77e3dda86fb175ebd2aab28"
+      },
+      {
+        "path": "internal/transport/http/handlers/live_investigation.go",
+        "before_sha256": "372a9b3325edfb5f0d6e7dcae270e49a69d50b84099f2d270c36fe4c11d26961",
+        "sha256": "65142ea5bc6c4dd76cba15f645641f6bf1760ab825beed97837a6cd813c78644"
+      },
+      {
+        "path": "internal/transport/http/handlers/live_investigation_test.go",
+        "before_sha256": "521cc68c37586215c8f4160785751557634e29d608f0cc2a98f9931fde141fbd",
+        "sha256": "5cdb11bd6d419517cbe8693573f6e27ede644f18f28abfddaca1b6b92f3ea392"
+      },
+      {
+        "path": "scripts/portfolio/run-demo.mjs",
+        "before_sha256": "11c2ed364f758416e9a38a1006703d04a6abafa20df62cc1f7402e8d098fbd98",
+        "sha256": "a6ea70be85e14e28070b90ee1f5a60bea48c0f791e68158c6cac0b33da7732ab"
+      },
+      {
+        "path": "web/.env.example",
+        "before_sha256": "3a7c4943fbe9e731545bf394b8ebd5cae8136ba285519290f806a125cd0f6939",
+        "sha256": "5c264fb379045c07400f434b0aa27b4a689eab6ce1c24553ac2f2a038d6d7232"
+      },
+      {
+        "path": "web/src/app/api/developer/distributed/evidence/route.ts",
+        "before_sha256": "b73f3d8dc7385725e722ec71612c031a249f979e1c35db6566a175a2611d0aae",
+        "sha256": "cab33baee8991800ef358357396f69b1ae53ebcde251f74a435be88c1ad6270f"
+      },
+      {
+        "path": "web/src/app/api/developer/distributed/route.ts",
+        "before_sha256": "b5a3a0bfd15d8d9f1e05c552e966cf43eae818621aa89d5afd7fe0f6867969b4",
+        "sha256": "ad3a6ff60c5976781605f85a2ec8e14314ba1ef5c1780a0c2ec279bcd7d35d36"
+      },
+      {
+        "path": "web/src/app/api/investigation/live/rooms/[roomId]/route.ts",
+        "before_sha256": "65003d06ef98fccfcf15a42ebe9ad68ff60f98121997ee8342bdf00d830d380a",
+        "sha256": "583ab63b4be74b51daacc6f07a030160a56703b2ab891eac7de5539bdfbe7020"
+      },
+      {
+        "path": "web/src/app/api/session/route.ts",
+        "before_sha256": "94e198d90bdc919988b6c8060ca990f0fb3760f4e48b6d768a4f0c906a6cd6e2",
+        "sha256": "c1351b2eaaec8a7a6f5b258ce5f3fa235d43c865b0fea2e6bf1aa63bd7fcb58c"
+      },
+      {
+        "path": "web/src/features/accounts/types.ts",
+        "before_sha256": "5db4e26befcaef420832e9967bc48e12b28f0ff95a97343a1790df67ce23bf61",
+        "sha256": "38da939350252563b57e0e86b42ce96a9f410fc30a24e5a1dd5839ad37b6945d"
+      },
+      {
+        "path": "web/src/features/console/ConsoleSessionBoundary.tsx",
+        "before_sha256": "fa1cca1abfd8a8f311e03fdc92c55e432941348d28dfa60cbffaf449a5ef3c7f",
+        "sha256": "adae66b37be9f626df9b7e32bf5ff03e25e1b1f2290edd51e442e79449435884"
+      },
+      {
+        "path": "web/src/features/developer/DeveloperConsole.tsx",
+        "before_sha256": "8c1f8e759f78939759b3d26c96da6c044f7b9a0a3502ddae27806ac895f10409",
+        "sha256": "86de95cc84d3806213759c514e63bb5536be25fc3d506632c082fe5cef1c91f7"
+      },
+      {
+        "path": "web/src/features/developer/DeveloperViews.tsx",
+        "before_sha256": "64319673e06817b1ca1ce24a302cb3147fb99ef67f158d3eb9eab35b29c95b0f",
+        "sha256": "d93e304f6a79ab9f7eebf10649bb0cc9c535508e86899a547a64b13c19bfea7d"
+      },
+      {
+        "path": "web/src/features/investigation/LiveInvestigationJoin.tsx",
+        "before_sha256": "4a027406ef3c86dc87e18d91cd3c256c72d19ff2901fba677b0c75a66a4187d7",
+        "sha256": "9a9c59cf5d6a85236311dae091867f7ba6a142d7354e9f0a265689ce0933fea5"
+      },
+      {
+        "path": "web/src/instrumentation.ts",
+        "before_sha256": "bf20ebc14b2a6317d493a52a3cf1d16a6cf06df269f664338a2e6f4e2bc97a2c",
+        "sha256": "0c9363261cbf6db365016fd8ae8dfcc035423b17616e03804b823d2b63604d21"
+      },
+      {
+        "path": "web/src/lib/live-investigation-boundary.ts",
+        "before_sha256": "233a2a156811679143e3313a87d5db39681cb0ade1edf106487af0d76ac9e585",
+        "sha256": "384c317c5d2a18b6397fa4468e478392a10afbed7ba71931080590700d983d91"
+      },
+      {
+        "path": "web/tests/e2e/fixtures.ts",
+        "before_sha256": "7efa668c2abdc7dab261ef5c5fa989b9a8c550bc672c4f34593d9e62262e9738",
+        "sha256": "dc9c8069f1663c9070fef54d2ad0aca373341fcad04cb6384c9193232f2eb766"
+      },
+      {
+        "path": "web/tests/e2e/systems-lab.spec.ts",
+        "before_sha256": "946f68041d1c334511d08ac7da261033824e4fd34dec2d87922024fc5fbde7be",
+        "sha256": "dcb8ff7bf8582818caef8e47d61dbf8ae707bff64598d6984239ded81c306b07"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "deploy/compose/docker-compose.collaboration.yml",
+        "sha256": "ff786f91acbdb84ae75a49caac7c9c1d1a16f09ae69971777dd16305f09b2412"
+      },
+      {
+        "path": "docs/portfolio/capability-set.md",
+        "sha256": "249fcae452110037ce527aa0792f91f2141ed7419cb8e8477243932488513ded"
+      },
+      {
+        "path": "internal/bootstrap/cron_worker.go",
+        "sha256": "3dd5bd2cc6c481aaff16000fb4450cf2064ae8de0bbf3e704150e2e6ddc22650"
+      },
+      {
+        "path": "internal/platform/config/optional_features.go",
+        "sha256": "f62038cf1e952164a40b6bbda6fa7942524de4915c561cdc852adcf24e4406c2"
+      },
+      {
+        "path": "internal/platform/config/optional_features_test.go",
+        "sha256": "e0b4212085ee927e88e4ad44e4dd83af3212fba8b865102a80d6322b6e6e9668"
+      },
+      {
+        "path": "internal/platform/db/workload_role.go",
+        "sha256": "2257a41ec78588e9da06ebe20051bb69ac747c4868f2469c6dd3f71e8d311b70"
+      },
+      {
+        "path": "scripts/portfolio/run-optional.mjs",
+        "sha256": "e1e8c3fd6b826fe5b7ac1d5ef5ca0a61ac9f50200e0dd7b79acd2fae90cca435"
+      },
+      {
+        "path": "tests/integration/cron_worker_role_test.go",
+        "sha256": "d81bab2dcbe8bd46844291a4d157a6b2d20ff2193090fdaadf2b4ca3c13560de"
+      },
+      {
+        "path": "tests/integration/optional_features_test.go",
+        "sha256": "350f0954b888aa680d46b7c9326767bd173f5a650f9ce469ffef9865090c82cd"
+      },
+      {
+        "path": "web/src/features/investigation/LiveInvestigationHistory.tsx",
+        "sha256": "79d252f62325723c682dade358b24fcd039f6a8f23bd4a90ae3e3bdf5ed207ac"
+      },
+      {
+        "path": "web/src/lib/feature-configuration.ts",
+        "sha256": "3228db167ed63c42980cfcb6f331e907badafcd20a27246e3e319f661465e7eb"
+      },
+      {
+        "path": "web/tests/e2e/optional-features.spec.ts",
+        "sha256": "41f33f341ace79bb84caa16c6e751ba027154d951134e0ba5c6d1e4346ad6593"
+      },
+      {
+        "path": "web/tests/security/feature-configuration.test.ts",
+        "sha256": "a392c2aaff3a92ffaf5027718f9a69d3ea78aa760bf45fc3f2b9b335aa4decf2"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r11-20261015/go-final.txt",
+      "sha256": "5d5ed7cd102299aa5620855ab9d248557bd7a9d27cee98a50ef08e7bf417939b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/vet-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/web-first.txt",
+      "sha256": "9389c672a86ab1e634c5c98792f97ef8651f6c916b605a3d87354e39f7ab94b8",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/typecheck-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/lint-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/browser-first.txt",
+      "sha256": "43d736c3c7608b618393765cd668ce34e1b5d67ee33d7b420d5918ab78af1b84",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/browser-final.txt",
+      "sha256": "2509c874236b343f4c4b45f35f27cd411ee6c1a53d33d1938c85b69c5bce5684",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/optional-first.txt",
+      "sha256": "a92382d2cb4faf1ddeaf3c18a8d0137d06f48a6f467d5fec5b4acebce35b0219",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/optional-final.txt",
+      "sha256": "e4c1d4ac2d5bbd17813002c40bc77f8e986ae576df8be3bde1029334ccc2b0b7",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/compose-matrix.json",
+      "sha256": "d158dd0deb82735f81facf769aa322a50ad1195f373eaca99bba2c476a14dd52",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/verification-final.json",
+      "sha256": "abfd9b804ca74fd366fc1cc1d6b4da282a736e30d5623744ed78e56083c97db3",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/final-run-manifest.json",
+      "sha256": "2a6517d5fe710be41ed74e5f3792fe9c375292020ed0d732b8d5f4b96df6b622",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/final-cleanup.json",
+      "sha256": "4a1d60c772819fc29068c50b644f6592073d047097800518519478d3a918755d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r11-20261015/normal-financial-final.json",
+      "sha256": "a057700c9ac2e569c832bf700360ac32d8026f08db51d610c52c95a61eabffce",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "96714e105197072e9a87b11a89a20b0975b8021befc2f24b9a4ce6680a17f920"
+  },
+  "limits": [
+    "The normal runtime retains its earlier images and active settings; changed Compose defaults were rendered only.",
+    "Study and collaboration are explicitly separate development-only sets; combined flags and invalid values fail configuration.",
+    "Existing participant, tenant and scope checks remain on room history; disabling the active feature does not erase or grant access to evidence.",
+    "Local database/Redis, handler and browser checks do not claim a physical cross-network WebRTC call, managed TURN or arbitrary optional combinations. R13 owns final integrated image qualification.",
+    "The first study browser fixture omitted selected feature flags and the first overlay edit duplicated its web mapping. Both failures were retained, corrected and reverified.",
+    "No source or data was removed to simplify the default experience. R12-R17 remain selected work."
+  ]
+}

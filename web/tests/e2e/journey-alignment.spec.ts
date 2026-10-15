@@ -66,7 +66,7 @@ test("the requested destination opens the transfer form before any financial com
   await expect(page.getByRole("button", { name: "New transfer", exact: true })).toHaveCount(0);
   await page.getByLabel("Amount").fill("12.50");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await expect(page.getByRole("heading", { name: "Confirm exact transfer" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review transfer", exact: true })).toBeVisible();
   expect(commands).toBe(0);
 });
 
@@ -76,11 +76,11 @@ test("secondary navigation remains operable on the transfer screen by keyboard",
   await page.goto("/transfers");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  const group = navigation.locator("summary").filter({ hasText: "Investigate" });
+  const group = navigation.locator("summary").filter({ hasText: "Expert tools" });
   await expect(group).toBeVisible();
   await group.focus();
   await group.press("Enter");
-  await expect(navigation.getByRole("link", { name: "Internal reconciliation" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Balance checks" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Menu", exact: true })).toBeFocused();
 });

@@ -1,0 +1,20 @@
+{
+  "schema_version": "ledgersync-candidate-recovery-summary/v1",
+  "run_id": "demo-20261015140934-45e3fe02",
+  "completed_at": "2026-10-15T14:10:21.895Z",
+  "source_commit": "65e45ae1ac399c2c09f612941fa2e2c6ed178269",
+  "source_manifest_sha256": "a9760d6cb55faf77868293609a42bc80c13b85bab90bfb04d9540f8f260df8e3",
+  "migration_count": 61,
+  "status": "verified_local",
+  "backup_seconds": 1.405,
+  "restore_setup_seconds": 5.487,
+  "backup_and_validation_seconds": 20.75,
+  "checks": [
+    "candidate-recovery-fixture",
+    "candidate-recovery-restored",
+    "candidate-recovery-migrations",
+    "source-and-target-preservation",
+    "disposable-cleanup"
+  ],
+  "scope": "Synthetic local candidate; separate databases; no normal-runtime coverage or managed recovery target."
+}

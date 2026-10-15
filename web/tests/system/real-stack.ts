@@ -4,6 +4,32 @@ import { expect, type APIResponse, type Page, type Request } from "@playwright/t
 
 import { parseIsolatedComposeProject, parseSystemWebURL } from "./real-stack-boundary";
 
+/** Establish each journey's view explicitly. Preferences belong to the server
+ * and can survive another journey; test order must not select a hidden view. */
+export async function setIsolatedExperienceMode(page: Page, mode: "simple" | "expert") {
+  const run = requireIsolatedJourney();
+  const origin = new URL(page.url()).origin;
+  const peer = new URL(run.baseURL); peer.port = "3103";
+  if (origin !== run.baseURL && origin !== peer.origin) throw new Error("Preference setup requires the verified isolated frontend pair");
+  if (origin === peer.origin) {
+    const owner = dockerOutput(["ps", "--filter", "publish=3103", "--format", "{{.Label \"com.docker.compose.project\"}}|{{.Label \"com.docker.compose.service\"}}"]);
+    if (owner !== `${run.composeProject}|web-peer`) throw new Error("Peer preference target is not isolated");
+  }
+  const sessionResponse = await page.request.get(`${origin}/api/session`);
+  expect(sessionResponse.status()).toBe(200);
+  const session = await sessionResponse.json();
+  const preferenceResponse = await page.request.get(`${origin}/api/preferences`);
+  expect(preferenceResponse.status()).toBe(200);
+  const preference = await preferenceResponse.json();
+  if (preference.experience_mode !== mode) {
+    const update = await page.request.patch(`${origin}/api/preferences`, { headers: { Origin: origin, "X-CSRF-Token": session.csrf_token }, data: { experience_mode: mode, expected_version: preference.version } });
+    expect(update.status()).toBe(200);
+    expect(await update.json()).toMatchObject({ experience_mode: mode });
+  }
+  await page.reload();
+  await expect(page.getByRole("heading", { name: mode === "simple" ? "Your money at a glance" : "Overview", exact: true })).toBeVisible();
+}
+
 export type RealStackRun = {
   baseURL: string;
   composeProject: string;

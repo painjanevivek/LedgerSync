@@ -1,4 +1,4 @@
-import type { Page, Route } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
 import developerMetadataSource from "../../../contracts/developer-examples.v1.json";
 
 export const sourceAccount = { account_id: "11111111-1111-4111-8111-111111111111", display_name:"Operating Reserve", category:"operating", external_reference:"OPS-RESERVE", currency: "INR", status: "active", available_minor: "125000", ledger_minor: "125000", account_version: "1", version: "8", as_of: "2026-08-19T12:00:00Z" };
@@ -126,14 +126,15 @@ export async function mockOperatorConsole(
   {
     sessionDelayMilliseconds = 0,
     experienceMode = "expert",
-  }: { sessionDelayMilliseconds?: number; experienceMode?: "simple" | "expert" } = {},
+    features = { live_investigation: false, systems_lab: false },
+  }: { sessionDelayMilliseconds?: number; experienceMode?: "simple" | "expert"; features?: { live_investigation: boolean; systems_lab?: boolean } } = {},
 ) {
   let savedViews: Array<Record<string, unknown>> = [{ ...savedInvestigationView }];
   let workspace: Record<string, unknown> | null = structuredClone(investigationWorkspace) as unknown as Record<string, unknown>;
   let currentExperienceMode = experienceMode;
   await page.route("**/api/session", async (route) => {
     if (sessionDelayMilliseconds > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelayMilliseconds));
-    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator" });
+    return json(route, { subject_id: "operator-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "accounts:write", "transactions:read", "transfers:read", "transfers:write", "funding:read", "funding:write", "funding:approve", "corrections:read", "corrections:write", "corrections:approve", "reconciliation:read", "reconciliation:write", "local:read", "local:write", "events:read", "investigation:read", "investigation:write", "explainability:read", "developer:read", "credentials:read", "credentials:write", "webhooks:read", "webhooks:write", "webhooks:replay", "recovery:read", "exports:read"], environment:"local",tenant_label:"My Ledger Workspace",operator_label:"Test operator",features });
   });
   await page.route("**/api/preferences", async (route) => {
     if (route.request().method() === "PATCH") {
@@ -239,4 +240,12 @@ export async function mockOperatorConsole(
     const family=path.includes("/accounts/")?"account-ledger":path.includes("reconciliation")?"reconciliation":"transfers";
     return route.fulfill({status:200,contentType:"text/csv; charset=utf-8",headers:{"Content-Disposition":`attachment; filename="ledgersync-${family}-20260819T120000Z-v2.csv"`,"X-LedgerSync-Export-Schema":"2"},body:"schema_version,record_id,amount_minor,currency\r\n2,record-1,\"500\",INR\r\n"});
   });
+}
+
+export async function openExpertTools(page: Page) {
+  const navigation = page.getByRole("navigation", { name: "Primary navigation", exact: true });
+  const summary = navigation.locator("summary").filter({ hasText: "Expert tools" });
+  await expect(summary).toBeVisible();
+  if (!(await summary.evaluate(element => element.parentElement?.hasAttribute("open")))) await summary.click();
+  return navigation;
 }

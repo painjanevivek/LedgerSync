@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "3.6.0",
+  "contract_version": "3.7.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -17,7 +17,7 @@
     {
       "id": "private_api_development_token",
       "label": "Private API development token",
-      "summary": "Retrieve or rotate local credentials only with explicit protected host tooling. Credentials are never returned by this metadata API."
+      "summary": "Retrieve local credentials only with protected host tooling. A delegating BFF workload needs a fresh actor assertion per call. The TypeScript backend example uses separately scoped own-principal credentials. This metadata API never returns credentials."
     }
   ],
   "endpoint_groups": [

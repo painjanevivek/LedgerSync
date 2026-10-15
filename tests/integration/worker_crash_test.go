@@ -42,10 +42,10 @@ func TestOutboxCrashHelper(t *testing.T) {
 	if err != nil {
 		t.Fatal("helper database unavailable")
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	repository, _ := db.NewOutboxRepository(database, time.Now)
 	client := redis.NewClient(&redis.Options{Addr: harness.RedisAddr})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 	stream, _ := events.NewRedisStreams(client, os.Getenv("LEDGERSYNC_TEST_CRASH_STREAM"))
 	worker, _ := outbox.NewWorker(repository, crashPublisher{stream, stage}, nil, time.Now, outbox.Config{WorkerID: "crashed-process", BatchSize: 1, ClaimLease: 500 * time.Millisecond})
 	if _, err := worker.RunOnce(context.Background()); err != nil {
@@ -111,7 +111,7 @@ func TestOutboxProcessCrashRecovery(t *testing.T) {
 			time.Sleep(600 * time.Millisecond)
 			repository, _ := db.NewOutboxRepository(database, time.Now)
 			client := redis.NewClient(&redis.Options{Addr: harness.RedisAddr})
-			defer client.Close()
+			defer func() { _ = client.Close() }()
 			stream, _ := events.NewRedisStreams(client, streamName)
 			worker, _ := outbox.NewWorker(repository, stream, nil, time.Now, outbox.Config{WorkerID: "replacement-process", BatchSize: 1})
 			if count, err := worker.RunOnce(context.Background()); err != nil || count != 1 {

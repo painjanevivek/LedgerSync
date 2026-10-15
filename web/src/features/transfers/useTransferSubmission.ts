@@ -48,10 +48,11 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
   const volatileIntent = useRef<StoredTransferIntent | null>(null);
   const [fallbackIntent, setFallbackIntent] = useState<StoredTransferIntent | null>(null);
   const [outcome, setOutcome] = useState<TransferOutcome>(null);
+  const [storageError, setStorageError] = useState(false);
   const storageKey = transferIntentStorageKey(tenantId);
   const subscribe = useCallback((notify: () => void) => {
     const onStorage = (event: StorageEvent) => {
-      if (event.storageArea === sessionStorage && event.key === storageKey) notify();
+      if (event.key === storageKey) notify();
     };
     window.addEventListener("storage", onStorage);
     window.addEventListener("ledgersync-transfer-intent", notify);
@@ -60,7 +61,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       window.removeEventListener("ledgersync-transfer-intent", notify);
     };
   }, [storageKey]);
-  const getSnapshot = useCallback(() => { try { return sessionStorage.getItem(storageKey); } catch { return null; } }, [storageKey]);
+  const getSnapshot = useCallback(() => { try { return sessionStorage.getItem(storageKey); } catch { return "storage-unavailable"; } }, [storageKey]);
   const rawStoredIntent = useSyncExternalStore(subscribe, getSnapshot, () => null);
   const storedIntent = useMemo(() => parseStoredTransferIntent(rawStoredIntent), [rawStoredIntent]);
 
@@ -69,16 +70,21 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
   }
 
   function saveIntent(intent: StoredTransferIntent) {
+    const serialized = JSON.stringify(intent);
+    sessionStorage.setItem(storageKey, serialized);
+    if (sessionStorage.getItem(storageKey) !== serialized) throw new Error("Retry information was not retained");
     volatileIntent.current = intent;
     setFallbackIntent(intent);
-    try { sessionStorage.setItem(storageKey, JSON.stringify(intent)); } catch { /* Server intent is the durable recovery authority. */ }
     notifyIntentChanged();
   }
 
   function clearIntent() {
+    try {
+      sessionStorage.removeItem(storageKey);
+      if (sessionStorage.getItem(storageKey) !== null) throw new Error("Retry information was not cleared");
+    } catch { setStorageError(true); return; }
     volatileIntent.current = null;
     setFallbackIntent(null);
-    try { sessionStorage.removeItem(storageKey); } catch { /* Storage may be unavailable. */ }
     notifyIntentChanged();
   }
 
@@ -97,7 +103,16 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     if (pending || inFlight.current) return false;
     inFlight.current = true;
 
-    const persisted = parseStoredTransferIntent(getSnapshot()) ?? storedIntent ?? volatileIntent.current;
+    let persisted: StoredTransferIntent | null;
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      persisted = parseStoredTransferIntent(raw) ?? storedIntent ?? volatileIntent.current;
+      if (storageError || (raw && !parseStoredTransferIntent(raw))) throw new Error("Retry information unavailable");
+    } catch {
+      setStorageError(true);
+      inFlight.current = false;
+      return false;
+    }
     if (persisted && !storedIntentMatches(persisted, prepared)) {
       setOutcome({
         kind: "unknown",
@@ -112,7 +127,8 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
       ? { ...persisted, version: 2, requestReference }
       : createStoredTransferIntent(crypto.randomUUID(), requestReference, prepared);
     const localReference = crypto.randomUUID();
-    if (!persisted || !persisted.requestReference) saveIntent(intent);
+    try { if (!persisted || !persisted.requestReference) saveIntent(intent); }
+    catch { setStorageError(true); inFlight.current = false; return false; }
     setPending(true);
     setOutcome(null);
 
@@ -177,7 +193,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
 
       const [detail] = await Promise.all([
         loadTransferDetail(payload.transfer_id),
-        onPosted().catch(() => undefined),
+        Promise.resolve().then(onPosted).catch(() => undefined),
       ]);
       if (detail) {
         setOutcome({
@@ -215,7 +231,8 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     message: "An unconfirmed transfer was restored after navigation or reload. Editing is locked; retry this exact intent with its original key.",
   } : null);
 
-  return { outcome: visibleOutcome, pending, setOutcome, storedIntent: storedIntent ?? fallbackIntent, submit };
+  const storageBlocked = storageError || Boolean(rawStoredIntent && !storedIntent);
+  return { outcome: visibleOutcome, pending, setOutcome, storedIntent: storedIntent ?? fallbackIntent, storageBlocked, submit };
 }
 
 export type { PreparedTransfer } from "@/features/transfers/transferIntent";

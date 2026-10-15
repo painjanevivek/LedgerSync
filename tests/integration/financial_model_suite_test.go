@@ -105,13 +105,15 @@ func (s *financialModelSuite) check(ctx context.Context) error {
 	for rows.Next() {
 		var id, ledger, available, version string
 		if err := rows.Scan(&id, &ledger, &available, &version); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		actual[id] = [3]string{ledger, available, version}
 	}
 	err = rows.Err()
-	rows.Close()
+	if closeErr := rows.Close(); err == nil {
+		err = closeErr
+	}
 	if err != nil {
 		return err
 	}
@@ -138,7 +140,7 @@ func (s *financialModelSuite) check(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	seen := map[string]bool{}
 	for rows.Next() {
 		var id, digest string

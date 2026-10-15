@@ -108,7 +108,7 @@ test("compact navigation is modal, traps focus, and excludes the background", as
   await expect(page.locator(".workspace-column")).toHaveAttribute("inert", "");
   await expect(drawer.getByRole("button", { name: "Close navigation" })).toBeFocused();
   const lastVisibleFocusable = drawer.locator("a[href], button:not([disabled]), summary, [tabindex]:not([tabindex='-1'])").filter({ visible: true }).last();
-  await expect(lastVisibleFocusable).toHaveText("Developer");
+  await expect(lastVisibleFocusable).toHaveText("Expert tools ");
   await page.keyboard.press("Shift+Tab");
   await expect(lastVisibleFocusable).toBeFocused();
   await page.keyboard.press("Tab");
@@ -131,7 +131,7 @@ test("canonical type, touch targets, and reduced motion hold at tablet width", a
     const targetHeights = [...document.querySelectorAll<HTMLElement>("button:not([disabled]), a.button, input:not([type='hidden']):not([disabled]), select:not([disabled]), summary")].filter((element) => element.checkVisibility({ visibilityProperty: true })).map((element) => element.getBoundingClientRect().height);
     const metadataSizes = [...document.querySelectorAll<HTMLElement>(".eyebrow, .evidence-freshness, .proof-label-row, .folio-field-label, .data-table th, .data-table code, .data-table .status-label")].filter((element) => element.checkVisibility({ visibilityProperty: true })).map((element) => Number.parseFloat(getComputedStyle(element).fontSize));
     const tokens = getComputedStyle(document.documentElement);
-    const duration = getComputedStyle(document.querySelector(".side-nav")!).transitionDuration;
+    const duration = getComputedStyle(document.querySelector(".guided-topbar")!).transitionDuration;
     return { h1: px(".transfer-page-heading h1"), row: px(".transfer-table td"), label: px(".transfer-table th"), bodyToken: Number.parseFloat(tokens.getPropertyValue("--type-body")), metaToken: Number.parseFloat(tokens.getPropertyValue("--type-meta")), metadataFloor: Math.min(...metadataSizes), minimumTarget: Math.min(...targetHeights), duration, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
   expect(metrics).toMatchObject({ row: 14, label: 12, bodyToken: 14, metaToken: 12, overflow: false });

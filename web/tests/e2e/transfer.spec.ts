@@ -97,7 +97,7 @@ test("a final rejection clears its key before a genuinely new intent", async ({ 
   await page.getByRole("button", { name: "Back to edit" }).click();
   await page.getByLabel("Amount").fill("998.00");
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
   await expect.poll(() => keys.length).toBe(2);
   expect(keys[0]).toBeTruthy();
   expect(keys[1]).toBeTruthy();

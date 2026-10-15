@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { mockOperatorConsole } from "./fixtures";
+import { openExpertTools, mockOperatorConsole } from "./fixtures";
 
 test("session and connectivity authority persist across console route families", async ({ page }) => {
   await mockOperatorConsole(page);
@@ -12,18 +12,19 @@ test("session and connectivity authority persist across console route families",
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
-  await navigation.locator("summary").filter({ hasText: "Developer" }).click();
+  await openExpertTools(page);
   await navigation.getByRole("link", { name: "Developer" }).click();
   await expect(page.getByRole("heading", { name: "Developer", exact: true })).toBeVisible();
-  await navigation.getByText("Operations", { exact: true }).click();
-  await navigation.getByRole("link", { name: "Recovery" }).click();
+  await openExpertTools(page);
+  await navigation.getByRole("link", { name: "Data recovery" }).click();
   await expect(page.getByRole("heading", { name: "Recovery", exact: true })).toBeVisible();
-  await navigation.getByRole("link", { name: "Local status" }).click();
+  await openExpertTools(page);
+  await navigation.getByRole("link", { name: "System status" }).click();
   await expect(page.getByRole("heading", { name: "Local status", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Add money" }).click();
   await expect(page.getByRole("heading", { name: "Funding records", exact: true })).toBeVisible();
-  await navigation.getByText("Investigate", { exact: true }).click();
-  await navigation.getByRole("link", { name: "Corrections" }).click();
+  await openExpertTools(page);
+  await navigation.getByRole("link", { name: "Correct records" }).click();
   await expect(page.getByRole("heading", { name: "Transfer corrections", exact: true })).toBeVisible();
 
   expect(sessionRequests).toBe(1);

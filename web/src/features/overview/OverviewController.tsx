@@ -54,6 +54,7 @@ export function OverviewController({ showOrientation = false }: Readonly<{ showO
       {session && (
         <OverviewView
           accounts={accounts.accounts}
+          accountsScopeComplete={accounts.scopeComplete}
           transfers={transfers.transfers}
           reconciliation={reconciliation.runs[0] ?? null}
           accountsLoading={accounts.directoryLoading}

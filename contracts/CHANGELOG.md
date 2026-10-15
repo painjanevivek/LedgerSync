@@ -1,5 +1,12 @@
 # LedgerSync API changelog
 
+## 3.7.0 — 2026-10-15
+
+- Document existing own-principal trusted backend authentication and mandatory fresh assertions for delegating workloads.
+- Preserve the configured `/api` prefix in the generated TypeScript client. Bound timeouts and reject paths that escape that API base.
+- Support a per-call assertion factory and omit assertions for own-principal workloads. Keep browser workloads behind the BFF.
+- Document the optional study route gate. Financial posting and event contracts stay compatible.
+
 ## 3.6.0 — 2026-10-15
 
 - Add an optional opaque origin trace ID to authorized event details.

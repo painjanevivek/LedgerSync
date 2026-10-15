@@ -70,7 +70,7 @@ test("guide controller has no financial or operational evidence graph", async ({
   await expect(page.getByRole("heading", { name: "Get started" })).toBeVisible();
 
   await expect.poll(() => paths).toContain("/api/local/orientation");
-  expect(paths).toEqual(["/api/session", "/api/local/orientation"]);
+  expect([...paths].sort()).toEqual(["/api/local/orientation", "/api/preferences", "/api/session"]);
   expect(paths.some((path) => path.startsWith("/api/me/accounts"))).toBe(false);
   expect(paths.some((path) => path.startsWith("/api/transfers"))).toBe(false);
   expect(paths.some((path) => path.startsWith("/api/reconciliation"))).toBe(false);

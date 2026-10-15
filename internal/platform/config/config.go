@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -57,6 +56,8 @@ type Config struct {
 	WebhookSigningKeys         map[string][]byte
 	AWSRegion                  string
 	CronSecret                 string
+	CronWorkerDatabaseURL      string
+	SystemsLabEnabled          bool
 	LiveInvestigationEnabled   bool
 	LiveInvestigationNamespace string
 	LiveInvestigationTURNURL   string
@@ -163,8 +164,15 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	liveInvestigationEnabled, err := parseBool("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED", false)
+	liveInvestigationEnabled, err := optionalFlag("LEDGERSYNC_LIVE_INVESTIGATION_ENABLED")
 	if err != nil {
+		return Config{}, err
+	}
+	studyEnabled, err := optionalFlag("LEDGERSYNC_STUDY_ENABLED")
+	if err != nil {
+		return Config{}, err
+	}
+	if err := validateOptionalFeatures(environment, studyEnabled, liveInvestigationEnabled); err != nil {
 		return Config{}, err
 	}
 	config := Config{
@@ -211,6 +219,8 @@ func Load() (Config, error) {
 		WebhookSigningKeys:         webhookSigningKeys,
 		AWSRegion:                  strings.TrimSpace(os.Getenv("AWS_REGION")),
 		CronSecret:                 strings.TrimSpace(os.Getenv("CRON_SECRET")),
+		CronWorkerDatabaseURL:      strings.TrimSpace(os.Getenv("LEDGERSYNC_CRON_WORKER_DATABASE_URL")),
+		SystemsLabEnabled:          studyEnabled,
 		LiveInvestigationEnabled:   liveInvestigationEnabled,
 		LiveInvestigationNamespace: valueOrDefault("LEDGERSYNC_LIVE_INVESTIGATION_NAMESPACE", "ledgersync:investigation-live:v1"),
 		LiveInvestigationTURNURL:   strings.TrimSpace(os.Getenv("LEDGERSYNC_LIVE_INVESTIGATION_TURN_CREDENTIALS_URL")),
@@ -218,12 +228,6 @@ func Load() (Config, error) {
 	if config.LiveInvestigationEnabled {
 		if config.RedisAddress == "" || strings.TrimSpace(config.LiveInvestigationNamespace) == "" {
 			return Config{}, fmt.Errorf("live investigation requires Redis and an explicit namespace")
-		}
-		if config.Environment != "development" {
-			turnURL, parseErr := url.Parse(config.LiveInvestigationTURNURL)
-			if parseErr != nil || turnURL.Scheme != "https" || turnURL.Host == "" {
-				return Config{}, fmt.Errorf("live investigation requires an approved HTTPS ephemeral TURN credential provider outside development")
-			}
 		}
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
@@ -240,6 +244,9 @@ func Load() (Config, error) {
 	}
 	if config.CronSecret != "" && (len(config.CronSecret) < 32 || len(config.CronSecret) > 256) {
 		return Config{}, fmt.Errorf("CRON_SECRET must contain 32..256 characters when configured")
+	}
+	if (config.CronSecret == "") != (config.CronWorkerDatabaseURL == "") || (config.CronSecret != "" && config.CronWorkerDatabaseURL == config.DatabaseURL) {
+		return Config{}, fmt.Errorf("cron secret and a separate restricted worker database binding must be configured together")
 	}
 	if (config.BFFAssertionPreviousSecret == "") != (config.BFFAssertionPreviousKeyID == "") || (config.BFFAssertionPreviousSecret != "" && len(config.BFFAssertionPreviousSecret) < 32) {
 		return Config{}, fmt.Errorf("previous BFF assertion key ID and 32-byte secret must be configured together")

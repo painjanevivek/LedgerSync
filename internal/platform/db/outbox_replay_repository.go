@@ -34,7 +34,7 @@ func (r *OutboxReplayRepository) Inspect(ctx context.Context, tenantID, actorID,
 	if err != nil {
 		return item, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	err = tx.QueryRowContext(ctx, `SELECT id,tenant_id,COALESCE(transfer_id::text,''),COALESCE(account_id::text,''),event_type,attempt_count,COALESCE(last_error_code,''),occurred_at,dead_at FROM outbox_events WHERE tenant_id=$1 AND id=$2 AND dead_at IS NOT NULL AND published_at IS NULL`, tenantID, eventID).Scan(&item.EventID, &item.TenantID, &item.TransferID, &item.AccountID, &item.EventType, &item.AttemptCount, &item.LastErrorCode, &item.OccurredAt, &item.DeadAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, ErrDeadOutboxNotFound

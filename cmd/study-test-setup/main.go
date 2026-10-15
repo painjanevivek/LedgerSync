@@ -28,7 +28,7 @@ func setup() error {
 	if err != nil {
 		return fmt.Errorf("test setup database unavailable")
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	if err := db.ApplyPending(ctx, database, db.MigrationConfig{Source: os.DirFS("migrations")}); err != nil {
 		return err
 	}

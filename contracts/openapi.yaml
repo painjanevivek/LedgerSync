@@ -1,9 +1,13 @@
 openapi: 3.1.0
 info:
   title: LedgerSync Private API
-  version: 3.6.0
+  version: 3.7.0
   description: >-
-    Closed-loop single-currency ledger API behind the LedgerSync BFF. Exact
+    Closed-loop single-currency ledger API for the LedgerSync BFF and approved
+    trusted backend workloads. Browser clients use the same-origin BFF and never
+    receive workload credentials. A token with bff:act-as-user requires a fresh
+    actor assertion for every call. A workload without that scope acts only as
+    its own authenticated principal and must omit actor assertions. Exact
     minor units and monotonic versions are JSON strings. A timed-out transfer
     has an unknown outcome and must be retried with the identical payload and
     Idempotency-Key. Account and controlled-funding command timeouts follow the
@@ -11,9 +15,9 @@ info:
     bank settlement, custody, or movement outside this ledger.
   license: { name: Apache License 2.0, identifier: Apache-2.0 }
 servers: [{ url: /api }]
-security: [{ bearerAuth: [], actorAssertion: [] }]
+security: [{ bearerAuth: [], actorAssertion: [] }, { bearerAuth: [] }]
 x-ledgersync-lifecycle:
-  semantic_version: 3.6.0
+  semantic_version: 3.7.0
   supported_window: current minor and immediately preceding minor, with at least 180 days notice before sunset
   changelog: ./CHANGELOG.md
   policy: ./api-lifecycle-policy.md
@@ -985,7 +989,7 @@ paths:
       operationId: getDistributedEvidence
       x-required-scope: developer:read
       summary: Read tenant-scoped, separately sampled distributed system observations.
-      description: Replica readiness is available only in the isolated study. Worker observations are historical publication evidence. Scheduler state uses database lease time. No test command is executed.
+      description: Requires true for the LEDGERSYNC_STUDY_ENABLED server flag in the isolated development study set. Disabled routes return 404. Worker observations are historical publication evidence. Scheduler state uses database lease time. No test command is executed.
       responses:
         '200':
           description: Bounded observations with explicit unavailable states.
@@ -1287,7 +1291,7 @@ components:
       type: apiKey
       in: header
       name: X-LedgerSync-Actor-Assertion
-      description: Short-lived BFF-signed end-user context bound to the workload token.
+      description: Required for workloads with bff:act-as-user; mint a fresh short-lived BFF-signed assertion per call. Own-principal workloads without that scope must omit this header. The bearer-only security alternative never permits a delegating workload to omit its assertion.
   parameters:
     AccountID: { in: path, name: accountId, required: true, schema: { type: string, format: uuid } }
     TransferID: { in: path, name: transferId, required: true, schema: { type: string, format: uuid } }

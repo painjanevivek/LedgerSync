@@ -1,0 +1,15 @@
+# Optional local networking demonstration. Add only to a separate qualified
+# local project. The base product defaults keep live collaboration disabled.
+services:
+  api:
+    environment:
+      LEDGERSYNC_STUDY_ENABLED: "false"
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: "true"
+  web:
+    environment:
+      LEDGERSYNC_STUDY_ENABLED: "false"
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: "true"
+  web-peer:
+    environment:
+      LEDGERSYNC_STUDY_ENABLED: "false"
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: "true"

@@ -186,6 +186,7 @@ test("account detail separates balance failure from history permission", async (
 });
 
 test("unknown transfer outcome keeps the exact intent and safe retry action", async ({ page }) => {
+  await page.addInitScript(() => { crypto.randomUUID = () => "55555555-5555-4555-8555-555555555555"; });
   await mockOperatorConsole(page);
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, destinationAccount], next_cursor: "" }));
   await page.route("**/api/transfers", (route) => route.request().method() === "POST" ? json(route, { error: { code: "transfer_outcome_unknown" } }, 504) : route.fallback());
@@ -217,8 +218,7 @@ test("missing session renders the login layer with no financial evidence", async
 test("read-only transfer role explains why posting is disabled", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/session", (route) => json(route, { subject_id: "auditor-1", tenant_id: "tenant-1", csrf_token: "csrf-test-token", scopes: ["accounts:read", "transfers:read"], environment: "local", tenant_label: "My Ledger Workspace", operator_label: "Read-only auditor" }));
-  await page.goto("/transfers");
-  await page.getByText("Create a transfer", { exact: true }).click();
+  await page.goto("/transfers/new");
   await expect(
     page.locator("#transfer-disabled-reason"),
   ).toHaveText("Your role does not allow transfers.");
@@ -229,7 +229,7 @@ test("mixed-currency overview refuses a false aggregate", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/me/accounts?*", (route) => json(route, { accounts: [sourceAccount, { ...destinationAccount, currency: "EUR" }], next_cursor: "" }));
   await page.goto("/");
-  await expect(page.getByText("Mixed currencies", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mixed-currency pilot data blocked", exact: true })).toBeVisible();
   await expect(page.locator(".hero-amount")).toHaveCount(0);
   await capture(page, "overview-mixed-currency-error", desktop);
 });

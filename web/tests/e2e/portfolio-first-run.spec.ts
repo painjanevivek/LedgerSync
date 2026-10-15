@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mockOperatorConsole, sourceAccount } from "./fixtures";
+import { openExpertTools, mockOperatorConsole, sourceAccount } from "./fixtures";
 
 test("one account directs the operator to create a destination before a transfer", async ({ page }) => {
   await mockOperatorConsole(page);
@@ -26,8 +26,8 @@ test("group changes preserve filtered deep links and browser history", async ({ 
   await mockOperatorConsole(page);
   await page.goto("/accounts?status=active");
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
-  await nav.getByText("Operations", { exact: true }).click();
-  await nav.getByRole("link", { name: "Events & webhooks" }).click();
+  await openExpertTools(page);
+  await nav.getByRole("link", { name: "Delivery activity" }).click();
   await expect(page).toHaveURL(/\/events$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/accounts\?status=active$/);

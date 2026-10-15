@@ -66,7 +66,7 @@ func TestLamportConcurrencyRestartRollbackAndOverflow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer reopened.Close()
+	defer func() { _ = reopened.Close() }()
 	restored, _ := db.NewLogicalClockRepository(reopened, nodeID)
 	next, err := restored.Advance(ctx, 0)
 	if err != nil || next != 41 {
@@ -109,7 +109,7 @@ func TestLamportEnvelopeRetryAndLegacyReceipt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if _, err := tx.Exec(`SELECT set_config('application_name',$1,true)`, "ledgersync/api/test-"+uuid.NewString()); err != nil {
 		t.Fatal(err)
 	}

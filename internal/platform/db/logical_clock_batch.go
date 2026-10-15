@@ -36,7 +36,7 @@ func (r *LogicalClockRepository) receiveTenantBatch(ctx context.Context, message
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	for _, message := range messages {
 		sender := message.Event.Delivery
 		if sender == nil {

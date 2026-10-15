@@ -60,7 +60,7 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
   const preferredConsumed = useRef(false);
   const [prepared, setPrepared] = useState<PreparedTransfer | null>(null);
   const [validation, setValidation] = useState<string | null>(null);
-  const { outcome, pending, setOutcome, storedIntent, submit: postPrepared } = useTransferSubmission(tenantId, csrfToken, onPosted);
+  const { outcome, pending, setOutcome, storedIntent, storageBlocked, submit: postPrepared } = useTransferSubmission(tenantId, csrfToken, onPosted);
   const reviewHeading = useRef<HTMLHeadingElement>(null);
   const outcomeHeading = useRef<HTMLHeadingElement>(null);
 
@@ -133,7 +133,7 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
   }
 
   async function submit() {
-    if (!effectivePrepared || pending) return;
+    if (!effectivePrepared || pending || storageBlocked || disabled) return;
     if (!prepared) {
       setPrepared(effectivePrepared);
       setSource(effectivePrepared.source.account_id);
@@ -166,10 +166,13 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
           <dd><Money currency={balance.currency} minorUnits={balance.posted_minor} /><code>version {balance.version}</code><small><Timestamp value={balance.as_of} /></small></dd>
         </div>)}</div> : <p className="muted">Open the source and destination account records for current balance details.</p>}
       </section>
-      <button className="button secondary" type="button" onClick={() => setOutcome(null)}>Prepare another transfer</button>
+      {storageBlocked && <p role="alert">This transfer completed, but its local retry information could not be cleared. Do not create another request until browser storage is available.</p>}
+      <button className="button secondary" type="button" disabled={storageBlocked || Boolean(storedIntent)} onClick={() => setOutcome(null)}>Prepare another transfer</button>
       {returnTo && <Link className="text-link" href={returnTo}>Return to account</Link>}
     </section>;
   }
+
+  if (storageBlocked) return <StatePanel kind="error" title="Transfer retry information is unavailable" message="No new request can be submitted. Allow browser storage, then reload. Existing request information has not been overwritten." />;
 
   if (storedIntent && !restorableIntent) {
     return <StatePanel

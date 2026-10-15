@@ -42,7 +42,7 @@ test("a new local user sees an actionable zero-data dashboard and guide", async 
 
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Start with an account" }),
+    page.getByRole("heading", { name: "Your money at a glance" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Start with your first account" }),
@@ -50,8 +50,8 @@ test("a new local user sees an actionable zero-data dashboard and guide", async 
   await expect(
     page.getByRole("link", { name: "Create an account" }),
   ).toHaveAttribute("href", "/accounts/new");
-  await expect(page.getByRole("link", { name: /Record funding/ })).toHaveAttribute("href", "/funding");
-  await expect(page.getByRole("link", { name: /Make transfer/ })).toHaveAttribute("href", "/transfers");
+  await expect(page.getByRole("link", { name: "Add money", exact: true })).toHaveAttribute("href", "/funding");
+  await expect(page.getByRole("link", { name: "Transfers", exact: true })).toHaveAttribute("href", "/transfers");
 
   await page.getByRole("link", { name: "Open the guide", exact: true }).click();
   await expect(page).toHaveURL(/\/guide$/);

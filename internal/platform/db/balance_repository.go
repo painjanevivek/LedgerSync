@@ -84,7 +84,7 @@ func (r *BalanceRepository) ListCurrentForTenant(ctx context.Context, tenantID s
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	rows, err := tx.QueryContext(ctx, `SELECT a.id, a.currency, b.available_minor, b.ledger_minor, b.balance_version, b.updated_at FROM accounts a JOIN account_balance_projections b ON b.account_id = a.id WHERE a.tenant_id = $1 AND a.account_kind='customer' ORDER BY a.id`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("list current balances: %w", err)

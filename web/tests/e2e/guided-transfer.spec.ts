@@ -46,7 +46,8 @@ test("unrecognized retained request information fails closed without deletion", 
 test("confirmed completion survives a failed follow-up refresh", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.route("**/api/transfers", route => route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ transfer_id: "33333333-3333-4333-8333-333333333333", status: "posted", currency: "INR", amount_minor: "1250", occurred_at: "2026-09-05T00:00:00Z", balances: {} }) }));
-  await page.route("**/api/transfers/*", route => route.abort());
+  // Preserve request preparation. Fail only the receipt read after posting.
+  await page.route("**/api/transfers/33333333-3333-4333-8333-333333333333", route => route.abort());
   await page.route("**/api/transfers?*", route => route.abort());
   await page.goto("/transfers/new");
   await page.getByLabel("Amount").fill("12.50");
@@ -56,7 +57,7 @@ test("confirmed completion survives a failed follow-up refresh", async ({ page }
   await expect(page.getByText("This result is confirmed.", { exact: false })).toBeVisible();
 });
 
-test("guided review fits all required widths and keeps risk in the main workflow", async ({ page }) => {
+test("guided review fits all required widths and keeps risk in the main workflow", async ({ page }, testInfo) => {
   await mockOperatorConsole(page, { experienceMode: "simple" });
   await page.goto("/transfers/new");
   await page.getByLabel("Amount").fill("12.50");
@@ -70,7 +71,7 @@ test("guided review fits all required widths and keeps risk in the main workflow
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }));
   expect(await page.locator(".skip-link").evaluate(element => ({ bottom: element.getBoundingClientRect().bottom, focused: element === document.activeElement }))).toMatchObject({ focused: false });
   expect(await page.locator(".skip-link").evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(0);
-  await page.screenshot({ path: "../docs/design/qa/guided-transfer-review-desktop.png", fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath("guided-transfer-review-desktop.png"), fullPage: true });
   await expect(page.getByRole("navigation", { name: "Primary navigation", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Confirm transfer", exact: true })).toBeVisible();
   expect(sourceAccount.account_id).not.toBe(destinationAccount.account_id);

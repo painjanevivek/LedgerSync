@@ -1,10 +1,10 @@
 import { SpanStatusCode } from "@opentelemetry/api";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { Resource } from "@opentelemetry/resources";
+import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchSpanProcessor, TraceIdRatioBasedSampler, type ReadableSpan, type SpanExporter, type SpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 
-const resource = new Resource({ "service.name": "ledgersync-web" });
+const resource = resourceFromAttributes({ "service.name": "ledgersync-web" });
 
 // Framework auto-spans can contain URLs and error text. Only the named manual
 // boundary reaches the exporter, with an explicit empty metadata allowlist.
@@ -15,7 +15,7 @@ export class PrivateContextSpanProcessor implements SpanProcessor {
   }
   onStart() {}
   onEnd(span: ReadableSpan) {
-    if (span.name !== "bff.private_context" || span.instrumentationLibrary.name !== "ledgersync/bff") return;
+    if (span.name !== "bff.private_context" || span.instrumentationScope.name !== "ledgersync/bff") return;
     const original = span.spanContext();
     const safe: ReadableSpan = {
       name: "bff.private_context", kind: span.kind,
@@ -23,7 +23,7 @@ export class PrivateContextSpanProcessor implements SpanProcessor {
       startTime: span.startTime, endTime: span.endTime, duration: span.duration, ended: true,
       attributes: {}, links: [], events: [], resource,
       status: span.status.code === SpanStatusCode.ERROR ? { code: SpanStatusCode.ERROR, message: "private_context_failed" } : { code: SpanStatusCode.UNSET },
-      instrumentationLibrary: { name: "ledgersync/bff" }, droppedAttributesCount: 0, droppedEventsCount: 0, droppedLinksCount: 0,
+      instrumentationScope: { name: "ledgersync/bff" }, droppedAttributesCount: 0, droppedEventsCount: 0, droppedLinksCount: 0,
     };
     this.batch.onEnd(safe);
   }
@@ -46,8 +46,7 @@ export function registerBFFTelemetry() {
   if (target.username || target.password || target.pathname !== "/" || target.search || target.hash) throw new Error("invalid private OTLP endpoint");
   target.pathname = "/v1/traces";
   const exporter = new OTLPTraceExporter({ url: target.href, timeoutMillis: 1000, concurrencyLimit: 1 });
-  const provider = new NodeTracerProvider({ resource, sampler: new TraceIdRatioBasedSampler(0.1), forceFlushTimeoutMillis: 1000, spanLimits: { attributeCountLimit: 0, eventCountLimit: 0, linkCountLimit: 0 } });
-  provider.addSpanProcessor(new PrivateContextSpanProcessor(exporter));
+  const provider = new NodeTracerProvider({ resource, spanProcessors: [new PrivateContextSpanProcessor(exporter)], sampler: new TraceIdRatioBasedSampler(0.1), forceFlushTimeoutMillis: 1000, spanLimits: { attributeCountLimit: 0, eventCountLimit: 0, linkCountLimit: 0 } });
   provider.register({ propagator: null, contextManager: null });
   process.once("beforeExit", () => { void boundedBFFShutdown(provider); });
 }

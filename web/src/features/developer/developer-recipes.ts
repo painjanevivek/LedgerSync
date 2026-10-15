@@ -19,7 +19,7 @@ export function buildTransferRecipes(example: DeveloperExample): DeveloperRecipe
     {
       id: "curl",
       label: "curl",
-      summary: "Use protected environment variables; the copied command contains no working credential.",
+      summary: "Approved own-principal backend only. Use protected variables; this command contains no working credential.",
       code: `curl --fail-with-body --request ${example.method} "\${LEDGERSYNC_API_URL}${example.path}" \\
   --header "Authorization: Bearer \${LEDGERSYNC_ACCESS_TOKEN}" \\
   --header "Content-Type: ${example.headers["Content-Type"]}" \\
@@ -29,7 +29,7 @@ export function buildTransferRecipes(example: DeveloperExample): DeveloperRecipe
     {
       id: "typescript",
       label: "TypeScript",
-      summary: "Keep money as a string and persist the key with the request body before the first send.",
+      summary: "Approved own-principal backend only. Persist the exact body and key; use the complete example for restart safety.",
       code: `const idempotencyKey = "${example.headers["Idempotency-Key"]}";
 const body = ${body};
 

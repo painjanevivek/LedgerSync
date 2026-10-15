@@ -1,3 +1,5 @@
+import { readOptionalFeatures } from "@/lib/feature-configuration";
+import { jsonError } from "@/lib/security";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { unitStudyEvidence } from "@/lib/generated/unit-study-evidence";
@@ -6,6 +8,7 @@ import { createRateLimitStore } from "@/lib/rate-limit";
 import { readSession, sessionCookieName } from "@/lib/session";
 const limiter = createRateLimitStore();
 export async function GET(request: NextRequest) {
+  if (!readOptionalFeatures(process.env).systems_lab) return jsonError("not_found", 404);
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   const authorization = await authorizeOperationsRead(request, session, "developer:read", limiter);
   if (isOperationsReadDenial(authorization)) return authorization;

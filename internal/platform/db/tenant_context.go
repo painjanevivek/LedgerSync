@@ -101,7 +101,7 @@ func (tx *tenantTransaction) Commit() error {
 }
 
 func resetTenantConnection(ctx context.Context, connection *sql.Conn) error {
-	_, err := connection.ExecContext(ctx, `SELECT set_config('app.tenant_id','',false), set_config('app.actor_id','',false), set_config('app.diagnostic_traceparent','',false)`)
+	_, err := connection.ExecContext(ctx, `SELECT set_config('app.tenant_id','',false), set_config('app.actor_id','',false), set_config('app.diagnostic_traceparent','',false), set_config('app.bff_session_digest','',false), set_config('app.bff_rotation_digest','',false)`)
 	return err
 }
 

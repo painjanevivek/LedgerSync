@@ -1,12 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "@playwright/test";
-import { extractAccountID, replayCapturedMutation, requireIsolatedJourney } from "./real-stack";
+import { setIsolatedExperienceMode, extractAccountID, replayCapturedMutation, requireIsolatedJourney } from "./real-stack";
 
 async function logIn(page: Page) {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Log in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await page.goto("/sign-in");
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^(Overview|Your money at a glance)$/ })).toBeVisible();
+  await setIsolatedExperienceMode(page, "simple");
 }
 
 async function createAccount(page: Page, name: string, reference: string) {
@@ -14,9 +15,9 @@ async function createAccount(page: Page, name: string, reference: string) {
   await page.getByLabel("Display name").fill(name);
   await page.getByLabel("External reference").fill(reference);
   await page.getByLabel("Category").selectOption("operating");
-  await page.getByRole("button", { name: "Continue to financial boundary" }).click();
-  await expect(page.getByText("INR 0.00 · exact")).toBeVisible();
-  await page.getByRole("button", { name: "Continue to review" }).click();
+  await page.getByRole("button", { name: "Review account", exact: true }).click();
+  await expect(page.getByText("Account begins").locator("..")).toContainText("INR 0.00");
+  await expect(page.getByText("This command moves").locator("..")).toContainText("No money");
   const command = page.waitForRequest((request) => request.method() === "POST" && new URL(request.url()).pathname === "/api/me/accounts");
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   const captured = await command;
@@ -103,14 +104,14 @@ test("@real-stack first account, controlled funding, lost-response transfer, exa
     committed = await response.json();
     await route.abort("failed");
   });
-  await page.getByRole("button", { name: "Confirm and post", exact: true }).click();
+  await page.getByRole("button", { name: "Confirm transfer", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Result not yet confirmed", exact: true })).toBeVisible();
   await expect.poll(() => committed, { timeout: 10_000 }).toMatchObject({ status: "posted" });
   expect(original).toBeTruthy();
-  await expect(page.getByRole("button", { name: "Retry same transfer", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Retry this same request safely", exact: true })).toBeEnabled();
   await page.unroute("**/api/transfers");
   const retryResponse = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/transfers");
-  await page.getByRole("button", { name: "Retry same transfer", exact: true }).click();
+  await page.getByRole("button", { name: "Retry this same request safely", exact: true }).click();
   const replay = await retryResponse;
   expect(replay.status()).toBe(201);
   expect(replay.headers()["idempotent-replay"]).toBe("true");
@@ -118,9 +119,10 @@ test("@real-stack first account, controlled funding, lost-response transfer, exa
   expect(replay.request().headers()["x-ledgersync-request-reference"]).toBe(original!.headers()["x-ledgersync-request-reference"]);
   expect(replay.request().postDataJSON()).toEqual(original!.postDataJSON());
   expect(await replay.json()).toMatchObject({ transfer_id: committed!.transfer_id, status: "posted", amount_minor: "100" });
-  await expect(page.getByRole("heading", { name: "Transfer posted", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Transfer completed", exact: true })).toBeVisible();
   await page.goto(`/transfers/${committed!.transfer_id}`);
-  await expect(page.getByRole("heading", { name: "Transfers", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Transfer completed", exact: true })).toBeVisible();
+  await page.getByText("View transfer details", { exact: true }).click();
   await expect(page.getByText(committed!.transfer_id, { exact: true }).first()).toBeVisible();
   await page.goto(`/search?q=${committed!.transfer_id}`);
   await expect(page.getByRole("link", { name: "Open authoritative detail", exact: true })).toBeVisible();

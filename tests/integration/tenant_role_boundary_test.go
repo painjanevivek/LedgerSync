@@ -27,7 +27,7 @@ func TestTenantRoleProvisioningRejectsUnsafeInheritance(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer tx.Rollback()
+			defer func() { _ = tx.Rollback() }()
 			if _, err := tx.Exec(statement); err != nil {
 				t.Fatal(err)
 			}

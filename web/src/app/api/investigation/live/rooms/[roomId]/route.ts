@@ -4,7 +4,7 @@ import { liveSession, proxyLiveRequest, validLiveId } from "@/lib/live-investiga
 import { jsonError } from "@/lib/security";
 
 export async function GET(request: NextRequest, { params }: Readonly<{ params: Promise<{ roomId: string }> }>) {
-  const authorization = await liveSession(request, false);
+  const authorization = await liveSession(request, false, false, true);
   if (authorization instanceof NextResponse) return authorization;
   const roomId = (await params).roomId.toLowerCase();
   if (!validLiveId(roomId) || request.nextUrl.searchParams.size > 0) return jsonError("invalid_request", 400);

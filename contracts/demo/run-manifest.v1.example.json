@@ -20,7 +20,7 @@
     "count": 0,
     "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },
-  "api_contract_version": "3.6.0",
+  "api_contract_version": "3.7.0",
   "isolated_project": "ledgersync-acceptance-20261014000000-00000000",
   "limits": {
     "duration_seconds": 60,

@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "api_version": "3.6.0",
+  "api_version": "3.7.0",
   "source": "contracts/openapi.yaml",
   "openapi_sha256_chunks": [
-    "23e725c4",
-    "64aa0118",
-    "746523c3",
-    "8a8c934f",
-    "f759b58d",
-    "183317db",
-    "c9a62018",
-    "291d613c"
+    "a37011ae",
+    "1596ded8",
+    "d98f4802",
+    "4bf55d37",
+    "e80c9f96",
+    "1c6e522d",
+    "c0aa9578",
+    "41bfc9de"
   ],
   "operations": [
     {

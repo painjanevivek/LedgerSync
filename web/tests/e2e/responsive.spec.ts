@@ -4,12 +4,34 @@ import { fundingEvent, mockOperatorConsole, sourceAccount, transfer } from "./fi
 
 const viewports=[{width:320,height:640},{width:360,height:800},{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:1280,height:800},{width:1440,height:900},{width:1920,height:1080},{width:2560,height:1440}];
 
+test("simple money summaries remain separated and readable at every width", async ({page},testInfo)=>{
+  await mockOperatorConsole(page,{experienceMode:"simple"});
+  await page.goto("/");
+  await expect(page.locator(".simple-financial-grid > *")).toHaveCount(2);
+  for(const viewport of viewports){
+    await page.setViewportSize(viewport);
+    await page.evaluate(()=>document.fonts.ready);
+    const geometry=await page.evaluate(()=>{
+      const cards=[...document.querySelectorAll(".simple-financial-grid > *")].map(element=>element.getBoundingClientRect());
+      const overlap=cards[0].left<cards[1].right&&cards[0].right>cards[1].left&&cards[0].top<cards[1].bottom&&cards[0].bottom>cards[1].top;
+      return {overlap,widths:cards.map(card=>card.width),viewport:innerWidth,pageWidth:document.documentElement.scrollWidth};
+    });
+    expect(geometry.overlap).toBe(false);
+    for(const width of geometry.widths)expect(width).toBeGreaterThanOrEqual(Math.min(240,viewport.width-48));
+    expect(geometry.pageWidth).toBeLessThanOrEqual(geometry.viewport);
+  }
+  await page.setViewportSize({width:1440,height:900});
+  await page.screenshot({path:testInfo.outputPath("simple-money-desktop.png"),fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:testInfo.outputPath("simple-money-compact.png"),fullPage:true});
+});
+
 for(const viewport of viewports){
   test(`core evidence journeys reflow at ${viewport.width}x${viewport.height}`,async({page})=>{
     await page.setViewportSize(viewport); await page.context().grantPermissions(["clipboard-read","clipboard-write"]); await mockOperatorConsole(page, { experienceMode: "simple" }); await page.goto("/");
     await expect(page.getByRole("heading",{name:"Your money at a glance"})).toBeVisible();
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);expect(overflow).toBe(false);
-    if(viewport.width<761){await page.getByRole("button",{name:/menu/i}).click();}
+    const menu=page.getByRole("button",{name:"Menu",exact:true}); if(await menu.isVisible()){await menu.click();}
     await page.getByRole("navigation",{name:"Primary navigation"}).getByRole("link",{name:"Accounts",exact:true}).click();
     await expect(page.locator("strong").filter({hasText:"Operating Reserve"}).first()).toBeVisible();
     await page.goto(`/accounts/${sourceAccount.account_id}`); await expect(page.getByRole("heading",{name:"Operating Reserve",exact:true})).toBeVisible();

@@ -45,7 +45,7 @@ func (r *DistributedEvidenceRepository) Read(ctx context.Context, tenantID, acto
 					samples <- sample{kind, value}
 					return
 				}
-				defer tx.Rollback()
+				defer func() { _ = tx.Rollback() }()
 			}
 			switch kind {
 			case "api":
@@ -54,7 +54,7 @@ func (r *DistributedEvidenceRepository) Read(ctx context.Context, tenantID, acto
 					if err == nil {
 						response, err := r.client.Do(request)
 						if err == nil {
-							defer response.Body.Close()
+							defer func() { _ = response.Body.Close() }()
 							var payload struct {
 								CapturedAt time.Time `json:"captured_at"`
 								Count      *int      `json:"ready_api_count"`
@@ -86,9 +86,10 @@ func (r *DistributedEvidenceRepository) Read(ctx context.Context, tenantID, acto
 					var expiry, sampled time.Time
 					err := tx.QueryRowContext(scoped, `SELECT owner_id,generation::text,expires_at,clock_timestamp(),CASE WHEN expires_at>clock_timestamp() THEN 'active' ELSE 'expired' END FROM reconciliation_scheduler_leases WHERE tenant_id=$1`, tenantID).Scan(&owner, &generation, &expiry, &sampled, &state)
 					value.SampledAt = time.Now().UTC()
-					if err == sql.ErrNoRows {
+					switch err {
+					case sql.ErrNoRows:
 						value.State = "not_observed"
-					} else if err == nil {
+					case nil:
 						value.State = state
 						value.OwnerID = causalNode(owner)
 						value.Generation = generation

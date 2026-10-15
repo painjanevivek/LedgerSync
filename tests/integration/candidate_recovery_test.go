@@ -64,7 +64,11 @@ func recoveryTables(t *testing.T, ctx context.Context, database *sql.DB) []recov
 		names = append(names, name)
 	}
 	err = rows.Err()
-	rows.Close()
+	func() {
+		if err := rows.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +172,7 @@ func TestPortfolioRecoveryRestored(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer admin.Close()
+	t.Cleanup(func() { _ = admin.Close() })
 	admin.SetMaxOpenConns(2)
 	actual, err := json.Marshal(recoveryTables(t, ctx, admin))
 	if err != nil {
@@ -179,8 +183,19 @@ func TestPortfolioRecoveryRestored(t *testing.T) {
 		t.Fatal("restored complete table counts or row hashes differ")
 	}
 	requireWorkloadRoles(t, admin)
+	var unprotected, unsafeWriters int
+	if err := admin.QueryRowContext(ctx, `SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid=c.oid AND a.attname='tenant_id' AND NOT a.attisdropped) AND NOT (c.relrowsecurity AND c.relforcerowsecurity)`).Scan(&unprotected); err != nil || unprotected != 0 {
+		t.Fatal("restored tenant tables lack forced row policies", unprotected, err)
+	}
+	if err := admin.QueryRowContext(ctx, `SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='public' AND p.proname LIKE 'controlled_%' AND p.prosecdef AND (r.rolcanlogin OR r.rolsuper OR r.rolbypassrls OR NOT (p.proconfig && ARRAY['search_path=pg_catalog, public','search_path=pg_catalog, public, pg_temp']) OR EXISTS (SELECT 1 FROM aclexplode(COALESCE(p.proacl,acldefault('f',p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))`).Scan(&unsafeWriters); err != nil || unsafeWriters != 0 {
+		t.Fatal("restored controlled writer ownership or grants are unsafe", unsafeWriters, err)
+	}
 	api := provisionWorkloadSession(t, admin, testDatabaseURL(t), "ledgersync_api")
 	api.db.SetMaxOpenConns(2)
+	var visible int
+	if err := api.db.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&visible); err != nil || visible != 0 {
+		t.Fatal("restored unscoped API can see accounts", visible, err)
+	}
 	if _, err := api.db.ExecContext(ctx, `UPDATE account_balance_projections SET ledger_minor=0`); sqlState(err) != "42501" {
 		t.Fatal("restored API can write balances directly", err)
 	}
@@ -190,6 +205,7 @@ func TestPortfolioRecoveryRestored(t *testing.T) {
 	repo, _ := db.NewTransferRepository(api.db, time.Now)
 	service, _ := transfers.NewService(repo, time.Now)
 	original := transferCommand(t, "candidate-recovery-original-key", "1.00")
+	original.RequestReference = "50000000-0000-4000-8000-000000009101"
 	result, err := service.Submit(ctx, original)
 	if err != nil || !result.Replayed || result.Result.TransferID != expected.TransferID {
 		t.Fatal("restored retry did not return original outcome", err)
@@ -222,7 +238,7 @@ func TestPortfolioRecoveryRestored(t *testing.T) {
 		t.Fatal("restored reconciliation failed", err)
 	}
 	client := redis.NewClient(&redis.Options{Addr: os.Getenv("LEDGERSYNC_TEST_REDIS_ADDR")})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 	if err := client.FlushDB(ctx).Err(); err != nil {
 		t.Fatal(err)
 	}

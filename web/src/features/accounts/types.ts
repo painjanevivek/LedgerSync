@@ -129,7 +129,7 @@ export type ConsoleSession = Readonly<{
   environment?: "local" | "production";
   operator_label?: string;
   tenant_label?: string;
-  features?: Readonly<{ live_investigation: boolean }>;
+  features?: Readonly<{ live_investigation: boolean; systems_lab?: boolean }>;
 }>;
 
 export type AccountCommandResult = Readonly<{

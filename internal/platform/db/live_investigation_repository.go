@@ -130,6 +130,20 @@ func (r *InvestigationRepository) GetLiveRoom(ctx context.Context, tenantID, act
 	return room, err
 }
 
+func (r *InvestigationRepository) GetLiveRoomHistory(ctx context.Context, tenantID, actorID, roomID string) (investigation.LiveRoom, error) {
+	roomID, err := investigation.NormalizeLiveRoomID(roomID)
+	if err != nil {
+		return investigation.LiveRoom{}, investigation.ErrLiveRoomNotFound
+	}
+	var room investigation.LiveRoom
+	err = WithTenantTransaction(ctx, r.database, TenantScope{TenantID: tenantID, ActorID: actorID}, &sql.TxOptions{ReadOnly: true}, func(tx *sql.Tx) error {
+		var readErr error
+		room, readErr = r.readStoredLiveRoom(ctx, tx, tenantID, actorID, roomID, time.Now().UTC(), false)
+		return readErr
+	})
+	return room, err
+}
+
 func (r *InvestigationRepository) IssueLiveRoomInvite(ctx context.Context, tenantID, actorID, roomID string, when time.Time) (investigation.LiveInvite, error) {
 	roomID, err := investigation.NormalizeLiveRoomID(roomID)
 	if err != nil {
@@ -309,6 +323,10 @@ type liveQuerier interface {
 }
 
 func (r *InvestigationRepository) readLiveRoom(ctx context.Context, q liveQuerier, tenantID, actorID, roomID string, when time.Time) (investigation.LiveRoom, error) {
+	return r.readStoredLiveRoom(ctx, q, tenantID, actorID, roomID, when, true)
+}
+
+func (r *InvestigationRepository) readStoredLiveRoom(ctx context.Context, q liveQuerier, tenantID, actorID, roomID string, when time.Time, expire bool) (investigation.LiveRoom, error) {
 	var room investigation.LiveRoom
 	var owner, peer string
 	var version int64
@@ -321,7 +339,7 @@ func (r *InvestigationRepository) readLiveRoom(ctx context.Context, q liveQuerie
 	if err != nil {
 		return investigation.LiveRoom{}, err
 	}
-	if room.ExpiresAt.Before(when) && room.Status != "ended" && room.Status != "expired" {
+	if expire && room.ExpiresAt.Before(when) && room.Status != "ended" && room.Status != "expired" {
 		var expiredVersion int64
 		if updateErr := q.QueryRowContext(ctx, `UPDATE investigation_live_rooms SET status='expired',ended_at=$3,version=version+1,invite_token_hash=NULL,invite_expires_at=NULL WHERE tenant_id=$1 AND id=$2 AND status IN ('waiting','active') RETURNING version`, tenantID, roomID, when).Scan(&expiredVersion); updateErr == nil {
 			room.Status, version = "expired", expiredVersion
@@ -386,10 +404,11 @@ func transferRequestStatusWithQuerier(ctx context.Context, q liveQuerier, tenant
 		}
 		return result, nil
 	}
-	if body.Status == "posted" {
+	switch body.Status {
+	case "posted":
 		result.Status = "completed"
 		result.TransferID = strings.ToLower(body.TransferID)
-	} else if body.Status == "rejected" {
+	case "rejected":
 		result.Status = "rejected"
 	}
 	return result, nil

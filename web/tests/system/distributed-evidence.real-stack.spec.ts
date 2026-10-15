@@ -1,12 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { requireIsolatedRealStack } from "./real-stack";
+import { setIsolatedExperienceMode, requireIsolatedRealStack } from "./real-stack";
 
 test("distributed evidence follows the configured feature boundary", async ({ page }, testInfo) => {
   requireIsolatedRealStack();
-  await page.goto("/");
-  await page.getByRole("link", { name: "Log in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await page.goto("/sign-in");
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^(Overview|Your money at a glance)$/ })).toBeVisible();
+  await setIsolatedExperienceMode(page, "simple");
   await page.goto("/developer");
   await expect(page.getByRole("heading", { name: "Developer", exact: true })).toBeVisible();
   const session = await (await page.request.get("/api/session")).json();

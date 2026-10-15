@@ -40,7 +40,7 @@ func (r *OperationsRepository) loadCausalEvidence(ctx context.Context, query sco
 		var completed sql.NullTime
 		var received, sent sql.NullString
 		if err := rows.Scan(&item.Generation, &item.WorkerID, &item.State, &item.StartedAt, &item.LeaseUntil, &completed, &received, &sent); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		item.WorkerID = causalNode(item.WorkerID)
@@ -50,7 +50,9 @@ func (r *OperationsRepository) loadCausalEvidence(ctx context.Context, query sco
 		detail.PublicationAttempts = append(detail.PublicationAttempts, item)
 	}
 	err = rows.Err()
-	rows.Close()
+	if closeErr := rows.Close(); err == nil {
+		err = closeErr
+	}
 	if err != nil {
 		return err
 	}
@@ -62,7 +64,7 @@ func (r *OperationsRepository) loadCausalEvidence(ctx context.Context, query sco
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var item operations.ReceiptEvidence
 		var sender, counter sql.NullString

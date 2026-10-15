@@ -8,6 +8,7 @@ import { DeveloperCopyCode } from "@/features/developer/DeveloperCopyCode";
 import { buildTransferRecipes } from "@/features/developer/developer-recipes";
 import type { DeveloperExample, DeveloperMetadata } from "@/lib/api/developer";
 import { DisclosureSection } from "@/ui/disclosure/DisclosureSection";
+import { operationRetryGuidance } from "@/features/developer/retry-guidance";
 
 const referenceLinks = [
   ["authentication-heading", "Authentication"],
@@ -49,7 +50,7 @@ export function ExactMoneyAndRetryGuide({ metadata }: Readonly<{ metadata: Devel
       <DisclosureSection id="developer-replay-matrix" title="Full mutation replay matrix" summary={`${mutationFamilies.length} mutation families`} lazy><DataTableRegion label="Mutation replay protection matrix">
         <table className="data-table developer-error-table developer-replay-table">
           <thead><tr><th scope="col">Family</th><th scope="col">Mutation</th><th scope="col">Replay rule</th></tr></thead>
-          <tbody>{mutationFamilies.map((group) => <tr key={group.family}><td>{group.family}</td><td><ul className="developer-operation-list">{group.operations.map((operation) => <li key={operation.operation_id}><strong><code>{operation.operation_id}</code></strong></li>)}</ul></td><td>Persist a new key with the complete intent before send. Same key + same intent replays; same key + changed intent conflicts; an unknown response keeps the original key.</td></tr>)}</tbody>
+          <tbody>{mutationFamilies.flatMap((group) => group.operations.map((operation) => <tr key={operation.operation_id}><td>{group.family}</td><td><strong><code>{operation.operation_id}</code></strong></td><td>{operationRetryGuidance(operation)}</td></tr>))}</tbody>
         </table>
       </DataTableRegion></DisclosureSection>
     </section>
@@ -62,7 +63,7 @@ export function IntegrationRecipeSection({ example }: Readonly<{ example: Develo
   return (
     <section className="developer-section" aria-labelledby="integration-recipes-heading">
       <div className="section-heading"><div><p className="eyebrow">Generated from the canonical transfer example</p><h2 id="integration-recipes-heading">Integration recipes</h2></div><span>curl · TypeScript · Go · Postman</span></div>
-      <p className="developer-section-intro">Choose the language your server uses. These are static examples, not an HTTP runner, and no credential is read, accepted, or stored by this screen.</p>
+      <p className="developer-section-intro">Start with the complete TypeScript example above. These other static recipes are retained for reference. This screen does not read, accept, or store credentials.</p>
       <div className="developer-recipe-list">{recipes.map((recipe) => <details key={recipe.id} open={selectedRecipe === recipe.id} onToggle={(event) => setSelectedRecipe(event.currentTarget.open ? recipe.id : (current) => current === recipe.id ? null : current)}><summary><span>{recipe.label}</span><small>{recipe.summary}</small></summary>{selectedRecipe === recipe.id ? <DeveloperCopyCode value={recipe.code} label={`${recipe.label} transfer recipe`} /> : null}</details>)}</div>
     </section>
   );
@@ -80,8 +81,8 @@ export function PartnerJourneySection() {
   ] as const;
   return (
     <section className="developer-section" aria-labelledby="partner-journey-heading">
-      <div className="section-heading"><div><p className="eyebrow">Documentation-only qualification path</p><h2 id="partner-journey-heading">From authentication to webhook evidence</h2></div></div>
-      <ol className="developer-journey">{steps.map(([title, detail], index) => <li key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{title}</strong><p>{detail}</p></div></li>)}</ol>
+      <div className="section-heading"><div><p className="eyebrow">Detailed contract reference</p><h2 id="partner-journey-heading">From authentication to webhook evidence</h2></div></div>
+      <DisclosureSection id="integration-sequence-reference" title="Detailed integration sequence" summary="Review the seven contract duties after the working TypeScript guide." priority="advanced" lazy><ol className="developer-journey">{steps.map(([title, detail], index) => <li key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{title}</strong><p>{detail}</p></div></li>)}</ol></DisclosureSection>
       <div className="developer-scope-boundary"><WarningCircle aria-hidden="true" /><p><strong>Ledger boundary:</strong> these operations record closed-loop ledger activity and evidence. They do not move external funds, prove bank settlement, or create custody.</p></div>
     </section>
   );

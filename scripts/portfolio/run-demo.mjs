@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { assertDisposableTarget, demoPurpose, fileDigest, scenarioResult, verifyDemoArtifacts } from './demo-safety.mjs';
 import { withCapacityWorker } from './capacity-worker.mjs';
 import { restoreCandidate } from './restore-candidate.mjs';
+import { regressionExcluded, regressionResult } from './regression-result.mjs';
 
 const repo = realpathSync(resolve(dirname(fileURLToPath(import.meta.url)), '../..'));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -63,8 +64,9 @@ function boundedProcess(executable, args, env, signal, secret, timeout = 180000)
 }
 
 export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSize=10,capacitySteadySeconds=300,capacityRate=30}={}) {
-  if(!['failures','financial-model','capacity','recovery'].includes(profile)||modelReplayJSON!==undefined&&(profile!=='financial-model'||typeof modelReplayJSON!=='string'||Buffer.byteLength(modelReplayJSON)>24000)||![10,25,50].includes(outboxBatchSize)||![10,300].includes(capacitySteadySeconds)||![10,20,30].includes(capacityRate))throw new Error('Unsupported bounded host profile');
-  const scenarios=profile==='financial-model'?[['generated-financial-model','integration','TestGeneratedFinancialModel']]:profile==='capacity'?[['bounded-capacity','integration','TestPortfolioCapacity']]:profile==='recovery'?[['candidate-recovery-fixture','integration','TestPortfolioRecoverySeed'],['candidate-recovery-restored','integration','TestPortfolioRecoveryRestored']]:failureScenarios;
+  if(!['failures','financial-model','capacity','recovery','optional-features','developer-integration','regression'].includes(profile)||modelReplayJSON!==undefined&&(profile!=='financial-model'||typeof modelReplayJSON!=='string'||Buffer.byteLength(modelReplayJSON)>24000)||![10,25,50].includes(outboxBatchSize)||![10,300].includes(capacitySteadySeconds)||![10,20,30].includes(capacityRate))throw new Error('Unsupported bounded host profile');
+  const scenarios=profile==='developer-integration'?[['independent-developer-integration','integration','TestPortfolioDeveloperIntegration']]:profile==='optional-features'?[['optional-features','integration','TestPortfolioOptionalFeatures']]:profile==='financial-model'?[['generated-financial-model','integration','TestGeneratedFinancialModel']]:profile==='capacity'?[['bounded-capacity','integration','TestPortfolioCapacity']]:profile==='recovery'?[['candidate-recovery-fixture','integration','TestPortfolioRecoverySeed'],['candidate-recovery-restored','integration','TestPortfolioRecoveryRestored'],['candidate-recovery-migrations','integration','TestPortfolioRecoveryMigrations']]:failureScenarios;
+  if(profile==='regression')scenarios.splice(0,scenarios.length,['complete-integration','integration','Test'],['complete-fault','fault','Test']);
   const started = new Date(), stamp = started.toISOString().replace(/\D/g,'').slice(0,14), suffix = randomBytes(4).toString('hex');
   const project = `ledgersync-acceptance-${stamp}-${suffix}`, runId = `demo-${stamp}-${suffix}`, root = join(stateRoot,runId);
   mkdirSync(stateRoot,{recursive:true});
@@ -104,6 +106,8 @@ export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSiz
     const env = Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('LEDGERSYNC_')&&!key.startsWith('PG')));
     Object.assign(env,{GOMAXPROCS:'2',LEDGERSYNC_ENV:'development',LEDGERSYNC_DATABASE_URL:`postgres://ledgersync:${password}@127.0.0.1:${pg.port}/ledgersync?sslmode=disable`,LEDGERSYNC_TEST_REDIS_ADDR:`127.0.0.1:${redis.port}`,LEDGERSYNC_TEST_REPOSITORY_ROOT:repo,LEDGERSYNC_PORTFOLIO_CONTROL_DIRECTORY:root}); env.LEDGERSYNC_TEST_DATABASE_URL=env.LEDGERSYNC_DATABASE_URL;
     if(profile==='recovery')env.LEDGERSYNC_RUN_RECOVERY='true';
+    if(profile==='optional-features')env.LEDGERSYNC_RUN_OPTIONAL='true';
+    if(profile==='developer-integration')env.LEDGERSYNC_RUN_DEVELOPER='true';
     if(modelReplayJSON)env.LEDGERSYNC_MODEL_REPLAY_JSON=modelReplayJSON;
     if(profile==='capacity')Object.assign(env,{LEDGERSYNC_RUN_CAPACITY:'true',LEDGERSYNC_CAPACITY_CONTROL_DIRECTORY:root,LEDGERSYNC_CAPACITY_STEADY_SECONDS:String(capacitySteadySeconds),LEDGERSYNC_CAPACITY_RATE:String(capacityRate),LEDGERSYNC_CAPACITY_OUTBOX_BATCH_SIZE:String(outboxBatchSize)});
     const migrate = await boundedProcess('go',['run','./cmd/migrate'],env,controller.signal,password); save('migrate.txt',migrate.output+migrate.errorOutput); if(migrate.code!==0) throw new Error('Disposable migration failed');
@@ -129,9 +133,14 @@ export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSiz
       for(const target of targets) if(inspectTarget(target)!==target.port)throw new Error('Disposable bind changed');
       if(profile==='recovery'&&i===1)runtimeEnv=await restoreCandidate({root,repo,project,pg,redis,targets,inspect:inspectTarget,docker,save,env,password,signal:controller.signal,boundedProcess});
       const [id,group,test]=scenarios[i],binary=join(root,`${group}.test${process.platform==='win32'?'.exe':''}`);
-      const execute=async()=>{const run=await boundedProcess('go',['tool','test2json','-t','-p',`ledgersync/${group}`,binary,'-test.v',profile==='capacity'?'-test.timeout=9m':'-test.timeout=150s',`-test.run=^${test}$`],runtimeEnv,controller.signal,password,profile==='capacity'?570000:180000);save(`${id}.jsonl`,run.output);save(`${id}.stderr.txt`,run.errorOutput);return run;};
+      let expected=[];
+      if(profile==='regression'){
+        expected=command(binary,['-test.list','^Test']).split(/\r?\n/).filter(name=>/^Test[A-Za-z0-9_]+$/.test(name)&&!new RegExp(regressionExcluded).test(name));
+        save(`${id}-inventory.json`,{expected,excluded:regressionExcluded});
+      }
+      const execute=async()=>{const run=await boundedProcess('go',['tool','test2json','-t','-p',`ledgersync/${group}`,binary,'-test.v',profile==='capacity'?'-test.timeout=9m':'-test.timeout=150s',profile==='regression'?'-test.run=^Test':`-test.run=^${test}$`,...(profile==='regression'?[`-test.skip=${regressionExcluded}`]:[])],runtimeEnv,controller.signal,password,profile==='capacity'?570000:180000);save(`${id}.jsonl`,run.output);save(`${id}.stderr.txt`,run.errorOutput);return run;};
       const run=profile==='capacity'?await withCapacityWorker(execute,{root,workerBinary,workerEnv,redis,targets,inspect:inspectTarget,docker,signal:controller.signal,abort:stop,secrets:[password,workerPassword]}):await execute();
-      results[i]={id,...scenarioResult(run.output,test,run.code)};
+      results[i]={id,...(profile==='regression'?regressionResult(run.output,expected,run.code):scenarioResult(run.output,test,run.code))};
       if(profile==='capacity'&&results[i].status==='passed'){
         const output=run.output.split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line)).map(event=>event.Output??'').join('');
         const reports=output.split('\n').filter(line=>line.includes('CAPACITY_REPORT ')).map(line=>JSON.parse(line.slice(line.indexOf('CAPACITY_REPORT ')+16)));
@@ -167,7 +176,7 @@ export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSiz
   const artifacts=[];
   for(const name of readdirSync(root).sort()) {if(name.endsWith('.env'))continue;const path=join(root,name);artifacts.push({path:name,sha256:await fileDigest(path),bytes:statSync(path).size});}
   const version=readFileSync(join(repo,'contracts/openapi.yaml'),'utf8').match(/^  version: ([0-9.]+)$/m)?.[1];
-  const manifest={schema_version:'ledgersync-demo-run/v1',purpose:'run-evidence',run_id:runId,started_at:started.toISOString(),completed_at:new Date().toISOString(),source:{commit:before.head,manifest_sha256:await fileDigest(join(root,'source-manifest.json')),dirty:before.dirty},images,migration,api_contract_version:version,isolated_project:project,limits:{duration_seconds:600,concurrency:profile==='financial-model'?4:profile==='capacity'?8:64,operations:profile==='financial-model'?2048:profile==='capacity'?12000:512},scenarios:results,artifacts,limitations:['One local Docker host with synthetic test fixtures. No cloud, external funds or production SLA claim.','Go test binaries were compiled from the recorded dirty source. PostgreSQL/Redis image IDs are dependency images; no candidate API image claim.',`Selected fixed host profile: ${profile}. Read its named test output and run-profile artifact for the executed scope.`,'Failure-profile lost response is a service-boundary case. Its process-crash case terminates an actual worker child; cache loss uses an isolated Redis flush.','All normal containers and source/index identities were checked. The calling phase separately compares normal financial fingerprints.','Raw artifacts stay in ignored local storage. The browser has no fault-execution route.']};
+  const manifest={schema_version:'ledgersync-demo-run/v1',purpose:'run-evidence',run_id:runId,started_at:started.toISOString(),completed_at:new Date().toISOString(),source:{commit:before.head,manifest_sha256:await fileDigest(join(root,'source-manifest.json')),dirty:before.dirty},images,migration,api_contract_version:version,isolated_project:project,limits:{duration_seconds:600,concurrency:profile==='recovery'?4:profile==='financial-model'?4:profile==='capacity'?8:64,operations:profile==='financial-model'?2048:profile==='capacity'?12000:512},scenarios:results,artifacts,limitations:['One local Docker host with synthetic test fixtures. No cloud, external funds or production SLA claim.','Go test binaries were compiled from the recorded dirty source. PostgreSQL/Redis image IDs are dependency images; no candidate API image claim.',`Selected fixed host profile: ${profile}. Read its named test output and run-profile artifact for the executed scope.`,'Failure-profile lost response is a service-boundary case. Its process-crash case terminates an actual worker child; cache loss uses an isolated Redis flush.','All normal containers and source/index identities were checked. The calling phase separately compares normal financial fingerprints.','Raw artifacts stay in ignored local storage. The browser has no fault-execution route.']};
   save('run-manifest.json',manifest);const verification=await verifyDemoArtifacts(manifest,root);const capacity=profile==='capacity'&&existsSync(join(root,'capacity-report.json'))?JSON.parse(readFileSync(join(root,'capacity-report.json'),'utf8')):null;console.log(JSON.stringify({run_id:runId,bundle:relative(repo,root).replaceAll('\\','/'),verified:verification.verified,passed:!failure,...(capacity?{capacity_qualified:capacity.qualified,calibration_only:capacity.calibration_only}:{})}));
   if(failure)throw failure;return {root,manifest};
 }

@@ -30,7 +30,7 @@ func renewWorkerClaim(ctx context.Context, database *sql.DB, queue, owner, id st
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var renewed bool
 	if err := tx.QueryRowContext(ctx, `SELECT public.controlled_renew_claim_v1($1,$2,$3,$4,$5)`, queue, id, owner, generation, duration.Seconds()).Scan(&renewed); err != nil {
 		return err

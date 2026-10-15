@@ -102,6 +102,11 @@ type LiveRoomRepository interface {
 	RecordLiveRoomFinding(context.Context, LiveFindingCommand) (LiveRoom, error)
 }
 
+// LiveRoomHistoryReader has no signalling, presence, expiry or mutation duty.
+type LiveRoomHistoryReader interface {
+	GetLiveRoomHistory(context.Context, string, string, string) (LiveRoom, error)
+}
+
 type LiveSignal struct {
 	ID       string          `json:"id"`
 	RoomID   string          `json:"room_id"`

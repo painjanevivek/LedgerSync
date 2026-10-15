@@ -1089,3 +1089,9 @@
         border-bottom: 0;
     }
 }
+/* Simple home uses one reading flow. The legacy expert grid cannot own it. */
+.guided-shell .section-overview.experience-simple {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}

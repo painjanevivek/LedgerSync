@@ -74,7 +74,7 @@ func (r *OutboxRepository) complete(ctx context.Context, owner, id string, at ti
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var completed bool
 	if err := tx.QueryRowContext(ctx, `SELECT public.controlled_complete_outbox_v1($1,$2,$3,$4,$5,$6)`, id, owner, generation, at, status, code).Scan(&completed); err != nil {
 		return err
@@ -83,17 +83,4 @@ func (r *OutboxRepository) complete(ctx context.Context, owner, id string, at ti
 		return ErrStaleClaim
 	}
 	return tx.Commit()
-}
-func claimUpdate(result sql.Result, err error) error {
-	if err != nil {
-		return err
-	}
-	count, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if count != 1 {
-		return ErrStaleClaim
-	}
-	return nil
 }

@@ -3,6 +3,7 @@ import { expect, test, type APIResponse, type Page } from "@playwright/test";
 
 import {
   extractAccountID,
+  setIsolatedExperienceMode,
   readComposeDurableEvidence,
   replayCapturedMutation,
   requireIsolatedRealStack,
@@ -36,9 +37,10 @@ let lifecycleEvidence: LifecycleEvidence | undefined;
 
 async function enterLocalWorkspace(page: Page) {
   page.setDefaultTimeout(10_000);
-  await page.goto("/");
-  await page.getByRole("link", { name: "Log in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await page.goto("/sign-in");
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^(Overview|Your money at a glance)$/ })).toBeVisible();
+  await setIsolatedExperienceMode(page, "expert");
 }
 
 async function expectSafeCSV(response: APIResponse, family: "transfers" | "account-ledger" | "reconciliation", header: string, identifiers: string[]) {
@@ -92,18 +94,19 @@ async function expectAccessibleReflow(page: Page, width: number, height: number)
 }
 
 async function postTransfer(page: Page, sourceAccountID: string, destinationAccountID: string): Promise<TransferProof> {
+  await page.goto("/transfers/new");
   await page.getByLabel("From account").selectOption(sourceAccountID);
   await page.getByLabel("To account").selectOption(destinationAccountID);
   await page.getByLabel("Amount").fill(transferAmount);
   await page.getByRole("button", { name: "Review transfer" }).click();
-  await expect(page.getByRole("heading", { name: "Confirm exact transfer" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Review transfer", exact: true })).toBeFocused();
 
   const responsePromise = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return response.request().method() === "POST" && url.pathname === "/api/transfers";
   });
   const requestPromise = page.waitForRequest((request) => request.method() === "POST" && new URL(request.url()).pathname === "/api/transfers");
-  await page.getByRole("button", { name: "Confirm and post" }).click();
+  await page.getByRole("button", { name: "Confirm transfer" }).click();
   const [request, response] = await Promise.all([requestPromise, responsePromise]);
   expect(response.status()).toBe(201);
   const result = await response.json() as { transfer_id?: unknown; status?: unknown; amount_minor?: unknown; currency?: unknown };
@@ -115,7 +118,7 @@ async function postTransfer(page: Page, sourceAccountID: string, destinationAcco
   expect(replay.status()).toBe(201);
   expect(replay.headers()["idempotent-replay"]).toBe("true");
   expect(await replay.json()).toMatchObject({ transfer_id: result.transfer_id, status: "posted", amount_minor: "100", currency: "INR" });
-  await expect(page.getByRole("heading", { name: "Transfer posted" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Transfer completed" })).toBeFocused();
   return { transferID: result.transfer_id as string, idempotencyKey, sourceAccountID, destinationAccountID };
 }
 
@@ -277,16 +280,16 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     await page.getByLabel("Display name").fill(displayName);
     await page.getByLabel("External reference").fill(externalReference);
     await page.getByLabel("Category").selectOption("operating");
-    await page.getByRole("button", { name: "Continue to financial boundary" }).click();
-    await expect(page.getByText("INR 0.00 · exact")).toBeVisible();
-    await page.getByRole("button", { name: "Continue to review" }).click();
+    await page.getByRole("button", { name: "Review account", exact: true }).click();
+    await expect(page.getByText("Account begins").locator("..")).toContainText("INR 0.00");
+    await expect(page.getByText("This command moves").locator("..")).toContainText("No money");
 
     const createRequest = await waitForMutationRequest(page, /^\/api\/me\/accounts$/, async () => {
       await page.getByRole("button", { name: "Create account" }).click();
     });
     const result = page.getByRole("region", { name: "Account created" });
     await expect(result).toBeVisible();
-    await expect(result.getByText("INR 0.00", { exact: true })).toBeVisible();
+    await expect(result.getByText("INR 0.00", { exact: true }).first()).toBeVisible();
     const detailHref = await result.getByRole("link", { name: "View account" }).getAttribute("href");
     expect(detailHref).toBeTruthy();
     const createdAccountID = extractAccountID(new URL(detailHref!, run.baseURL).toString());
@@ -413,7 +416,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     // real dashboard first so local demo mode establishes this context's
     // signed, scoped session before direct request-context assertions.
     await enterLocalWorkspace(page);
-    await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^(Overview|Your money at a glance)$/ })).toBeVisible();
     const orientationResponse = await page.request.get(`${run.baseURL}/api/local/orientation`);
     expect(orientationResponse.status()).toBe(200);
     expect(orientationResponse.headers()["cache-control"]).toContain("no-store");
@@ -423,7 +426,7 @@ test.describe.serial("@real-stack account product lifecycle", () => {
     expect(orientation.steps?.every((step) => ["completed", "operator_confirmed", "evidence_available", "missing", "unavailable"].includes(String(step.state)))).toBe(true);
 
     await page.goto("/?guide=1");
-    await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^(Overview|Your money at a glance)$/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Follow one INR ledger record from system health to recovery" })).toBeVisible();
     await expect(page.locator(".orientation-checklist > li")).toHaveCount(12);
     await expectAccessibleReflow(page, 320, 800);

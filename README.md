@@ -59,3 +59,8 @@ The [local runtime runbook](docs/runbooks/local-runtime-smoke.md) covers startup
 - [Design system](DESIGN.md)
 
 Licensed under the [Apache License 2.0](LICENSE).
+
+
+## Trusted backend example
+
+Follow [the TypeScript integration guide](examples/typescript/README.md) for one complete synthetic local workflow. Run `node scripts/portfolio/run-developer.mjs` from the repository root to qualify it on disposable targets. The normal local stack supplies dependency image identities only. Browser sessions, own-principal backend credentials, and delegated actor assertions have separate rules. See [phase progress](docs/portfolio/progress.md) for the verified scope and remaining work.

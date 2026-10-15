@@ -58,7 +58,7 @@ func run() error {
 	if err != nil {
 		return errors.New("scheduler database unavailable")
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 	repository, _ := db.NewSchedulerRepository(database)
 	reconciliationRepository, _ := db.NewReconciliationRepository(database)
 	runner, _ := reconciliation.NewService(reconciliationRepository, nil)

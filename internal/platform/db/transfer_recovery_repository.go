@@ -79,7 +79,7 @@ func (r *TransferRepository) ListRecovery(ctx context.Context, tenant, actor, ra
 	if err != nil {
 		return transfers.RecoveryPage{}, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	page := transfers.RecoveryPage{Requests: []transfers.RecoveryIntent{}}
 	for rows.Next() {
 		item, err := scanRecovery(rows)

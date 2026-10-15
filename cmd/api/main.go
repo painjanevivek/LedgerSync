@@ -299,7 +299,7 @@ func main() {
 				os.Exit(1)
 			}
 			if err := registerDeveloperRoutes(router, developerRouteConfig{
-				Database: database, StudyEnabled: configuration.Environment == "development" && os.Getenv("LEDGERSYNC_STUDY_ENABLED") == "true",
+				Database: database, StudyEnabled: configuration.SystemsLabEnabled,
 				Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
 				RateLimitPerMinute: configuration.ReadRateLimitPerMinute,
 			}); err != nil {
@@ -389,7 +389,15 @@ func main() {
 			router.HandleFunc("POST /api/funding-events/{fundingEventId}/compensations", fundingHandler.Compensate)
 			router.HandleFunc("GET /api/funding-events/{fundingEventId}/reconciliation", fundingHandler.Reconcile)
 			if cronSecret := configuration.CronSecret; cronSecret != "" {
-				workerRunner, runnerErr := bootstrap.NewWorkerRunner(startupContext, configuration, database, redisClient, telemetry)
+				workerDatabase, workerErr := startup.Open(startupContext, "cron-worker-postgresql", startupConfig, func(ctx context.Context) (*sql.DB, error) {
+					return db.OpenPool(ctx, db.PoolConfig{DriverName: "pgx", DSN: configuration.CronWorkerDatabaseURL, MaxOpenConns: configuration.DatabaseMaxOpenConns, ApplicationName: configuration.NodeIdentity("cron-worker")})
+				})
+				if workerErr != nil {
+					slog.Error("cron worker database initialization failed")
+					os.Exit(1)
+				}
+				defer func() { _ = workerDatabase.Close() }()
+				workerRunner, runnerErr := bootstrap.NewCronWorkerRunner(startupContext, configuration, workerDatabase, redisClient, telemetry)
 				if runnerErr != nil {
 					slog.Error("cron worker initialization failed", "error", runnerErr)
 					os.Exit(1)

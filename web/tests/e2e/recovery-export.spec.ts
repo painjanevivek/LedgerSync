@@ -27,6 +27,16 @@ test("Recovery requires a restore of the exact latest backup and limits snapshot
 });
 
 function json(route:Route,body:unknown,status=200){return route.fulfill({status,contentType:"application/json",body:JSON.stringify(body)});}
+test("candidate restore proof stays separate from normal backup coverage",async({page})=>{
+  await mockOperatorConsole(page); await page.goto("/recovery");
+  await expect(page.getByRole("heading",{name:"Recovery proof is historical",exact:true})).toBeVisible();
+  await page.getByText("Recorded candidate restore",{exact:true}).click();
+  await expect(page.getByRole("heading",{name:"Recorded candidate restore",exact:true})).toBeVisible();
+  await expect(page.getByText(/does not prove that the normal database has a current backup/)).toBeVisible();
+  await expect(page.getByText(/through the full named validation profile/)).toBeVisible();
+  await expect(page.getByRole("button",{name:"Run restore",exact:true})).toHaveCount(0);
+  await expect(page.getByRole("heading",{name:"Recovery proof is historical",exact:true})).toBeVisible();
+});
 async function expectAccessible(page:Page){const result=await new AxeBuilder({page}).exclude(".app-shell > aside").analyze();expect(result.violations.filter((item)=>["serious","critical"].includes(item.impact??""))).toEqual([]);}
 
 test("Recovery separates current truth, backup, restore, retention, and copy-only host guidance",async({page,context})=>{
@@ -87,6 +97,7 @@ test("recovery and export controls reflow, deny missing scopes, and fail closed 
   await expect(page.locator("body")).toHaveJSProperty("scrollWidth",320); await expectAccessible(page);
   await page.route("**/api/session",route=>json(route,{subject_id:"reader",tenant_id:"tenant-1",csrf_token:"csrf",scopes:["local:read"],environment:"local"}));
   await page.goto("/recovery"); await expect(page.getByText("Recovery evidence not authorized",{exact:true})).toBeVisible();
+  await expect(page.getByText("Recorded candidate restore",{exact:true})).toHaveCount(0);
   await mockOperatorConsole(page); await page.goto("/transfers");
   await expect(page.getByRole("button",{name:"Export transfer details"})).toBeVisible();
   await context.setOffline(true); await expect(page.getByRole("button",{name:"Export transfer details"})).toBeDisabled(); await context.setOffline(false);

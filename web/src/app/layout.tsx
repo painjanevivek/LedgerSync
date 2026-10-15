@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { ExperienceModeBoundary } from "@/features/console/ExperienceModeBoundary";
-import { ConsoleSessionBoundary } from "@/features/console/ConsoleSessionBoundary";
+import { RouteProviders } from "@/features/console/WorkspaceProviders";
 import "./globals.css";
 
 // A per-request CSP nonce requires dynamic rendering so Next can attach it to
@@ -19,5 +18,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><ConsoleSessionBoundary><ExperienceModeBoundary>{children}</ExperienceModeBoundary></ConsoleSessionBoundary></body></html>;
+  return <html lang="en"><body><RouteProviders>{children}</RouteProviders></body></html>;
 }

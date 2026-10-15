@@ -4,12 +4,13 @@ import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { requireIsolatedJourney } from "./real-stack";
+import { setIsolatedExperienceMode, requireIsolatedJourney } from "./real-stack";
 
 async function login(page: Page, origin: string) {
-  await page.goto(origin);
-  await page.getByRole("link", { name: "Log in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
+  await page.goto(new URL("/sign-in",origin).toString());
+  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^(Overview|Your money at a glance)$/ })).toBeVisible();
+  await setIsolatedExperienceMode(page, "simple");
 }
 
 async function handoff(page: Page, subject: string) {

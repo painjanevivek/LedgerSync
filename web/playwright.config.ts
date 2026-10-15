@@ -5,6 +5,7 @@ export default defineConfig({
   outputDir: "./test-results/e2e",
   snapshotPathTemplate: "../docs/design/qa/responsive/baselines/{platform}/{projectName}/{arg}{ext}",
   fullyParallel: true,
+  updateSnapshots: "none",
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:3100",

@@ -40,8 +40,17 @@ test("developer explains every mutation replay rule and the complete partner jou
     await expect(replay.getByText(operation.operation_id,{exact:true})).toBeVisible();
   }
   await expect(page.getByText(/Same key \+ same intent replays/).first()).toBeVisible();
+  await page.getByText("Detailed integration sequence",{exact:true}).click();
   await expect(page.getByText(/No public bulk API is currently contracted/)).toBeVisible();
   await expect(page.getByText(/do not move external funds/i)).toBeVisible();
+});
+
+test("developer starts with one local TypeScript workflow and exposes no execution control",async({page})=>{
+  await mockOperatorConsole(page); await page.goto("/developer");
+  await expect(page.getByRole("heading",{name:"Start with the TypeScript example"})).toBeVisible();
+  await expect(page.getByText("examples/typescript/README.md",{exact:true})).toBeVisible();
+  await expect(page.getByText(/A delegating workload needs a fresh actor assertion/)).toBeVisible();
+  await expect(page.getByRole("button",{name:/run integration|execute command/i})).toHaveCount(0);
 });
 
 test("generated server recipes preserve canonical money without accepting credentials",async({page,context})=>{

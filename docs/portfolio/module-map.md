@@ -27,3 +27,10 @@ The domain identifier still implements `database/sql/driver` conversion. It has 
 Four adapter/test files moved from application to platform. Their original bytes are retained in the private R04 before-copies, and the move map records their hashes. Contracts remain with the use case. No route or external contract changed. Existing source work and database records remain preserved.
 
 The browser suite uses a separate local frontend on port 3100 and mocked responses. Its private API URL points to an unavailable loopback port. It cannot submit to the preserved financial backend. This verifies UI behavior; the exact candidate image and complete release journey remain R13 work.
+
+
+## R12 example boundary
+
+`examples/typescript/` owns the small trusted-backend client, protected local intent state, and synthetic receiver. It depends on the generated TypeScript operation catalogue and the pinned Node runtime. It has no import of internal Go implementation packages and no access to the normal financial database. The receiver SQLite state is local consumer evidence, not ledger authority. Real integration qualification lives in guarded Go integration fixtures with restricted workload sessions and a test-only local receiver transport.
+
+The Developer UI reads a small generated retry-contract projection inside the web root. It does not import the repository SDK manifest across the Next.js build boundary. The canonical generator checks this projection with the other artifacts.

@@ -26,7 +26,7 @@ func (r *LogicalClockRepository) PreparePublication(ctx context.Context, owner s
 	if err != nil {
 		return event, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var node, parent sql.NullString
 	var stamp sql.NullInt64
 	var sent int64

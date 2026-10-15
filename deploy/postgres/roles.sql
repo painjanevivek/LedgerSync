@@ -151,6 +151,14 @@ BEGIN
   IF to_regclass('public.bff_sessions') IS NOT NULL THEN
     EXECUTE 'GRANT SELECT,INSERT,UPDATE,DELETE ON bff_sessions TO ledgersync_api';
   END IF;
+  IF to_regprocedure('public.controlled_retire_bff_sessions_v1(uuid,text)') IS NOT NULL THEN
+    EXECUTE 'GRANT SELECT,DELETE ON bff_sessions TO ledgersync_migration_owner';
+    EXECUTE 'GRANT UPDATE(token_digest) ON bff_sessions TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE DELETE ON bff_sessions FROM ledgersync_api';
+    EXECUTE 'ALTER FUNCTION public.controlled_retire_bff_sessions_v1(uuid,text) OWNER TO ledgersync_migration_owner';
+    EXECUTE 'REVOKE ALL ON FUNCTION public.controlled_retire_bff_sessions_v1(uuid,text) FROM PUBLIC';
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.controlled_retire_bff_sessions_v1(uuid,text) TO ledgersync_api';
+  END IF;
   IF to_regclass('public.operator_ui_preferences') IS NOT NULL THEN
     EXECUTE 'GRANT SELECT,INSERT,UPDATE ON operator_ui_preferences TO ledgersync_api';
   END IF;

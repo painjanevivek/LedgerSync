@@ -9,13 +9,13 @@ import { createRateLimitStore, rateLimitResponse } from "@/lib/rate-limit";
 import { hasValidCSRF, jsonError, readBoundedJSON } from "@/lib/security";
 import { readSession, sessionCookieName, type Session } from "@/lib/session";
 import { isPrivateAPITimeout, privateReadTimeoutMilliseconds, privateWriteTimeoutMilliseconds } from "@/lib/upstream-outcome";
+import { readOptionalFeatures } from "@/lib/feature-configuration";
 
 const liveRateLimit = createRateLimitStore();
 const safeErrors = new Set(["invalid_request", "not_found", "forbidden", "unauthorized", "rate_limited", "temporary_unavailable", "collaboration_unavailable", "investigation_room_conflict", "finding_conflicts_with_transfer"]);
 
 export function liveInvestigationEnabled(environment: Readonly<Record<string, string | undefined>> = process.env): boolean {
-  const deployment = (environment.LEDGERSYNC_DEPLOYMENT_ENV ?? environment.NODE_ENV ?? "development").trim().toLowerCase();
-  return environment.LEDGERSYNC_LIVE_INVESTIGATION_ENABLED === "true" && deployment === "development";
+  return readOptionalFeatures(environment).live_investigation;
 }
 
 function authorized(session: Session, requireWrite: boolean): boolean {
@@ -26,8 +26,8 @@ function authorized(session: Session, requireWrite: boolean): boolean {
     && (!requireWrite || scopes.has("investigation:write"));
 }
 
-export async function liveSession(request: NextRequest, mutation: boolean, requireWrite = mutation): Promise<Session | NextResponse> {
-  if (!liveInvestigationEnabled()) return jsonError("not_found", 404);
+export async function liveSession(request: NextRequest, mutation: boolean, requireWrite = mutation, history = false): Promise<Session | NextResponse> {
+  if (!liveInvestigationEnabled() && !(history && !mutation && request.method === "GET")) return jsonError("not_found", 404);
   const session = readSession((await cookies()).get(sessionCookieName)?.value);
   if (!session) return jsonError("unauthorized", 401);
   if (!authorized(session, requireWrite)) return jsonError("forbidden", 403);

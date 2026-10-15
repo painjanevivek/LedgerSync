@@ -6,8 +6,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/application/investigation"
@@ -100,12 +98,31 @@ func (h *InvestigationHandler) JoinLiveRoom(writer http.ResponseWriter, request 
 }
 
 func (h *InvestigationHandler) LiveRoom(writer http.ResponseWriter, request *http.Request) {
-	principal, repository, ok := h.authorizeLive(writer, request, false)
+	principal, repository, ok := h.authorizeLive(writer, request, false, true)
 	if !ok {
 		return
 	}
 	if !onlyQueryParameters(request) {
 		httptransport.WriteError(writer, request, httptransport.ErrBadRequest)
+		return
+	}
+	if !h.liveEnabled || h.liveSignals == nil {
+		reader, configured := repository.(investigation.LiveRoomHistoryReader)
+		if !configured {
+			httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+			return
+		}
+		roomID, err := investigation.NormalizeLiveRoomID(request.PathValue("roomId"))
+		if err != nil {
+			httptransport.WriteError(writer, request, httptransport.ErrNotFound)
+			return
+		}
+		room, err := reader.GetLiveRoomHistory(request.Context(), principal.TenantID, principal.SubjectID, roomID)
+		if err != nil {
+			httptransport.WriteError(writer, request, livePublicError(err))
+			return
+		}
+		writeInvestigationJSON(writer, room)
 		return
 	}
 	room, ok := h.readAuthorizedLiveRoom(writer, request, repository, principal)
@@ -288,8 +305,9 @@ func (h *InvestigationHandler) readAuthorizedLiveRoom(writer http.ResponseWriter
 	return room, true
 }
 
-func (h *InvestigationHandler) authorizeLive(writer http.ResponseWriter, request *http.Request, write bool) (identity.Principal, investigation.LiveRoomRepository, bool) {
-	if h == nil || !h.liveEnabled || h.liveSignals == nil || h.repository == nil || h.identity == nil {
+func (h *InvestigationHandler) authorizeLive(writer http.ResponseWriter, request *http.Request, write bool, history ...bool) (identity.Principal, investigation.LiveRoomRepository, bool) {
+	readHistory := len(history) == 1 && history[0] && !write && request.Method == http.MethodGet
+	if h == nil || (!readHistory && (!h.liveEnabled || h.liveSignals == nil)) || h.repository == nil || h.identity == nil {
 		httptransport.WriteError(writer, request, httptransport.ErrNotFound)
 		return identity.Principal{}, nil, false
 	}
@@ -372,8 +390,4 @@ func livePublicError(err error) error {
 
 func collaborationUnavailable() error {
 	return &httptransport.PublicError{Status: http.StatusServiceUnavailable, Code: "collaboration_unavailable", Message: "Live collaboration is unavailable. The transfer status is unchanged; use the normal status check."}
-}
-
-func parseLiveVersion(value string) (int64, error) {
-	return strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 }

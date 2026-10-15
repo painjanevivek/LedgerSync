@@ -58,8 +58,28 @@ func TestSchedulerLeaseTakeoverRejectsStaleJobs(t *testing.T) {
 	if _, err := database.ExecContext(ctx, `SELECT complete_reconciliation_schedule($1,'node-b',$2,$3,$4,'matched')`, testTenantID, second, job, report.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err := database.QueryRow(`SELECT claim_reconciliation_schedule($1,'node-b',$2,15)`, testTenantID, second).Scan(&duplicate); err != nil || duplicate.Valid {
-		t.Fatalf("completed interval repeated: %v %v", duplicate, err)
+	if err := database.QueryRow(`SELECT claim_reconciliation_schedule($1,'node-b',$2,15)`, testTenantID, second).Scan(&duplicate); err != nil {
+		t.Fatal(err)
+	}
+	var completedSlot time.Time
+	var completedState string
+	var intervalCount int
+	if err := database.QueryRow(`SELECT scheduled_for,state,(SELECT count(*) FROM reconciliation_scheduled_jobs same WHERE same.tenant_id=completed.tenant_id AND same.scheduled_for=completed.scheduled_for) FROM reconciliation_scheduled_jobs completed WHERE id=$1`, job).Scan(&completedSlot, &completedState, &intervalCount); err != nil {
+		t.Fatal(err)
+	}
+	if completedState != "completed" || intervalCount != 1 {
+		t.Fatalf("completed interval changed: state=%s count=%d", completedState, intervalCount)
+	}
+	if duplicate.Valid {
+		// The database clock can cross a real 15-second boundary during this
+		// takeover. A later interval is new work; the completed interval is not.
+		var nextSlot time.Time
+		if err := database.QueryRow(`SELECT scheduled_for FROM reconciliation_scheduled_jobs WHERE id=$1`, duplicate.String).Scan(&nextSlot); err != nil {
+			t.Fatal(err)
+		}
+		if duplicate.String == job || !nextSlot.After(completedSlot) {
+			t.Fatalf("completed interval repeated: %s", duplicate.String)
+		}
 	}
 }
 
@@ -81,11 +101,19 @@ func TestSchedulerIdentityCannotReadOrWriteOtherTenants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("close scheduler test connection: %v", err)
+		}
+	}()
 	if _, err := conn.ExecContext(context.Background(), fmt.Sprintf(`SET SESSION AUTHORIZATION %s; SET search_path=ledgersync_scheduler,public`, role)); err != nil {
 		t.Fatal(err)
 	}
-	defer conn.ExecContext(context.Background(), `RESET SESSION AUTHORIZATION; RESET search_path`)
+	defer func() {
+		if _, err := conn.ExecContext(context.Background(), `RESET SESSION AUTHORIZATION; RESET search_path`); err != nil {
+			t.Errorf("reset scheduler test connection: %v", err)
+		}
+	}()
 	var count int
 	if err := conn.QueryRowContext(context.Background(), `SELECT count(*) FROM tenants`).Scan(&count); err != nil || count != 1 {
 		t.Fatalf("scoped tenant read: %d %v", count, err)

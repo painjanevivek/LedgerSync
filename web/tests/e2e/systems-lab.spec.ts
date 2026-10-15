@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { mockOperatorConsole } from "./fixtures";
 
 test("Systems Lab displays saved synthetic proof and has no browser fault command", async ({ page }) => {
-  await mockOperatorConsole(page);
+  await mockOperatorConsole(page, { features: { live_investigation: false, systems_lab: true } });
   const writes: string[] = [];
   page.on("request", request => { if (!["GET", "HEAD"].includes(request.method())) writes.push(new URL(request.url()).pathname); });
   await page.goto("/developer");

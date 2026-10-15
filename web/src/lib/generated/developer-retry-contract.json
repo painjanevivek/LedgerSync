@@ -1,0 +1,23 @@
+{
+  "api_version": "3.7.0",
+  "idempotent_operations": [
+    "approveDeveloperWebhookReplay",
+    "createAccount",
+    "createDeveloperCredential",
+    "createTransfer",
+    "disableDeveloperWebhook",
+    "postFundingEvent",
+    "postTransferCorrection",
+    "prepareTransferRecoveryRequest",
+    "registerDeveloperWebhook",
+    "replayDeveloperWebhookDelivery",
+    "requestFunding",
+    "requestFundingCompensation",
+    "requestTransferCorrection",
+    "revokeDeveloperCredential",
+    "rotateDeveloperCredential",
+    "rotateDeveloperWebhookSignature",
+    "runReconciliation",
+    "updateAccount"
+  ]
+}

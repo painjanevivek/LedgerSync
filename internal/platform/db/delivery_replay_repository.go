@@ -34,7 +34,7 @@ func (r *DeliveryReplayRepository) Inspect(ctx context.Context, tenantID, actorI
 	if err != nil {
 		return item, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	err = tx.QueryRowContext(ctx, `SELECT id,tenant_id,transfer_id,COALESCE(outbox_event_id::text,''),delivery_kind,endpoint_reference,attempt_number,COALESCE(sanitized_error_code,''),completed_at FROM delivery_attempts WHERE tenant_id=$1 AND id=$2 AND status='dead'`, tenantID, attemptID).Scan(&item.AttemptID, &item.TenantID, &item.TransferID, &item.OutboxEventID, &item.Kind, &item.EndpointReference, &item.AttemptNumber, &item.ErrorCode, &item.CompletedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, ErrDeadDeliveryNotFound
