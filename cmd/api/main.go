@@ -38,7 +38,7 @@ func main() {
 		slog.Error("configuration invalid", "error", err)
 		os.Exit(1)
 	}
-	telemetry, err := observability.NewTelemetry(context.Background(), observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint})
+	telemetry, err := observability.NewTelemetry(context.Background(), observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint, CAFile: configuration.OTLPCAFile})
 	if err != nil {
 		slog.Error("telemetry initialization failed", "error", err)
 		os.Exit(1)
@@ -70,7 +70,11 @@ func main() {
 				slog.Warn("database close failed", "error", closeErr)
 			}
 		}()
-		readiness = database.Ping
+		readiness = func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			return database.PingContext(ctx)
+		}
 		if configuration.Environment != "development" {
 			if err := db.ValidatePilotCurrency(context.Background(), database, configuration.PilotCurrency); err != nil {
 				slog.Error("pilot currency validation failed", "error", err)
@@ -289,6 +293,20 @@ func main() {
 				RateLimitPerMinute: configuration.WriteRateLimitPerMinute, CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
 			}); err != nil {
 				slog.Error("reconciliation command route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerStatementReconciliationRoutes(router, reconciliationCommandRouteConfig{
+				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
+				RateLimitPerMinute: configuration.WriteRateLimitPerMinute, CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
+			}); err != nil {
+				slog.Error("statement reconciliation route initialization failed", "error", err)
+				os.Exit(1)
+			}
+			if err := registerReservationRoutes(router, reconciliationCommandRouteConfig{
+				Database: database, Identity: provider, Authenticator: authenticator, RateLimiter: rateLimiter, AuditRecorder: auditRepository,
+				RateLimitPerMinute: configuration.WriteRateLimitPerMinute, CapacityLimitPerSecond: configuration.WriteCapacityPerSecond,
+			}); err != nil {
+				slog.Error("reservation route initialization failed", "error", err)
 				os.Exit(1)
 			}
 			if err := registerOperationsRoutes(router, operationsRouteConfig{

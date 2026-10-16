@@ -35,10 +35,11 @@ type WorkerCounts struct {
 	WebhookDeliveries    int `json:"webhook_deliveries"`
 	WebhookVerifications int `json:"webhook_verifications"`
 	BalanceProjections   int `json:"balance_projections"`
+	HoldExpirations      int `json:"hold_expirations"`
 }
 
 func (c WorkerCounts) Total() int {
-	return c.Outbox + c.WebhookDeliveries + c.WebhookVerifications + c.BalanceProjections
+	return c.Outbox + c.WebhookDeliveries + c.WebhookVerifications + c.BalanceProjections + c.HoldExpirations
 }
 
 func (c *WorkerCounts) Add(other WorkerCounts) {
@@ -46,15 +47,17 @@ func (c *WorkerCounts) Add(other WorkerCounts) {
 	c.WebhookDeliveries += other.WebhookDeliveries
 	c.WebhookVerifications += other.WebhookVerifications
 	c.BalanceProjections += other.BalanceProjections
+	c.HoldExpirations += other.HoldExpirations
 }
 
-// WorkerRunner owns the four idempotent batch processors used by both the
+// WorkerRunner owns the five idempotent batch processors used by both the
 // continuous worker and Vercel's authenticated cron drain.
 type WorkerRunner struct {
 	outbox               batchWorker
 	webhookDeliveries    batchWorker
 	webhookVerifications batchWorker
 	balanceProjections   batchWorker
+	holdExpirations      batchWorker
 	streams              *events.RedisStreams
 	telemetry            *observability.Telemetry
 	options              WorkerRunnerOptions
@@ -161,7 +164,16 @@ func NewWorkerRunnerWithOptions(ctx context.Context, configuration config.Config
 	if err != nil {
 		return nil, fmt.Errorf("initialize balance projector: %w", err)
 	}
-	return &WorkerRunner{outbox: outboxWorker, webhookDeliveries: webhookWorker, webhookVerifications: verificationWorker, balanceProjections: projector, streams: streams, telemetry: telemetry, options: options}, nil
+	expiryBatch := configuration.OutboxBatchSize
+	if expiryBatch <= 0 {
+		expiryBatch = 50
+	}
+	expiryWorker, err := db.NewReservationExpiryWorker(database, workerID, expiryBatch)
+	if err != nil {
+		return nil, fmt.Errorf("initialize reservation expiry worker: %w", err)
+	}
+	expiryWorker.OnItem = options.itemObserver(observability.WorkerQueueHoldExpiry)
+	return &WorkerRunner{holdExpirations: expiryWorker, outbox: outboxWorker, webhookDeliveries: webhookWorker, webhookVerifications: verificationWorker, balanceProjections: projector, streams: streams, telemetry: telemetry, options: options}, nil
 }
 
 // RunOnce attempts every independent processor and joins infrastructure
@@ -185,6 +197,9 @@ func (r *WorkerRunner) RunOnce(ctx context.Context) (WorkerCounts, error) {
 		if err != nil {
 			failures = append(failures, fmt.Errorf("%s: %w", operation, err))
 		}
+	}
+	if r.holdExpirations != nil {
+		run(observability.WorkerQueueHoldExpiry, "hold_expiry", r.holdExpirations, &counts.HoldExpirations)
 	}
 	run(observability.WorkerQueueOutbox, "publish", r.outbox, &counts.Outbox)
 	run(observability.WorkerQueueWebhookDelivery, "webhook_dispatch", r.webhookDeliveries, &counts.WebhookDeliveries)

@@ -2,8 +2,8 @@
   "info": {
     "name": "LedgerSync Private API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "3.7.0",
-    "_postman_id": "ledgersync-a37011ae-1596ded8-d98f4802"
+    "version": "3.9.0",
+    "_postman_id": "ledgersync-168bed1c-cd7fe6bb-5d2b1ff9"
   },
   "variable": [
     {
@@ -169,6 +169,23 @@
       }
     },
     {
+      "name": "createReservation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/reservations"
+      }
+    },
+    {
       "name": "createSavedInvestigationView",
       "request": {
         "method": "POST",
@@ -183,6 +200,27 @@
           }
         ],
         "url": "{{baseUrl}}/investigation/saved-views"
+      }
+    },
+    {
+      "name": "createStatementMapping",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-createStatementMapping-key"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/mappings"
       }
     },
     {
@@ -204,6 +242,23 @@
           }
         ],
         "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "decideReservation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/reservations/{holdID}/decisions"
       }
     },
     {
@@ -279,6 +334,23 @@
       }
     },
     {
+      "name": "downloadStatementSource",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/imports/{importID}/source.csv"
+      }
+    },
+    {
       "name": "explainTransferEvidence",
       "request": {
         "method": "GET",
@@ -327,6 +399,40 @@
           }
         ],
         "url": "{{baseUrl}}/exports/reconciliation.csv"
+      }
+    },
+    {
+      "name": "exportReservationObligations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/reservations/export.csv"
+      }
+    },
+    {
+      "name": "exportStatementComparison",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/runs/{runId}/comparison.csv"
       }
     },
     {
@@ -585,6 +691,57 @@
       }
     },
     {
+      "name": "getReservation",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/reservations/{holdID}"
+      }
+    },
+    {
+      "name": "getStatementRun",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/runs/{runId}"
+      }
+    },
+    {
+      "name": "getStatementWorkspace",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation"
+      }
+    },
+    {
       "name": "getTransfer",
       "request": {
         "method": "GET",
@@ -650,6 +807,27 @@
           }
         ],
         "url": "{{baseUrl}}/investigation/workspaces/{investigationId}/handoff"
+      }
+    },
+    {
+      "name": "importStatement",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-importStatement-key"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/imports"
       }
     },
     {
@@ -823,6 +1001,23 @@
       }
     },
     {
+      "name": "listReservations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/reservations"
+      }
+    },
+    {
       "name": "listSavedInvestigationViews",
       "request": {
         "method": "GET",
@@ -968,6 +1163,23 @@
           }
         ],
         "url": "{{baseUrl}}/transfers/recovery"
+      }
+    },
+    {
+      "name": "previewStatement",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/preview"
       }
     },
     {
@@ -1178,6 +1390,27 @@
       }
     },
     {
+      "name": "reviewStatementItem",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-reviewStatementItem-key"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/runs/{runId}/reviews"
+      }
+    },
+    {
       "name": "revokeDeveloperCredential",
       "request": {
         "method": "POST",
@@ -1259,6 +1492,27 @@
           }
         ],
         "url": "{{baseUrl}}/reconciliation/runs"
+      }
+    },
+    {
+      "name": "runStatementReconciliation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{bearerToken}}"
+          },
+          {
+            "key": "X-LedgerSync-Actor-Assertion",
+            "value": "{{actorAssertion}}"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "example-runStatementReconciliation-key"
+          }
+        ],
+        "url": "{{baseUrl}}/statement-reconciliation/runs"
       }
     },
     {

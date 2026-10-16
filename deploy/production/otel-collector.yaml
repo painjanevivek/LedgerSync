@@ -1,0 +1,60 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        tls:
+          cert_file: /otel/certs/receiver.crt
+          key_file: /otel/certs/receiver.key
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+  transform/privacy:
+    error_mode: propagate
+    trace_statements:
+      - context: resource
+        statements:
+          - keep_keys(attributes, ["service.name"])
+      - context: span
+        statements:
+          - keep_keys(attributes, ["boundary", "operation", "outcome", "method", "status_code", "queue", "node_role", "delivery_kind"])
+          - set(status.message, "")
+    metric_statements:
+      - context: resource
+        statements:
+          - keep_keys(attributes, ["service.name"])
+      - context: datapoint
+        statements:
+          - keep_keys(attributes, ["boundary", "operation", "outcome", "status", "replayed", "queue", "kind", "action", "mode", "reason"])
+  filter/private_events:
+    error_mode: propagate
+    traces:
+      spanevent: ["true"]
+  batch:
+    timeout: 1s
+    send_batch_size: 64
+    send_batch_max_size: 128
+exporters:
+  otlphttp/traces:
+    endpoint: ${env:LEDGERSYNC_TRACE_BACKEND_ENDPOINT}
+    timeout: 1s
+    encoding: json
+    sending_queue:
+      queue_size: 512
+    retry_on_failure:
+      enabled: false
+    tls:
+      insecure: false
+  prometheus:
+    endpoint: 0.0.0.0:9464
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/privacy, filter/private_events, batch]
+      exporters: [otlphttp/traces]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/privacy, batch]
+      exporters: [prometheus]

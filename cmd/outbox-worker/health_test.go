@@ -48,6 +48,10 @@ func TestWorkerHealthRequiresSuccessfulPollsAndDetectsFailureAndStall(t *testing
 			t.Fatal(err)
 		}
 	}
+	emitAndCheck(false) // The new expiry queue must also finish its first poll.
+	if err := monitor.MarkCompleted(observability.WorkerQueueHoldExpiry, false); err != nil {
+		t.Fatal(err)
+	}
 	emitAndCheck(true) // Empty queues are healthy after successful polls.
 	if err := checkWorkerHealth(path, now.Add(workerHeartbeatLimit+time.Nanosecond)); err == nil {
 		t.Fatal("stale heartbeat accepted")

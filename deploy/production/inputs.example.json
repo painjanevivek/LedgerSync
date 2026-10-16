@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "prepared_not_deployed",
+  "execution_scope": "local_only",
+  "provider": null,
+  "account_or_project": null,
+  "region": null,
+  "public_domain": null,
+  "monthly_budget": null,
+  "currency": null,
+  "operating_owner": null,
+  "incident_owner": null,
+  "identity_issuer": null,
+  "backup_owner": null,
+  "recovery_point_target": null,
+  "recovery_time_target": null,
+  "required_workload_separation": ["api", "worker", "migration", "provisioning", "reconciliation", "maintenance"],
+  "managed_acceptance_pending": ["identity_and_tenant_mapping", "private_network_and_ingress_tls", "workload_secret_injection", "backup_restore_and_pitr", "failover", "budget_and_alert_owners", "human_accessibility_acceptance", "operating_runbook_review"]
+}

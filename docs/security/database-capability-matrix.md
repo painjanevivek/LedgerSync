@@ -90,3 +90,17 @@ The same matrix runs against both a fresh migrated database and the supported ph
 | Production qualification | Validate the same allow/deny matrix using externally issued workload credentials and retain the redacted artifact with release evidence |
 
 Any matrix change requires a reviewed edit to the version, current expectation and target rationale in the same pull request as the grant or migration change. Never weaken the target to make a newly observed grant pass.
+
+## Statement and reservation extensions — 17 October 2026
+
+The final local schema66 suite keeps the core deny matrix. It also verifies the complete controlled-function EXECUTE allowlist and separate extension boundaries. The historical R03 observation count above retains its original scope.
+
+| Boundary | Permitted workload action | Denied action |
+|---|---|---|
+| Statement API | Tenant/actor-scoped reads and five bounded mapping/import/prepare/complete/review functions | Direct evidence DML, cross-tenant access and financial writes by the statement owner |
+| Statement owner | Non-login owner of immutable source, comparison and review operations; controlled audit append | Membership for workload logins, arbitrary journal or balance writes |
+| Reservation API | Scoped hold/event reads; create and full terminal-decision functions | Direct hold, receipt, event or expiry-job DML; worker claims |
+| Reservation worker | Bounded expiry claims and owner/generation-fenced completion | API command authority, direct financial DML or stale-lease completion |
+| Reservation export | Authorized repeatable snapshot after transfer-read and export-read checks; audit before CSV | Silent truncation, unaudited disclosure or journal mutation |
+
+The actual-role extension tests also cover foreign actors, stale versions, cancellation, original-key recovery and denied no-audit downloads. The restore profile reapplies current ownership and grants before restricted callers run. These results do not establish externally issued credentials or an actual managed connection pool. Read the [R15](../portfolio/progress.md#r15-completion--17-october-2026), [R16](../portfolio/progress.md#r16-completion--17-october-2026) and [R17](../portfolio/progress.md#r17-completion--17-october-2026) records.

@@ -26,4 +26,18 @@ Five remaining npm findings in the R13 audit come from one unpatched `braces` st
 
 ## Limits
 
-Resource samples are not peak memory, sustained HTTP capacity, a production SLA, or multi-host evidence. Browser accessibility and image review are automated checks and author review; no independent human assistive-technology review is claimed. Historical R07–R12 bundles retain their original source and contract versions. Final candidate evidence must state its own identity. Normal images and financial data remain on the preserved prior runtime until a separately authorized cutover.
+Resource samples are not peak memory, sustained HTTP capacity, a production SLA, or multi-host evidence. Browser accessibility and image review are automated checks and author review; no independent human assistive-technology review is claimed. Historical R07–R12 bundles retain their original source and contract versions. Final candidate evidence must state its own identity.
+
+## R13 decision — 16 October 2026
+
+The [author decision](../release-evidence/portfolio/r13/engineering-decision.md) and [completion record](../release-evidence/portfolio/r13/completion.json) bind the final main candidate at `d300036`. Six fresh-stack browser journeys, the Go BFF suite, original-key replay after API restart, exact-main CI, final image scans/SBOMs, actual context export, a fresh five-minute component capacity/recovery check, and the 256-operation model passed. The exact web image also passed the unchanged asset budgets. [Final secret review metadata](../release-evidence/portfolio/r13/secret-review-final.json) records 56 reviewed source contexts and zero history findings after exact exceptions.
+
+The normal stack was deliberately upgraded during the separately authorized branch consolidation. It now uses schema 000064 with 66 retained migration records, including two known legacy records. Its eight accounts, five transfers, 20 postings and original financial fingerprints remain unchanged. R13 qualification preserved that checkpoint. R15/R16 require another affected-feature qualification and final recovery repeat. An author review is not an independent human review or managed production approval.
+
+## Final extension qualification — 17 October 2026
+
+The final schema66 candidate uses API contract 3.9.0. Its source manifest is 1417ec33e9de6fbc65c8f779d74c999bdfbd2d8113bc44a87030a823fa1c0855. Eight real-stack browser journeys, Go BFF checks, two original-key replays after API restart, dependency-loss/recovery probes and graceful workload shutdown passed. The exact web image emitted 1,785,515 JavaScript bytes under the unchanged 2,000,000-byte total budget.
+
+The final source also has separate database regression, model, restore, capacity, TLS, browser and scanner records. Read [R17 completion](progress.md#r17-completion--17-october-2026) for their exact identities. After the image snapshot, scanner staging and documentation changed, and extra final blank lines were removed. The source comparison records these differences and proves that application code is unchanged. It retains the exact frozen build context and original image identity. A dirty candidate is still not a signed committed release.
+
+The normal database remains on migration64 with 66 retained history records. The final candidate uses migration66 with 66 current source migrations. These counts describe different histories. No normal financial data or image was changed by the qualification.

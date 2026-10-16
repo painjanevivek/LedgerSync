@@ -1,0 +1,7 @@
+{
+  "registry": "registry-1.docker.io",
+  "purpose": "local configuration and telemetry rehearsal; no production deployment claim",
+  "source": "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/tag/v0.161.0",
+  "image": "otel/opentelemetry-collector-contrib:0.161.0@sha256:fd328de2552466ad78385e1b1289c3f2402b1c45f265b252aab1955b42845ac1",
+  "resolved_at_utc": "2026-10-16T13:17:32.9260061Z"
+}

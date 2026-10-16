@@ -10,6 +10,6 @@ test('complete discovered inventory must pass exactly once and no skip can hide 
   assert.equal(regressionResult(output(...valid), ['TestA', 'TestB'], 1).status, 'failed');
   assert.throws(() => regressionResult('', [], 0));
   const excluded = new RegExp(regressionExcluded);
-  for (const name of ['TestOutboxCrashHelper', 'TestPortfolioCapacity', 'TestPortfolioRecoverySeed', 'TestPortfolioRecoveryRestored', 'TestPortfolioRecoveryMigrations', 'TestPortfolioDeveloperIntegration', 'TestPortfolioOptionalFeatures']) assert.equal(excluded.test(name), true);
+  for (const name of ['TestOutboxCrashHelper', 'TestPortfolioCapacity', 'TestPortfolioExtensionRecoverySeed', 'TestPortfolioExtensionRecoveryRestored', 'TestPortfolioRecoverySeed', 'TestPortfolioRecoveryRestored', 'TestPortfolioRecoveryMigrations', 'TestPortfolioDeveloperIntegration', 'TestPortfolioOptionalFeatures']) assert.equal(excluded.test(name), true);
   for (const name of ['TestGeneratedFinancialModel', 'TestOutboxProcessCrashRecovery', 'TestDatabaseRoleCapabilities']) assert.equal(excluded.test(name), false);
 });

@@ -77,17 +77,25 @@ func TestSharedWorkerRunnerPreservesPublicationProjectionAndProgress(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if counts.Outbox != 3 || counts.BalanceProjections != 3 || counts.WebhookDeliveries != 0 || counts.WebhookVerifications != 0 {
+	if counts.Outbox != 3 || counts.BalanceProjections != 3 || counts.WebhookDeliveries != 0 || counts.WebhookVerifications != 0 || counts.HoldExpirations != 0 {
 		t.Fatalf("shared runner counts=%+v", counts)
 	}
 	monitor.Emit(ctx)
-	if len(progress.reports) != 4 {
+	if len(progress.reports) != 5 {
 		t.Fatalf("progress reports=%d", len(progress.reports))
 	}
+	queues := make(map[string]bool)
 	for _, report := range progress.reports {
+		if queues[report.Queue] {
+			t.Fatalf("duplicate queue progress: %s", report.Queue)
+		}
+		queues[report.Queue] = true
 		if !report.HasCompleted || report.LastRunFailed {
 			t.Fatalf("queue progress incomplete: %s", report.Queue)
 		}
+	}
+	if !queues[observability.WorkerQueueHoldExpiry] {
+		t.Fatal("reservation expiry progress missing")
 	}
 	if err := runner.ObserveHealth(ctx); err != nil {
 		t.Fatal(err)

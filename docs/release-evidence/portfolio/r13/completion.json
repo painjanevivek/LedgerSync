@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "phase": "R13",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T20:51:45.896Z",
+  "summary": "The integrated schema-000064 local portfolio candidate is qualified. The final source manifest, four immutable images, restricted runtime, six browser journeys, Go BFF tests and original-key replay after API restart are recorded. An author engineering decision states the enabled capabilities and permitted claims.",
+  "verification": {
+    "local_candidate": "verified_local",
+    "browser_journeys": 6,
+    "restart_replays": 2,
+    "exact_main_workflows": 4,
+    "container_scans": 4,
+    "sboms": 4,
+    "history_commits": 356,
+    "source_findings_reviewed": 56,
+    "capacity_qualified": true,
+    "extended_model_operations": 256,
+    "normal_fingerprints_match": true
+  },
+  "source": {
+    "head": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+    "dirty": true,
+    "original_files": 1906,
+    "original_manifest_path": "data/portfolio/r13-20261015/source-after-main-consolidation-20261016-d300036.json",
+    "original_manifest_sha256": "c01345f58091e0c38fc25159ea7a0b4c1b149d256928a2c2814cbbb360e2fad2",
+    "authorized_git_checkpoint": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "c46d33a1f25dd6626d33c15524f2d63f110b08a5e3ff63aca1f9e491ad0522b0",
+    "changed_original_files": [
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "5ce10d744152d4472f16d4a9e8842bd2b26e420f999b099cdec76d0caa93fa40",
+        "sha256": "5ab88aa1a3ae98860f3b3b59b4847468d3273adf41b30d3efcf777c7f1e16fff"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "ebe760f13668596ebfc6ba0f5980243b18b85b5d16754268e88d686963fa1ec7",
+        "sha256": "61ec52831eba701167dd5bbb1131f20d88d5001334bb954143202fa4134cbd7d"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "5507d3b9773667638961ff6ebfa105356bd600ed10ebd29a77517c68fc2a13fd",
+        "sha256": "844b4ceb74be68f6a40abf62ab7b456f70f2c7c4d2341785fcdfbf744f51bb7c"
+      },
+      {
+        "path": "docs/portfolio/qualification.md",
+        "before_sha256": "10dec1914cb98a6afcd3baa2049f68cdb75883ee6d3d61a5765c749235a8146d",
+        "sha256": "2bccc96b1201b5f32979b7614b72f80daf3c670abf445aa69bab376dc346cbe4"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "0ae22013fafce6a63785a0828c5d683039b9d71a025cbdced2bbe2a569780c0a",
+        "sha256": "e3c86eec1abc5db5e7b71ae7b260408d57e3c8de6f5fee29d5dc853fa2f957f4"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/release-evidence/portfolio/r13/engineering-decision.md",
+        "sha256": "ce4ef55b7295efaa038accbfe14fe29acd01a6d52dd34e6f14f96a1dca4daae5"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r13/secret-review-final.json",
+        "sha256": "882eb350e73b9cfd9908caa87be9a2f2a90ce90551a6223ab6fd75dfc1157d23"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/candidate-20261015203518-a616e0b7/result.json",
+      "sha256": "732ba66c4d189d792e4b275c813d7d7ff3ba6348174f353b185e1804882441ac",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/candidate-20261015203518-a616e0b7/source-manifest.json",
+      "sha256": "8d48338b81c560380795ff0d6e55abfd9153e70e5630cec03d0d12af7c212b00",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/candidate-20261015203518-a616e0b7/browser-real-stack.txt",
+      "sha256": "fa787c2f84d0c34699ee98cc90734291d4c168d19336f081ec6b9b1f2deb27d1",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/candidate-20261015203518-a616e0b7/go-real-stack.txt",
+      "sha256": "ede710b74af68a580be72e2ae32177eb5c5149233bd1687f2fecaa4a4a2b7d7d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/candidate-20261015203518-a616e0b7/go-restart-replay.txt",
+      "sha256": "19ce44eaf59cb82b2051d45bb6e63b601cfca2444089a906df7278d0f40df79d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/candidate-20261015203518-a616e0b7/images.json",
+      "sha256": "29c8b89a06510c5be0b3047bd2e692e435b6408289b50e4a648f160df585aba6",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/context-verification.json",
+      "sha256": "681f5a622a558930cac03ef1a8e9ec724fa5476dd9b84179f5833909a8e4959b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/results.json",
+      "sha256": "7f04efea17f64be29aa266ab165ae68793b9fe03d79611283362a3adc85bdcde",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/secret-context-main.json",
+      "sha256": "1ab36f0686852b2ef74c5b0bd4eb857c567500e3b796add708333110d2543235",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/gitleaks-history-main.txt",
+      "sha256": "663ef1128aa374b098ce057ff3f27849360a8a1fa314238103c75830a6b231d3",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/capacity-main.txt",
+      "sha256": "fe5f5c935c4919d0a192b09cf018f1032c7bb7de27bf1320b25256589e67e4f1",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../demo-runs/demo-20261015204052-3782e71f/run-manifest.json",
+      "sha256": "5f7f7b733a7d0f48818b394d1917fbe98ba982615319a4f3f20e6117cc8632ea",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../demo-runs/demo-20261015204052-3782e71f/capacity-report.json",
+      "sha256": "07054ed08bf41514f807495fa988627b280bb890469d4ce6300e1466ef96bb80",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/model-main-extended.txt",
+      "sha256": "d1824bbe236702e01db3470ffc46fbda6fcedebac793b0fed512e33dc635d59a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../demo-runs/demo-20261015204832-dda66c83/run-manifest.json",
+      "sha256": "ff70dc68f0da7b5f916368f861ae166bd09bc8159dd43dce844f4bf7c2a6a8b4",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../../../.tmp/all-branches-20261015/normal-upgrade-rehearsal-policy-negative/result.json",
+      "sha256": "a370d54f8b4a8d1df0a2550f2257696b2ef3ededf74e64af27dc63d43fb3afc6",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/api-vulnerabilities.json",
+      "sha256": "0d636b87f95592dfd2ce76f04fe04c8217191f0df47563ef85695b7d23410d41",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/api-sbom.cdx.json",
+      "sha256": "570ddde54952eb2cc0a266d6c9359aeb31bbab231ed1462e299cc58269a6c723",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/outbox-worker-vulnerabilities.json",
+      "sha256": "66a56cb90531aaf73fb8da43a82492a1e97ffb034453d180f82a8dbfbc98ac0d",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/outbox-worker-sbom.cdx.json",
+      "sha256": "eafa870c3b778d5db9420ad5e8228a33ffbbbf12ed6999b0779e5c71c5631ffd",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/migrate-vulnerabilities.json",
+      "sha256": "9d5b235bb217ab9f468fa74d4a70846f7a2e563d52bf962fa70dac9571085bd2",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/migrate-sbom.cdx.json",
+      "sha256": "782daa892801c8cab7818d71cab8f53d2a6f0efbede51d3d528587e02b855735",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/web-vulnerabilities.json",
+      "sha256": "725a0c6bdfbacebc52ee62fa219832920c08ed26aaea633330b0f3a835d286dc",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/scans-20261015203518-a616e0b7/web-sbom.cdx.json",
+      "sha256": "d58383c8ec99f6ccae56df181ba9d97ac21f1bfe8fcdb4047cab11dad8442dad",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/hosted-main-38800424711.json",
+      "sha256": "b44acdce358815bc0ea6e057c09815d233bf9cd55be61d62c04bc6ec275868a6",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/hosted-main-38800424827.json",
+      "sha256": "a42d9c3cf7bcb7f319fba4773876198e56cd95b414c833b56c6f9a7959c67c4f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/hosted-main-38800424893.json",
+      "sha256": "36413a39261f0aad291eaa6634a4bfe46d50d11b2d47fb1dff694adbeabb1373",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/hosted-main-38800424907.json",
+      "sha256": "108043b8c34ad7cf2188265fde1e4da301f0761e67ab2fe04cfd54431adededa",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/final-image-asset-budget.json",
+      "sha256": "da1bd5d43125bd9ff1a0bf90c55c3b8dc479e8b881c2cc535e4b2d3c44ec686f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/capacity-artifact-verification.txt",
+      "sha256": "64497b2f114433cf1f80c36ed46d30104b7bd95fffb7c9042cb11ca73938672e",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r13-20261015/../r13-20261016/model-artifact-verification.txt",
+      "sha256": "82b82fe82fbffe39b82b384bc7b472a9739f1a5702d112bb298b5b1c21f56b07",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "78dc89d9be17df630bb23ac5ceee3848b462b968f04d5dd490a42cf8d06de6dd"
+  },
+  "limits": [
+    "This is local synthetic qualification, not managed production approval or an SLA.",
+    "Historical capacity, optional, developer and recovery runs retain their actual source identities; separately qualified builds are not relabelled.",
+    "Five development-only npm findings share the documented braces advisory; the standalone runtime excludes that tooling.",
+    "Browser automation and author visual review do not establish independent assistive-technology or physical-device acceptance.",
+    "The current normal schema64 upgrade was separately authorized during branch consolidation. Two legacy migration records remain. R13 tests do not repeat that upgrade.",
+    "The final commit and push require the existing clean committed-release checks. R15/R16 changes require full affected-feature requalification."
+  ]
+}

@@ -1,5 +1,19 @@
 # Portfolio issue register
 
+## R13 final disposition — 16 October 2026
+
+P-053–P-061 and P-063–P-071 are resolved for the recorded R13 local candidate. The exact-main CI, final browser journeys, source-preservation guard, actual image asset budgets, role tests, five-minute capacity/recovery and current-schema extended model passed. Earlier statements below that say verification is pending are historical checkpoints. P-062 remains the bounded development-only lint-tool advisory in the qualification guide. It does not permit a clean all-dependency claim.
+
+P-072: the branch consolidation exposed an old Go BFF fixture and retry-lab script that omitted durable request preparation. Both now prepare and reuse the original reference, key and body. The strict production BFF requirement remains. The final candidate passed the Go system suite and two original-key replay calls after API restart.
+
+P-073: the normal backup contains row policies but not cluster role identities. Restore now bootstraps only the fixed inert policy identities before `pg_restore`. It rejects login-enabled, privileged or inherited roles and is idempotent. The exact normal backup restored into a disposable target, upgraded to schema64, preserved all financial hashes and passed unsafe-role rejection checks. No login credentials were restored.
+
+P-074: consolidation squash commits gave public synthetic transfer/retry evidence new scanner fingerprints. The full history now has 105 exact reviewed exceptions. No path, rule or whole-commit suppression was added. The final offline scan inspected 356 commits and found no leaks after those exceptions. All 56 source matches have unchanged reviewed noncredential context. Failed scanner reports remain private and unchanged.
+
+P-075: sandbox access to the Docker Desktop named pipe stopped the first final candidate attempt before testing. The permitted isolated rerun passed, including source and normal-container preservation. The failed log remains. No acceptance threshold was changed.
+
+R14 starts after this decision. R15/R16 remain selected and require their own implementation and final integrated qualification. R17 is a local package; actual managed deployment is outside this request.
+
 ## P-071 — Frontend JavaScript exceeds the existing size budget
 
 Status: repaired. The first current production build contained 2,051,334 JavaScript bytes, above the unchanged 2,000,000-byte budget. The new shell still imported icon metadata and an unused renderer from the former navigation. Import inspection found no consumer of that renderer. The navigation now contains only the capability and route definitions that the shell uses. The original module is retained in Git and the private candidate snapshots, with a separate before-copy. A new production build contains 1,931,434 JavaScript bytes. Its largest chunk is 229,820 bytes, below the unchanged 350,000-byte limit. No route, permission rule, visible icon, or feature was removed. The final image budget and integrated browser gates still need their final run.
@@ -98,3 +112,173 @@ R12 closure: P-049: the first new sample used internal debit/credit names instea
 R13 resumed checkpoint — 15 October 2026: The user-authorized main update is complete at 67d7a6c. Original local commits, changes, source backups, database backup and private evidence remain. All 1777 original R13 paths remain. A separate 1881-file source/index checkpoint and the updated migration-000062 normal fingerprint now bind resumed work. The original eight accounts, five transfers, 20 postings and all money hashes match R04. The other chat passed six fresh-stack journeys, 242 web checks and the normal browser flow. It repaired feature-aware study checks, per-test screenshots, opaque-session propagation, fresh session grants and stylesheet layer order. R13 is active; no final post-update qualification is claimed yet. The candidate runner now retains browser outputs in its own unique private directory. R14–R17 remain selected and unstarted.
 
 P-053: the original Docker context included ignored private state. An explicit source allowlist and actual context export repair that boundary. P-054: production Go, Next.js and telemetry advisories required patched dependencies and runtime pins. P-055: the first Linux race harness used a no-execute temporary directory; the corrected isolated Linux race run passed. P-056: Windows sandbox file/socket restrictions caused an initial Go failure; permitted local checks passed. P-057: Windows npm omitted two Linux optional lock entries; the same Linux npm runtime repaired and checked the lock. P-058: new tmpfs mounts lacked service ownership, and PostgreSQL tooling created unused anonymous volumes. Explicit owners and tooling tmpfs mounts fix both. P-059: cleanup initially compared short Docker IDs with full IDs; full-ID checks now pass and independent guarded cleanup completed. P-060: the old distributed browser test demanded study mode in core mode; it now tests the selected server capability. P-061: old browser cases overwrote tracked QA images; per-test outputs and the new private candidate output root preserve originals. P-062: one unpatched braces advisory propagates through five development-only lint packages; bounded local-tool risk acceptance remains documented. P-063: the authorized main update added session/schema/UI changes; the earlier candidate cannot qualify that later source. P-064: local backup commits can introduce new synthetic-fixture secret-scan fingerprints; final history and source scans require a new exact review. No broad scan exclusion or clean-scan claim is permitted.
+
+## P-076 — R14 chart validator indexing
+
+Status: resolved locally. The first documentation check read the wrong capture groups from the archived capacity table and reported a chart mismatch. The source values and figure were correct. The validator now reads p95 and queue age from their actual columns. The corrected check passed all eight documents, 86 links, 15 command entries, five diagrams and chart provenance. The failed output remains. The seven-scenario demonstration also passed with source and normal-container preservation. No financial code or data changed in R14.
+
+## R15 implementation checkpoint — 16 October 2026
+
+R15 is in progress. The parser/matcher and first actual-role database workflow pass on disposable schema65. Immutable source/import records, a fixed ledger snapshot, deterministic match validation, optimistic review, audit history and a separate non-financial function owner are implemented. Cancellation/retry and a reviewed reference override pass. No statement action changes financial hashes. API/BFF/UI, contracts, further cutoff/ambiguity cases, supported upgrade/restore and complete integrated closeout remain. No R15 completion is claimed.
+
+P-077: the first test fixture attempted a second policy under the existing per-tenant primary key. The fixture now changes its disposable policy currency to INR. The next red run failed on the expected absent function. P-078: fresh schema creation precedes workload role provisioning; new API grants are now conditional and reapplied by roles.sql. P-079: a JavaScript replacement interpreted a double-dollar SQL delimiter; the exact delimiter was repaired. P-080: SELECT FOR UPDATE requires an UPDATE privilege. The statement owner now has UPDATE on only the immutable mapping ID column for row locking. Its append-only trigger still rejects mutation, and it retains no financial write grants. These failures remain in separate private bundles; the repaired database workflow passes.
+
+### P-081 — Local resource pressure interrupted browser qualification
+
+Status: RESOLVED LOCALLY. The final one-worker Linux suite and separate Windows checks passed; the interrupted runs remain private evidence.
+
+Historical checkpoint: OPEN until a later bounded browser run finishes. The owner stopped the heavy build and requested source changes before Docker testing. The engine is stopped. Keep the incomplete `browser-first.txt` log. Do not call it a browser pass. Do not start Docker until the source work is ready. Run heavy verification serially.
+
+### P-082 — R16 financial draft preceded its complete test file
+
+Status: VERIFIED WITH RETAINED PROCESS DEVIATION. R16 runtime, model, race and restore checks passed. The earlier SQL-before-complete-test-file deviation remains recorded; do not call that sequence test-first.
+
+Historical checkpoint: PROCESS DEVIATION RECORDED; verification pending. Constitution principle III requires tests before financial behavior. The SQL draft was authored before the full integration test file. No R16 migration or financial command ran. Preserve the draft and first test output; do not claim a prior red/green cycle. Require concurrency, exact-value, replay, authority, projection, reconciliation and recovery proof before R16 acceptance.
+
+### P-083 — Historical receipt and event equality assumptions
+
+Status: RESOLVED LOCALLY. Mixed version-1/version-2 projection and exact reservation receipts passed the final actual-role regression and extension restore.
+
+Historical checkpoint: CODE REPAIR IN PROGRESS; verification pending. Old balance events inferred posted funds from available funds. The transfer receipt also filled `posted_minor` from the available projection. Those values agree before reservations. R16 adds a compatible event reader, version-2 reserved-balance payloads and explicit posted/available/reserved fields on new receipts. Existing saved receipts stay unchanged. Verify mixed historical/new replay, capture, worker projection and rollback compatibility before acceptance.
+
+### P-084 — Telemetry transport could not use verified HTTPS
+
+Status: RESOLVED LOCALLY. Native trace and metric exporters passed verified local HTTPS. The pinned collector accepted TLS and preserved only the tested allowed fields.
+
+Historical checkpoint: CODE REPAIR IN PROGRESS; verification pending. Go exporters forced plaintext and the BFF accepted only a bare authority. R17 adds explicit verified HTTPS, optional trusted CA support and production transport validation. Local plaintext remains available for disposable development tests. No collector, TLS or redaction execution pass is claimed yet.
+
+### P-085 — Extension contract placement, catalogue and bounds
+
+Status: RESOLVED LOCALLY. Contract 3.9.0 has fourteen extension operations and is 196086 bytes, below the unchanged 192 KiB bound. Go, TypeScript, Redocly and generation-drift checks passed.
+
+Historical checkpoint: RESOLVED in deterministic checks. The first full Go check rejected missing developer operations, incorrect path-parameter spelling and an oversized API asset. Review also found new definitions under examples instead of schemas. Fourteen schemas now occupy the schema collection. Thirteen operations use the bounded existing catalogue groups and a shared error response. The document is 195432 bytes, below the unchanged 192 KiB limit. LF is explicit on all platforms. Contract tests and TypeScript pass. First failed outputs remain private.
+
+### P-086 — Fresh reservation migration assumed workload roles existed
+
+Status: RESOLVED LOCALLY. Fresh migration, complete regression and previous-schema upgrade passed with conditional workload grants and the later complete role-policy step.
+
+Historical checkpoint: CODE REPAIRED; runtime repeat pending. Disposable run demo-20261016141036-b597f237 rejected migration66 because `ledgersync_api` did not yet exist. The migration rolled back; the guarded runner removed only its temporary containers. Runtime grants now check whether each workload role exists. The later atomic role-policy step creates the roles and applies the complete capability set. No broad default grant was added. The normal schema64 database and measured financial hashes still match the preserved baseline.
+
+### P-087 — Statement fixture tried to change an immutable currency
+
+Status: RESOLVED LOCALLY. Correct-currency creation fixtures passed the complete statement and integration profiles; immutable currency protection stayed enabled.
+
+Historical checkpoint: TEST FIXTURE REPAIRED; runtime repeat pending. Run demo-20261016141258-78522316 correctly rejected a test-only UPDATE of account currency. The financial-identity protection stays enabled. The shared synthetic seeder now accepts a validated USD or INR currency at creation; old callers retain USD. Statement tests create INR accounts and policies from the start. No trigger was disabled, no historical row was rewritten, and no normal data changed.
+
+### P-088 — Reservation identifier shadowed SQL account identifiers
+
+Status: RESOLVED LOCALLY. Full create/capture/release/expiry, concurrency and restore checks passed after the identifier repair.
+
+Historical checkpoint: CODE REPAIRED; runtime repeat pending. Run demo-20261016142027-ed1d416e rejected reservation creation with an ambiguous `id` reference. The new local reservation variable is now `new_hold_id`; account identifiers retain their original SQL meaning. No failed call left a hold or financial movement. The same correction narrows immutable hold evidence grants to SELECT/INSERT and reapplies inert ownership to the two private trigger functions after a restore. The failed bundle and exact disposable cleanup remain preserved.
+
+### P-089 — Recovery test closed its administrative connection too soon
+
+Status: RESOLVED LOCALLY. The complete extension restore repeat passed all 76 table fingerprints and final ephemeral-login cleanup.
+
+Historical checkpoint: TEST CLEANUP REPAIRED; repeat pending. Run demo-20261016143013-7797f739 passed all 76 restored table hashes, saved source bytes, prepared comparison, original keys, stale expiry lease fencing and mixed-event cache checks. It then failed because a Go defer closed the administrative connection before test cleanup removed its ephemeral workload logins. The connection now closes through the last test cleanup callback. No product authority or restore check changed. Keep the first failed bundle.
+
+### P-090 — Shared worker test retained the old queue count
+
+Status: RESOLVED LOCALLY. Complete integration inventory passed with five distinct queues and expiry progress.
+
+Historical checkpoint: TEST EXPECTATION REPAIRED; full repeat pending. Run demo-20261016143904-d7c88296 found five completed worker queues where the historical wiring test expected four. The new expiry queue is required. The check now requires five distinct queues, explicit expiry progress and zero unintended expiry transitions. The first full regression remains a failed run. A separate real-deadline capture/expiry race case now checks one terminal outcome, no new journal and one release.
+
+### P-091 — Collector event clearing passed syntax but failed on a real trace
+
+Status: RESOLVED LOCALLY. Actual pinned collector validation, verified TLS transfer, private-event removal and allowed-field preservation passed in collector-20261016144606-361bcbe7.
+
+Historical checkpoint: CONFIGURATION REPAIRED; repeat pending. Collector rehearsal collector-20261016144414-7b1e39ed accepted the configuration, then rejected a real trace because an untyped empty list cannot replace its typed span-event list. The trace was not exported. The package now uses the official span-event filter to discard events, keeps error propagation enabled and retains all privacy assertions. The pinned binary must process the synthetic trace successfully before acceptance. The original failed output remains.
+
+### P-092 — New routes exceeded the unchanged JavaScript budget
+
+Status: RESOLVED LOCALLY. The exact final image has 1785515 JavaScript bytes. The unchanged asset and browser performance budgets passed.
+
+Historical checkpoint: BUNDLE REPAIR IN PROGRESS. The first extension build emitted 2,027,852 JavaScript bytes against the existing 2,000,000-byte total limit. No limit was raised and no route was removed. The pinned Next.js chunker now uses smaller raw merge thresholds so shared console modules can remain reusable across routes. Repeat the full production build, asset check and browser performance tests. Smaller chunks can require more requests; acceptance requires the existing browser budgets too.
+
+### P-093 — Balance split made an old browser locator ambiguous
+
+Status: RESOLVED LOCALLY. Accessible available-balance selectors passed the full browser repeat. Reviewed visual baselines retain the original comparison limits.
+
+Historical checkpoint: TEST LOCATOR REPAIRED; repeat pending. The first full browser run reached a strict locator error because available and posted amounts both correctly showed INR 1250.00. The historical check selected only that text. It now selects the exact accessible available-balance label. Historical refresh labels use the same meaning. The run was stopped after this confirmed failure to reduce resource use. Its partial log and screenshots remain; it is not a full pass. Existing visual baselines remain archived and unchanged until reviewed.
+
+### P-094 — Readiness used an unbounded PostgreSQL ping
+
+Status: RESOLVED LOCALLY. The final candidate returned readiness 503 with liveness 200 during temporary PostgreSQL pause, recovered readiness and repeated original keys.
+
+Historical checkpoint: CODE REPAIRED; actual outage rehearsal pending. The API readiness callback used Ping without a context deadline. A stalled dependency could hold that check indefinitely. The callback now uses a two-second PingContext. The final isolated candidate will pause only its exact temporary PostgreSQL container, require readiness 503 while liveness stays 200, resume it without losing tmpfs data, require recovery and repeat original keys. It will also require clean exit codes on bounded graceful workload shutdown.
+
+### R16 obligation-export closeout gap
+
+The phase review found that the planned obligation export was not yet implemented. A separate read-only snapshot export is now in source. It does not add holds to journal history. The first missing-implementation test failed, then its exact-value, active-deadline and formula checks passed. Restricted-role, audit-failure, scope, browser and candidate checks remain required. No completion status was advanced to hide the gap.
+
+### P-095 — Worker health aggregation retained four-queue assumptions
+
+Status: RESOLVED LOCALLY. Worker health waits for five reports; the regression rejects a four-report healthy state. Native and exact-image checks passed.
+
+Historical checkpoint: CODE AND TEST REPAIRED; repeat pending. The first final native check found the health snapshot still emitted after queue four and required four reports. The monitor now reports five queues. Health aggregation now waits for the final expiry report and requires all five successful polls. The regression explicitly checks that four completed queues cannot make readiness pass. No health threshold was relaxed. The failed native output remains.
+
+### P-096 — Populated statement source table duplicated its region name
+
+Status: RESOLVED LOCALLY. The nested source table has a distinct name. Populated-state Axe, 320-pixel reflow and the actual statement browser journey passed.
+
+Historical checkpoint: ACCESSIBILITY REPAIR IN PROGRESS. Candidate candidate-20261016151133-0139cb9b passed seven real-stack journeys. The statement journey completed import recovery, review, exact downloads and financial-preservation checks, then Axe rejected identical names on the source section and its nested scroll region. The empty mock fixture did not expose this state. Give the nested table its own descriptive name and check the populated state. Do not suppress the accessibility rule. The failed candidate retained source and normal-container identity and removed its exact temporary runtime.
+
+### P-097 — Recovery runner checked a stale Docker health state too early
+
+Status: RESOLVED LOCALLY. The final candidate passed bounded fresh-health recovery, unchanged Compose wait, direct readiness and restart replay.
+
+Historical checkpoint: RUNNER REPAIRED; repeat pending. Candidate candidate-20261016151716-1e45efac passed all eight real browser journeys and the Go system suite. During exact temporary PostgreSQL pause, API readiness returned 503 and liveness returned 200. Immediately after resume, Compose rejected the dependency's cached unhealthy state before its next probe. The runner now polls exact verified targets within 180 seconds for fresh healthy results, then keeps the original Compose wait and direct API probe. Permanent failure, missing probes, stopped targets, identity errors and cancellation still fail. The failed candidate retained source and normal identities and cleaned its own temporary runtime.
+
+### P-098 — Shutdown runner rejected Next.js's documented SIGTERM result
+
+Status: RESOLVED LOCALLY. The final candidate recorded permitted Next shutdown 143 and Go shutdown zero, with no OOM or forced termination.
+
+Historical checkpoint: RUNNER REPAIRED; repeat pending. Candidate candidate-20261016152330-3ac6ccd1 passed eight browser journeys, Go system tests, dependency-loss/recovery probes and restart replay. The author incorrectly required exit zero from Next.js. Docker events record SIGTERM 15 and exit 143, with no forced kill or OOM. The installed pinned Next server explicitly exits 143 after awaiting server and listener cleanup. The runner now permits that code only for the two Next workloads. Native Go workloads still require zero; running, paused, OOM, forced 137 and unexpected exits fail. Per-service state is now saved before classification, including failed observations. No grace period or health threshold was relaxed.
+
+### P-099 — Transfer text still called available funds posted balance
+
+Status: RESOLVED LOCALLY. The final candidate includes available-funds rejection wording and exact split receipt presentation. Eight real-stack journeys and receipt unit checks passed.
+
+Historical checkpoint: WORDING AND RECEIPT PRESENTATION REPAIRED; final image repeat pending. The R16 wording review found a historical API and browser rejection message that said insufficient posted balance although the controlled writer checks available funds. Both now say available funds. Saved transfer receipts now explicitly label posted ledger and show separate available/reserved values only when their exact equation agrees. Missing historical fields do not become invented current values. Command identity, financial rules and saved receipts are unchanged. The prior complete candidate remains valid for its recorded source; the final image must include these presentation corrections.
+
+### P-100 — Working-tree line endings interrupted the Linux formatting driver
+
+Status: RESOLVED. The first Linux driver listed CRLF differences in unchanged Windows files and stopped before race execution. A private copy now removes only CRLF line endings for the formatting check, matching Git's stored LF form. That check passed. Race and both fuzz checks then passed against the original source mounted read-only. No original Go file was changed to satisfy the driver. Keep both first and corrected outputs.
+
+### P-101 — CSV error test also selected the framework route announcer
+
+Status: RESOLVED LOCALLY. The full Linux browser repeat passed the exact missing-audit error and successful audited CSV download checks. Product code stayed unchanged.
+
+Historical checkpoint: TEST LOCATOR REPAIRED; full repeat pending. The reservation download correctly refused a CSV with no audit reference. Its new test selected both that error and Next.js's empty route announcement because both have alert roles. The test now identifies the exact error text and still requires its alert role. The successful-download status is also selected by its content. The product code and qualified image are unchanged. Keep the failed browser output.
+
+### R17 verification resume — 17 October 2026
+
+The last 16 October session stopped during image builds in candidate-20261016153916-bfa584a1. No startup or target record existed; no qualification is claimed. Its source, build logs and interruption record remain. Docker was stopped. On resume, only the five original service IDs were started. Their images, mounts, schema64 and financial fingerprints match the preserved baseline. Fresh candidate-20261016204929-0348f1e6 passed all eight real browser journeys, Go system checks, API restart replay, exact dependency-loss/recovery probes, graceful shutdown classification, source/index/normal preservation and cleanup. Remaining visual, scan, capacity and handover checks still gate final phase completion.
+
+### P-105 — Shared chunks passed byte limits but exceeded the page request limit
+
+Status: RESOLVED FOR THE PINNED LINUX TARGET. Trace-led link-prefetch repair reduced initial requests from 38 to 30. The new exact image passed all three original performance checks, 283 Linux browser checks and eight real-stack journeys. Native Windows throttled LCP remains separately unqualified under P-106.
+
+Historical checkpoint: REPAIR IN PROGRESS. The exact schema66 image passed its 2 MB JavaScript limit but made 38 initial requests against the existing limit of 32. Its Linux timing, interaction, layout and transfer-size checks passed. The first larger-chunk trial emitted 1860824 bytes but still made 35 requests; that native trial also exceeded LCP. The next trial adds an explicit per-route chunk count. No budget is raised. Keep all failed builds, metrics and traces. A new exact image, performance pass and affected browser qualification are required before completion.
+
+### P-106 — Native Windows throttled LCP remains outside the pinned browser target
+
+Status: MEASURED PLATFORM LIMIT; not a Windows performance pass. The repaired native Windows build makes 30 initial requests and passes byte, interaction and layout bounds. Its four-times CPU-throttled LCP is 2864 ms against 2500 ms. Keep the failed metrics and trace. The release browser target is the existing pinned Linux Playwright image used by CI; its final image must pass every unchanged budget. Windows functional and visual results have separate scope. Do not describe a Linux pass as qualification of this native Windows timing or physical devices.
+
+### P-107 — Scanner refresh exceeded temporary memory storage
+
+Status: RESOLVED LOCALLY. The pinned scanner refreshed advisories using disk staging and scanned all four exact application images offline. Vulnerability and SBOM commands passed with exact layer/configuration bindings. The versioned updater passed. Scanner memory stayed at 1 GiB and application budgets were unchanged.
+
+Historical checkpoint: VERIFICATION TOOL REPAIRED; final scan completion pending. The public advisory download first hit a local TLS-negotiation incompatibility. The existing Go compatibility setting kept certificate verification enabled. The compressed database then exceeded 128 MiB, and its second archive copy exceeded 256 MiB. Staging now uses ignored local disk, with a 4 GiB free-space guard. Image scans also reject images above 2 GiB. Scanner CPU and memory remain one CPU and 1 GiB; application and vulnerability budgets are unchanged. A versioned cache updater now retains each attempt and refuses stale metadata. These are verification-only changes after the application image manifest. Keep every failed download log.
+
+### P-102 — Account dialog tests selected page balance labels too
+
+Status: RESOLVED LOCALLY. The first final Windows run and first full Linux run exposed ambiguous test selectors after the page adopted available-balance wording. Both dialog checks now select the dialog and exact label. The full Linux repeat and focused Windows keyboard check passed. No financial or application code changed. Keep both failed reports.
+
+### P-103 — A network-disabled browser correctly reported offline
+
+Status: RESOLVED LOCALLY. The first Linux visual harness used network none, which makes Chromium report offline. Its online fixtures could not proceed. The corrected harness uses a run-owned internal Docker network with no external route. Visual and full browser checks passed; exact network cleanup passed. The product offline guard and visual limits were unchanged.
+
+### P-104 — Private Compose-render assertion counted a property collection incorrectly
+
+Status: RESOLVED LOCALLY. Docker Compose rendered all four services, but a private PowerShell assertion read an enumerated Count value instead of an explicit collection. The corrected render-only check passed. The local package validator passed, and a request for managed readiness correctly failed. No workload or deployment was started. The first render remains saved.

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { repository, captureCandidateSource, sourceIdentity } from './candidate-source.mjs';
+import { waitForCandidateHealth, classifyCandidateShutdown } from './candidate-health.mjs';
 
 // A dirty-tree review candidate is separate from the committed release gate.
 // All images bind the complete source manifest. Normal service tags are never used.
@@ -10,7 +11,7 @@ const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
 const suffix = randomBytes(4).toString('hex');
 const project = `ledgersync-acceptance-${stamp}-${suffix}`;
 const phase = process.argv[2];
-if (!/^r(?:13|17)-\d{8}$/.test(phase ?? '') || process.argv.length !== 3) throw new Error('Usage: node scripts/portfolio/run-release-candidate.mjs r13-YYYYMMDD (or r17)');
+if (!/^r(?:13|15|16|17)-\d{8}$/.test(phase ?? '') || process.argv.length !== 3) throw new Error('Usage: node scripts/portfolio/run-release-candidate.mjs r13-YYYYMMDD (or r15, r16, r17)');
 const root = join(repository, 'data/portfolio', phase, `candidate-${stamp}-${suffix}`);
 const save = (name, value) => writeFileSync(join(root, name), typeof value === 'string' ? value : JSON.stringify(value, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
 const cleanEnvironment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('LEDGERSYNC_') && key !== 'POSTGRES_PASSWORD' && !key.startsWith('PG')));
@@ -96,11 +97,31 @@ try {
   await run(process.platform === 'win32' ? 'pwsh' : 'npm', process.platform === 'win32' ? ['-NoProfile', '-Command', 'npm run test:e2e:real-stack -- --output "$env:LEDGERSYNC_SYSTEM_ARTIFACT_ROOT"'] : ['run', 'test:e2e:real-stack', '--', '--output', browserOutput], 'browser-real-stack.txt', { cwd: join(repository, 'web'), env });
   const goEnvironment = { ...cleanEnvironment, GOMAXPROCS: '2', LEDGERSYNC_SYSTEM_WEB_URL: 'http://127.0.0.1:3102', LEDGERSYNC_SYSTEM_IDEMPOTENCY_KEY: `candidate-go-${suffix}` };
   await run('go', ['test', './tests/system', '-count=1', '-v'], 'go-real-stack.txt', { cwd: candidate.snapshot, env: goEnvironment });
+  // Pause only the exact temporary dependency. A stop would erase its tmpfs.
+  const candidatePG = targets.find(t => t.service === 'postgres'), candidateWeb = targets.find(t => t.service === 'web');
+  if (!candidatePG || !candidateWeb) throw new Error('Candidate health rehearsal targets absent');
+  const probe = status => `Promise.all([fetch('http://api:8080/readyz',{signal:AbortSignal.timeout(6000)}),fetch('http://api:8080/healthz',{signal:AbortSignal.timeout(6000)})]).then(async([ready,live])=>{if(ready.status!==${status}||live.status!==200)throw Error('Unexpected readiness/liveness status');console.log(JSON.stringify({ready:ready.status,live:live.status}));}).catch(e=>{console.error(e.message);process.exitCode=1;})`;
+  verifyTarget(candidatePG); verifyTarget(candidateWeb);
+  docker('pause', candidatePG.id);
+  try { await run('docker', ['exec', candidateWeb.id, 'node', '-e', probe(503)], 'health-dependency-failure.txt'); }
+  finally { verifyTarget(candidatePG); docker('unpause', candidatePG.id); }
+  save('health-recovered-states.json', await waitForCandidateHealth(targets.filter(t=>['postgres','redis','api','outbox-worker','web','web-peer'].includes(t.service)),verifyTarget,{signal:controller.signal}));
+  await run('docker', compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'postgres', 'redis', 'api', 'outbox-worker', 'web', 'web-peer'), 'health-recovered.txt');
+  await run('docker', ['exec', candidateWeb.id, 'node', '-e', probe(200)], 'health-recovered-probe.txt');
+  save('health-rehearsal.json', {status:'verified_local',dependency:'exact temporary PostgreSQL paused then resumed',readiness_during_loss:503,liveness_during_loss:200,readiness_after_recovery:200,storage_stopped_or_deleted:false});
   for (const target of targets) verifyTarget(target);
   await run('docker', compose('restart', 'api'), 'api-restart.txt');
   await run('docker', compose('up', '-d', '--no-deps', '--wait', '--wait-timeout', '180', 'api'), 'api-restart-ready.txt');
   await run('go', ['test', './tests/system', '-run', '^TestRealBFFSameKeyReplayAfterAPIProcessRestart$', '-count=1', '-v'], 'go-restart-replay.txt', { cwd: candidate.snapshot, env: { ...goEnvironment, LEDGERSYNC_SYSTEM_EXPECT_RESTART_REPLAY: 'true' } });
   save('resources-after.json', docker('stats', '--no-stream', '--format', '{{json .}}', ...targets.filter(t => verifyTarget(t).State.Running).map(t => t.id)) + '\n');
+  const shutdown = [];
+  for (const service of ['web-peer','web','api','outbox-worker']) {
+    const target=targets.find(t=>t.service===service); if(!target)throw new Error('Shutdown target absent');
+    verifyTarget(target); await run('docker',['stop','--timeout','30',target.id],`shutdown-${service}.txt`);
+    const stopped=verifyTarget(target);save(`shutdown-${service}-state.json`,stopped.State);
+    shutdown.push({service,id:target.id,image:target.image,...classifyCandidateShutdown(service,stopped.State)});
+  }
+  save('shutdown-rehearsal.json',{status:'verified_local',grace_seconds:30,services:shutdown,normal_targets_untouched:true});
 } catch (error) { failure = error.message; }
 finally {
   clearTimeout(timer);

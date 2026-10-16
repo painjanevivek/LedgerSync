@@ -6,8 +6,11 @@ import {candidateBackupFormat,candidateRoleNames,validateCandidateBackup} from '
 
 // Called only by the fixed recovery profile after its seed test passed. No
 // caller-supplied restore destination, shell command or backup path is accepted.
-export async function restoreCandidate({root,repo,project,pg,redis,targets,inspect,docker,save,env,password,signal,boundedProcess}){
+export async function restoreCandidate({root,repo,project,pg,redis,targets,inspect,docker,save,env,password,signal,boundedProcess,currency='USD'}){
+ if(!['USD','INR'].includes(currency))throw new Error('Fixed recovery currency required');
  for(const target of targets)if(inspect(target)!==target.port)throw new Error('Recovery source target changed');
+ const actualCurrencies=JSON.parse(docker('exec',pg.id,'psql','-X','-U','ledgersync','-d','ledgersync','-At','-c',"SELECT COALESCE(json_agg(currency ORDER BY currency),'[]') FROM (SELECT DISTINCT currency FROM accounts) c"));
+ if(JSON.stringify(actualCurrencies)!==JSON.stringify([currency]))throw new Error('Recovery currency differs from the exact database scope');
  const backupStarted=new Date();
  const privileged=docker('exec',pg.id,'psql','-X','-U','ledgersync','-d','ledgersync','-At','-c',"SELECT current_user='ledgersync' AND rolsuper FROM pg_roles WHERE rolname=current_user");
  if(privileged!=='t')throw new Error('Candidate backup requires the explicit isolated owner identity; filtered backups are forbidden');
@@ -15,8 +18,8 @@ export async function restoreCandidate({root,repo,project,pg,redis,targets,inspe
  const roleNames=JSON.parse(docker('exec',pg.id,'psql','-X','-U','ledgersync','-d','ledgersync','-At','-c',roleSQL));
  const dump=execFileSync('docker',['exec',pg.id,'pg_dump','-U','ledgersync','-d','ledgersync','--format=custom','--no-owner','--no-acl'],{cwd:repo,windowsHide:true,timeout:60000,maxBuffer:128*1024*1024});
  writeFileSync(join(root,'database.dump'),dump,{flag:'wx',mode:0o600});
- const expected={source:await fileDigest(join(root,'source-manifest.json')),migrations:await fileDigest(join(root,'migration-manifest.json'))};
- save('candidate-backup.json',{format_version:candidateBackupFormat,complete:true,created_at:new Date().toISOString(),source_manifest_sha256:expected.source,migration_manifest_sha256:expected.migrations,currencies:['USD'],role_names:roleNames,database:{file_name:'database.dump',bytes:dump.length,sha256:await fileDigest(join(root,'database.dump'))}});
+ const expected={currency,source:await fileDigest(join(root,'source-manifest.json')),migrations:await fileDigest(join(root,'migration-manifest.json'))};
+ save('candidate-backup.json',{format_version:candidateBackupFormat,complete:true,created_at:new Date().toISOString(),source_manifest_sha256:expected.source,migration_manifest_sha256:expected.migrations,currencies:[currency],role_names:roleNames,database:{file_name:'database.dump',bytes:dump.length,sha256:await fileDigest(join(root,'database.dump'))}});
  const verified=await validateCandidateBackup(root,expected),backupCompleted=new Date();
  if(signal.aborted)throw new Error('Recovery cancelled before restore target creation');
  const restoreStarted=new Date();

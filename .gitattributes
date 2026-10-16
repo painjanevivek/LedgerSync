@@ -3,3 +3,6 @@
 
 # SQL function rewrites and migration digests require stable line endings.
 *.sql text eol=lf
+
+# The embedded API asset has a fixed byte budget on all developer platforms.
+contracts/openapi.yaml text eol=lf

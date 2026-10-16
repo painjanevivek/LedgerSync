@@ -1,4 +1,5 @@
 "use client";
+import { TransferReceiptBalance } from "./TransferReceiptBalance";
 
 import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -160,10 +161,10 @@ export function TransferForm({ accounts, accountsLoading, accountsError, account
         <div><dt>Destination</dt><dd><Link href={`/accounts/${outcome.destination}`}>{outcome.destination}</Link></dd></div>
       </dl>
       <section className="committed-balance-evidence" aria-labelledby="committed-balances-heading">
-        <p className="eyebrow" id="committed-balances-heading">Committed balance details</p>
+        <p className="eyebrow" id="committed-balances-heading">Balances saved with this receipt</p>
         {outcome.balances?.length ? <div className="review-grid">{outcome.balances.map((balance) => <div key={balance.account_id}>
           <dt><Link href={`/accounts/${balance.account_id}`}>{balance.account_id === outcome.source ? "Source" : "Destination"} account</Link></dt>
-          <dd><Money currency={balance.currency} minorUnits={balance.posted_minor} /><code>version {balance.version}</code><small><Timestamp value={balance.as_of} /></small></dd>
+          <dd><TransferReceiptBalance balance={balance}/><code>version {balance.version}</code><small><Timestamp value={balance.as_of} /></small></dd>
         </div>)}</div> : <p className="muted">Open the source and destination account records for current balance details.</p>}
       </section>
       {storageBlocked && <p role="alert">This transfer completed, but its local retry information could not be cleared. Do not create another request until browser storage is available.</p>}

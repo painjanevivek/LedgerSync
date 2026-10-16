@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "contract_version": "3.7.0",
+  "contract_version": "3.9.0",
   "base_url": "/api",
   "openapi_download_path": "/api/openapi.yaml",
   "boundary": {
@@ -25,138 +25,582 @@
       "id": "accounts",
       "label": "Accounts",
       "operations": [
-        { "operation_id": "createAccount", "method": "POST", "path": "/accounts", "scope": "accounts:write" },
-        { "operation_id": "listOwnedAccounts", "method": "GET", "path": "/me/accounts", "scope": "accounts:read" },
-        { "operation_id": "getOwnedAccount", "method": "GET", "path": "/accounts/{accountId}", "scope": "accounts:read" },
-        { "operation_id": "updateAccount", "method": "PATCH", "path": "/accounts/{accountId}", "scope": "accounts:write" },
-        { "operation_id": "getAccountBalance", "method": "GET", "path": "/accounts/{accountId}/balance", "scope": "accounts:read" },
-        { "operation_id": "listAccountTransactions", "method": "GET", "path": "/accounts/{accountId}/transactions", "scope": "transactions:read" }
+        {
+          "operation_id": "createAccount",
+          "method": "POST",
+          "path": "/accounts",
+          "scope": "accounts:write"
+        },
+        {
+          "operation_id": "listOwnedAccounts",
+          "method": "GET",
+          "path": "/me/accounts",
+          "scope": "accounts:read"
+        },
+        {
+          "operation_id": "getOwnedAccount",
+          "method": "GET",
+          "path": "/accounts/{accountId}",
+          "scope": "accounts:read"
+        },
+        {
+          "operation_id": "updateAccount",
+          "method": "PATCH",
+          "path": "/accounts/{accountId}",
+          "scope": "accounts:write"
+        },
+        {
+          "operation_id": "getAccountBalance",
+          "method": "GET",
+          "path": "/accounts/{accountId}/balance",
+          "scope": "accounts:read"
+        },
+        {
+          "operation_id": "listAccountTransactions",
+          "method": "GET",
+          "path": "/accounts/{accountId}/transactions",
+          "scope": "transactions:read"
+        }
       ]
     },
     {
       "id": "transfers",
       "label": "Transfers",
       "operations": [
-        { "operation_id": "listTransfers", "method": "GET", "path": "/transfers", "scope": "transfers:read" },
-        { "operation_id": "createTransfer", "method": "POST", "path": "/transfers", "scope": "transfers:write" },
-        { "operation_id": "listTransferRecoveryRequests", "method": "GET", "path": "/transfers/recovery", "scope": "transfers:read" },
-        { "operation_id": "prepareTransferRecoveryRequest", "method": "POST", "path": "/transfers/recovery", "scope": "transfers:write" },
-        { "operation_id": "retryOriginalTransferRecoveryRequest", "method": "POST", "path": "/transfers/recovery/{requestReference}/retry", "scope": "transfers:write" },
-        { "operation_id": "getTransfer", "method": "GET", "path": "/transfers/{transferId}", "scope": "transfers:read" }
+        {
+          "operation_id": "listTransfers",
+          "method": "GET",
+          "path": "/transfers",
+          "scope": "transfers:read"
+        },
+        {
+          "operation_id": "createTransfer",
+          "method": "POST",
+          "path": "/transfers",
+          "scope": "transfers:write"
+        },
+        {
+          "operation_id": "listTransferRecoveryRequests",
+          "method": "GET",
+          "path": "/transfers/recovery",
+          "scope": "transfers:read"
+        },
+        {
+          "operation_id": "prepareTransferRecoveryRequest",
+          "method": "POST",
+          "path": "/transfers/recovery",
+          "scope": "transfers:write"
+        },
+        {
+          "operation_id": "retryOriginalTransferRecoveryRequest",
+          "method": "POST",
+          "path": "/transfers/recovery/{requestReference}/retry",
+          "scope": "transfers:write"
+        },
+        {
+          "operation_id": "getTransfer",
+          "method": "GET",
+          "path": "/transfers/{transferId}",
+          "scope": "transfers:read"
+        },
+        {
+          "operation_id": "listReservations",
+          "method": "GET",
+          "path": "/reservations",
+          "scope": "transfers:read"
+        },
+        {
+          "operation_id": "createReservation",
+          "method": "POST",
+          "path": "/reservations",
+          "scope": "transfers:write"
+        },
+        {
+          "operation_id": "getReservation",
+          "method": "GET",
+          "path": "/reservations/{holdID}",
+          "scope": "transfers:read"
+        },
+        {
+          "operation_id": "decideReservation",
+          "method": "POST",
+          "path": "/reservations/{holdID}/decisions",
+          "scope": "transfers:write"
+        },
+        {
+          "operation_id": "exportReservationObligations",
+          "method": "GET",
+          "path": "/reservations/export.csv",
+          "scope": "exports:read"
+        }
       ]
     },
     {
       "id": "corrections",
       "label": "Transfer corrections",
       "operations": [
-        { "operation_id": "requestTransferCorrection", "method": "POST", "path": "/transfers/{transferId}/corrections", "scope": "corrections:write" },
-        { "operation_id": "listTransferCorrections", "method": "GET", "path": "/transfer-corrections", "scope": "corrections:read" },
-        { "operation_id": "getTransferCorrection", "method": "GET", "path": "/transfer-corrections/{correctionId}", "scope": "corrections:read" },
-        { "operation_id": "approveTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/approve", "scope": "corrections:approve" },
-        { "operation_id": "rejectTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/reject", "scope": "corrections:approve" },
-        { "operation_id": "cancelTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/cancel", "scope": "corrections:write" },
-        { "operation_id": "postTransferCorrection", "method": "POST", "path": "/transfer-corrections/{correctionId}/post", "scope": "corrections:approve" }
+        {
+          "operation_id": "requestTransferCorrection",
+          "method": "POST",
+          "path": "/transfers/{transferId}/corrections",
+          "scope": "corrections:write"
+        },
+        {
+          "operation_id": "listTransferCorrections",
+          "method": "GET",
+          "path": "/transfer-corrections",
+          "scope": "corrections:read"
+        },
+        {
+          "operation_id": "getTransferCorrection",
+          "method": "GET",
+          "path": "/transfer-corrections/{correctionId}",
+          "scope": "corrections:read"
+        },
+        {
+          "operation_id": "approveTransferCorrection",
+          "method": "POST",
+          "path": "/transfer-corrections/{correctionId}/approve",
+          "scope": "corrections:approve"
+        },
+        {
+          "operation_id": "rejectTransferCorrection",
+          "method": "POST",
+          "path": "/transfer-corrections/{correctionId}/reject",
+          "scope": "corrections:approve"
+        },
+        {
+          "operation_id": "cancelTransferCorrection",
+          "method": "POST",
+          "path": "/transfer-corrections/{correctionId}/cancel",
+          "scope": "corrections:write"
+        },
+        {
+          "operation_id": "postTransferCorrection",
+          "method": "POST",
+          "path": "/transfer-corrections/{correctionId}/post",
+          "scope": "corrections:approve"
+        }
       ]
     },
     {
       "id": "reconciliation",
       "label": "Reconciliation",
       "operations": [
-        { "operation_id": "listReconciliationRuns", "method": "GET", "path": "/reconciliation/runs", "scope": "reconciliation:read" },
-        { "operation_id": "runReconciliation", "method": "POST", "path": "/reconciliation/runs", "scope": "reconciliation:write" },
-        { "operation_id": "getReconciliationRun", "method": "GET", "path": "/reconciliation/runs/{runId}", "scope": "reconciliation:read" }
+        {
+          "operation_id": "listReconciliationRuns",
+          "method": "GET",
+          "path": "/reconciliation/runs",
+          "scope": "reconciliation:read"
+        },
+        {
+          "operation_id": "runReconciliation",
+          "method": "POST",
+          "path": "/reconciliation/runs",
+          "scope": "reconciliation:write"
+        },
+        {
+          "operation_id": "getReconciliationRun",
+          "method": "GET",
+          "path": "/reconciliation/runs/{runId}",
+          "scope": "reconciliation:read"
+        },
+        {
+          "operation_id": "getStatementWorkspace",
+          "method": "GET",
+          "path": "/statement-reconciliation",
+          "scope": "reconciliation:read"
+        },
+        {
+          "operation_id": "createStatementMapping",
+          "method": "POST",
+          "path": "/statement-reconciliation/mappings",
+          "scope": "reconciliation:write"
+        },
+        {
+          "operation_id": "previewStatement",
+          "method": "POST",
+          "path": "/statement-reconciliation/preview",
+          "scope": "reconciliation:write"
+        },
+        {
+          "operation_id": "importStatement",
+          "method": "POST",
+          "path": "/statement-reconciliation/imports",
+          "scope": "reconciliation:write"
+        },
+        {
+          "operation_id": "runStatementReconciliation",
+          "method": "POST",
+          "path": "/statement-reconciliation/runs",
+          "scope": "reconciliation:write"
+        },
+        {
+          "operation_id": "getStatementRun",
+          "method": "GET",
+          "path": "/statement-reconciliation/runs/{runId}",
+          "scope": "reconciliation:read"
+        },
+        {
+          "operation_id": "reviewStatementItem",
+          "method": "POST",
+          "path": "/statement-reconciliation/runs/{runId}/reviews",
+          "scope": "reconciliation:write"
+        },
+        {
+          "operation_id": "downloadStatementSource",
+          "method": "GET",
+          "path": "/statement-reconciliation/imports/{importID}/source.csv",
+          "scope": "exports:read"
+        },
+        {
+          "operation_id": "exportStatementComparison",
+          "method": "GET",
+          "path": "/statement-reconciliation/runs/{runId}/comparison.csv",
+          "scope": "exports:read"
+        }
       ]
     },
     {
       "id": "funding",
       "label": "Controlled funding evidence",
       "operations": [
-        { "operation_id": "requestFunding", "method": "POST", "path": "/funding-requests", "scope": "funding:write" },
-        { "operation_id": "listFundingEvents", "method": "GET", "path": "/funding-events", "scope": "funding:read" },
-        { "operation_id": "getFundingEvent", "method": "GET", "path": "/funding-events/{fundingEventId}", "scope": "funding:read" },
-        { "operation_id": "approveFundingEvent", "method": "POST", "path": "/funding-events/{fundingEventId}/approve", "scope": "funding:approve" },
-        { "operation_id": "rejectFundingEvent", "method": "POST", "path": "/funding-events/{fundingEventId}/reject", "scope": "funding:approve" },
-        { "operation_id": "postFundingEvent", "method": "POST", "path": "/funding-events/{fundingEventId}/post", "scope": "funding:write" },
-        { "operation_id": "requestFundingCompensation", "method": "POST", "path": "/funding-events/{fundingEventId}/compensations", "scope": "funding:write" },
-        { "operation_id": "reconcileFundingEvent", "method": "GET", "path": "/funding-events/{fundingEventId}/reconciliation", "scope": "funding:read" }
+        {
+          "operation_id": "requestFunding",
+          "method": "POST",
+          "path": "/funding-requests",
+          "scope": "funding:write"
+        },
+        {
+          "operation_id": "listFundingEvents",
+          "method": "GET",
+          "path": "/funding-events",
+          "scope": "funding:read"
+        },
+        {
+          "operation_id": "getFundingEvent",
+          "method": "GET",
+          "path": "/funding-events/{fundingEventId}",
+          "scope": "funding:read"
+        },
+        {
+          "operation_id": "approveFundingEvent",
+          "method": "POST",
+          "path": "/funding-events/{fundingEventId}/approve",
+          "scope": "funding:approve"
+        },
+        {
+          "operation_id": "rejectFundingEvent",
+          "method": "POST",
+          "path": "/funding-events/{fundingEventId}/reject",
+          "scope": "funding:approve"
+        },
+        {
+          "operation_id": "postFundingEvent",
+          "method": "POST",
+          "path": "/funding-events/{fundingEventId}/post",
+          "scope": "funding:write"
+        },
+        {
+          "operation_id": "requestFundingCompensation",
+          "method": "POST",
+          "path": "/funding-events/{fundingEventId}/compensations",
+          "scope": "funding:write"
+        },
+        {
+          "operation_id": "reconcileFundingEvent",
+          "method": "GET",
+          "path": "/funding-events/{fundingEventId}/reconciliation",
+          "scope": "funding:read"
+        }
       ]
     },
     {
       "id": "approvals",
       "label": "Independent approval evidence",
       "operations": [
-        { "operation_id": "listApprovalEvidence", "method": "GET", "path": "/approvals", "scope": "funding:approve" }
+        {
+          "operation_id": "listApprovalEvidence",
+          "method": "GET",
+          "path": "/approvals",
+          "scope": "funding:approve"
+        }
       ]
     },
     {
       "id": "operations",
       "label": "Local operations",
       "operations": [
-        { "operation_id": "searchInvestigationEvidence", "method": "GET", "path": "/investigation/search", "scope": "investigation:read" },
-        { "operation_id": "getRelatedInvestigationEvidence", "method": "GET", "path": "/investigation/related/{recordType}/{recordId}", "scope": "investigation:read" },
-        { "operation_id": "listSavedInvestigationViews", "method": "GET", "path": "/investigation/saved-views", "scope": "investigation:read" },
-        { "operation_id": "createSavedInvestigationView", "method": "POST", "path": "/investigation/saved-views", "scope": "investigation:write" },
-        { "operation_id": "renameSavedInvestigationView", "method": "PUT", "path": "/investigation/saved-views/{savedViewId}", "scope": "investigation:write" },
-        { "operation_id": "deleteSavedInvestigationView", "method": "DELETE", "path": "/investigation/saved-views/{savedViewId}", "scope": "investigation:write" },
-        { "operation_id": "listInvestigationWorkspaces", "method": "GET", "path": "/investigation/workspaces", "scope": "investigation:read" },
-        { "operation_id": "createInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces", "scope": "investigation:write" },
-        { "operation_id": "getInvestigationWorkspace", "method": "GET", "path": "/investigation/workspaces/{investigationId}", "scope": "investigation:read" },
-        { "operation_id": "handoffInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/handoff", "scope": "investigation:write" },
-        { "operation_id": "closeInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/close", "scope": "investigation:write" },
-        { "operation_id": "reopenInvestigationWorkspace", "method": "POST", "path": "/investigation/workspaces/{investigationId}/reopen", "scope": "investigation:write" },
-        { "operation_id": "getLocalDiagnostics", "method": "GET", "path": "/local/diagnostics", "scope": "local:read" },
-        { "operation_id": "getLocalOrientationEvidence", "method": "GET", "path": "/local/orientation", "scope": "local:read" },
-        { "operation_id": "updateLocalOrientationPreferences", "method": "PUT", "path": "/local/orientation/preferences", "scope": "local:write" },
-        { "operation_id": "listEventEvidence", "method": "GET", "path": "/events", "scope": "events:read" },
-        { "operation_id": "getEventEvidence", "method": "GET", "path": "/events/{eventId}", "scope": "events:read" },
-        { "operation_id": "listWebhookEndpointEvidence", "method": "GET", "path": "/webhook-endpoints", "scope": "webhooks:read" },
-        { "operation_id": "getWebhookEndpointEvidence", "method": "GET", "path": "/webhook-endpoints/{endpointId}", "scope": "webhooks:read" },
-        { "operation_id": "explainTransferEvidence", "method": "GET", "path": "/transfers/{transferId}/explainability", "scope": "explainability:read" }
+        {
+          "operation_id": "searchInvestigationEvidence",
+          "method": "GET",
+          "path": "/investigation/search",
+          "scope": "investigation:read"
+        },
+        {
+          "operation_id": "getRelatedInvestigationEvidence",
+          "method": "GET",
+          "path": "/investigation/related/{recordType}/{recordId}",
+          "scope": "investigation:read"
+        },
+        {
+          "operation_id": "listSavedInvestigationViews",
+          "method": "GET",
+          "path": "/investigation/saved-views",
+          "scope": "investigation:read"
+        },
+        {
+          "operation_id": "createSavedInvestigationView",
+          "method": "POST",
+          "path": "/investigation/saved-views",
+          "scope": "investigation:write"
+        },
+        {
+          "operation_id": "renameSavedInvestigationView",
+          "method": "PUT",
+          "path": "/investigation/saved-views/{savedViewId}",
+          "scope": "investigation:write"
+        },
+        {
+          "operation_id": "deleteSavedInvestigationView",
+          "method": "DELETE",
+          "path": "/investigation/saved-views/{savedViewId}",
+          "scope": "investigation:write"
+        },
+        {
+          "operation_id": "listInvestigationWorkspaces",
+          "method": "GET",
+          "path": "/investigation/workspaces",
+          "scope": "investigation:read"
+        },
+        {
+          "operation_id": "createInvestigationWorkspace",
+          "method": "POST",
+          "path": "/investigation/workspaces",
+          "scope": "investigation:write"
+        },
+        {
+          "operation_id": "getInvestigationWorkspace",
+          "method": "GET",
+          "path": "/investigation/workspaces/{investigationId}",
+          "scope": "investigation:read"
+        },
+        {
+          "operation_id": "handoffInvestigationWorkspace",
+          "method": "POST",
+          "path": "/investigation/workspaces/{investigationId}/handoff",
+          "scope": "investigation:write"
+        },
+        {
+          "operation_id": "closeInvestigationWorkspace",
+          "method": "POST",
+          "path": "/investigation/workspaces/{investigationId}/close",
+          "scope": "investigation:write"
+        },
+        {
+          "operation_id": "reopenInvestigationWorkspace",
+          "method": "POST",
+          "path": "/investigation/workspaces/{investigationId}/reopen",
+          "scope": "investigation:write"
+        },
+        {
+          "operation_id": "getLocalDiagnostics",
+          "method": "GET",
+          "path": "/local/diagnostics",
+          "scope": "local:read"
+        },
+        {
+          "operation_id": "getLocalOrientationEvidence",
+          "method": "GET",
+          "path": "/local/orientation",
+          "scope": "local:read"
+        },
+        {
+          "operation_id": "updateLocalOrientationPreferences",
+          "method": "PUT",
+          "path": "/local/orientation/preferences",
+          "scope": "local:write"
+        },
+        {
+          "operation_id": "listEventEvidence",
+          "method": "GET",
+          "path": "/events",
+          "scope": "events:read"
+        },
+        {
+          "operation_id": "getEventEvidence",
+          "method": "GET",
+          "path": "/events/{eventId}",
+          "scope": "events:read"
+        },
+        {
+          "operation_id": "listWebhookEndpointEvidence",
+          "method": "GET",
+          "path": "/webhook-endpoints",
+          "scope": "webhooks:read"
+        },
+        {
+          "operation_id": "getWebhookEndpointEvidence",
+          "method": "GET",
+          "path": "/webhook-endpoints/{endpointId}",
+          "scope": "webhooks:read"
+        },
+        {
+          "operation_id": "explainTransferEvidence",
+          "method": "GET",
+          "path": "/transfers/{transferId}/explainability",
+          "scope": "explainability:read"
+        }
       ]
     },
     {
       "id": "recovery_exports",
       "label": "Recovery and exports",
       "operations": [
-        { "operation_id": "getRecoveryEvidenceIndex", "method": "GET", "path": "/recovery/manifests", "scope": "recovery:read" },
-        { "operation_id": "downloadInvestigationEvidenceBundle", "method": "POST", "path": "/investigation/workspaces/{investigationId}/evidence-bundle", "scope": "exports:read" },
-        { "operation_id": "exportTransfersCSV", "method": "GET", "path": "/exports/transfers.csv", "scope": "exports:read" },
-        { "operation_id": "exportAccountLedgerCSV", "method": "GET", "path": "/exports/accounts/{accountId}/transactions.csv", "scope": "exports:read" },
-        { "operation_id": "exportReconciliationCSV", "method": "GET", "path": "/exports/reconciliation.csv", "scope": "exports:read" }
+        {
+          "operation_id": "getRecoveryEvidenceIndex",
+          "method": "GET",
+          "path": "/recovery/manifests",
+          "scope": "recovery:read"
+        },
+        {
+          "operation_id": "downloadInvestigationEvidenceBundle",
+          "method": "POST",
+          "path": "/investigation/workspaces/{investigationId}/evidence-bundle",
+          "scope": "exports:read"
+        },
+        {
+          "operation_id": "exportTransfersCSV",
+          "method": "GET",
+          "path": "/exports/transfers.csv",
+          "scope": "exports:read"
+        },
+        {
+          "operation_id": "exportAccountLedgerCSV",
+          "method": "GET",
+          "path": "/exports/accounts/{accountId}/transactions.csv",
+          "scope": "exports:read"
+        },
+        {
+          "operation_id": "exportReconciliationCSV",
+          "method": "GET",
+          "path": "/exports/reconciliation.csv",
+          "scope": "exports:read"
+        }
       ]
     },
     {
       "id": "credentials",
       "label": "Credential lifecycle",
       "operations": [
-        { "operation_id": "listDeveloperCredentials", "method": "GET", "path": "/developer/credentials", "scope": "credentials:read" },
-        { "operation_id": "createDeveloperCredential", "method": "POST", "path": "/developer/credentials", "scope": "credentials:write" },
-        { "operation_id": "getDeveloperCredential", "method": "GET", "path": "/developer/credentials/{credentialId}", "scope": "credentials:read" },
-        { "operation_id": "rotateDeveloperCredential", "method": "POST", "path": "/developer/credentials/{credentialId}/rotations", "scope": "credentials:write" },
-        { "operation_id": "revokeDeveloperCredential", "method": "POST", "path": "/developer/credentials/{credentialId}/revocations", "scope": "credentials:write" }
+        {
+          "operation_id": "listDeveloperCredentials",
+          "method": "GET",
+          "path": "/developer/credentials",
+          "scope": "credentials:read"
+        },
+        {
+          "operation_id": "createDeveloperCredential",
+          "method": "POST",
+          "path": "/developer/credentials",
+          "scope": "credentials:write"
+        },
+        {
+          "operation_id": "getDeveloperCredential",
+          "method": "GET",
+          "path": "/developer/credentials/{credentialId}",
+          "scope": "credentials:read"
+        },
+        {
+          "operation_id": "rotateDeveloperCredential",
+          "method": "POST",
+          "path": "/developer/credentials/{credentialId}/rotations",
+          "scope": "credentials:write"
+        },
+        {
+          "operation_id": "revokeDeveloperCredential",
+          "method": "POST",
+          "path": "/developer/credentials/{credentialId}/revocations",
+          "scope": "credentials:write"
+        }
       ]
     },
     {
       "id": "webhooks",
       "label": "Webhook lifecycle",
       "operations": [
-        { "operation_id": "listDeveloperWebhooks", "method": "GET", "path": "/developer/webhooks", "scope": "webhooks:read" },
-        { "operation_id": "registerDeveloperWebhook", "method": "POST", "path": "/developer/webhooks", "scope": "webhooks:write" },
-        { "operation_id": "getDeveloperWebhook", "method": "GET", "path": "/developer/webhooks/{webhookId}", "scope": "webhooks:read" },
-        { "operation_id": "rotateDeveloperWebhookSignature", "method": "POST", "path": "/developer/webhooks/{webhookId}/signature-rotations", "scope": "webhooks:write" },
-        { "operation_id": "disableDeveloperWebhook", "method": "POST", "path": "/developer/webhooks/{webhookId}/disablements", "scope": "webhooks:write" },
-        { "operation_id": "listDeveloperWebhookDeliveries", "method": "GET", "path": "/developer/webhooks/{webhookId}/deliveries", "scope": "webhooks:read" },
-        { "operation_id": "approveDeveloperWebhookReplay", "method": "POST", "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals", "scope": "webhooks:replay" },
-        { "operation_id": "replayDeveloperWebhookDelivery", "method": "POST", "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays", "scope": "webhooks:replay" }
+        {
+          "operation_id": "listDeveloperWebhooks",
+          "method": "GET",
+          "path": "/developer/webhooks",
+          "scope": "webhooks:read"
+        },
+        {
+          "operation_id": "registerDeveloperWebhook",
+          "method": "POST",
+          "path": "/developer/webhooks",
+          "scope": "webhooks:write"
+        },
+        {
+          "operation_id": "getDeveloperWebhook",
+          "method": "GET",
+          "path": "/developer/webhooks/{webhookId}",
+          "scope": "webhooks:read"
+        },
+        {
+          "operation_id": "rotateDeveloperWebhookSignature",
+          "method": "POST",
+          "path": "/developer/webhooks/{webhookId}/signature-rotations",
+          "scope": "webhooks:write"
+        },
+        {
+          "operation_id": "disableDeveloperWebhook",
+          "method": "POST",
+          "path": "/developer/webhooks/{webhookId}/disablements",
+          "scope": "webhooks:write"
+        },
+        {
+          "operation_id": "listDeveloperWebhookDeliveries",
+          "method": "GET",
+          "path": "/developer/webhooks/{webhookId}/deliveries",
+          "scope": "webhooks:read"
+        },
+        {
+          "operation_id": "approveDeveloperWebhookReplay",
+          "method": "POST",
+          "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replay-approvals",
+          "scope": "webhooks:replay"
+        },
+        {
+          "operation_id": "replayDeveloperWebhookDelivery",
+          "method": "POST",
+          "path": "/developer/webhooks/{webhookId}/deliveries/{attemptId}/replays",
+          "scope": "webhooks:replay"
+        }
       ]
     },
     {
       "id": "developer",
       "label": "Developer contracts",
       "operations": [
-        { "operation_id": "getDeveloperMetadata", "method": "GET", "path": "/developer/metadata", "scope": "developer:read" },
-        { "operation_id": "getDistributedEvidence", "method": "GET", "path": "/developer/distributed", "scope": "developer:read" },
-        { "operation_id": "downloadOpenAPI", "method": "GET", "path": "/openapi.yaml", "scope": "developer:read" }
+        {
+          "operation_id": "getDeveloperMetadata",
+          "method": "GET",
+          "path": "/developer/metadata",
+          "scope": "developer:read"
+        },
+        {
+          "operation_id": "getDistributedEvidence",
+          "method": "GET",
+          "path": "/developer/distributed",
+          "scope": "developer:read"
+        },
+        {
+          "operation_id": "downloadOpenAPI",
+          "method": "GET",
+          "path": "/openapi.yaml",
+          "scope": "developer:read"
+        }
       ]
     }
   ],
@@ -207,32 +651,99 @@
     }
   ],
   "retry_outcomes": [
-    { "code": "request_in_progress", "safe_action": "Retry the identical request with the same idempotency key." },
-    { "code": "response_unknown", "safe_action": "Retry the identical request with the same idempotency key." },
-    { "code": "funding_outcome_unknown", "safe_action": "Refresh the funding event, then retry the identical evidence intent with the same idempotency key when applicable." },
-    { "code": "temporary_unavailable", "safe_action": "Retry the identical request with the same idempotency key." },
-    { "code": "transaction_conflict_retryable", "safe_action": "Retry the identical transfer with the same idempotency key." },
-    { "code": "idempotency_conflict", "safe_action": "Stop. The key belongs to a different intent; inspect the original request before choosing a new key." },
-    { "code": "reconciliation_already_running", "safe_action": "Inspect the active run identifier; do not queue a second run." }
+    {
+      "code": "request_in_progress",
+      "safe_action": "Retry the identical request with the same idempotency key."
+    },
+    {
+      "code": "response_unknown",
+      "safe_action": "Retry the identical request with the same idempotency key."
+    },
+    {
+      "code": "funding_outcome_unknown",
+      "safe_action": "Refresh the funding event, then retry the identical evidence intent with the same idempotency key when applicable."
+    },
+    {
+      "code": "temporary_unavailable",
+      "safe_action": "Retry the identical request with the same idempotency key."
+    },
+    {
+      "code": "transaction_conflict_retryable",
+      "safe_action": "Retry the identical transfer with the same idempotency key."
+    },
+    {
+      "code": "idempotency_conflict",
+      "safe_action": "Stop. The key belongs to a different intent; inspect the original request before choosing a new key."
+    },
+    {
+      "code": "reconciliation_already_running",
+      "safe_action": "Inspect the active run identifier; do not queue a second run."
+    }
   ],
   "error_catalogue": [
-    { "code": "invalid_request", "meaning": "The request failed validation and no financial change was accepted." },
-    { "code": "unauthorized", "meaning": "Authentication failed." },
-    { "code": "forbidden", "meaning": "The principal lacks the required scope or object authorization." },
-    { "code": "not_found", "meaning": "The authorized resource was not found; inaccessible objects are not disclosed." },
-    { "code": "account_version_conflict", "meaning": "The account configuration changed before the command was applied." },
-    { "code": "invalid_account_transition", "meaning": "The requested account lifecycle transition is not allowed." },
-    { "code": "account_not_zero", "meaning": "Both authoritative available and ledger balances must be exactly zero before close." },
-    { "code": "external_reference_conflict", "meaning": "The external reference already belongs to another account." },
-    { "code": "transfer_policy_denied", "meaning": "The transfer is outside the configured tenant policy." },
-    { "code": "invalid_funding_request", "meaning": "The funding evidence request failed exact input validation." },
-    { "code": "funding_conflict", "meaning": "The funding evidence changed, was already compensated, or is no longer actionable." },
-    { "code": "funding_limit_exceeded", "meaning": "The request is outside approved per-command or rolling funding limits." },
-    { "code": "evidence_unavailable", "meaning": "Authoritative read evidence is temporarily unavailable; an empty result was not inferred." }
+    {
+      "code": "invalid_request",
+      "meaning": "The request failed validation and no financial change was accepted."
+    },
+    {
+      "code": "unauthorized",
+      "meaning": "Authentication failed."
+    },
+    {
+      "code": "forbidden",
+      "meaning": "The principal lacks the required scope or object authorization."
+    },
+    {
+      "code": "not_found",
+      "meaning": "The authorized resource was not found; inaccessible objects are not disclosed."
+    },
+    {
+      "code": "account_version_conflict",
+      "meaning": "The account configuration changed before the command was applied."
+    },
+    {
+      "code": "invalid_account_transition",
+      "meaning": "The requested account lifecycle transition is not allowed."
+    },
+    {
+      "code": "account_not_zero",
+      "meaning": "Both authoritative available and ledger balances must be exactly zero before close."
+    },
+    {
+      "code": "external_reference_conflict",
+      "meaning": "The external reference already belongs to another account."
+    },
+    {
+      "code": "transfer_policy_denied",
+      "meaning": "The transfer is outside the configured tenant policy."
+    },
+    {
+      "code": "invalid_funding_request",
+      "meaning": "The funding evidence request failed exact input validation."
+    },
+    {
+      "code": "funding_conflict",
+      "meaning": "The funding evidence changed, was already compensated, or is no longer actionable."
+    },
+    {
+      "code": "funding_limit_exceeded",
+      "meaning": "The request is outside approved per-command or rolling funding limits."
+    },
+    {
+      "code": "evidence_unavailable",
+      "meaning": "Authoritative read evidence is temporarily unavailable; an empty result was not inferred."
+    }
   ],
   "record_lookup": {
     "summary": "Use returned resource identifiers and X-Request-ID to find authorized records in account history, transfer detail, reconciliation, and event evidence views.",
     "correlation_header": "X-Request-ID",
-    "safe_fields": ["account_id", "transfer_id", "funding_event_id", "run_id", "event_id", "correlation_id"]
+    "safe_fields": [
+      "account_id",
+      "transfer_id",
+      "funding_event_id",
+      "run_id",
+      "event_id",
+      "correlation_id"
+    ]
   }
 }

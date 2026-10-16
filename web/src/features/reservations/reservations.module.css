@@ -1,0 +1,11 @@
+.workspace { display: grid; gap: 1.25rem; min-width: 0; }
+.panel { padding: clamp(1rem, 3vw, 1.75rem); min-width: 0; }
+.panel h2 { margin-block: 0 1rem; }
+.fields { display: grid; gap: 1rem; border: 0; padding: 0; min-width: 0; max-width: 46rem; }
+.fields input { width: 100%; min-width: 0; }
+.actions { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-block: .75rem; }
+.details { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+.details dd { margin: .25rem 0; }
+.panel code { overflow-wrap: anywhere; }
+.panel table { width: 100%; border-collapse: collapse; }
+.panel th,.panel td { padding: .75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }

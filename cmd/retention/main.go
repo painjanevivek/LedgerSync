@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	telemetry, err := observability.NewTelemetry(ctx, observability.TelemetryConfig{Enabled: os.Getenv("LEDGERSYNC_TELEMETRY_ENABLED") == "true", ServiceName: os.Getenv("LEDGERSYNC_TELEMETRY_SERVICE_NAME"), Endpoint: os.Getenv("LEDGERSYNC_OTLP_HTTP_ENDPOINT")})
+	telemetry, err := observability.NewTelemetry(ctx, observability.TelemetryConfig{Enabled: os.Getenv("LEDGERSYNC_TELEMETRY_ENABLED") == "true", ServiceName: os.Getenv("LEDGERSYNC_TELEMETRY_SERVICE_NAME"), Endpoint: os.Getenv("LEDGERSYNC_OTLP_HTTP_ENDPOINT"), CAFile: os.Getenv("LEDGERSYNC_OTLP_CA_FILE")})
 	if err != nil {
 		fail(err)
 	}

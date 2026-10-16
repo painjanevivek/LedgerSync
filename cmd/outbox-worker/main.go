@@ -44,7 +44,7 @@ func runWorker() error {
 	if err != nil {
 		return fmt.Errorf("configuration invalid: %w", err)
 	}
-	telemetry, err := observability.NewTelemetry(context.Background(), observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint})
+	telemetry, err := observability.NewTelemetry(context.Background(), observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint, CAFile: configuration.OTLPCAFile})
 	if err != nil {
 		return fmt.Errorf("telemetry initialization failed: %w", err)
 	}

@@ -1,0 +1,958 @@
+{
+  "schema_version": 1,
+  "phase": "R15",
+  "status": "verified_local",
+  "recorded_at": "2026-10-16T22:26:11.859Z",
+  "summary": "The documented synthetic CSV statement workflow is complete and locally verified. It accepts immutable source bytes, compares a fixed ledger snapshot and supports audited exception review. No statement operation can post a journal or change a balance.",
+  "verification": {
+    "statement_groups": 3,
+    "complete_integration_top_level": 154,
+    "complete_integration_subtests": 102,
+    "fault_tests": 6,
+    "restored_table_fingerprints": 76,
+    "real_statement_browser_journey": "passed",
+    "normal_financial_mutation": false
+  },
+  "source": {
+    "head": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+    "dirty": true,
+    "original_files": 1921,
+    "original_manifest_path": "data/portfolio/r15-20261015/source-before.json",
+    "original_manifest_sha256": "9d5c8031562bb22a535340e6a80fb78cba95c624cf5297c4ac4eaf13e4334574",
+    "authorized_git_checkpoint": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "c46d33a1f25dd6626d33c15524f2d63f110b08a5e3ff63aca1f9e491ad0522b0",
+    "changed_original_files": [
+      {
+        "path": ".gitattributes",
+        "before_sha256": "3f7ef691dfa9d5d87cb5345ad14da9083f33961d120b6b7f5fc8e291edbe7627",
+        "sha256": "c7e1463eb4ad7e092ce6aa4f7276a2a7d85331724234a9e77f388eac59d82202"
+      },
+      {
+        "path": ".github/workflows/quality.yml",
+        "before_sha256": "8f956af9908b73a6fe4b631f8dbd1bcf04b2973e0ab02c382e7ddda2f04defe3",
+        "sha256": "33545bde24c1a1005e90610a94948440acefc1bc334ccad78dfd875aaf1da8ee"
+      },
+      {
+        "path": "README.md",
+        "before_sha256": "571e5016a03c678c318d1b61b7738f28b7c71bfa5ecb747b773ae6afdaed8222",
+        "sha256": "e53807561df1ba95d7086619655c6b5361181cf15764b4fdfe489521625f4c40"
+      },
+      {
+        "path": "cmd/api/main.go",
+        "before_sha256": "429599346f30abd6ab214302688c196eb92aa2a5eaeace613b9aa387ae2f6fdd",
+        "sha256": "513c102e6f7059208a3a22d54c986f15740e8f8851abd773834dcd5d9730f8b8"
+      },
+      {
+        "path": "cmd/outbox-worker/health.go",
+        "before_sha256": "9203f8c82bb1b7c759fdcef994b9c9de6ea3601e23c235ce213e00bde3ac042e",
+        "sha256": "2d6babd76791e6f6affd1f9abaf15139a166d1b5b0d036b3cd6fd8bd1eede685"
+      },
+      {
+        "path": "cmd/outbox-worker/health_test.go",
+        "before_sha256": "5bbfd61e5cc406ac2c4b64af9c8cde4dbe11e1066470bb6818bd98f973b0874d",
+        "sha256": "53ca43110c5043fa50cdb1f832e2213bf3b9f7fa80b6f781565d5576844b314c"
+      },
+      {
+        "path": "cmd/outbox-worker/main.go",
+        "before_sha256": "aee4365be393fb1d239972ac5f452807d5369a9529b59da44a913d28e3a7ad15",
+        "sha256": "d0a0dd30d76d7a5dbf4a4fc7849199fbc9a16aa5c7e4898bb4391e72dd110ebc"
+      },
+      {
+        "path": "cmd/reconcile/main.go",
+        "before_sha256": "b31325544efd21748f0b873d3bf39417d7fa9292324f193f31dec3c2faa74274",
+        "sha256": "aa4ef4bcd011b8c48596ad2f3a5120605f697014bcd18a89ca3eca7e007e05d7"
+      },
+      {
+        "path": "cmd/replay-delivery/main.go",
+        "before_sha256": "faba3ed15e2d029d9567f27e8f8ed7057e3b31c22da9843252b09d8cd6a4466d",
+        "sha256": "f00b2c5d8873af83304261fef805a0174c456cd745b7e3dc3abcc1c3fd4676c2"
+      },
+      {
+        "path": "cmd/replay-outbox/main.go",
+        "before_sha256": "dfceb9141e52456bbf93b42bd8eb59753adff7acbb091412b66234a945b4aebf",
+        "sha256": "592ae89d2fb4e7374adeb2b83403d10a85eeb03214626ede4d2c8023713a194b"
+      },
+      {
+        "path": "cmd/retention/main.go",
+        "before_sha256": "bb31357b12e8cb7748923919aa4e6e275920817a8503dc31dfa13b615da3e4af",
+        "sha256": "366d3c85e52bb3527491d9f656c8cd4eaeaa6b22a0a8802b629fca191f3ab6f7"
+      },
+      {
+        "path": "contracts/CHANGELOG.md",
+        "before_sha256": "b06c6e9ac8f8ae67633246a7de90b2dcb0824cabc267cf8a4984dc53aa22fca3",
+        "sha256": "ccef5b11b50f00e984bf1969a48fb4e648d69a7ebdbbc616ea67081e3ce7cb33"
+      },
+      {
+        "path": "contracts/assets.go",
+        "before_sha256": "857a9f0a2e1f9ed2e9ce86c286cb4495b6fd8af3dcff198598c8657a94d9c1f3",
+        "sha256": "2f32112eb37f1cc9fa6c9ff1e3d616cb4fc460fb9bd7c58b11a8b8fb3057819e"
+      },
+      {
+        "path": "contracts/developer-examples.v1.json",
+        "before_sha256": "5b2d08a02c3eb969875e99242464272285983fe5cce31f10ab0b24abc4c39232",
+        "sha256": "f311784da1b187440f6f7f167675f00ee82b017628e98c82134e3385164752ce"
+      },
+      {
+        "path": "contracts/generated/go/ledgersync.go",
+        "before_sha256": "d1188628be269f12ed1451b4435f9ce0f33bc3154adda7afca96b2fd1c2096b3",
+        "sha256": "f44fc905a0e13deaac829c0ac81ab5c7baf70eccf4e28a270429954d96c74cb2"
+      },
+      {
+        "path": "contracts/generated/ledgersync.postman_collection.json",
+        "before_sha256": "1695c77d832179e6f0d65c6f6587b4c213078e0c8575c78e9c4dd4705db8fd57",
+        "sha256": "a4ff532a27b1ba290e6a4be128270c6b66e9cfff745e57555a37e0d89b7bc1c0"
+      },
+      {
+        "path": "contracts/generated/sdk-manifest.json",
+        "before_sha256": "ebca2b8e401c96b4463309192a12088e5f41e2e29855a9064323bd449f5ed0a9",
+        "sha256": "c0ed9f216cf4f1aa381bef8885d0f89813cb2800c7e20efca304e4c6ce68df10"
+      },
+      {
+        "path": "contracts/generated/typescript/ledgersync.ts",
+        "before_sha256": "438cfd2a2decad8984c7cc40cf8cf6f21a88baa8ebf408a6a123b0719d563bc3",
+        "sha256": "bb449c4f528bd3903a1e66b3d0bd1655a22b954c330f2ac642da1dc92948e4c5"
+      },
+      {
+        "path": "contracts/openapi.yaml",
+        "before_sha256": "7039d313996a89222bd62c9b7a6eec3c09f11920eda73326a06714641800ec2a",
+        "sha256": "168bed1ccd7fe6bb5d2b1ff9db07bf78f8ee5c2d4ac41b3312ec176a8510c98a"
+      },
+      {
+        "path": "deploy/docker/api.Dockerfile",
+        "before_sha256": "1c200fc476904a079a747399124ddbe8b1bea3109a78c40c82340c47242959d2",
+        "sha256": "565fe8093fecfa9b1d8774e73fc8e0227885ea6b23fea1ed33e51997ae2f94b9"
+      },
+      {
+        "path": "deploy/docker/outbox-worker.Dockerfile",
+        "before_sha256": "91e0af2ea683c391ad8a540814b3fb0a75cf50ff57928e66db6673f2ca49ce4a",
+        "sha256": "6a794401a4ac1c9bf3608d0b0b496f3baac3e09c59b8f74a0a1f7f07b29890f9"
+      },
+      {
+        "path": "deploy/docker/web.Dockerfile",
+        "before_sha256": "5d6a3e48a645e9a0df4c71ca372bdc9c725f4701bdab47c4912ce1548e151e10",
+        "sha256": "b8998694e2a2979ef74c0ae49e5055254361b220074a01f544855164b8681975"
+      },
+      {
+        "path": "deploy/postgres/roles.sql",
+        "before_sha256": "1a2c422473844437e20d48f67a2cd6d709818a060a4f0d9d08d92a3b13d878c4",
+        "sha256": "ec6d017b8b4afc367c6c11e2914be84051fc744d5623ee3397f51812ee8fc5f5"
+      },
+      {
+        "path": "deploy/vercel/backend.env.example",
+        "before_sha256": "38eb43d3f6e42643c176bb08dbacd1d8003013c8b9e0f59c1ba1f9d5e5853c88",
+        "sha256": "86e3891d94bf73a2697e439873856d1fa1d644429a544d09d94bf5fdc79dc092"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/linux/chromium/account-detail-independent-failures-1440x900.png",
+        "before_sha256": "788ec3e389d2ac355775d9a35af730406e937c1fd67f8f2b9f50c258c0d1b460",
+        "sha256": "e04d3ce0fe2a3446fd62fa518f012c2c427734407652800a27b980196ed5ac99"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/linux/chromium/account-detail-populated-1440x900.png",
+        "before_sha256": "2eeba2711848c40d070d50c9f6c12cd7be176eb439914146fb9452669f2a0f28",
+        "sha256": "59cdb6cfc6265d4ba64b8b24b1a805a6ab21ef3227cc4d495ae326a3a8f80b48"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/linux/chromium/reconciliation-mismatch-390x844.png",
+        "before_sha256": "fe7f364ccf77de6ed148707215b77de2db506a1a41d335dd10f8b1011c8dbedb",
+        "sha256": "24de673fe160a4c2870c9edee49e747914dbfb687fa156398f20afcc0ab4d231"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/win32/chromium/account-detail-independent-failures-1440x900.png",
+        "before_sha256": "fd74630ad5a1bff4f3562391a0ab9d143d7c218f264f0c85f41be623adcdba82",
+        "sha256": "a3059625a646692a66e799fd54d38adeb3f4e578b75364e732d10e436dd81a02"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/win32/chromium/account-detail-populated-1440x900.png",
+        "before_sha256": "60d16d34576a5a61d8f9ce7084627d512f959bdaeb8358f02c8e0f827af5ffe2",
+        "sha256": "4b804a262c5b033bb74e4c2d214e3e3632f54219bd6c4a29dc7db8775b272bc2"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/win32/chromium/reconciliation-command-review-compact-390x844.png",
+        "before_sha256": "81686aaa24460594d93275d65febff75c2b2a7186e0251723d1f3edb32b5e6fc",
+        "sha256": "3914a5c1d95b290f462a3063bfe15c73f18a7f562fd6310afaeecf2dde17a3f0"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/win32/chromium/reconciliation-command-running-compact-390x844.png",
+        "before_sha256": "b945da592162c2b29a5de23a2d4b2d484c16af82a708d435713e997a9e51d872",
+        "sha256": "3dbfd57a742621b344d9cda59b75383833b2dafdc7a2f5b038d2f821d289397f"
+      },
+      {
+        "path": "docs/design/qa/responsive/baselines/win32/chromium/reconciliation-mismatch-390x844.png",
+        "before_sha256": "f206a05c82dea89c60c739d61a71d34445795af54818ccbbea2c7acf12056c80",
+        "sha256": "fcc52cdb17a611d4564e39c1c0d5b7cbf7f50bc89a78034eb702fa441563e817"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "c2992854ced114cd29f61936e1901ee0a055ce890a19aaa428792fa1db17fdab",
+        "sha256": "3af549993280b75a357e89828cca3c8363ef84ad67614300bb67c79539edc8d1"
+      },
+      {
+        "path": "docs/portfolio/README.md",
+        "before_sha256": "a812a8bd5233f91c25865434374a275bc244fc97ebb0adc71fe8f155915a52db",
+        "sha256": "bc3ee9256b98957fa52d14421b0c696f05a0d698577509c7741f0bd53c21e6f8"
+      },
+      {
+        "path": "docs/portfolio/architecture.md",
+        "before_sha256": "f7a9973be28ac0268d260ca788774f42da59ad0f59b31ab400f9c60fb15f4998",
+        "sha256": "f5bf771ecc741a97eb7a1ebf7b2b1039e5382990a4e797e5c687aae6e09ebab5"
+      },
+      {
+        "path": "docs/portfolio/case-study.md",
+        "before_sha256": "57d2b8ce6482f2fd623a77651b3dc4f7a95d5ceb8b04c155427082cf07ef36ff",
+        "sha256": "aecad18bfb37d38b2000d46edeeeff9693bd4831fda491d39cdd8b26fa8f2108"
+      },
+      {
+        "path": "docs/portfolio/demo-guide.md",
+        "before_sha256": "8854f682de41387ea8765f189f458c032e7c26e6188a10b3b9939da45b96a9d3",
+        "sha256": "fe67f04e844ca82ad3ae4ce2d39a90c6b06b44fc4c9c504a76b90a65177d7600"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "99b01b139f2c088c61e46a46b3fe25d515fba28d56c6a88d8132b1541fdd96c8",
+        "sha256": "718b827f6bf67768dbd7f79f6f72d6a991de37398449e9009801b9adefe5ee17"
+      },
+      {
+        "path": "docs/portfolio/limitations.md",
+        "before_sha256": "f449c6de98bafe638ece32b005d24410f7098155cde235816b7290c51c115cf9",
+        "sha256": "b9b33caaa8ec12f76abd517563a77ae16397048907aa0f50cdcdd2b193165c16"
+      },
+      {
+        "path": "docs/portfolio/maintainer-guide.md",
+        "before_sha256": "59231580d6f42c9df4a22597c0bb24f9f764dd79d3d0cdeb86b8efa8d2eb7eb3",
+        "sha256": "8d558ac4fb6c5c28d58bece43b79c1c9c1b639d48985162d5dec7e89f062bf06"
+      },
+      {
+        "path": "docs/portfolio/module-inventory.md",
+        "before_sha256": "2f629fdddb08d067269050201bba20c2b31627edc6d1758400009dbf422eac37",
+        "sha256": "12c098edf79d5fc327ffc3833f65e478d8e31a630f527e70764e33ecc74e91dd"
+      },
+      {
+        "path": "docs/portfolio/module-map.md",
+        "before_sha256": "87b03f51b327788ef1c96723f99281697aaa1cb5d612cfd3092d762af7d8701e",
+        "sha256": "3c89d6695e5ce0209539258422d2507092630a130354819554ad62035b29736a"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "1699ba350cb84a3ba03c7ebc14985f3075c87b4924c985777946ba463edf706d",
+        "sha256": "cc9aa28ab41d80cf1866aca754191694751e025eb628fd79de2cc8d30e588824"
+      },
+      {
+        "path": "docs/portfolio/qualification.md",
+        "before_sha256": "2bccc96b1201b5f32979b7614b72f80daf3c670abf445aa69bab376dc346cbe4",
+        "sha256": "b74f931a222fa5f9a85fdf82fc8bedca46729fbd30e5646d0e595c9e6b78e09d"
+      },
+      {
+        "path": "docs/portfolio/recovery.md",
+        "before_sha256": "1bcb4560e5f7cef6e334c9266e62f5d272d19d3bd1187476701c3b07d321d9ec",
+        "sha256": "5fab3a569a86d654f72b4151f7cf8e65aab6794faf1bd6d140cb8c13e3984ee3"
+      },
+      {
+        "path": "docs/portfolio/user-journey.md",
+        "before_sha256": "dd6cff25fb5c0bcda2ba8b2b0fdd69e41ebc1002d8eaf7876406def3ebc32216",
+        "sha256": "d232763099bb18a35f14d225c164a205dc1c4cc5e4dea92dc2018cb88833f86b"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "2b894a4a699cd72dc707fe5f845ee0bb4ab911775bb858f3abb2fd698195339a",
+        "sha256": "3ef65226e814e682443f0c371d8046373ad0cf670df0e3a6129b5983401f1fe2"
+      },
+      {
+        "path": "docs/security/database-capability-matrix.md",
+        "before_sha256": "9fa6ce11cf565fdccbec6e7b8f218feb7c1dd616437a7029c30667eb16b58f5d",
+        "sha256": "8abdde0f48d2ea075c6943d284da063eea41dd7a79a7e2fb5d121a0ea1018325"
+      },
+      {
+        "path": "internal/application/projection/balance_projector.go",
+        "before_sha256": "e673d6f7134c2257edecc61f2e49dbd862973eebfcabb6a266e3057c6f1714ec",
+        "sha256": "a9e7357a97c93960e604fdb8555945428587613d82a69e9924ae271ba2ebb50e"
+      },
+      {
+        "path": "internal/application/projection/balance_projector_test.go",
+        "before_sha256": "40a6e5f260d0d1d37269c69bb41f05bc592ee374487ba4423b626e790e8fdad6",
+        "sha256": "10ebfe12b59b0b4e47d9e8f8c9d4080dec2aabc3343a8825b01f7edd921d5a18"
+      },
+      {
+        "path": "internal/application/transfers/service.go",
+        "before_sha256": "4284da3506cc585488863ccdb0630fa6ab7b28ad8425bcee9f9575c8dd58ba6f",
+        "sha256": "bab07768981b9c95ac0cebb85c01d477e49f297b19a27e7fe71b5e5e102d659f"
+      },
+      {
+        "path": "internal/bootstrap/worker.go",
+        "before_sha256": "e5721bf2e8278b2556adc88147e8fbf2ce59320fd6c9b7a3fd1304a5de1c86db",
+        "sha256": "9c3122509733c4df5577bcc806c32c3685b87d4740481026829fd19840699c17"
+      },
+      {
+        "path": "internal/platform/config/config.go",
+        "before_sha256": "290036bf3c1f4bed5cf76af0bebebfc0a277a02d0ff7074e4204965fc98269c0",
+        "sha256": "a73090903809f664a9e7ccf6e3fa711781d05a2d24ada689bb4994891764d6ec"
+      },
+      {
+        "path": "internal/platform/db/account_command_store.go",
+        "before_sha256": "0a794df10910c5263ed9fa54913e683bd1f8db0cf8167eb2e3bca8b46f2ca548",
+        "sha256": "3bd5c8a04271f0b5e5643efc1104977dbf54a5fb002eda5b5e4771eae79eca47"
+      },
+      {
+        "path": "internal/platform/db/reconciliation_repository.go",
+        "before_sha256": "e91c98d238bae5812723ee353d093c4bf7027124d9d2b57adb63269498131980",
+        "sha256": "68707d9705d10b094bf751b985f5ca108238dae16517dc8420cb6b5f6065f9a9"
+      },
+      {
+        "path": "internal/platform/observability/telemetry.go",
+        "before_sha256": "f2c1cbc5ce7a6639e816cd9c83ade5ee343ee80a8a087768d987505bd9d41157",
+        "sha256": "e4afab4bc2a1c8ba029b8fb8afbd5194b46ff3b6e6514a19a3d83657dd59a5ba"
+      },
+      {
+        "path": "internal/platform/observability/worker_progress.go",
+        "before_sha256": "13067da7aad0ae629ce59480e9c4542b0206fb3ab92d79516e62286eef21a064",
+        "sha256": "d2b30b403f30ad1678b9b1bf7ec5c86f67fbb2c9824aafc8bdf12495ea118648"
+      },
+      {
+        "path": "internal/transport/http/handlers/transfers.go",
+        "before_sha256": "5e5e4ffebd61b5aa22fd3763c98ad5bc65a1a491d39cbe3a56c3d6699ce510b2",
+        "sha256": "a73c1539adb9b437248edbaf14d07565a8552151d09e40d80a08f890e050de05"
+      },
+      {
+        "path": "scripts/local-backup-common.ps1",
+        "before_sha256": "4fb6aae1feebf6ebf2fc0f97290028f93e03656234191b959b82a84ee909a776",
+        "sha256": "29e808fe23e49996d5ee653d55e2bb8610e94a3106ab1968b45aae346d658203"
+      },
+      {
+        "path": "scripts/portfolio/candidate-backup.mjs",
+        "before_sha256": "7dd3a165f2b6d4c7712845068b381e0a4387f4eedd69f9a01668bc408036312f",
+        "sha256": "00a9f6b97d70724471ca94809b3fefea710e55925e8ae1ec471f82aaf35de695"
+      },
+      {
+        "path": "scripts/portfolio/candidate-backup.test.mjs",
+        "before_sha256": "1ac9cc22fd0dcb91e345baae843e7dc3b3088be6ef9fb0cdd057d96f48e8a2a7",
+        "sha256": "f0e682dd0fb3291993ddec8ce5d8ec1fbc9a5c32df5073bd8a3e4e845c32fada"
+      },
+      {
+        "path": "scripts/portfolio/regression-result.mjs",
+        "before_sha256": "37a0d9d4e2941d3bcfb22235f0534d4c92ff944dba92586178e102ac891a8604",
+        "sha256": "dca958c2c44a68a538f2e878c78efb90c1df3b718c96dc2ff2b9bb15b0240f63"
+      },
+      {
+        "path": "scripts/portfolio/regression-result.test.mjs",
+        "before_sha256": "3e952a1e46123e4186de323b5dcb1f499d5a5c309c8b2715756c07591661a65f",
+        "sha256": "852b9c9227c4ef2695648376255d5ec2b3a661dd32fb1bc1ae66e27b7baeabe1"
+      },
+      {
+        "path": "scripts/portfolio/restore-candidate.mjs",
+        "before_sha256": "4f5a68900a6a5e3d00f420547300171755ba0cea5d028449824d760d393bcd20",
+        "sha256": "8b62a3aa4a2c1548aa98c548e84093249fc448018d56c418188b613aadbcd1a7"
+      },
+      {
+        "path": "scripts/portfolio/run-demo.mjs",
+        "before_sha256": "8890b0974c93165979ddd7a2d7d2c35df346214fae5c445dcdddf01ac31184e3",
+        "sha256": "67b4a24172393afa33211c5af422482557c97f239bc39ec16d19b779c6aff7e5"
+      },
+      {
+        "path": "scripts/portfolio/run-release-candidate.mjs",
+        "before_sha256": "bd9854c6a6407986c4149c5ba745408e1c02b932b902f856b72c3423d93998f5",
+        "sha256": "250e6373e0cd21488c4a8c933e4a2254656e5c6d869d6ab02fe8f23b92d80897"
+      },
+      {
+        "path": "scripts/portfolio/verify-portfolio-docs.mjs",
+        "before_sha256": "02810ff89984675d9fdad764b340ccdaa810f6e8298e36543a6aed42b19dc504",
+        "sha256": "7218985fe8d81820be76c7e1ae68f42752b19e4c7777754c57da6cc81ffcb7d3"
+      },
+      {
+        "path": "tests/integration/controlled_function_catalog_test.go",
+        "before_sha256": "4560f78e9daa3019b30c9c12746e2b7d3fb37e35b29cccea3495e3454183322a",
+        "sha256": "eafe701983330404796166bacbdb98bcd53003c2db58e21ee251138212027ea4"
+      },
+      {
+        "path": "tests/integration/controlled_function_grants_test.go",
+        "before_sha256": "0451a4abcc641fe3e0e5110b471ce72ba5dfaf508a28c4d0a761de1eca6861e3",
+        "sha256": "8fbf08dc4ff50a128081ee6eac830ec19dd59624c7b9b67c42062c2a9af0b751"
+      },
+      {
+        "path": "tests/integration/shared_worker_runner_test.go",
+        "before_sha256": "79e0660d074c180daa3c07ae4fadf045c66af8642833cc7f42c16f89eb1f4317",
+        "sha256": "4e7b827e0b5abd09d12d3999f22039fd5c99f70f635ece8fbf25d591a26661e3"
+      },
+      {
+        "path": "tests/integration/transfer_test_helpers_test.go",
+        "before_sha256": "37dc60284387af2635b3ea909d99da82e4c68fc3b6fc6814689e8ea467f2fea7",
+        "sha256": "b33dcb52fa776d7d63a0b37244a6d3b59fe4879e5a6c89b9535900eddae8354b"
+      },
+      {
+        "path": "web/.env.example",
+        "before_sha256": "5c264fb379045c07400f434b0aa27b4a689eab6ce1c24553ac2f2a038d6d7232",
+        "sha256": "2e68af9cb6971d5120800cb47021d5dce224306df644793cf259873675ef22d3"
+      },
+      {
+        "path": "web/next.config.ts",
+        "before_sha256": "1759db00dc0a4ed2407a663dea5a4c7655d1a395e8b7846e66467a4055df6cb4",
+        "sha256": "2bf4419377bebf906e66bbf1d038f9d06ad3ca22b5ff0180c07f5b4aa3d62adb"
+      },
+      {
+        "path": "web/scripts/prepare-e2e-server.mjs",
+        "before_sha256": "6e9cddf2189db02ff93e4dc7907ddf1f0a733337e95cc4e8da2209b3c25fd4d2",
+        "sha256": "cdd81fd90e1403f55ef45b8c2e09e98a85ddaf07fb97db96975a3be6336c0e82"
+      },
+      {
+        "path": "web/src/features/accounts/AccountViews.tsx",
+        "before_sha256": "6db76b2a4a60c9c8a4972069f9d303ccf0381129ab31dad42d5822391c092153",
+        "sha256": "5fdb65486e6c6cdc477bde7932d0a02cfe8f186a0e5705e51e8925e6f94d5560"
+      },
+      {
+        "path": "web/src/features/accounts/BalanceStatus.tsx",
+        "before_sha256": "80f3b2e7c13de59d0798fc1bd1c54fb835097460fee55e23d2c4a4a12bfc2c16",
+        "sha256": "70bac6045b459e4ea814028fe5d8a5dbc6b8f9dfcd443b60a51fb104c1007b76"
+      },
+      {
+        "path": "web/src/features/console/ConsoleShell.tsx",
+        "before_sha256": "3558039e576b98964a89dd849ac8d709ec177183dfdc4f85f64b1f250173a7a1",
+        "sha256": "88ee50088af38e771ed558dabeeca4919e6bca7c2c49e9ba0b64fa9917718549"
+      },
+      {
+        "path": "web/src/features/orientation/LocalOrientationPanel.tsx",
+        "before_sha256": "541b168bcf4a36a6affe7652f817173d95d099e11ef895f915b47b2b0c64c92b",
+        "sha256": "51e33565342956d5c2ad8653da4d542e13c4223d132623bac657ac20c381fbe1"
+      },
+      {
+        "path": "web/src/features/overview/OverviewView.tsx",
+        "before_sha256": "95780b4b43606ac11f657643fcd573934ac5af8dcd8cab15094f93273f6727f0",
+        "sha256": "2562b7d8a3c5df96bb57b2028d1de9b7ae9093f2f0a7fb77e28bf82adf1a242b"
+      },
+      {
+        "path": "web/src/features/reconciliation/ReconciliationViews.tsx",
+        "before_sha256": "3b037613c8b2f8614e10214c0820436101c4f9e06c8c7f2e3ce5bf56bfa0ac11",
+        "sha256": "9635325f7b555851a6ccebf9352eca6183314a22eaefcb82090035ef5a7cdfe1"
+      },
+      {
+        "path": "web/src/features/transfers/TransferForm.tsx",
+        "before_sha256": "1e009fae07b1e8ca91f68b71e407b605a2a3b12df4f2eb479ed407524ccf496d",
+        "sha256": "1dcbda1085a55eb5800491419d6da8bd5d083fa83285af9a958f6f997a2b29a3"
+      },
+      {
+        "path": "web/src/features/transfers/TransferResult.tsx",
+        "before_sha256": "0d51fd2216ba860fb4fa605b74885dca697d0928654214189ba289514ce5f6b2",
+        "sha256": "0fdff21ee32cfc85c65ba89e5993423423258dd8f7d0d13bd674d0f6201a44f4"
+      },
+      {
+        "path": "web/src/features/transfers/useTransferSubmission.ts",
+        "before_sha256": "db4ee48f07225f7f78934322702a0ca81f0d692036eb38ce95d672479743da67",
+        "sha256": "bb4ad6a28bb7309f5d806dc88369028c2a7ad27f87887958182a5ac77c88c6bc"
+      },
+      {
+        "path": "web/src/lib/api/transfers.ts",
+        "before_sha256": "9fdc1105b54f17716050e5e4b5022c3656b75f69ead0328916152c59c2459140",
+        "sha256": "c10e7fff830da6ed21e3f045ae6b14966e151fdeda123816ceac31ee386a5b68"
+      },
+      {
+        "path": "web/src/lib/bff-telemetry.ts",
+        "before_sha256": "239e125da5f3c5b96ce7a2f42b0eacf3ebe7166d03ff083333fbf1d99978b986",
+        "sha256": "59d3459de51ff7558373bdb6544c5e5019391c7ea7626b667593dc64f94490bf"
+      },
+      {
+        "path": "web/src/lib/generated/developer-retry-contract.json",
+        "before_sha256": "636d2698aa99365630accb83f35965c56246529ceb53ac610b899a1d668bdc7e",
+        "sha256": "9d1486633931ac4ee55415d57422abb517fef035907c7637cd2ece881c02d161"
+      },
+      {
+        "path": "web/src/lib/money.ts",
+        "before_sha256": "06edfd0e6311e9e1c5ac8b0a46813056b8c5b2bacb491d0ed906259679fd7296",
+        "sha256": "c8daff6e9dba6216a6aecc1d23d9ceaf30b3c7e43982dd95aeaaf477bfaa4707"
+      },
+      {
+        "path": "web/src/styles/patterns/detail-evidence.css",
+        "before_sha256": "b16b2f90cc5e96e94c32d7c9630bcfa33a9e7365972bf95033f71fc0a2b9404b",
+        "sha256": "a8b48d050660bd47900f991d5ae6423fbb8b32983cdeb0d8dadca639cd8b5c5b"
+      },
+      {
+        "path": "web/src/styles/primitives/forms.css",
+        "before_sha256": "f5987e0e822e02e897bfcbdbd9f8b286df16cedb885359f4e19a949d0e85eb12",
+        "sha256": "6d8e87fff12d0d067206d57d01de4c818afb543ee3a660e10e7a46f83d48e248"
+      },
+      {
+        "path": "web/src/ui/display/RecordLink.tsx",
+        "before_sha256": "c9c44c77275f43044e880d72a18239824a1e7d78113b9cf8ca9e6586bb630102",
+        "sha256": "b17526c05590ead08ca5ce01f696cadf087daae9cb90aab9ddbd1833740a8dd1"
+      },
+      {
+        "path": "web/tests/e2e/accessibility.spec.ts",
+        "before_sha256": "5cffe960ba0748dcbcec0bf0559e1f9f1704dc75eed83540d18c46f396d76c0e",
+        "sha256": "06e9d630c3e9610e0a0eae6734559c94e452a6f67eb84b603daf16086797a562"
+      },
+      {
+        "path": "web/tests/e2e/account-commands.spec.ts",
+        "before_sha256": "759f866b90931a118f542d8171f03144f54a1c80267fb52303dd0d3082c50dcc",
+        "sha256": "95699adeb4bc5e82cca89dba2a32474536e90f0720fb3db8d1f8846a1ab7bf73"
+      },
+      {
+        "path": "web/tests/e2e/convergence.spec.ts",
+        "before_sha256": "ec2386973db4e1507b73690511f5742cc6e89a1cccfc5e6fd7d27b9577337e8c",
+        "sha256": "77f40227a772813655154965416698decb3fba2cfd01eb5f6df6740f538f5168"
+      },
+      {
+        "path": "web/tests/e2e/transfer.spec.ts",
+        "before_sha256": "d46ba25a04ab6ff4db288cd8cb6da044920953e144930f3e1ff256f85875756a",
+        "sha256": "bdd18c58bf418e53d444f2e7b1039eb9b2aa62d5315c53a90f80787993b70483"
+      },
+      {
+        "path": "web/tests/security/bff-telemetry.test.ts",
+        "before_sha256": "f343448be1098d25962b1a8306321421dc66c23e8660a676ec5848c2cf61abb3",
+        "sha256": "9b01005b79f7c9ffbf6422c839d0f088f2f906284753ad3e26f8a9bdd3941306"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "cmd/api/reservation_routes.go",
+        "sha256": "65448660497239a1db9735a9ecdba4f0e54f4878c52ccd2bed572619acaf15c1"
+      },
+      {
+        "path": "cmd/api/statement_reconciliation_routes.go",
+        "sha256": "ae9718c1b817bc7ba6212020ee77828788d1e9dd161772101d9e3c183c3b22cf"
+      },
+      {
+        "path": "contracts/balance-events.md",
+        "sha256": "2d6fe19deea80e05b334bcf7d7f290e7ef7984f1bd68dae7a102aea75f07651c"
+      },
+      {
+        "path": "deploy/production/README.md",
+        "sha256": "36f05b3dec72a6066356a703abc2fbfa2c6eb7f4e977fae76dfc10e300d513d7"
+      },
+      {
+        "path": "deploy/production/collector-image.json",
+        "sha256": "03122a2f32d0689fcd50c16648d8a1cb7e5021e22222e2dfea167e3655ac505f"
+      },
+      {
+        "path": "deploy/production/compose.yaml",
+        "sha256": "1849c34a415c53adde57be45f70639643906501d6b423d274957c791a7a10574"
+      },
+      {
+        "path": "deploy/production/inputs.example.json",
+        "sha256": "3a3d0c6b9620c149bfb72c98657a761a417c7e94793a5ce8bdf7308ee18f0759"
+      },
+      {
+        "path": "deploy/production/otel-collector.yaml",
+        "sha256": "0518d944aba7a2c158bed2ea3813be994778ede2be559695b020711607c8bf8b"
+      },
+      {
+        "path": "deploy/production/release.env.example",
+        "sha256": "71eaa4338cea7125fa715d78529f11bbed815001a6c6e9fcc79d86c0994cc8c0"
+      },
+      {
+        "path": "docs/architecture/decisions/007-external-statement-reconciliation.md",
+        "sha256": "2225463b1a7827bfffec03df907f2160ee075c75b35c5b4661fbc6eb00a93482"
+      },
+      {
+        "path": "docs/architecture/decisions/008-internal-reservations.md",
+        "sha256": "b35e1d5935b83d5941590ca7feb46d7bb2e94718d53047a84e11cfc1b691a487"
+      },
+      {
+        "path": "docs/portfolio/reservations.md",
+        "sha256": "ef885f7f43c613760d56620de606a8cec3cf52d253d23d8c914c8dc0964e2005"
+      },
+      {
+        "path": "docs/portfolio/statement-reconciliation.md",
+        "sha256": "9e418b97a2f59eaaca166bcf0a5f39b78b8d8fe0b63888a10da5c6cefd972452"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r17/engineering-decision.md",
+        "sha256": "275f4aab18728f45bb5c66636fda4a082cc84f7f596640f119f8edd5849d6b2f"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r17/phase-closeout.md",
+        "sha256": "962a9815eb29246644c66cd22cbaf5b05c6a4f7b69d0ef10a0587a1b01d8fd9f"
+      },
+      {
+        "path": "docs/release-evidence/portfolio/r17/release-summary.json",
+        "sha256": "511ccc1cc53fdf338c7e071ed0c7631cb49341235cd3fc7702e42d9c88304c8c"
+      },
+      {
+        "path": "internal/application/reservations/export.go",
+        "sha256": "cf082647da71bf2d1561ad10518150d8ef6958b4b22d2a33320059cfe81af515"
+      },
+      {
+        "path": "internal/application/reservations/export_test.go",
+        "sha256": "54b36fa8486b3098a016449cdea7c60070ec335090fa1969315c1f9e5e7b579c"
+      },
+      {
+        "path": "internal/application/reservations/service.go",
+        "sha256": "fca3f3cf0dc04afc05815123a8a2c5ec7d4ce80aa8a961840dba3127755edb7e"
+      },
+      {
+        "path": "internal/application/reservations/service_test.go",
+        "sha256": "d831dca447bc78bf20c586ff4353e3357addfb3c0edf836162fef1efda998e0d"
+      },
+      {
+        "path": "internal/application/statementreconciliation/contracts.go",
+        "sha256": "43065eecf8a2d1531be7d05ba980f81a09df9a7d0ff839faebb3229e66a04beb"
+      },
+      {
+        "path": "internal/application/statementreconciliation/export.go",
+        "sha256": "2b7146c7c2179f052dfe3c24b536f4cf0708645b2eea75c640525394629bc30e"
+      },
+      {
+        "path": "internal/application/statementreconciliation/export_test.go",
+        "sha256": "76f8eab8570aadc58d8e1e7c4ebbcbb29c9a1588ed49106250a251529f602752"
+      },
+      {
+        "path": "internal/application/statementreconciliation/matcher.go",
+        "sha256": "1f080d361e2d61bdab07dcd964aa8608db8a704dd321bc42ba0e49a30a3f724b"
+      },
+      {
+        "path": "internal/application/statementreconciliation/parser.go",
+        "sha256": "cdca7c40e9d977999b94ab3cc14f36aac16f44e0008a7e89af11fb55e6115b3a"
+      },
+      {
+        "path": "internal/application/statementreconciliation/service.go",
+        "sha256": "4ee7c8f4d190aa9ac54fd6b55f02b4efa1c69768dac5e817ab5f36df95813be2"
+      },
+      {
+        "path": "internal/application/statementreconciliation/statement_test.go",
+        "sha256": "ff7c27996e5fbd0e76c3ddc9c5f1eed57b923a21a410bfa31803e09ca6263c8e"
+      },
+      {
+        "path": "internal/application/transfers/reservation_receipt_test.go",
+        "sha256": "fe63170a5d0e96fec8ba33c01ec80f1ecc8f179f7ff3e616b891ac4bb71590bd"
+      },
+      {
+        "path": "internal/platform/db/reservation_export.go",
+        "sha256": "e27e03f3eacf519cbd71ef7a46b9b6208d5424c95857a20a286926e2a64931ab"
+      },
+      {
+        "path": "internal/platform/db/reservation_reconciliation_test.go",
+        "sha256": "801c77819aaaef2223313d4c7bf8daee760fda6dcb7b6c0bcb4522e6976b4613"
+      },
+      {
+        "path": "internal/platform/db/reservation_repository.go",
+        "sha256": "de37acaef9953d1a3597edf64158f3f102b9cbc01d6e89e6f2132e8de030459d"
+      },
+      {
+        "path": "internal/platform/db/statement_reconciliation_reads.go",
+        "sha256": "7ce0e1518bc07189a3f7d59243ec32ec04cc54c99e3f85f19457f8a04985d45c"
+      },
+      {
+        "path": "internal/platform/db/statement_reconciliation_repository.go",
+        "sha256": "0d3296d2df52ad01df8bbd54b021b8c403f4669c16569563a308a9eebdc0e3b2"
+      },
+      {
+        "path": "internal/platform/observability/telemetry_transport.go",
+        "sha256": "fda5624ddd44a4d0f9e51961e4148d7a7c767fe627ec295be380a204ed9ed914"
+      },
+      {
+        "path": "internal/platform/observability/telemetry_transport_test.go",
+        "sha256": "ae8380d3b9797de0245e9db93a40d05f14ebedf38091ddf06a586397b6f9692c"
+      },
+      {
+        "path": "internal/transport/http/handlers/reservation_export.go",
+        "sha256": "96bb06422944feab13958f307c05b9c14cfbbfd6014bd83772b53d566ba25b4e"
+      },
+      {
+        "path": "internal/transport/http/handlers/reservations.go",
+        "sha256": "8e1389511d8a1dbe394c8a02dfa5838d90fc71424e570ff84313419289c33a11"
+      },
+      {
+        "path": "internal/transport/http/handlers/statement_reconciliation.go",
+        "sha256": "535d5cf251335b7d80b64a51e154de5134733b5271090b0243d391626c287d1b"
+      },
+      {
+        "path": "migrations/000065_statement_reconciliation.down.sql",
+        "sha256": "d053c5d43ecbff6c6009193e698268e704b84ba46c292fc9007576d3d2b1bca0"
+      },
+      {
+        "path": "migrations/000065_statement_reconciliation.up.sql",
+        "sha256": "365ea86a6d7d10e3a1b4dfe3981129e7693264bdf91037bcbef44c6f03146b4e"
+      },
+      {
+        "path": "migrations/000066_internal_reservations.down.sql",
+        "sha256": "0e442d70e264b7e4f3ca93e054f4739073bc2c9ab44ca7029c370dd6134946e6"
+      },
+      {
+        "path": "migrations/000066_internal_reservations.up.sql",
+        "sha256": "b93bf650fe403f275d91ba8e240255b2fd60b1a4b3ad449b9fd2c32d62bcd08d"
+      },
+      {
+        "path": "scripts/portfolio/build-production-package.mjs",
+        "sha256": "039ce18ca6777e9c8b2a6964785b5ccc61930b6c5b384388c2cbaff1460124b0"
+      },
+      {
+        "path": "scripts/portfolio/candidate-health.mjs",
+        "sha256": "f2ab0424bb3d64787cef92f6f144c93fb890fe364375641914df5d9136b72c01"
+      },
+      {
+        "path": "scripts/portfolio/candidate-health.test.mjs",
+        "sha256": "9960eb41071f1c7f2aafeb34f510a395c69d66677aa6e7df5396421a6b0aba9f"
+      },
+      {
+        "path": "scripts/portfolio/collector-probe.go",
+        "sha256": "99df71bc16742f2a0623d721c0ce0331b0b95f9eed37b2716f08331b710dac7f"
+      },
+      {
+        "path": "scripts/portfolio/production-package.mjs",
+        "sha256": "7e86207f3b4b07537db87500aee13bd15c05d278ad9b524395949ef6e26739f7"
+      },
+      {
+        "path": "scripts/portfolio/production-package.test.mjs",
+        "sha256": "af739e08489a51094b1caa0961e4a81b498b247d01ffaee582af231b360090c1"
+      },
+      {
+        "path": "scripts/portfolio/run-extension-recovery.mjs",
+        "sha256": "9cd2450a337ddafa8aec94cd87b18392d9e8bad6aec9479bf70a626be651a8c2"
+      },
+      {
+        "path": "scripts/portfolio/run-reservations.mjs",
+        "sha256": "f902dc8718709135189cc0c5c5cb5c3952e7f10c4e36cde55618324740d178c9"
+      },
+      {
+        "path": "scripts/portfolio/run-statement.mjs",
+        "sha256": "70240619d1a0cfb77dd0b8f35c9e0d12a0813af6662360f0f303cc6351a2a33a"
+      },
+      {
+        "path": "scripts/portfolio/scan-candidate-images.ps1",
+        "sha256": "ab72faf52ea34250dd4c0322b053e7a6273398a8fbe83d506280b13a39096e17"
+      },
+      {
+        "path": "scripts/portfolio/update-scanner-cache.ps1",
+        "sha256": "6a7f412081d58ca0ff6ca6c0f70e18298fdbf8fd8ef23f01c1cf4cd7a91333e5"
+      },
+      {
+        "path": "scripts/portfolio/verify-collector.mjs",
+        "sha256": "e01f0fe8b5256cf0ae40b79d92ccd1b590f2438dd5f6f9877072984c47024858"
+      },
+      {
+        "path": "scripts/portfolio/verify-production-package.mjs",
+        "sha256": "d9d9da13970512a55a5c2d4733a21006940f98a083695583267978df254ce84b"
+      },
+      {
+        "path": "tests/integration/extension_recovery_test.go",
+        "sha256": "012ed85b05d82d69290553e18ee092f384e64539bdf1c1ff318c0619d153d689"
+      },
+      {
+        "path": "tests/integration/reservation_export_test.go",
+        "sha256": "aafca474aa31661b86b7ac916fe0827198fe61af0c5a36ef861bbe8b20380c68"
+      },
+      {
+        "path": "tests/integration/reservations_test.go",
+        "sha256": "d23684a322e0aec0379dc7ea64b546aaef030e4aa71184e36bfb61bf5cdb2a79"
+      },
+      {
+        "path": "tests/integration/statement_reconciliation_test.go",
+        "sha256": "6b975b0265e62eea43298615cfa294ef4573be8078b0cc4937fd1e786263a7ac"
+      },
+      {
+        "path": "web/public/samples/statement-v1.csv",
+        "sha256": "f999b80749b711528f7dcbfd4d5b5fa1fc0d629d29b3c75e6fda937527e1dd96"
+      },
+      {
+        "path": "web/src/app/api/reservations/[[...path]]/route.ts",
+        "sha256": "ac6effe4bc7aef9ffaac8568f30b6f04ea5d7784d978eecc22b8bc2ae5d9ed03"
+      },
+      {
+        "path": "web/src/app/api/statement-reconciliation/[[...path]]/route.ts",
+        "sha256": "2c3f3fc205e385aa36cfea1eb5075542ed970e266fff69d68d9050e2a66aa766"
+      },
+      {
+        "path": "web/src/app/reconciliation/statements/page.tsx",
+        "sha256": "2899344f9e99c3ba828780715a2c9107a590d7f42ee1052ebf7791b74599ac74"
+      },
+      {
+        "path": "web/src/app/reservations/page.tsx",
+        "sha256": "4cbad9f853fd49159230a802b6c628a954051fbca05ca0dff84e2fa4f0eea982"
+      },
+      {
+        "path": "web/src/features/reservations/ReservationsController.tsx",
+        "sha256": "84ba1c0904e526028b7f6104ec8ed1a8f4a2b713c342effb9894033daa9f23d4"
+      },
+      {
+        "path": "web/src/features/reservations/reservationIntent.ts",
+        "sha256": "6795d156b7f99ccf598a78c9355b0b9f1c900de268a786f2bc7d4d08318de4a7"
+      },
+      {
+        "path": "web/src/features/reservations/reservations.module.css",
+        "sha256": "7029afbb66cd4c20d024ee1ae4db7a876777ac8dd4fbabf6c6e1e109aced64bd"
+      },
+      {
+        "path": "web/src/features/reservations/useReservationCommand.ts",
+        "sha256": "ba40a4b17c950f6b327a6f7668337af809f35cafe529193a1ee529892c1b2023"
+      },
+      {
+        "path": "web/src/features/reservations/useReservationEvidence.ts",
+        "sha256": "c1146f4b1964bcdf5e72b99b8a7a43bea0879365c1da8f8919bf30d1e0ef706a"
+      },
+      {
+        "path": "web/src/features/statement-reconciliation/StatementDownload.tsx",
+        "sha256": "4446d8a7d37d42da07f3d020ff6e2a6a9932b2bb39c92b629396c915bd84e141"
+      },
+      {
+        "path": "web/src/features/statement-reconciliation/StatementReconciliationController.tsx",
+        "sha256": "117b0a26e8e638b1a3f9a8e2deee0fb4dba0e62497fb2ecdcbf4b9ca152b63fd"
+      },
+      {
+        "path": "web/src/features/statement-reconciliation/StatementReviewEditor.tsx",
+        "sha256": "186b0ee0bcb465ab94d02b772b008f623b34552e4d64ae6159020048a7438697"
+      },
+      {
+        "path": "web/src/features/statement-reconciliation/statement.module.css",
+        "sha256": "c3a454c43b2309d7dc17735b9d84e5362941e99fe8a06fda8a4016538145c0e9"
+      },
+      {
+        "path": "web/src/features/statement-reconciliation/statementIntent.ts",
+        "sha256": "71a56660949d551df15f6dc94695abe106fa5a4fee59a57dc885a6cca7eaa1bd"
+      },
+      {
+        "path": "web/src/features/statement-reconciliation/useStatementCommand.ts",
+        "sha256": "b30d52fa024bbf0e2f1ba945f1656edc8bea9f5c58fd3f0d49708fea8be4c043"
+      },
+      {
+        "path": "web/src/features/statement-reconciliation/useStatementWorkspace.ts",
+        "sha256": "81a74a236b97b433bcf6fc0bfa8957e3778314cca48617a181cd1e9e95ee903c"
+      },
+      {
+        "path": "web/src/features/transfers/TransferReceiptBalance.tsx",
+        "sha256": "22d9edfee00fe9fc53880c54e643b5c1f0b13a460ccfe2cb73acc2f44a5e2f15"
+      },
+      {
+        "path": "web/src/lib/api/reservations.ts",
+        "sha256": "fa93ff23d5943d01e7564c031ffb85327f98ba64eb9f406b6ffdbe4baad3e0a4"
+      },
+      {
+        "path": "web/src/lib/api/statement-reconciliation.ts",
+        "sha256": "35fd3db862318323a95fafef6920d022d4346f7f42b4dd08ca7748048affc0e6"
+      },
+      {
+        "path": "web/src/lib/bounded-stream.ts",
+        "sha256": "83465a3c80f89203e11bee06fc291d19e00a5a08c9e6b9539189f68a7e94197b"
+      },
+      {
+        "path": "web/src/lib/reservation-proxy.ts",
+        "sha256": "47f7446abd57c3b41993452958a2505f512002cf3b90930c463007a602db385c"
+      },
+      {
+        "path": "web/src/lib/statement-reconciliation-proxy.ts",
+        "sha256": "101970aae543614e433e824edc8855860762edf1b0bb7304e5bc93230593bff2"
+      },
+      {
+        "path": "web/src/lib/statement-stream.ts",
+        "sha256": "0abe516b90ea51398cad9ec84099de75587614a7e7ff30724b678c33974dacab"
+      },
+      {
+        "path": "web/src/ui/controls/CsvEvidenceDownload.client.tsx",
+        "sha256": "92a64e18d21dc6728b00953b8ea2308a9cfdf61e8eb122d526e3178261d9a49f"
+      },
+      {
+        "path": "web/tests/e2e/reservations.spec.ts",
+        "sha256": "d46cf36f30bca97138fdeca1f63e2d30a7b84d9f5174cccbdaa626eeceb20a15"
+      },
+      {
+        "path": "web/tests/e2e/statement-reconciliation.spec.ts",
+        "sha256": "8c126d910ac6788f4bd15a8b1639962ef1a06fed6c399a65d5ea3acedb4ed2db"
+      },
+      {
+        "path": "web/tests/reservations.test.ts",
+        "sha256": "ceef9f5a760f132c8d92506167749b1bc46ebbb59f544d4e5e8eb80f491e68d7"
+      },
+      {
+        "path": "web/tests/statement-reconciliation.test.ts",
+        "sha256": "db277bd19678f831b94b68ce15f225daff9984b6c3aeba7a915cf5e284576300"
+      },
+      {
+        "path": "web/tests/system/reservations.real-stack.spec.ts",
+        "sha256": "054dd0f3892d43fe85a14fbba5518d746a21bd3d7b827658bb01fddb6ec4277a"
+      },
+      {
+        "path": "web/tests/system/statement-reconciliation.real-stack.spec.ts",
+        "sha256": "28fde6492151cb481f66c59f491d74e277b763dc2a85caa67ea9ad9355fa8fe7"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261017/candidate-20261016214242-b0f7fabb/result.json",
+      "sha256": "1c3435a8f1518b50989f72eb491671d5106e50ce89c05531713c1f8cf4d03933",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261017/candidate-20261016214242-b0f7fabb/source-manifest.json",
+      "sha256": "1417ec33e9de6fbc65c8f779d74c999bdfbd2d8113bc44a87030a823fa1c0855",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261017/candidate-20261016214242-b0f7fabb/browser-real-stack.txt",
+      "sha256": "f46fbdc394faa57023be655689b579fdbf5f292f7b8845fc0dd0528dab2db709",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261017/candidate-20261016214242-b0f7fabb/go-real-stack.txt",
+      "sha256": "0357b859a79bb3780e6b786053f29ccd255f80cc9cb2b2884d4c7c7c42a9e4cc",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261017/candidate-20261016214242-b0f7fabb/go-restart-replay.txt",
+      "sha256": "d036c88edb7f0ef06ecdc5958919bb8f670e44bc6ca68ef2b1606dd9d3d45e02",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261017/candidate-20261016214242-b0f7fabb/health-rehearsal.json",
+      "sha256": "21438bcccf7463fd89f3a5bf6709356d7b615e9c379b095914db38abedb2008a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261017/candidate-20261016214242-b0f7fabb/shutdown-rehearsal.json",
+      "sha256": "7e6df528271fa0d96c9c92345cdc3ed46f46fae229fd61937c30b68d3ee7878b",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../demo-runs/demo-20261016141625-5c50a865/run-manifest.json",
+      "sha256": "eeed3daedb3d8434f6ac3ef3dbede69a46495495adf677a6aa45225600738541",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../demo-runs/demo-20261016143817-e69e8a07/run-manifest.json",
+      "sha256": "8a526d135ee647de17d3b0c9fd06acda1c57966277834adaf25c602f3933f96f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../demo-runs/demo-20261016150740-8536686b/run-manifest.json",
+      "sha256": "f95eb6c4ef7b4145c8caea23a8c45cd3618729ab0dc9c6508a2f87dbebb7be97",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261016/checks/statement-artifact-verification.txt",
+      "sha256": "84a32f0cfd3d4ceaa427da32abe5f405a0e6ccd76985af0623c524a77fb5890f",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261016/checks/extension-artifact-verification.txt",
+      "sha256": "f92f0880b20efaa868466253bebb8854ab5f66d094dfdfcfbcc6e94ea0becb5a",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261016/checks/openapi-final.txt",
+      "sha256": "cf6970b375f84effa02ca51024b065f01e490210b70d43ca525bdd9a1bd1d848",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r15-20261015/../r17-20261016/checks/generated-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "f5de71f7c06c2b3e4a308885bc3c7f98ac2d87780ca2fbec7a97adb400b8f0cc"
+  },
+  "limits": [
+    "Local synthetic engineering qualification only. No bank settlement, provider deployment, production approval or SLA is established.",
+    "The normal schema64 database, its 66 retained history records and original images were not migrated or rebuilt.",
+    "Five development-only npm findings remain in the recorded braces chain. The runtime audit found zero vulnerabilities.",
+    "The native Windows four-times CPU-throttled preflight LCP was 2864 ms against 2500 ms. That timing remains unqualified under P-106; final Linux timings are not a Windows or physical-device claim.",
+    "Author review and browser automation do not replace independent assistive-technology, physical-device or operating acceptance.",
+    "CSV source and review evidence are retained under explicit count/size bounds. Retention changes need a separate design; no automatic evidence deletion was added."
+  ]
+}
