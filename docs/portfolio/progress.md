@@ -266,3 +266,13 @@ The R16 financial SQL draft was written before its complete integration test fil
 ## R17 publication follow-up — 17 October 2026
 
 The authorized push of 8b33cd5 started a frontend preview through the existing Vercel Git integration. It reached READY before inspection. The exact new non-production preview was removed after its metadata and build events were saved locally. The existing project and production target are unchanged. Both Vercel configuration roots now disable automatic deployment only for codex/portfolio-r13-r17. Other branches retain their existing policy. The local application qualification and the prepared four-image package are unchanged. A future merge or another branch still requires a separate deployment decision. See [the follow-up record](../release-evidence/portfolio/r17/local-execution-followup.json). Earlier phase records describe local qualification before the push.
+
+## R17 hosted-check follow-up — 17 October 2026
+
+The first hosted Go quality job found two test-only style issues that the earlier standalone staticcheck run did not report. Both expressions are corrected without changing inputs, assertions or application behavior. The baseline approval ledger now records the eight already reviewed images. The PR body now states risk, verification, compatibility, rollout, rollback and the repository's existing solo-maintainer policy. Independent human acceptance is not claimed.
+
+PR #28 still exceeds the default 60-file review limit. The trusted consolidation exception covers only PR #23. No gate is weakened or bypassed. A separately approved exact-scope exception or a split into reviewable PRs is required before protected-main merge. Local R00–R17 qualification remains complete for its recorded scope. Hosted CI and managed deployment remain separate gates. See P-109 and P-110 in the [issue register](issues.md).
+
+Final resource state: read-only financial checks and all original image/mount identities matched before stopping the five owned containers in dependency order. The containers and both named data volumes remain. No OOM or forced shutdown was observed. Earlier phase records retain their point-in-time healthy running state.
+
+The exact golangci-lint v2.13.1 repeat passed with zero issues over every tracked Go root: cmd, contracts, internal, scripts and tests, including integration tests. The earlier default local package walk timed out; its failed output remains. See the [CI follow-up evidence](../release-evidence/portfolio/r17/ci-followup.json). Hosted results on the final commit remain separate.

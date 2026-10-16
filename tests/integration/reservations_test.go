@@ -290,7 +290,7 @@ func TestInternalReservations(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		command.Meta.Scope.ActorSubjectID = "forged-actor"
+		command.ActorSubjectID = "forged-actor"
 		command.IdempotencyKey = uuid.NewString()
 		if _, err := service.Create(context.Background(), command); !errors.Is(err, hold.ErrForbidden) {
 			t.Fatalf("actor substitution: %v", err)
@@ -373,7 +373,7 @@ func TestReservationGeneratedModel(t *testing.T) {
 	}
 	snapshot := map[string]any{"steps": 128, "seed": "16:20261016", "posted_minor": strconv.FormatInt(posted, 10), "reserved_minor": strconv.FormatInt(reserved, 10), "source_version": strconv.FormatInt(version, 10)}
 	raw, _ := json.Marshal(snapshot)
-	t.Log(fmt.Sprintf("reservation model: %s", raw))
+	t.Logf("reservation model: %s", raw)
 }
 
 func TestReservationExactIntegerBoundary(t *testing.T) {

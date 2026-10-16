@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "status": "verified_local_lint_and_preservation_review_scope_gate_open",
+  "recorded_at": "2026-10-16T23:03:09.3214766+00:00",
+  "parent_commit": "cc6c0c0378b0c1147fcf34d28d62a2b2b59871df",
+  "pull_request": 28,
+  "go_lint": {
+    "version": "2.13.1",
+    "concurrency": 2,
+    "exit": 0,
+    "scope": "Every tracked Go root: cmd, contracts, internal, scripts and tests, including integration tests",
+    "initial_local_repeat_failed": true,
+    "default_local_package_walk_timed_out": true,
+    "assertions_or_application_changed": false
+  },
+  "test_source": {
+    "path": "tests/integration/reservations_test.go",
+    "sha256": "418618759baec42f879ce52cea30b5c31d210bd532f8eae9d237299ecb6f0c89",
+    "changes": [
+      "Promoted ActorSubjectID selector",
+      "Logf instead of Log/Sprintf"
+    ]
+  },
+  "visual_ledger": "docs/design/qa/responsive/baseline-approvals.md",
+  "visual_baselines": 8,
+  "review": {
+    "required_sections": true,
+    "trusted_solo_maintainer_acknowledgment": true,
+    "independent_human_acceptance": false,
+    "default_file_limit": 60,
+    "scope_exception_applies": false,
+    "merge_gate_open": true,
+    "policy_weakened": false
+  },
+  "normal_data": {
+    "schema": "000064",
+    "retained_migration_records": 66,
+    "accounts": 8,
+    "transfers": 5,
+    "postings": 20,
+    "financial_hashes_match": true,
+    "original_images_and_mounts_match": true,
+    "owned_containers_stopped": 5,
+    "named_volumes_retained": true
+  },
+  "guard_commit_preview_matches": 0,
+  "private_evidence": [
+    {
+      "path": "data/portfolio/r17-20261017/ci-go-quality-job-clean.txt",
+      "sha256": "456b8eae9000213992f42101f098707d705131127772aa991ded55a98d635bb6"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/golangci-v2.13.1-local.txt",
+      "sha256": "143256dcc068ce2c9dbcab665faaf5fc2e3e74a2ddf0f7eb2d651174e9ec6ed5"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/golangci-v2.13.1-local-repeat.txt",
+      "sha256": "5672bc218863182232a9b5b923f570dbd1b59a59e2594c694c516dc9f52f6b9f"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/golangci-v2.13.1-local-repeat-result.json",
+      "sha256": "6ff1f7c2696d8d2a1cb8f3cf77f1360f4675b75e6bc8c8a488b0eef33622e3f6"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/golangci-v2.13.1-tracked-source.txt",
+      "sha256": "bc1988bf921b4da8e4a985cb6772edad177c0e408118ea21fcf3a645e1fdc016"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/golangci-v2.13.1-tracked-source-result.json",
+      "sha256": "2be82db8a23decf6324e068a9bc49cb340d79e9ae8b895b4c8d6f020c9e6bea2"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/governance-local-result.txt",
+      "sha256": "35e6dfbfc38d147770c2308cf42c224aac4e7d80a15e41a1b198085db402263c"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/governance-metadata-validation.json",
+      "sha256": "add52f432b3ffe938cffcfb01b6427f666139d97e87211671eb83c6bb1788fcc"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/normal-stop-final.json",
+      "sha256": "b819c5a42c89740daf6d5446515790fe269fbe6d232d976f5e17f4085c05b6c5"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/normal-financial-before-stop.json",
+      "sha256": "cf08eeaddab2ae94327330e19201f207d24b06b109b3b20d570ef018aa066c3d"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/normal-extended-before-stop.json",
+      "sha256": "933ce8e82822485ddc4b06e04d66bfa862921478496204b09cc00e3a68c0c71b"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/vercel-guard-observation.json",
+      "sha256": "350bb057db4ce3594f447063de6aa7421667c07632ed481081589f6202345ed4"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/visual-review-linux.json",
+      "sha256": "5c75f76ea486bc4c6f8a63a5ffc08f244069d1ff8993b30547e2bb8ede632ed1"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/visual-review-windows.json",
+      "sha256": "0e3af3e3a7515de9810030d85671292a0bae02912401947ab5789f03714f18bc"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/windows-running-visual-review.json",
+      "sha256": "48e4f4594df78e069db517ba14c86f0224df480db7a94066c212b6d16932de1b"
+    }
+  ],
+  "limits": [
+    "Local phase records retain their original source and image identities.",
+    "Hosted checks on the final pushed commit are separate.",
+    "PR scope approval or reviewable splitting is required before merge.",
+    "Managed deployment and native Windows throttled LCP remain unqualified."
+  ]
+}
