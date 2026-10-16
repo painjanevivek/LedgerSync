@@ -282,3 +282,7 @@ Status: RESOLVED LOCALLY. The first Linux visual harness used network none, whic
 ### P-104 — Private Compose-render assertion counted a property collection incorrectly
 
 Status: RESOLVED LOCALLY. Docker Compose rendered all four services, but a private PowerShell assertion read an enumerated Count value instead of an explicit collection. The corrected render-only check passed. The local package validator passed, and a request for managed readiness correctly failed. No workload or deployment was started. The first render remains saved.
+
+### P-108 — Source publication triggered an automatic hosted preview
+
+Status: RESOLVED FOR THIS BRANCH. The authorized push of 8b33cd5 started a frontend preview through the existing Vercel Git integration. It reached READY before inspection. The exact new non-production preview was removed after its metadata and build events were saved locally. The existing project and production target are unchanged. Both Vercel configuration roots now disable automatic deployment only for codex/portfolio-r13-r17. Other branches retain their existing policy. The local application qualification and the prepared four-image package are unchanged. A future merge or another branch still requires a separate deployment decision.

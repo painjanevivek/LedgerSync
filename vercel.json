@@ -7,5 +7,10 @@
       "path": "/internal/cron/drain",
       "schedule": "* * * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "codex/portfolio-r13-r17": false
+    }
+  }
 }
