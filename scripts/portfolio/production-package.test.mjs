@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { mkdtempSync,readFileSync,writeFileSync,cpSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import { inspectProductionPackage } from './production-package.mjs';
+const fixture=()=>{const target=mkdtempSync(join(tmpdir(),'ledgersync-production-package-'));cpSync(new URL('../../deploy/production/',import.meta.url),target,{recursive:true});return target;};
+test('production package keeps unresolved managed gates and local-only status',()=>{const result=inspectProductionPackage();assert.equal(result.deployment_ready,false);assert.equal(result.execution_scope,'local_only');assert.ok(result.pending_inputs.includes('operating_owner'));assert.match(result.latest_migration,/000066/);});
+test('production package rejects broad host authority and mutable image inputs',()=>{for(const [before,after]of [['read_only: true','read_only: false'],['cap_drop: [ALL]','cap_drop: []'],['127.0.0.1:3300:3000','0.0.0.0:3300:3000'],['${LEDGERSYNC_RELEASE_API_IMAGE:?Select a verified immutable API image}','example/api:latest']]){const target=fixture(),path=join(target,'compose.yaml');writeFileSync(path,readFileSync(path,'utf8').replace(before,after));assert.throws(()=>inspectProductionPackage(target));}});
+test('production package rejects disabled telemetry verification',()=>{const target=fixture(),path=join(target,'otel-collector.yaml');writeFileSync(path,readFileSync(path,'utf8').replace('insecure: false','insecure: true'));assert.throws(()=>inspectProductionPackage(target));});
+test('production package rejects absent span-event removal',()=>{const target=fixture(),path=join(target,'otel-collector.yaml');writeFileSync(path,readFileSync(path,'utf8').replace('spanevent: ["true"]','spanevent: ["false"]'));assert.throws(()=>inspectProductionPackage(target));});

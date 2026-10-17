@@ -1,0 +1,105 @@
+# Provider-neutral preparation. No deployment is executed by package validation.
+# Select TLS ingress, managed data services and secret injection before use.
+services:
+  api:
+    image: ${LEDGERSYNC_RELEASE_API_IMAGE:?Select a verified immutable API image}
+    env_file: ${LEDGERSYNC_PRODUCTION_API_ENV:?Provide a private API environment file}
+    environment:
+      LEDGERSYNC_ENV: production
+      LEDGERSYNC_STUDY_ENABLED: "false"
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: "false"
+      LEDGERSYNC_HTTP_ADDR: :8080
+    expose: ["8080"]
+    networks: [workloads]
+    user: ledgersync
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    restart: unless-stopped
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, wget, -q, -O, "-", "http://127.0.0.1:8080/readyz"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+  worker:
+    image: ${LEDGERSYNC_RELEASE_WORKER_IMAGE:?Select a verified immutable worker image}
+    env_file: ${LEDGERSYNC_PRODUCTION_WORKER_ENV:?Provide a private worker environment file}
+    environment:
+      LEDGERSYNC_ENV: production
+      LEDGERSYNC_STUDY_ENABLED: "false"
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: "false"
+    networks: [workloads]
+    user: ledgersync
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    restart: unless-stopped
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, /usr/local/bin/outbox-worker, --healthcheck]
+      interval: 15s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+  web:
+    image: ${LEDGERSYNC_RELEASE_WEB_IMAGE:?Select a verified immutable web image}
+    env_file: ${LEDGERSYNC_PRODUCTION_WEB_ENV:?Provide a private BFF environment file}
+    environment:
+      NODE_ENV: production
+      LEDGERSYNC_DEPLOYMENT_ENV: production
+      LEDGERSYNC_COOKIE_SECURE: "true"
+      LEDGERSYNC_STUDY_ENABLED: "false"
+      LEDGERSYNC_LIVE_INVESTIGATION_ENABLED: "false"
+    # Loopback is a local ingress attachment. No public TLS endpoint is supplied.
+    ports: ["127.0.0.1:3300:3000"]
+    networks: [workloads]
+    user: ledgersync
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 128
+    restart: unless-stopped
+    stop_grace_period: 30s
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/sign-in').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+  migrate:
+    profiles: [migration]
+    image: ${LEDGERSYNC_RELEASE_MIGRATION_IMAGE:?Select the verified database-tooling image}
+    env_file: ${LEDGERSYNC_PRODUCTION_MIGRATION_ENV:?Provide a private migration environment file}
+    entrypoint: [/bin/sh, -ec]
+    command: ["migrate && psql -X --single-transaction -v ON_ERROR_STOP=1 -f /database-roles/roles.sql"]
+    environment:
+      LEDGERSYNC_ENV: production
+    networks: [workloads]
+    user: postgres
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    restart: "no"
+    stop_grace_period: 30s
+networks:
+  # Egress is needed for selected managed data/identity services. Provider rules
+  # must allow only those services. No host database or Redis port is published.
+  workloads:
+    driver: bridge
