@@ -40,11 +40,11 @@ type workerHealthObserver struct {
 func (observer *workerHealthObserver) ObserveWorkerProgress(ctx context.Context, report observability.WorkerProgressReport) {
 	observer.delegate.ObserveWorkerProgress(ctx, report)
 	observer.reports[report.Queue] = report
-	// Emit writes once after the monitor's four ordered reports, not mid-cycle.
-	if report.Queue != observability.WorkerQueueProjection {
+	// Emit writes once after all five ordered reports, including expiry.
+	if report.Queue != observability.WorkerQueueHoldExpiry {
 		return
 	}
-	ready := len(observer.reports) == 4
+	ready := len(observer.reports) == 5
 	for _, queue := range observer.reports {
 		if !queue.HasCompleted || queue.LastRunFailed || queue.ProgressAge > workerProgressLimit {
 			ready = false

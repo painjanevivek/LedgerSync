@@ -18,7 +18,7 @@ func TestControlledFunctionOwnersPathsAndDefaultPrivileges(t *testing.T) {
 	}
 	defer func() { _ = rows.Close() }()
 	count := 0
-	owners := map[string]bool{"ledgersync_migration_owner": true, "ledgersync_queue_owner": true, "ledgersync_preflight_owner": true, "ledgersync_maintenance_owner": true}
+	owners := map[string]bool{"ledgersync_migration_owner": true, "ledgersync_queue_owner": true, "ledgersync_preflight_owner": true, "ledgersync_maintenance_owner": true, "ledgersync_statement_owner": true}
 	for rows.Next() {
 		var name, owner, path string
 		var login, super, bypass, definer, public bool

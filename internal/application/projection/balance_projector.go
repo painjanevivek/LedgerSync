@@ -17,6 +17,7 @@ import (
 )
 
 const BalanceChangedEventType = "account.balance.changed.v1"
+const ReservedBalanceChangedEventType = "account.balance.changed.v2"
 
 type Message struct {
 	ID    string
@@ -106,7 +107,7 @@ func (p *BalanceProjector) applyMessage(ctx context.Context, message Message) er
 	// but this consumer group owns only the disposable balance cache. Acking
 	// an unrelated event advances this group without preventing a dedicated
 	// lifecycle consumer group from reading the same stream.
-	if message.Event.EventType != BalanceChangedEventType {
+	if message.Event.EventType != BalanceChangedEventType && message.Event.EventType != ReservedBalanceChangedEventType {
 		if err := p.stream.Ack(ctx, p.config.Group, message.ID); err != nil {
 			return fmt.Errorf("ack non-balance event: %w", err)
 		}
@@ -126,7 +127,7 @@ func (p *BalanceProjector) applyMessage(ctx context.Context, message Message) er
 }
 
 func decodeBalance(event outbox.Event) (accounts.Balance, error) {
-	if event.EventType != BalanceChangedEventType || event.ID == "" || event.TenantID == "" || event.AccountID == "" || event.AggregateVersion < 0 {
+	if (event.EventType != BalanceChangedEventType && event.EventType != ReservedBalanceChangedEventType) || event.ID == "" || event.TenantID == "" || event.AccountID == "" || event.AggregateVersion < 0 {
 		return accounts.Balance{}, errors.New("invalid balance event envelope")
 	}
 	var payload struct {
@@ -135,6 +136,8 @@ func decodeBalance(event outbox.Event) (accounts.Balance, error) {
 		AccountID      string `json:"account_id"`
 		Currency       string `json:"currency"`
 		AvailableMinor string `json:"available_minor"`
+		LedgerMinor    string `json:"ledger_minor"`
+		ReservedMinor  string `json:"reserved_minor"`
 		BalanceVersion string `json:"balance_version"`
 		OccurredAt     string `json:"occurred_at"`
 	}
@@ -148,6 +151,18 @@ func decodeBalance(event outbox.Event) (accounts.Balance, error) {
 	if err != nil || available < 0 {
 		return accounts.Balance{}, errors.New("balance event has invalid available_minor")
 	}
+	ledger := available
+	if event.EventType == ReservedBalanceChangedEventType {
+		var reserved int64
+		ledger, err = strconv.ParseInt(payload.LedgerMinor, 10, 64)
+		if err != nil || ledger < available {
+			return accounts.Balance{}, errors.New("invalid reserved balance ledger")
+		}
+		reserved, err = strconv.ParseInt(payload.ReservedMinor, 10, 64)
+		if err != nil || reserved < 0 || ledger-available != reserved {
+			return accounts.Balance{}, errors.New("invalid reserved balance equation")
+		}
+	}
 	version, err := strconv.ParseInt(payload.BalanceVersion, 10, 64)
 	if err != nil || version < 0 || version != event.AggregateVersion {
 		return accounts.Balance{}, errors.New("balance event has invalid balance_version")
@@ -156,5 +171,5 @@ func decodeBalance(event outbox.Event) (accounts.Balance, error) {
 	if err != nil || len(payload.Currency) != 3 {
 		return accounts.Balance{}, errors.New("balance event has invalid currency or occurred_at")
 	}
-	return accounts.Balance{TenantID: event.TenantID, AccountID: event.AccountID, Currency: strings.ToUpper(payload.Currency), AvailableMinor: available, LedgerMinor: available, Version: version, AsOf: occurredAt.UTC()}, nil
+	return accounts.Balance{TenantID: event.TenantID, AccountID: event.AccountID, Currency: strings.ToUpper(payload.Currency), AvailableMinor: available, LedgerMinor: ledger, Version: version, AsOf: occurredAt.UTC()}, nil
 }

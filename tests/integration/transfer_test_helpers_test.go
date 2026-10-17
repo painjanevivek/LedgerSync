@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -67,6 +68,13 @@ func transferCommand(t *testing.T, key, amount string) transfers.Command {
 }
 
 func seedTransferFixture(ctx context.Context, database *sql.DB, sourceBalance int64) error {
+	return seedTransferFixtureCurrency(ctx, database, sourceBalance, "USD")
+}
+
+func seedTransferFixtureCurrency(ctx context.Context, database *sql.DB, sourceBalance int64, currency string) error {
+	if currency != "USD" && currency != "INR" {
+		return fmt.Errorf("unsupported synthetic fixture currency")
+	}
 	if _, err := database.ExecContext(ctx, `
 TRUNCATE TABLE audit_events, outbox_events, idempotency_requests, ledger_postings, journal_transactions,
     transfers, account_balance_projections, account_owners, accounts, tenants CASCADE`); err != nil {
@@ -80,8 +88,8 @@ TRUNCATE TABLE audit_events, outbox_events, idempotency_requests, ledger_posting
 	}
 	if _, err := database.ExecContext(ctx, `
 INSERT INTO accounts (id, tenant_id, currency, status, created_at, updated_at) VALUES
-    ($1, $3, 'USD', 'active', '2026-08-18T09:00:00Z', '2026-08-18T09:00:00Z'),
-    ($2, $3, 'USD', 'active', '2026-08-18T09:00:00Z', '2026-08-18T09:00:00Z')`, testSourceID, testDestinationID, testTenantID); err != nil {
+    ($1, $3, $4, 'active', '2026-08-18T09:00:00Z', '2026-08-18T09:00:00Z'),
+    ($2, $3, $4, 'active', '2026-08-18T09:00:00Z', '2026-08-18T09:00:00Z')`, testSourceID, testDestinationID, testTenantID, currency); err != nil {
 		return err
 	}
 	if _, err := database.ExecContext(ctx, `INSERT INTO account_owners (tenant_id, account_id, subject_id, permission) VALUES ($1, $2, $3, 'debit')`, testTenantID, testSourceID, testActorID); err != nil {
@@ -90,7 +98,7 @@ INSERT INTO accounts (id, tenant_id, currency, status, created_at, updated_at) V
 	if _, err := database.ExecContext(ctx, `INSERT INTO account_credit_permissions (tenant_id,account_id,subject_id) VALUES ($1,$2,$3)`, testTenantID, testDestinationID, testActorID); err != nil {
 		return err
 	}
-	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_transfer_policies (tenant_id,currency,minimum_transfer_minor,maximum_transfer_minor,actor_rolling_24h_minor,source_account_rolling_24h_minor,tenant_rolling_24h_minor) VALUES ($1,'USD',1,1000000000,5000000000,5000000000,10000000000)`, testTenantID); err != nil {
+	if _, err := database.ExecContext(ctx, `INSERT INTO tenant_transfer_policies (tenant_id,currency,minimum_transfer_minor,maximum_transfer_minor,actor_rolling_24h_minor,source_account_rolling_24h_minor,tenant_rolling_24h_minor) VALUES ($1,$2,1,1000000000,5000000000,5000000000,10000000000)`, testTenantID, currency); err != nil {
 		return err
 	}
 	_, err := database.ExecContext(ctx, `

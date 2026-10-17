@@ -19,12 +19,12 @@ DO $$ DECLARE candidate record; BEGIN
  FOR candidate IN SELECT oid,rolname,rolsuper,rolcanlogin,rolcreaterole,rolcreatedb,rolreplication,rolbypassrls
  FROM pg_roles WHERE rolname IN ('ledgersync_migration_owner','ledgersync_api','ledgersync_worker',
  'ledgersync_reconciliation','ledgersync_scheduler','ledgersync_provisioning','ledgersync_support_readonly',
- 'ledgersync_break_glass','ledgersync_queue_owner','ledgersync_preflight_owner','ledgersync_maintenance','ledgersync_maintenance_owner') LOOP
+ 'ledgersync_break_glass','ledgersync_queue_owner','ledgersync_preflight_owner','ledgersync_maintenance','ledgersync_maintenance_owner','ledgersync_statement_owner') LOOP
   IF candidate.rolsuper OR candidate.rolcanlogin OR candidate.rolcreaterole OR candidate.rolcreatedb OR candidate.rolreplication OR candidate.rolbypassrls
    OR EXISTS(SELECT 1 FROM pg_auth_members WHERE member=candidate.oid) THEN
    RAISE EXCEPTION 'unsafe LedgerSync role attributes or inheritance: %',candidate.rolname USING ERRCODE='42501';
   END IF;
-  IF candidate.rolname IN ('ledgersync_migration_owner','ledgersync_queue_owner','ledgersync_preflight_owner','ledgersync_maintenance_owner')
+  IF candidate.rolname IN ('ledgersync_migration_owner','ledgersync_queue_owner','ledgersync_preflight_owner','ledgersync_maintenance_owner','ledgersync_statement_owner')
    AND EXISTS(SELECT 1 FROM pg_auth_members WHERE roleid=candidate.oid) THEN
    RAISE EXCEPTION 'function owner must not have members: %',candidate.rolname USING ERRCODE='42501';
   END IF;
@@ -417,3 +417,59 @@ DO $$ BEGIN
   REVOKE ALL ON FUNCTION controlled_import_delivery_evidence_v1(uuid,uuid,uuid,uuid,text,text,integer,text,text,text,timestamptz,timestamptz,timestamptz) FROM PUBLIC;
  END IF;
 END $$;
+
+-- Statement comparison has its own non-financial function owner. Workload roles
+-- receive only bounded EXECUTE and scoped reads, never membership in the owner.
+DO $$ DECLARE signature text;BEGIN
+ IF to_regprocedure('public.controlled_statement_mapping_v1(uuid,text,text,uuid,uuid,text)') IS NOT NULL THEN
+  GRANT USAGE ON SCHEMA public TO ledgersync_statement_owner;
+  GRANT SELECT ON accounts,ledger_postings,journal_transactions,tenant_subject_roles TO ledgersync_statement_owner;
+  GRANT SELECT,INSERT ON statement_mappings,statement_imports,statement_rows,statement_snapshot_items,statement_matches,statement_review_events,statement_commands TO ledgersync_statement_owner;
+  GRANT SELECT,INSERT,UPDATE ON statement_runs,statement_review_items TO ledgersync_statement_owner;
+  -- Row locks require UPDATE privilege; append-only triggers still forbid mutation.
+  GRANT UPDATE(id) ON statement_mappings TO ledgersync_statement_owner;
+  GRANT EXECUTE ON FUNCTION tenant_scope_allows(uuid),controlled_append_audit_v1(uuid,uuid,text,text,text,text,text,uuid,jsonb,timestamptz) TO ledgersync_statement_owner;
+  GRANT SELECT ON statement_mappings,statement_imports,statement_rows,statement_runs,statement_snapshot_items,statement_matches,statement_review_items,statement_review_events TO ledgersync_api;
+  REVOKE INSERT,UPDATE,DELETE ON statement_mappings,statement_imports,statement_rows,statement_runs,statement_snapshot_items,statement_matches,statement_review_items,statement_review_events,statement_commands FROM ledgersync_api,ledgersync_worker,ledgersync_reconciliation,ledgersync_support_readonly;
+  FOREACH signature IN ARRAY ARRAY['protect_statement_run_v1()','protect_statement_review_v1()','statement_existing_command_v1(uuid,text,text,text,uuid,bytea)','statement_store_command_v1(uuid,text,text,text,uuid,bytea,uuid)',
+   'controlled_statement_mapping_v1(uuid,text,text,uuid,uuid,text)','controlled_statement_import_v1(uuid,text,text,uuid,uuid,bytea)',
+   'controlled_statement_prepare_v1(uuid,text,text,uuid,uuid)','controlled_statement_complete_v1(uuid,text,uuid,jsonb)','controlled_statement_review_v1(uuid,text,text,uuid,uuid,jsonb)'] LOOP
+   EXECUTE format('ALTER FUNCTION public.%s OWNER TO ledgersync_statement_owner',signature);
+   EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC',signature);
+   IF signature LIKE 'controlled_%' THEN EXECUTE format('GRANT EXECUTE ON FUNCTION public.%s TO ledgersync_api',signature);END IF;
+  END LOOP;
+ END IF;
+END $$;
+
+
+-- R16 controlled reservations and worker-only expiry.
+DO $roles$ BEGIN
+ IF to_regprocedure('public.controlled_create_hold_v1(uuid,text,text,uuid,uuid,uuid,bigint,text,integer)') IS NOT NULL THEN
+ ALTER FUNCTION protect_hold_history_v1() OWNER TO ledgersync_migration_owner;
+ ALTER FUNCTION enrich_reserved_balance_event_v1() OWNER TO ledgersync_migration_owner;
+ REVOKE ALL ON FUNCTION protect_hold_history_v1(),enrich_reserved_balance_event_v1() FROM PUBLIC;
+REVOKE ALL ON account_holds,hold_commands,hold_events,hold_expiry_jobs FROM PUBLIC;
+GRANT SELECT,INSERT,UPDATE ON account_holds,hold_expiry_jobs TO ledgersync_migration_owner;
+GRANT SELECT,INSERT ON hold_commands,hold_events TO ledgersync_migration_owner;
+GRANT SELECT,UPDATE ON hold_expiry_jobs TO ledgersync_queue_owner;
+GRANT SELECT ON account_holds,hold_events TO ledgersync_api,ledgersync_reconciliation,ledgersync_scheduler;
+DO $$ DECLARE signature text; BEGIN
+ FOREACH signature IN ARRAY ARRAY[
+  'hold_command_existing_v1(uuid,text,text,text,uuid,bytea)',
+  'hold_command_store_v1(uuid,text,text,text,bytea,jsonb)',
+  'hold_record_change_v1(uuid,text,uuid,uuid,text,boolean)',
+  'controlled_create_hold_v1(uuid,text,text,uuid,uuid,uuid,bigint,text,integer)',
+  'controlled_decide_hold_v1(uuid,text,text,uuid,uuid,text)',
+  'controlled_expire_hold_v1(uuid,uuid,text,bigint)'] LOOP
+  EXECUTE format('ALTER FUNCTION public.%s OWNER TO ledgersync_migration_owner',signature);
+  EXECUTE format('REVOKE ALL ON FUNCTION public.%s FROM PUBLIC',signature);
+ END LOOP;
+END $$;
+ALTER FUNCTION controlled_claim_hold_expiry_v1(integer,text,integer) OWNER TO ledgersync_queue_owner;
+REVOKE ALL ON FUNCTION controlled_claim_hold_expiry_v1(integer,text,integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION controlled_create_hold_v1(uuid,text,text,uuid,uuid,uuid,bigint,text,integer),controlled_decide_hold_v1(uuid,text,text,uuid,uuid,text) TO ledgersync_api;
+GRANT EXECUTE ON FUNCTION controlled_claim_hold_expiry_v1(integer,text,integer),controlled_expire_hold_v1(uuid,uuid,text,bigint) TO ledgersync_worker;
+REVOKE INSERT,UPDATE,DELETE ON account_holds,hold_commands,hold_events,hold_expiry_jobs FROM ledgersync_api,ledgersync_worker,ledgersync_reconciliation,ledgersync_scheduler;
+
+ END IF;
+END $roles$;

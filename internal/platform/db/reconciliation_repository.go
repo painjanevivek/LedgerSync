@@ -91,7 +91,8 @@ WITH posting_totals AS (
 SELECT a.id::text,a.currency,
   b.available_minor::text,b.ledger_minor::text,b.balance_version::text,
   o.opening_ledger_minor::text,
-  COALESCE(pt.posted_delta,0)::text,COALESCE(pt.posting_count,0)::bigint
+  COALESCE(pt.posted_delta,0)::text,COALESCE(pt.posting_count,0)::bigint,
+ COALESCE((SELECT sum(h.amount_minor::numeric) FROM account_holds h WHERE h.tenant_id=a.tenant_id AND h.debit_account_id=a.id AND h.state='active'),0)::text
 FROM accounts a
 LEFT JOIN account_balance_projections b ON b.account_id=a.id
 LEFT JOIN account_opening_balances o ON o.account_id=a.id
@@ -106,15 +107,15 @@ ORDER BY a.id`, tenantID)
 	var mismatches []reconciliationMismatch
 	for rows.Next() {
 		checked++
-		var accountID, currency, postedDelta string
+		var accountID, currency, postedDelta, heldMinor string
 		var available, ledger, version, opening sql.NullString
 		var accountPostings int64
-		if err := rows.Scan(&accountID, &currency, &available, &ledger, &version, &opening, &postedDelta, &accountPostings); err != nil {
+		if err := rows.Scan(&accountID, &currency, &available, &ledger, &version, &opening, &postedDelta, &accountPostings, &heldMinor); err != nil {
 			_ = rows.Close()
 			return reconciliation.Result{}, fmt.Errorf("scan reconciliation account: %w", err)
 		}
 		postingCount += int(accountPostings)
-		accountMismatches, err := compareAccount(accountID, currency, available, ledger, version, opening, postedDelta)
+		accountMismatches, err := compareAccount(accountID, currency, available, ledger, version, opening, postedDelta, heldMinor)
 		if err != nil {
 			_ = rows.Close()
 			return reconciliation.Result{}, err
@@ -171,7 +172,7 @@ func acquireReconciliationLock(ctx context.Context, tx *sql.Tx, tenantID string)
 	return locked, nil
 }
 
-func compareAccount(accountID, currency string, available, ledger, version, opening sql.NullString, postedDelta string) ([]reconciliationMismatch, error) {
+func compareAccount(accountID, currency string, available, ledger, version, opening sql.NullString, postedDelta string, heldMinor ...string) ([]reconciliationMismatch, error) {
 	if !ledger.Valid || !available.Valid || !version.Valid {
 		return []reconciliationMismatch{{AccountID: accountID, Currency: currency, Classification: "projection_missing"}}, nil
 	}
@@ -208,9 +209,20 @@ func compareAccount(accountID, currency string, available, ledger, version, open
 		}
 		result = append(result, mismatch)
 	}
-	if observedAvailable != observedLedger {
-		expected := observedLedger
-		result = append(result, reconciliationMismatch{AccountID: accountID, Currency: currency, Classification: "available_balance_mismatch", ExpectedMinor: &expected, ObservedMinor: &observedLedger, ObservedAvailableMinor: &observedAvailable, BalanceVersion: &balanceVersion})
+	reserved := new(big.Int)
+	if len(heldMinor) > 0 {
+		if _, ok := reserved.SetString(heldMinor[0], 10); !ok || reserved.Sign() < 0 {
+			return nil, fmt.Errorf("invalid reservation obligation for %s", accountID)
+		}
+	}
+	expectedAvailable := new(big.Int).Sub(big.NewInt(observedLedger), reserved)
+	if !expectedAvailable.IsInt64() || expectedAvailable.Int64() != observedAvailable {
+		mismatch := reconciliationMismatch{AccountID: accountID, Currency: currency, Classification: "available_balance_mismatch", ObservedMinor: &observedLedger, ObservedAvailableMinor: &observedAvailable, BalanceVersion: &balanceVersion, Details: map[string]any{"expected_numeric": expectedAvailable.String()}}
+		if expectedAvailable.IsInt64() {
+			expected := expectedAvailable.Int64()
+			mismatch.ExpectedMinor = &expected
+		}
+		result = append(result, mismatch)
 	}
 	return result, nil
 }
