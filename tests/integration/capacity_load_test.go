@@ -97,12 +97,10 @@ func (w *capacityWorkload) execute(ctx context.Context, task capacityTask) (late
 	if sequence > 0 && sequence%10 == 0 {
 		keyIndex = sequence - 1
 	}
-	pairIndex := 0
-	slot := keyIndex % 12
-	if slot >= 6 && slot < 9 {
-		pairIndex = 1
-	} else if slot >= 9 {
-		pairIndex = 2
+	pairIndex, profileErr := capacityPairIndex(w.fixture.profile, keyIndex)
+	if profileErr != nil {
+		err = profileErr
+		return
 	}
 	pair := w.fixture.pairs[pairIndex]
 	shape = pair.Shape
@@ -187,6 +185,9 @@ func (w *capacityWorkload) stage(ctx context.Context, name, mode string, rate, s
 	stageCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	jobs := make(chan capacityTask, 32)
+	if mode == "closed-clients" {
+		jobs = make(chan capacityTask) // Eight callers; no hidden queued demand.
+	}
 	var workers sync.WaitGroup
 	before := w.fixture.api.Stats()
 	cpuBefore, _ := capacityCPUSeconds()
@@ -279,17 +280,31 @@ func (w *capacityWorkload) stage(ctx context.Context, name, mode string, rate, s
 		}
 	}()
 	if mode == "closed-clients" {
-		// A finite response-coupled burst is separate from the arrival-rate stages.
-		for i := 0; i < 48; i++ {
+		// Keep the old finite burst and support a separately labelled timed profile.
+		var deadline <-chan time.Time
+		var timer *time.Timer
+		if seconds > 0 {
+			timer = time.NewTimer(time.Duration(seconds) * time.Second)
+			defer timer.Stop()
+			deadline = timer.C
+		}
+	closedLoop:
+		for i := 0; seconds > 0 || i < 48; i++ {
+			if w.next.Load() >= 11000 {
+				stopWith("operation_budget")
+				break
+			}
 			select {
 			case jobs <- capacityTask{Sequence: w.next.Add(1) - 1, Scheduled: time.Now()}:
 				mu.Lock()
 				report.Offered++
 				mu.Unlock()
 			case <-stop:
-				i = 48
+				break closedLoop
 			case <-ctx.Done():
-				i = 48
+				break closedLoop
+			case <-deadline:
+				break closedLoop
 			}
 		}
 	} else {
