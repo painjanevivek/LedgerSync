@@ -1,6 +1,6 @@
 # Fresh-person review and handover
 
-Status: the owner nominated **Lord Master**. Await their observations and confirmation that they are unfamiliar with LedgerSync. This guide does not record a human pass. Use the opaque reference `reviewer-lord-master` for private notes.
+Status: the owner nominated **Lord Master** and confirmed on 17 October 2026 that the review is **not complete**. Await their observations and confirmation that they are unfamiliar with LedgerSync. Human acceptance stays open. This guide does not record a human pass. Use the opaque reference `reviewer-lord-master` for private notes.
 
 Docker and deployments must stay stopped during the current repair work. Read the guides and inspect retained evidence now. Mark every task that needs a running database as **not run**. Do not start a stack, migrate normal data or make a financial command to complete this form.
 

@@ -11,7 +11,7 @@ export function capacityComparisonPlan() {
     schema: 'ledgersync-capacity-comparison-plan/v1', execution: 'none', qualification: 'pending_runtime',
     scope: 'container HTTP/BFF path; ordinary synthetic transfers; no active holds',
     method: { offered_per_second: 10, steady_seconds: 300, repeats: 3, serial_only: true, wall_seconds_per_case: 600, driver_concurrency: 8, driver_pending_limit: 32, fixed_batch: 10 },
-    fixed_services: { worker: { cpu_millicores: 1000, memory_mib: 512 }, postgres: { cpu_millicores: 1000, memory_mib: 768 }, redis: { cpu_millicores: 1000, memory_mib: 256 }, web: { cpu_millicores: 1000, memory_mib: 768 } },
+    fixed_services: { worker: { cpu_millicores: 1000, memory_mib: 512 }, postgres: { cpu_millicores: 1000, memory_mib: 768 }, redis: { cpu_millicores: 1000, memory_mib: 256 }, web: { cpu_millicores: 1000, memory_mib: 768 }, router: { cpu_millicores: 250, memory_mib: 128 }, telemetry: { cpu_millicores: 250, memory_mib: 384 } },
     cases: profiles.flatMap(profile => allocations.flatMap(allocation => [1, 2, 3].map(repeat => ({ id: `${profile}/${allocation.id}/${repeat}`, profile, allocation: { ...allocation }, repeat })))),
     comparisons: profiles.flatMap(profile => [
       { profile, mode: 'fixed_total_api_resources', baseline: 'one-api', candidate: 'two-api-fixed-total' },
@@ -34,7 +34,35 @@ export function summarizeCapacityComparisons(reports) {
   for (const report of reports) {
     const selected = plan.cases.find(item => item.id === report?.id);
     if (!Number.isFinite(report?.observed_steady_seconds) || report.observed_steady_seconds < 0 || report.observed_steady_seconds > plan.method.wall_seconds_per_case) throw Error('Observed duration required within the case wall bound');
-    if (!selected || indexed.has(report.id) || report.schema !== 'ledgersync-http-capacity/v1' || report.evidence_kind !== 'runtime_capture' || report.source_manifest_sha256 !== source || report.machine_sha256 !== machine || !isDeepStrictEqual(report.allocation, selected.allocation) || !isDeepStrictEqual(report.fixed_services, plan.fixed_services) || report.profile !== selected.profile || report.offered_per_second !== 10 || report.requested_steady_seconds !== 300 || report.financial_invariants !== true || report.unresolved_outcomes !== 0 || report.technical_failures !== 0 || report.dropped !== 0 || typeof report.capacity_qualified !== 'boolean' || !Number.isFinite(report.new_posted_per_second) || report.new_posted_per_second < 0 || !Number.isFinite(report.p95_ms) || report.p95_ms < 0 || !Number.isInteger(report.resource_samples) || report.resource_samples < 2 || report.capacity_qualified && report.observed_steady_seconds < 300 || !report.capacity_qualified && !report.stop_constraint) throw Error('Invalid, incomplete, mixed or unsafe comparison cohort');
+    if (!selected ||
+        indexed.has(report.id) ||
+        report.schema !== 'ledgersync-http-capacity/v1' ||
+        report.evidence_kind !== 'runtime_capture' ||
+        report.source_manifest_sha256 !== source ||
+        report.machine_sha256 !== machine ||
+        !isDeepStrictEqual(report.allocation, selected.allocation) ||
+        !isDeepStrictEqual(report.fixed_services, plan.fixed_services) ||
+        report.profile !== selected.profile ||
+        report.offered_per_second !== 10 ||
+        report.requested_steady_seconds !== 300 ||
+        report.financial_invariants !== true ||
+        report.unresolved_outcomes !== 0 ||
+        !Number.isInteger(report.technical_failures) ||
+        report.technical_failures < 0 ||
+        !Number.isInteger(report.dropped) ||
+        report.dropped < 0 ||
+        report.capacity_qualified && (report.technical_failures !== 0 ||
+        report.dropped !== 0) ||
+        typeof report.capacity_qualified !== 'boolean' ||
+        !Number.isFinite(report.new_posted_per_second) ||
+        report.new_posted_per_second < 0 ||
+        !Number.isFinite(report.p95_ms) ||
+        report.p95_ms < 0 ||
+        !Number.isInteger(report.resource_samples) ||
+        report.resource_samples < 0 ||
+        report.capacity_qualified && report.resource_samples < 2 ||
+        report.capacity_qualified && report.observed_steady_seconds < 300 ||
+        !report.capacity_qualified && !report.stop_constraint) throw Error('Invalid, incomplete, mixed or unsafe comparison cohort');
     indexed.set(report.id, report);
   }
   return {

@@ -19,7 +19,8 @@
       "codex/consolidate-audit-02": false,
       "codex/consolidate-audit-03": false,
       "codex/consolidate-history-20261017": false,
-      "main": false
+      "main": false,
+      "codex/r09-http-capacity": false
     }
   }
 }
