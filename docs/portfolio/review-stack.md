@@ -10,7 +10,7 @@ The change is now divided into five ordered reviews. A later PR uses the previou
 | 2 | [#30](https://github.com/painjanevivek/LedgerSync/pull/30) | Controlled statement comparison, reservations, exact balances, expiry, migrations, grants and generated contracts | 58 | PR #29 branch |
 | 3 | [#31](https://github.com/painjanevivek/LedgerSync/pull/31) | Operator pages, BFF routes, original-command recovery, exact balance labels, CSV controls and reviewed visuals | 55 | PR #30 branch |
 | 4 | [#32](https://github.com/painjanevivek/LedgerSync/pull/32) | Local qualification, restore, collector, scans, SBOM binding and deployment preparation tools | 27 | PR #31 branch |
-| 5 | [#28](https://github.com/painjanevivek/LedgerSync/pull/28) | Phase documentation, retained evidence, chart provenance, completion checks and this integration record | At most 60; exact count is checked before push | PR #32 branch |
+| 5 | [#28](https://github.com/painjanevivek/LedgerSync/pull/28) | Phase documentation, retained evidence, chart provenance, completion checks and this integration record | 43 | PR #32 branch |
 
 The console review also contains eight image baselines and their approval ledger. The existing policy counts these separately from ordinary review files. The ledger states author technical inspection. It does not claim independent human acceptance. Critical-file counts also remain within the existing limit of 30.
 
