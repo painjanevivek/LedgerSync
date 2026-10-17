@@ -45,6 +45,14 @@ func TestGeneratedWorkflowModel(t *testing.T) {
 			if count, err := fundingPolicy.RowsAffected(); err != nil || count != 1 {
 				t.Fatalf("one isolated funding policy required: count=%d error=%v", count, err)
 			}
+			transferRepo, err := db.NewTransferRepository(suite.api, time.Now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			workflowTransfers, err := transfers.NewService(transferRepo.WithPilotCurrency("INR"), time.Now)
+			if err != nil {
+				t.Fatal(err)
+			}
 			accountRepo, err := db.NewAccountCommandRepository(suite.api, time.Now)
 			if err != nil {
 				t.Fatal(err)
@@ -110,7 +118,7 @@ func TestGeneratedWorkflowModel(t *testing.T) {
 				case "transfer":
 					minor, _ := strconv.ParseInt(c.Minor, 10, 64)
 					amount, _ := money.New("INR", minor)
-					result, err := suite.transfers.Submit(ctx, transfers.Command{TenantID: identifier.UUID(c.Tenant), ActorSubjectID: c.Actor, DebitAccountID: identifier.UUID(bindings[c.Account]), CreditAccountID: identifier.UUID(bindings[c.To]), Amount: amount, IdempotencyKey: c.Key, CorrelationID: correlation})
+					result, err := workflowTransfers.Submit(ctx, transfers.Command{TenantID: identifier.UUID(c.Tenant), ActorSubjectID: c.Actor, DebitAccountID: identifier.UUID(bindings[c.Account]), CreditAccountID: identifier.UUID(bindings[c.To]), Amount: amount, IdempotencyKey: c.Key, CorrelationID: correlation})
 					commandErr = err
 					if err == nil {
 						actual.Status, actual.Replayed = result.Result.Status, result.Replayed
