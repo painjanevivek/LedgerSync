@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-17T10:10:15.8183892+00:00",
+  "original_head": "840d7a7057c6e91d6abd9a5c205d6881092cc254",
+  "protected_base": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+  "original_source_files": 203,
+  "original_branch_history_preserved": true,
+  "normal_runtime_started": false,
+  "default_review_limit": 60,
+  "default_critical_limit": 30,
+  "policy_changed": false,
+  "scope_exception_claimed": false,
+  "stages": [
+    {
+      "stage": 1,
+      "pull_request": 29,
+      "branch": "codex/portfolio-review-01-foundation",
+      "base_sha": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+      "head": "d8284ebdbece6ebb037a35549b8021403252909a",
+      "review_files": 13,
+      "critical_files": 0,
+      "governance_passed": true,
+      "governance_log_sha256": "4675ba41c8d6dcfd94d02f04649a02ff1b0fa5455c437ee7940145755a2ef2b3",
+      "local_go_tests_passed": true,
+      "local_go_log_sha256": "bd3a9a1e6f4de8a39339e54df7e97c7234586db27e162d102f34e6fe269dac55"
+    },
+    {
+      "stage": 2,
+      "pull_request": 30,
+      "branch": "codex/portfolio-review-02-backend",
+      "base_sha": "d8284ebdbece6ebb037a35549b8021403252909a",
+      "head": "b32e74e9de6098f6baed1580c092a84039ef4df7",
+      "review_files": 58,
+      "critical_files": 23,
+      "governance_passed": true,
+      "governance_log_sha256": "39a37686c26c40153d38d03965021639be229119d0839c5738ac7b1b9e0b9bb2",
+      "local_go_tests_passed": true,
+      "local_go_log_sha256": "066e15a16f6bc00f3275f069b726e8c0592f61b44d0af82e4ac4879da477186b"
+    },
+    {
+      "stage": 3,
+      "pull_request": 31,
+      "branch": "codex/portfolio-review-03-console",
+      "base_sha": "b32e74e9de6098f6baed1580c092a84039ef4df7",
+      "head": "99b78893a6ca386e3431c3fca3868dc93e7ada0e",
+      "review_files": 55,
+      "critical_files": 0,
+      "governance_passed": true,
+      "governance_log_sha256": "4d3c316936f6208fd37b57b96728b8b95276591d522642db66031b4ace729a55"
+    },
+    {
+      "stage": 4,
+      "pull_request": 32,
+      "branch": "codex/portfolio-review-04-release-tools",
+      "base_sha": "99b78893a6ca386e3431c3fca3868dc93e7ada0e",
+      "head": "7dab37c09d40def66d15f645df5ad53ba7377e64",
+      "review_files": 27,
+      "critical_files": 0,
+      "governance_passed": true,
+      "governance_log_sha256": "964348d44595c9a8218aa146027369ccdda64cd5047381d455775c27185396d7"
+    }
+  ],
+  "final_stage": {
+    "base_branch": "codex/portfolio-review-04-release-tools",
+    "review_limit": 60,
+    "scope": "Phase documentation, retained evidence, completion checks and review records",
+    "pull_request": 28
+  },
+  "limits": [
+    "Hosted checks apply to each new head separately.",
+    "Earlier local images keep their original identities.",
+    "Retarget dependent PRs after each accepted parent integration and rerun checks.",
+    "Main merge and managed deployment are separate decisions."
+  ]
+}

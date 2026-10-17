@@ -276,3 +276,9 @@ PR #28 still exceeds the default 60-file review limit. The trusted consolidation
 Final resource state: read-only financial checks and all original image/mount identities matched before stopping the five owned containers in dependency order. The containers and both named data volumes remain. No OOM or forced shutdown was observed. Earlier phase records retain their point-in-time healthy running state.
 
 The exact golangci-lint v2.13.1 repeat passed with zero issues over every tracked Go root: cmd, contracts, internal, scripts and tests, including integration tests. The earlier default local package walk timed out; its failed output remains. See the [CI follow-up evidence](../release-evidence/portfolio/r17/ci-followup.json). Hosted results on the final commit remain separate.
+
+## Review-scope correction — 17 October 2026
+
+The complete 840d7a7 source passed hosted Quality gates, Production-path CI, Contract validation and Supply-chain/security gates. Only the 194-file review scope failed. The correction divides the preserved source into five dependency-ordered PRs: #29 foundation, #30 backend, #31 console, #32 release tools and #28 final documentation. The existing 60-file and 30-critical-file limits stay unchanged. The original branch and commits remain; there is no force push or self-approved exception.
+
+Both intermediate Go stages passed local production/unit/contract/architecture/model checks with two workers. The new stage bodies and exact changed-file lists passed the trusted-base governance guard. Every review branch has automatic previews disabled before its first push. Docker remains stopped and no normal data operation ran. Each new head must pass its own hosted checks. See [the review order and safe retargeting instructions](review-stack.md). The earlier P-110 failure and all point-in-time phase evidence remain retained.

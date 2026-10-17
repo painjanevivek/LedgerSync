@@ -10,7 +10,11 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "codex/portfolio-r13-r17": false
+      "codex/portfolio-r13-r17": false,
+      "codex/portfolio-review-01-foundation": false,
+      "codex/portfolio-review-02-backend": false,
+      "codex/portfolio-review-03-console": false,
+      "codex/portfolio-review-04-release-tools": false
     }
   }
 }
