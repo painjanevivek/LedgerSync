@@ -2,9 +2,9 @@
 
 LedgerSync is an API-first, closed-loop ledger for exact, same-currency transfers between its own accounts. PostgreSQL stores the financial record; the operator console helps teams inspect balances, transfers, approvals, delivery, and exceptions.
 
-**Current boundary:** local-only software on one workstation. Funding records capture customer-authorized evidence of value confirmed outside LedgerSync. They do not prove bank settlement. Reconciliation currently compares stored ledger postings with LedgerSync balance projections; it does not compare them with a bank or payment-provider statement. LedgerSync does not initiate bank transfers, payouts, cards, or FX.
+**Current boundary:** local-only software on one workstation. Funding records capture customer-authorized evidence of value confirmed outside LedgerSync. They do not prove bank settlement. Internal reconciliation compares posted ledger and active obligations with stored balance evidence. A separate bounded workflow compares a supplied CSV statement with a fixed ledger snapshot. The sample CSV is synthetic; no bank connection or external settlement proof is supplied. LedgerSync does not initiate bank transfers, payouts, cards, or FX.
 
-The [master delivery register](docs/plans/ledgersync-master-progress.md) is the source of current status. The [master plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) records the delivery gates. Neither local qualification nor a design document is production approval.
+Start with the [portfolio review guide](docs/portfolio/README.md) for a five-minute review, architecture, measured evidence, and maintainer handover. The [portfolio phase register](docs/portfolio/progress.md) records local restructuring work. The [master delivery register](docs/plans/ledgersync-master-progress.md) and [master plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) retain commercial and managed-environment gates. Neither local qualification nor a design document is production approval.
 
 ## What works today
 
@@ -17,11 +17,11 @@ Posting and downstream delivery are separate outcomes. An unavailable read is no
 
 ## Current work
 
-1. **Finish the database boundary.** Complete the controlled-command cutover, remove broad direct financial-table writes from workload roles, and enforce tenant isolation at the database boundary. Current grants and the remaining gap are recorded in the [capability matrix](docs/security/database-capability-matrix.md).
-2. **Complete the existing developer and operator workflows.** Keep financial evidence, failure recovery, and authorization clear without adding new product claims.
-3. **Validate external reconciliation with a design partner.** If a recurring problem is confirmed, start with one read-only external source and a mapped clearing account: preserve the source and cutoff, match deterministically, and review exceptions. This is a proposed product slice, not a current feature.
+1. **Inspect the qualified core.** R13 qualifies the integrated local candidate, including controlled financial writers, restricted workload roles, tenant and actor policies, exact retry, and recovery. The [capability matrix](docs/security/database-capability-matrix.md) states the shared-workload trust limit. The [author decision](docs/release-evidence/portfolio/r13/engineering-decision.md) states the exact source and permitted claims.
+2. **Review the verified extensions.** R15 supplies one documented synthetic CSV statement workflow. R16 supplies full-capture internal reservations, full release, fenced expiry and a separate obligation export. Their local financial, authority, model, recovery, API and UI evidence is in the [phase register](docs/portfolio/progress.md). Use a schema66 candidate for these features.
+3. **Prepare deployment locally.** R17 prepares a production deployment package. Actual managed identity, backups, failover, operating ownership and deployment remain separate gates. No cloud execution is part of this work.
 
-Provider-led payouts, cards, FX, multiple providers, and automated financial adjustments are deferred. Pending and available balance semantics will expand only when a real hold or settlement workflow requires them.
+Provider-led payouts, cards, FX, multiple providers, and automated financial adjustments are deferred. Posted ledger is opening plus immutable postings. Reserved is the sum of active holds. Available is posted ledger minus reserved. A deadline alone does not release a hold. The preserved normal stack stays on schema64 and its original images; use the isolated candidate to review schema66.
 
 ## Run locally
 

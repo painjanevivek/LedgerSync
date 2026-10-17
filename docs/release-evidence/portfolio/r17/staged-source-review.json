@@ -1,0 +1,23 @@
+{
+  "svg": {
+    "path": "docs/portfolio/assets/r09-capacity.svg",
+    "before_sha256": "c3fcb9189e4eaf0c8a067e6530aa768577b77fe3f6a6cc3e03ef3c0673391b00",
+    "sha256": "3ad1738bff63db75217a9728d833843c0116e47e565704815b29404e43f39fff",
+    "parsed_drawing_content_identical": true,
+    "source_data_sha256": "fcb697f3df0be921fe2c195a5979a68d89aedd75e33d77ddc493090040d773cf"
+  },
+  "validator": {
+    "path": "scripts/portfolio/verify-portfolio-docs.mjs",
+    "before_sha256": "7218985fe8d81820be76c7e1ae68f42752b19e4c7777754c57da6cc81ffcb7d3",
+    "sha256": "232bdfaf29e222900385c9297ab1218728fefd3c83a5a4672f442324c0055ff5",
+    "only_final_line_breaks_changed": true
+  },
+  "status": "verified_formatting_only",
+  "renderer": {
+    "path": "scripts/portfolio/render-capacity.py",
+    "before_sha256": "b680aaa7f3a23465cfdcb94cac90f3e5d2bc50987a7d1f5ee639eabcc8747cf6",
+    "sha256": "b059c28ce1989fa13e1c52e278a05187d18fc98747173f0a1bd8db70701d80c4",
+    "purpose": "Apply the same whitespace normalization after future chart generation; no chart value, style or measurement changes."
+  },
+  "scope": "Post-phase staged whitespace review. Earlier phase records retain their point-in-time hashes. Application images and financial behavior are unchanged."
+}

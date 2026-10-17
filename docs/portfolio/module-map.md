@@ -4,7 +4,7 @@ This map explains the selected refactor. It complements the R00 inventory. It do
 
 | Responsibility | Owner and entry point | Preserved rule and verification |
 |---|---|---|
-| Worker process lifetime | `cmd/outbox-worker/main.go`: `main`, `runWorker`; health file logic remains in `health.go` | Signals, dependency startup, cleanup, timers and process exit remain local. Startup errors return through resource cleanup. Health requires successful polls for all four queues. |
+| Worker process lifetime | `cmd/outbox-worker/main.go`: `main`, `runWorker`; health file logic remains in `health.go` | Signals, dependency startup, cleanup, timers and process exit remain local. Startup errors return through resource cleanup. Health requires successful polls for all five queues, including reservation expiry. |
 | Shared worker construction | `internal/bootstrap/worker.go`: `NewWorkerRunnerWithOptions` | One construction path serves continuous and request-driven adapters. The continuous process keeps its worker node identity, item/progress hooks and key-cache observer. The original constructor retains its API node default. |
 | Independent queue iteration | `internal/bootstrap/worker.go`: `WorkerRunner.RunOnce` | Every queue is attempted in order. One failed queue does not starve another. Start/completion callbacks remain around each queue. Unit tests and a real restricted-worker integration test cover this contract. |
 | Delivery use case and ports | `internal/application/webhookdelivery/worker.go`, `contracts.go` | Own leased delivery flow, input/output types and small interfaces. It imports no HTTP adapter. |
@@ -34,3 +34,9 @@ The browser suite uses a separate local frontend on port 3100 and mocked respons
 `examples/typescript/` owns the small trusted-backend client, protected local intent state, and synthetic receiver. It depends on the generated TypeScript operation catalogue and the pinned Node runtime. It has no import of internal Go implementation packages and no access to the normal financial database. The receiver SQLite state is local consumer evidence, not ledger authority. Real integration qualification lives in guarded Go integration fixtures with restricted workload sessions and a test-only local receiver transport.
 
 The Developer UI reads a small generated retry-contract projection inside the web root. It does not import the repository SDK manifest across the Next.js build boundary. The canonical generator checks this projection with the other artifacts.
+
+## Final extension boundaries
+
+The statement application module owns parsing, matching, review and export policy. Its database adapters own scoped snapshots and controlled commands. The reservation module owns full hold commands and obligation export; database functions own the atomic balance transitions. HTTP and BFF layers derive identity and enforce their own request/download bounds. The shared CSV download control verifies content type, size, audit reference and optional source digest before saving bytes.
+
+The shared worker now has five queues: outbox, webhook verification, webhook delivery, scheduler and hold expiry. Health waits for all five reports. The queue runner still attempts each queue after another queue fails. See [current progress](progress.md) for exact proof and retained limits.

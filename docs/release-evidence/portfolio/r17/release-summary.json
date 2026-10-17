@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "status": "verified_local_candidate",
+  "execution_scope": "local_only",
+  "deployed": false,
+  "registry_publication": false,
+  "source_manifest_sha256": "1417ec33e9de6fbc65c8f779d74c999bdfbd2d8113bc44a87030a823fa1c0855",
+  "source_parent": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+  "dirty_source": true,
+  "contract_version": "3.9.0",
+  "latest_migration": "000066_internal_reservations.up.sql",
+  "images": {
+    "api": {
+      "local_image_id": "sha256:ee1c926bafe8676fcadb03369a063e4d9279cb592778e75bcaf0b8ec45843008",
+      "image_config_id": "sha256:dd289831ed5631bc8026e9ebc55d0ed636ffee9d335932976cae524b89f61448",
+      "vulnerability_report_sha256": "6316bb11fd47a371ed27398610ca674c030e8308f2a779336999c64bf4867fef",
+      "sbom_sha256": "23ea43381802b5db3e1f716457e02f5790107c35f978e16e2da9b017c571be5f",
+      "high_critical_scan_exit": 0
+    },
+    "outbox-worker": {
+      "local_image_id": "sha256:44f37417ce6a522633c54ea628fac9f6580b6ae158ff82266b54f2f723596439",
+      "image_config_id": "sha256:ad154f8e2f0e8faf3f07e41338783da8817361dc617f25e372e0d527058c467f",
+      "vulnerability_report_sha256": "eea5b96829156d09262bf4dcc89a7b981498c0dda500e0159eef7e21b3eef594",
+      "sbom_sha256": "0cadb90655caed9453587ba3db71399638a3b5a46101ae32c64f3179586b446a",
+      "high_critical_scan_exit": 0
+    },
+    "migrate": {
+      "local_image_id": "sha256:f8b3bb64e72955b4c4372b87fcf297896c70614320e9cefd3cadbdfd67675913",
+      "image_config_id": "sha256:86b9284b8f2dfe21fe9b1731cd325a9f862299fb094448a5133d4eff452fcd1b",
+      "vulnerability_report_sha256": "4a82ee3f9e4646f794c0ba370544a65495bb10507b00ffd8ceedfb36a7550c03",
+      "sbom_sha256": "f40a60e26ad1568430a275212a46ee6dc91e58cdc5d7caed4763ebf9a2f1cd4d",
+      "high_critical_scan_exit": 0
+    },
+    "web": {
+      "local_image_id": "sha256:bf8daab12b1d5725c3edaa9354ac230833f689f3ddfffec102578852480a8006",
+      "image_config_id": "sha256:64d737d6ad16c03c0b1b6ff857a965ae5ed837bd72280a1726b2a707174acf7c",
+      "vulnerability_report_sha256": "81b003826120a4265eda698a3e27519a7deb862a38fab4154580c2a0702f8361",
+      "sbom_sha256": "ff9b730c05a2ef3fc02ae486d24b88046584f8df408079b1b3936f31410a8111",
+      "high_critical_scan_exit": 0
+    }
+  },
+  "package_manifest_sha256": "273c5bbe43b139252bc7aba77747309191bf6e0b7cc9c38fc66f24cb94f708bf",
+  "linux_browser": {
+    "functional_and_visual_passed": 283,
+    "windows_only_skips": 4,
+    "performance_passed": 3,
+    "initial_requests": 30,
+    "lcp_ms": 556,
+    "interaction_ms": 24,
+    "javascript_bytes": 1785515
+  },
+  "native_windows_throttled_lcp": {
+    "measured_ms": 2864,
+    "budget_ms": 2500,
+    "qualified": false,
+    "issue": "P-106"
+  },
+  "component_capacity": [
+    {
+      "run_id": "demo-20261016220328-be1862ea",
+      "source_manifest_sha256": "a9798c8ce5fb4bb4f51a60b64d16e05203190d4b104b1e5d1e71c943a99ec542",
+      "offered": 3000,
+      "new_posted": 2640,
+      "p95_ms": 13.9641,
+      "steady_queue_age_seconds": 0.106071,
+      "journals": 3168,
+      "qualified": true,
+      "recovery": true
+    },
+    {
+      "run_id": "demo-20261016221041-bbdc1e0d",
+      "source_manifest_sha256": "a9798c8ce5fb4bb4f51a60b64d16e05203190d4b104b1e5d1e71c943a99ec542",
+      "offered": 3000,
+      "new_posted": 2640,
+      "p95_ms": 13.2926,
+      "steady_queue_age_seconds": 0.103667,
+      "journals": 3168,
+      "qualified": true,
+      "recovery": true
+    },
+    {
+      "run_id": "demo-20261016221755-dcd99449",
+      "source_manifest_sha256": "a9798c8ce5fb4bb4f51a60b64d16e05203190d4b104b1e5d1e71c943a99ec542",
+      "offered": 3000,
+      "new_posted": 2640,
+      "p95_ms": 13.2653,
+      "steady_queue_age_seconds": 0.105524,
+      "journals": 3168,
+      "qualified": true,
+      "recovery": true
+    }
+  ],
+  "normal_data_preserved": {
+    "schema": "000064",
+    "migration_history_records": 66,
+    "accounts": 8,
+    "transfers": 5,
+    "postings": 20
+  },
+  "limits": [
+    "Dirty-source local candidate, not a signed committed release.",
+    "Local component capacity excludes HTTP/BFF, active-hold throughput and managed services.",
+    "Scanner staging and documentation changed after the image snapshot. Final blank-line cleanup leaves code and configuration values unchanged; the final source comparison retains those differences.",
+    "Managed identity, provider, network, registry, operating owners, backup/failover and independent human acceptance remain later gates."
+  ]
+}

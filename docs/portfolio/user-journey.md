@@ -15,6 +15,12 @@ R05 keeps the existing console style and all route URLs. Work contains Overview,
 
 The Overview shows the next safe action after successful authorized reads. One account causes a request to create the destination. Read failure, offline state, and a reconciliation warning take priority. The Guide owns the full explanation and glossary. Optional orientation evidence remains a separate operator record; dismissing it does not prove completion.
 
+## Balance meanings after reservations
+
+Posted ledger equals opening funds plus immutable journal postings. Reserved funds equal active internal holds. Available funds equal posted ledger minus reserved funds. A deadline does not release funds until a terminal database transaction commits. An insufficient-funds response refers to available funds.
+
+A transfer receipt keeps the balances saved with that original result. Its posted ledger can differ from its available amount when another hold remains active. A historical receipt without separate fields does not prove current available funds. Read the account for a new authoritative value. External statement comparison reviews supplied synthetic evidence; it cannot move money.
+
 ## Compatibility and verification
 
 No route, filter, cursor, return URL, request key, monetary representation, or permission changed. Existing unavailable, historical, unknown, denial, and independent approval states remain. Navigation uses existing disclosure controls, keyboard behavior, focus restoration, styles, colors, and type. Tests cover desktop and compact navigation, role visibility, history, first-run text, review, unknown outcomes, reduced motion, zoom-equivalent reflow, and automated accessibility. These checks do not replace physical-device or human assistive-technology review.

@@ -70,3 +70,12 @@ SQL declarations include core accounts/journal/postings/idempotency/outbox; audi
 Keep domain and application unit tests near their packages. `tests/unit` covers core behaviour, `tests/contract` covers public contracts, and integration/fault/system directories require their documented dependencies. Web UI/security tests are fast source checks. Playwright tests cover browser and real-stack boundaries. `tests/architecture` now guards imports. The demo schema tests run offline.
 
 Use existing architecture, security, local-runtime, release-evidence, and plan documents as inputs. R00 adds a reconciled baseline; it does not replace historical evidence. The issue register assigns unfinished validation to later phases.
+
+## Selected extension ownership — source checkpoint
+
+| Package | Plain-language job | Owned evidence | Authority |
+|---|---|---|---|
+| statementreconciliation | Compare supplied CSV with a saved ledger snapshot | Mapping, source bytes/hash, rows, snapshots, matches, review items/events and command receipts | Separate non-financial function owner; API scopes and forced tenant policies; no journal or balance writes. |
+| reservations | Reserve available funds and make one full terminal decision | Hold state, original command receipts, hold events and expiry jobs | Existing controlled financial owner; API commands and worker-only leased expiry; no direct workload DML. |
+
+Shared bounded stream reading stays in the web library. Existing session identity, CSRF, original-key recovery, atomic rate limiting and private API assertions remain the request boundary. These entries describe implementation source. Phase completion and production acceptance require separate evidence.

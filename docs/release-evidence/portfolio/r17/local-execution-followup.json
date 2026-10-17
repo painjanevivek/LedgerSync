@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "status": "verified_preview_cleanup_and_branch_guard",
+  "recorded_at": "2026-10-16T22:43:18.025Z",
+  "source_commit": "8b33cd5226145ba9b37b6c7e2a161f08637ffd59",
+  "branch": "codex/portfolio-r13-r17",
+  "automatic_frontend_preview_reached_ready": true,
+  "new_preview_removed": true,
+  "existing_project_preserved": true,
+  "production_target_unchanged": true,
+  "metadata_and_build_evidence_preserved_locally": true,
+  "manual_local_qualification_unchanged": true,
+  "managed_package_deployed": false,
+  "branch_guard_files": [
+    {
+      "path": "vercel.json",
+      "sha256": "d7c3921a899d05e0e32be53546f42207b2f6ed4ff82a4f9f5367db21dc8a87aa"
+    },
+    {
+      "path": "web/vercel.json",
+      "sha256": "5357333c19cfac52862c767b0f13559c9ed3f63a8138ef276d87b62aabae2521"
+    }
+  ],
+  "private_evidence": [
+    {
+      "path": "data/portfolio/r17-20261017/automatic-preview-inspect.json",
+      "sha256": "4983ffbdd131ba6e88914f8f507464d477918e16852ac28b57215e1998ce9e99"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/automatic-preview-build-events.json",
+      "sha256": "9b1f54460296152f74d36b846f3a81d0a7287abaf612303888ae4dd3e2f6129f"
+    },
+    {
+      "path": "data/portfolio/r17-20261017/automatic-preview-cleanup-result.json",
+      "sha256": "6d13bc5afcb745865c3c9e1c453d3436e48cc77ebd93ff991316374b19ef0b73"
+    }
+  ],
+  "limits": [
+    "The pre-publication phase records retain their original time and hashes.",
+    "A temporary automatic hosted frontend did run after publication; this follow-up records its removal.",
+    "The branch-specific rule preserves the existing deployment policy for other branches.",
+    "Future managed deployment and merge decisions remain separate."
+  ]
+}

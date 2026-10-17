@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "phase": "R14",
+  "status": "verified_local",
+  "recorded_at": "2026-10-15T20:56:30.149Z",
+  "summary": "The portfolio handover now has one entry point, a safe local quickstart, five-minute and technical review guides, a case study, a maintainer guide, a limitation register, one trust diagram and four source-backed sequences. The root README now reflects the qualified database boundary. A source-backed chart includes the qualified R09 latency and unfavourable higher-rate queue trials.",
+  "verification": {
+    "documentation": "verified_local",
+    "documents": 8,
+    "local_links": 86,
+    "command_entries": 15,
+    "diagrams": 5,
+    "chart_source": "historical R09; exact values checked",
+    "chart_visual_review": "author inspected PNG preview",
+    "fixed_failure_scenarios": 7,
+    "artifact_verification": "passed",
+    "workflow_parse": "passed",
+    "normal_fingerprints_match": true
+  },
+  "source": {
+    "head": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+    "dirty": true,
+    "original_files": 1909,
+    "original_manifest_path": "data/portfolio/r14-20261015/source-before.json",
+    "original_manifest_sha256": "b6520e8422c7d6dd78e515201b281c3973e4ffa59354d89614a192bc081c4b26",
+    "authorized_git_checkpoint": "d300036fdefca6abb1725cd12c9dbc52e8029f63",
+    "missing_original_files": [],
+    "index_unchanged": true,
+    "index_sha256": "c46d33a1f25dd6626d33c15524f2d63f110b08a5e3ff63aca1f9e491ad0522b0",
+    "changed_original_files": [
+      {
+        "path": ".github/workflows/quality.yml",
+        "before_sha256": "f05c385e0c9711fc42c8e84f7600053d5340dd6a0202d297da9b0d788e848191",
+        "sha256": "8f956af9908b73a6fe4b631f8dbd1bcf04b2973e0ab02c382e7ddda2f04defe3"
+      },
+      {
+        "path": "README.md",
+        "before_sha256": "951d34be101cd3f3fe4c20129de918efe63d694c4c1086818ca43ec9923b0557",
+        "sha256": "571e5016a03c678c318d1b61b7738f28b7c71bfa5ecb747b773ae6afdaed8222"
+      },
+      {
+        "path": "docs/plans/ledgersync-master-progress.md",
+        "before_sha256": "5ab88aa1a3ae98860f3b3b59b4847468d3273adf41b30d3efcf777c7f1e16fff",
+        "sha256": "c2992854ced114cd29f61936e1901ee0a055ce890a19aaa428792fa1db17fdab"
+      },
+      {
+        "path": "docs/portfolio/issues.md",
+        "before_sha256": "61ec52831eba701167dd5bbb1131f20d88d5001334bb954143202fa4134cbd7d",
+        "sha256": "99b01b139f2c088c61e46a46b3fe25d515fba28d56c6a88d8132b1541fdd96c8"
+      },
+      {
+        "path": "docs/portfolio/progress.md",
+        "before_sha256": "844b4ceb74be68f6a40abf62ab7b456f70f2c7c4d2341785fcdfbf744f51bb7c",
+        "sha256": "1699ba350cb84a3ba03c7ebc14985f3075c87b4924c985777946ba463edf706d"
+      },
+      {
+        "path": "docs/portfolio/work-packets.md",
+        "before_sha256": "e3c86eec1abc5db5e7b71ae7b260408d57e3c8de6f5fee29d5dc853fa2f957f4",
+        "sha256": "2b894a4a699cd72dc707fe5f845ee0bb4ab911775bb858f3abb2fd698195339a"
+      }
+    ],
+    "new_files": [
+      {
+        "path": "docs/portfolio/README.md",
+        "sha256": "a812a8bd5233f91c25865434374a275bc244fc97ebb0adc71fe8f155915a52db"
+      },
+      {
+        "path": "docs/portfolio/architecture.md",
+        "sha256": "f7a9973be28ac0268d260ca788774f42da59ad0f59b31ab400f9c60fb15f4998"
+      },
+      {
+        "path": "docs/portfolio/assets/r09-capacity.json",
+        "sha256": "fcb697f3df0be921fe2c195a5979a68d89aedd75e33d77ddc493090040d773cf"
+      },
+      {
+        "path": "docs/portfolio/assets/r09-capacity.svg",
+        "sha256": "c3fcb9189e4eaf0c8a067e6530aa768577b77fe3f6a6cc3e03ef3c0673391b00"
+      },
+      {
+        "path": "docs/portfolio/case-study.md",
+        "sha256": "57d2b8ce6482f2fd623a77651b3dc4f7a95d5ceb8b04c155427082cf07ef36ff"
+      },
+      {
+        "path": "docs/portfolio/demo-guide.md",
+        "sha256": "8854f682de41387ea8765f189f458c032e7c26e6188a10b3b9939da45b96a9d3"
+      },
+      {
+        "path": "docs/portfolio/limitations.md",
+        "sha256": "f449c6de98bafe638ece32b005d24410f7098155cde235816b7290c51c115cf9"
+      },
+      {
+        "path": "docs/portfolio/maintainer-guide.md",
+        "sha256": "59231580d6f42c9df4a22597c0bb24f9f764dd79d3d0cdeb86b8efa8d2eb7eb3"
+      },
+      {
+        "path": "docs/portfolio/quickstart.md",
+        "sha256": "f23ff0aaa061cf4cb4001a91fdc5a17fd2b45112e05ece97d019c1732a19cea0"
+      },
+      {
+        "path": "scripts/portfolio/render-capacity.py",
+        "sha256": "b680aaa7f3a23465cfdcb94cac90f3e5d2bc50987a7d1f5ee639eabcc8747cf6"
+      },
+      {
+        "path": "scripts/portfolio/verify-portfolio-docs.mjs",
+        "sha256": "02810ff89984675d9fdad764b340ccdaa810f6e8298e36543a6aed42b19dc504"
+      }
+    ]
+  },
+  "preservation": {
+    "normal_financial_fingerprints_match": true,
+    "normal_services": "five preserved services healthy",
+    "normal_database_mutations": false,
+    "normal_image_rebuild": false,
+    "normal_volumes_used_by_tests": false,
+    "cloud_execution": false
+  },
+  "evidence": [
+    {
+      "path": "data/portfolio/r14-20261015/document-verification-qualified.txt",
+      "sha256": "28e063ef51154613eae72419330689d6e759f520042340ddac76246cdb0f636c",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r14-20261015/failure-demo.txt",
+      "sha256": "4e3e1438781da389a9d852d8fbabe0d6687e2ca1b85b2b756d6fe56ee18c09ca",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r14-20261015/failure-artifact-verification.txt",
+      "sha256": "59c1103afaf49fc138cd854d95693838eda757301d723aade83bd98dea34f8f4",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r14-20261015/workflow-verification.txt",
+      "sha256": "4cea4cdfb7092f15db137d76a676d201c8f600da7e977138b7ef489c4237b983",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r14-20261015/../demo-runs/demo-20261015205423-9c547dd4/run-manifest.json",
+      "sha256": "70226a65f2e23c117413b059d18d9ee5458f0c098a6f97084145425e201a8c65",
+      "visibility": "local_ignored"
+    },
+    {
+      "path": "data/portfolio/r14-20261015/r09-capacity-preview.png",
+      "sha256": "fa63d16f6ea798bada4482beeb50de66cf21b727348c798326b7417af86e1f89",
+      "visibility": "local_ignored"
+    }
+  ],
+  "external_plan": {
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "5ce3eda6c8c0f3464f7b4b5c13ff9d26970f88f422f0aced8ade5d465fe45269"
+  },
+  "limits": [
+    "R09 measurements keep their historical source identity and component scope. The chart does not qualify 20 offered commands/s, HTTP/BFF throughput, managed service or an SLA.",
+    "Command-entry validation is static; actual demonstration execution verifies the documented default seven-scenario path. Normal startup commands were not rerun because they apply migrations to preserved data.",
+    "The first validator failure was an index error in the check, retained as P-076. Chart data and thresholds were unchanged.",
+    "No video, public site, private artifact upload, independent human acceptance or cloud execution is claimed.",
+    "R15/R16 must refresh the feature descriptions, balance meanings and final core qualification; R17 remains a local deployment package."
+  ]
+}
