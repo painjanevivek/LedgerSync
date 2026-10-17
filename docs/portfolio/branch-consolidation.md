@@ -38,7 +38,7 @@ All nine required main checks remain mandatory. Before merging each dependent st
 
 Local draft `32aa535` joins all 38 published branch heads while retaining the exact initial main tree. It contains the parent fork's main history and excludes private backup histories. The draft is unpublished. It demonstrates a preserving history join; it is not the final application candidate.
 
-Main currently requires linear history. A squash can carry the code but cannot make the original parent commits ancestors. Removing the fork's behind count therefore needs an explicit one-time history-merge decision. The owner was asked whether to allow that merge after CI, then restore linear protection, or keep the rule and its fork comparison count. Do not change this protection without the answer. Keep every other required check, force-push prohibition and deployment block.
+Main currently requires linear history. A squash can carry the code but cannot make the original parent commits ancestors. The owner approved one history merge: allow that merge after all nine required checks pass, then restore the linear-history rule. Apply this exception only to the reviewed history merge. Keep every other required check, force-push prohibition and deployment block. Save and compare the protection settings before and after the merge.
 
 ## Current limits
 
