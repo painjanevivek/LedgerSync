@@ -31,8 +31,19 @@ func TestGeneratedWorkflowModel(t *testing.T) {
 			}
 			// Local account creation supports INR. Keep the reference workflow
 			// and its isolated policy fixture in that same supported currency.
-			if _, err := suite.admin.ExecContext(ctx, `INSERT INTO tenant_transfer_policies(tenant_id,currency,minimum_transfer_minor,maximum_transfer_minor,actor_rolling_24h_minor,source_account_rolling_24h_minor,tenant_rolling_24h_minor) VALUES($1,'INR',1,1000000,10000000,10000000,10000000) ON CONFLICT(tenant_id,currency) DO NOTHING`, testTenantID); err != nil {
+			policy, err := suite.admin.ExecContext(ctx, `UPDATE tenant_transfer_policies SET currency='INR' WHERE tenant_id=$1`, testTenantID)
+			if err != nil {
 				t.Fatal(err)
+			}
+			if count, err := policy.RowsAffected(); err != nil || count != 1 {
+				t.Fatalf("one isolated tenant policy required: count=%d error=%v", count, err)
+			}
+			fundingPolicy, err := suite.admin.ExecContext(ctx, `UPDATE tenant_funding_policies SET currency='INR' WHERE tenant_id=$1 AND currency='USD'`, testTenantID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if count, err := fundingPolicy.RowsAffected(); err != nil || count != 1 {
+				t.Fatalf("one isolated funding policy required: count=%d error=%v", count, err)
 			}
 			accountRepo, err := db.NewAccountCommandRepository(suite.api, time.Now)
 			if err != nil {
