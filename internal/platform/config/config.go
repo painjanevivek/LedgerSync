@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -52,6 +53,7 @@ type Config struct {
 	TelemetryEnabled           bool
 	TelemetryServiceName       string
 	OTLPHTTPEndpoint           string
+	OTLPCAFile                 string
 	RecoveryEvidenceRoot       string
 	WebhookSigningKeys         map[string][]byte
 	AWSRegion                  string
@@ -215,6 +217,7 @@ func Load() (Config, error) {
 		TelemetryEnabled:           telemetryEnabled,
 		TelemetryServiceName:       valueOrDefault("LEDGERSYNC_TELEMETRY_SERVICE_NAME", "ledgersync-api"),
 		OTLPHTTPEndpoint:           os.Getenv("LEDGERSYNC_OTLP_HTTP_ENDPOINT"),
+		OTLPCAFile:                 os.Getenv("LEDGERSYNC_OTLP_CA_FILE"),
 		RecoveryEvidenceRoot:       valueOrDefault("LEDGERSYNC_RECOVERY_EVIDENCE_ROOT", "/run/ledgersync/recovery"),
 		WebhookSigningKeys:         webhookSigningKeys,
 		AWSRegion:                  strings.TrimSpace(os.Getenv("AWS_REGION")),
@@ -232,6 +235,12 @@ func Load() (Config, error) {
 	}
 	if config.Environment != "development" && (config.DatabaseURL == "" || config.RedisAddress == "" || config.SessionSecret == "" || len(config.ConsistencySigningKey) < 32 || config.OIDCIssuerURL == "" || config.OIDCResourceAudience == "" || len(config.OIDCClientTenantMap) == 0 || len(config.BFFAssertionSecret) < 32) {
 		return Config{}, fmt.Errorf("database URL, redis address, session secret, 32-byte consistency key, OIDC issuer/resource audience/client mapping, and 32-byte BFF assertion secret are required outside development")
+	}
+	if config.Environment != "development" {
+		endpoint, err := url.Parse(config.OTLPHTTPEndpoint)
+		if err != nil || endpoint.Scheme != "https" || endpoint.Host == "" || endpoint.User != nil || (endpoint.Path != "" && endpoint.Path != "/") || endpoint.RawQuery != "" || endpoint.Fragment != "" {
+			return Config{}, fmt.Errorf("verified HTTPS telemetry authority is required outside development")
+		}
 	}
 	if config.Environment != "development" && (!config.TelemetryEnabled || config.OTLPHTTPEndpoint == "") {
 		return Config{}, fmt.Errorf("enabled telemetry and a private OTLP HTTP endpoint are required outside development")
