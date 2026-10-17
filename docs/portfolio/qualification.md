@@ -1,5 +1,7 @@
 # Local candidate qualification
 
+Current repair status: [audit repair register](audit-remediation.md). Historical qualified images and main CI do not qualify the new uncommitted source. Docker and deployments remain stopped.
+
 R13 verifies a local review candidate. It does not approve a managed production deployment.
 
 Use `node scripts/portfolio/run-release-candidate.mjs r13-YYYYMMDD` from the repository root. Docker Desktop must use its local `desktop-linux` builder. Ports 3102 and 3103 must be free. The normal `compose` project must remain available. The command needs local Docker access and public dependency downloads. It does not upload source, images, financial data, or secrets.

@@ -1,6 +1,7 @@
 import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { sampleOwnedProcess } from './process-resources.mjs';
 
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 export const hasExited=child=>child.exitCode!==null||child.signalCode!==null;
@@ -8,7 +9,7 @@ export const hasExited=child=>child.exitCode!==null||child.signalCode!==null;
 // This coordinator owns only its spawned worker and the exact guarded Redis
 // target. A file can request one fixed fault; no command or target is input.
 export async function withCapacityWorker(runTest,{root,workerBinary,workerEnv,redis,targets,inspect,docker,signal,abort,secrets}) {
-  let child,finished=false,paused=false,intentional=false,workerOutput='',controllerError;
+  let child,finished=false,paused=false,intentional=false,workerOutput='',controllerError,processIdentity;
   const lifecycle=[],resourceSamples=[];
   const save=(name,value)=>writeFileSync(join(root,name),JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
   const log=chunk=>{if(Buffer.byteLength(workerOutput)+chunk.length>8*1024*1024){controllerError=new Error('Worker output exceeded bound');abort();return};workerOutput+=chunk.toString();};
@@ -23,7 +24,7 @@ export async function withCapacityWorker(runTest,{root,workerBinary,workerEnv,re
   const startWorker=async()=>{
     const health=workerEnv.LEDGERSYNC_WORKER_HEALTH_PATH;
     if(existsSync(health))unlinkSync(health);
-    intentional=false;child=spawn(workerBinary,[],{env:workerEnv,windowsHide:true,stdio:['ignore','pipe','pipe']});
+    intentional=false;processIdentity=undefined;child=spawn(workerBinary,[],{env:workerEnv,windowsHide:true,stdio:['ignore','pipe','pipe']});
     child.stdout.on('data',log);child.stderr.on('data',log);
     child.on('error',()=>{controllerError=new Error('Owned capacity worker could not start');abort();});
     child.on('exit',()=>{if(!intentional&&!finished&&!signal.aborted){controllerError=new Error('Owned capacity worker exited unexpectedly');abort();}});
@@ -36,7 +37,12 @@ export async function withCapacityWorker(runTest,{root,workerBinary,workerEnv,re
     throw new Error('Capacity worker readiness deadline exceeded');
   };
   const sample=()=>{
-    try{resourceSamples.push({at:new Date().toISOString(),containers:docker('stats','--no-stream','--format','{{json .}}',...targets.map(t=>t.id)).split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line))});}catch{resourceSamples.push({at:new Date().toISOString(),state:'unavailable'});}
+    const worker=sampleOwnedProcess(child,workerBinary);
+    if(worker.status==='sampled'){
+      if(processIdentity&&processIdentity!==worker.creation_identity){controllerError=new Error('Owned worker process identity changed during measurement');abort();return;}
+      processIdentity=worker.creation_identity;
+    }
+    try{resourceSamples.push({at:new Date().toISOString(),worker,containers:docker('stats','--no-stream','--format','{{json .}}',...targets.map(t=>t.id)).split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line))});}catch{resourceSamples.push({at:new Date().toISOString(),worker,state:'container_sample_unavailable'});}
   };
   let timer;
   const controller=async()=>{

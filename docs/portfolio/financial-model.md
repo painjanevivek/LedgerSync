@@ -1,5 +1,7 @@
 # Independent financial model
 
+Current repair status: [audit repair register](audit-remediation.md). Original seed reports below retain their exact source. New workflow and serial-history tests compile but need a real isolated database repeat. Unit/model passes are recorded separately.
+
 R08 compares the application with a small independent ledger. The model uses only the Go standard library and wide integer arithmetic. It does not call the production money parser, fingerprint function, financial SQL or posting calculations. An architecture check enforces this separation.
 
 The model starts with two synthetic USD accounts. Their balances are 10,000 and 2,000 minor units. Each balance version starts at zero. Funding adds a separate zero-opening clearing account. Its negative balance offsets the funded customer account. The total ledger value therefore stays 12,000 minor units. No external money moves.
@@ -41,3 +43,11 @@ The independent oracle has a bounded ten-second fuzz run. It varies amounts, dir
 The database comparison covers a bounded USD subset. It does not prove every interleaving, every policy configuration or all possible input values. Permissions and malformed caller context remain R02/R03 test responsibilities. Dependency and process failures also have the R07 evidence. R16 must extend the model for reservations and capture before qualifying that new balance meaning.
 
 The first model run found a harness assumption: it required a recipient version in the sender's receipt. The minimizer reduced this to one transfer. The public contract requires only the debit-account version. The harness was corrected, and the original failed reports remain. This observation is not a product money-movement defect. No production financial code changed in R08.
+
+## Audit additions — lifecycle, approvals and histories
+
+The independent workflow owns actor/tenant grants, account status and metadata revisions, funding requests and independent review. It keeps metadata revision separate from balance version. Two deterministic 64-command database histories cover creation, funding, self-review denial, independent approval, an opposed stale decision, posting, transfer, freeze, reactivation, close rules, missing authority, a foreign tenant and an old receipt. Expected results are selected before the application call. The model uses only the standard library and the independent exact ledger.
+
+The concurrent-history checker records invocation and response times. It searches at most eight commands and 100,000 nodes for a serial order that preserves real-time precedence and matches status, replay and the required debit version. Exhausted search is not acceptance. Database histories include competing debits and bidirectional commands; asynchronous delivery remains outside the serial model. The final witness is checked against stored balances and journals.
+
+Positive controls seed duplicate-posting, unbalanced-entry, wrong-balance and missing-authority defects in the harness's observations. They exercise the same comparators used by database history checks. They do not modify or ship production financial code and do not claim an executed SQL mutation campaign. The original five-seed replay format remains compatible. The financial-model host profile now includes the original model, workflow model and concurrent histories.

@@ -1,5 +1,7 @@
 # Review and demonstration guide
 
+Current status and pending audit checks are in the [repair register](audit-remediation.md). Use the [fresh-person protocol](human-acceptance.md) for actual usability/handover acceptance. Keep Docker stopped during current repair work.
+
 ## Five-minute review
 
 This path assumes the local stack is already running. Installation time is separate. Reading existing records does not require a new financial command.
@@ -27,7 +29,7 @@ node scripts/portfolio/run-reservations.mjs
 node scripts/portfolio/run-extension-recovery.mjs
 ```
 
-Run one profile at a time. Keep source unchanged while each runner is active. The default demonstration runs seven fixed failure scenarios. It drives owned test resources; the browser cannot start host faults. The model uses independent exact arithmetic. Recovery restores an unfiltered synthetic backup into a new target before financial validation. Optional profiles cover explicitly supported feature sets. The developer profile tests a separate client and signed receiver.
+Run one profile at a time after runtime testing is permitted. Keep source unchanged while each runner is active. The current demonstration source prepares 14 fixed scenarios; its full runtime repeat is pending. The archived seven-scenario pass remains historical. Use `node scripts/portfolio/run-demo.mjs --preview` now to inspect the route without Docker or writes. Runtime execution drives owned test resources; the browser cannot start host faults. The model uses independent exact arithmetic. Recovery restores an unfiltered synthetic backup into a new target before financial validation. Optional profiles cover explicitly supported feature sets. The developer profile tests a separate client and signed receiver.
 
 For a measured capacity repeat, use this command alone, without builds or other database tests:
 

@@ -98,6 +98,10 @@ The application candidate source manifest predates the disk-staging tooling repa
 
 ## Source publication and existing platform integrations
 
-The authorized push of 8b33cd5 started a frontend preview through the existing Vercel Git integration. It reached READY before inspection. The exact new non-production preview was removed after its metadata and build events were saved locally. The existing project and production target are unchanged. Both Vercel configuration roots now disable automatic deployment only for codex/portfolio-r13-r17. Other branches retain their existing policy. The local application qualification and the prepared four-image package are unchanged. A future merge or another branch still requires a separate deployment decision.
+The authorized push of 8b33cd5 started a frontend preview through the existing Vercel Git integration. It reached READY before inspection. The exact new non-production preview was removed after its metadata and build events were saved locally. The existing project and production target are unchanged. At that historical follow-up, only codex/portfolio-r13-r17 was disabled. The later ordered integration disabled all five portfolio/review branches and main in both Vercel roots. That is the current policy; other branches retain their existing settings. The local application qualification and the prepared four-image package are unchanged. A future merge or another branch still requires a separate deployment decision.
 
 A local package flag does not change an existing hosting integration. Before publishing another local-only branch, set its explicit branch rule in both applicable Vercel roots. Confirm the rule before the first push. The provider documents this control in [Git configuration](https://vercel.com/docs/project-configuration/git-configuration). The current branch guard is absent from the qualified standalone runtime and does not change application behavior.
+
+## Current audit repair source
+
+Main `9b2dfaf` merged all five stages and passed its recorded CI. The new uncommitted audit repairs need their own qualification. Keep the old four-image identity package and its frozen source unchanged. Do not relabel it as a build of the changed tree. See [the repair register](../../docs/portfolio/audit-remediation.md). Docker and deployments remain stopped.

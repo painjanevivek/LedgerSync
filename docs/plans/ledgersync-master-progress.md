@@ -10,7 +10,11 @@
 
 This register is the single repository status source for the master plan. Earlier plans and registers are retained as historical evidence. A phase is complete only when every exit criterion has evidence for the exact commit. Code, documentation, emulation, or a local test cannot substitute for a managed-provider result, physical-device review, legal decision, named owner, partner action, or production approval.
 
-## Local portfolio checkpoint — 17 October 2026
+## Current portfolio audit repair — 17 October 2026
+
+The main audit found detailed R06–R09 coverage and R05/R14 human acceptance gaps. Source repairs and passing offline checks are recorded. The R09 HTTP/BFF coordinator, Windows timing, runtime qualification and actual human acceptance remain open. The [repair register](../portfolio/audit-remediation.md) is current. Prior local qualification and main CI retain their exact source. They do not qualify new uncommitted edits. Docker, normal data services and deployments remain stopped. Master commercial/provider/human gates remain unchanged.
+
+## Historical local portfolio checkpoint — 17 October 2026
 
 The selected R00–R17 local portfolio work is complete. The [portfolio register](../portfolio/progress.md) and its phase records state exact source, tests and limits. Bounded synthetic CSV comparison and full internal reservations are implemented and locally verified. The production package remains prepared, not deployed. The dated commercial statements below retain their historical context. No master managed-provider, finance, legal, independent human or production gate is closed by this local result.
 

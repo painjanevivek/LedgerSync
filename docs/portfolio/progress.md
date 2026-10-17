@@ -2,28 +2,32 @@
 
 Updated: 17 October 2026, Asia/Calcutta. Objective: a strong technical portfolio. This register uses `R` phase IDs. The master register's `M` phases retain their commercial/managed-environment gates.
 
+Current integration: [main branch consolidation](branch-consolidation.md). PR #33 passed all nine required checks and merged at `a4b933f`. Later stages carry the retained audit work and recovered branch fixes. Consult their exact-head CI and merged states. The dated offline audit checkpoint below remains historical evidence; publishing it does not complete its open gates.
+
+Current authority: [audit repair register](audit-remediation.md). Main `9b2dfaf` passed its recorded CI before the uncommitted repair changes. Offline checks are recorded. Docker, normal data services and deployments remain stopped. The R09 HTTP/BFF coordinator, Windows timing, human acceptance and runtime-dependent gates remain open.
+
 | Phase | Status | Result | Remaining boundary |
 |---|---|---|---|
 | R00 | VERIFIED with local-index substitution | Dirty source captured; backup validated; module/status inventory and baseline tests recorded; normal financial fingerprints preserved | External index refresh was rejected. Local inventory substitutes. Runtime images differ in provenance from source tests. |
-| R01 | VERIFIED | Six ADRs, import guard, demonstration schema/validator/tests, workflow extensions, ownership walkthroughs, and packets for every phase | Design decisions for R02 onward are not implemented enforcement. Hosted CI has not run for these local changes. |
-| R02 | VERIFIED LOCALLY | Actor-aware reads and commands; 53 forced row policies; bounded worker claims; scoped item processing; role checks; fresh and populated upgrade tests | Shared-workload trust limit remains explicit. Normal runtime was not migrated. R03 must remove direct financial DML. |
-| R03 | VERIFIED LOCALLY | Controlled financial/evidence writers; restricted roles; 36 function allowlist; complete integration/fault and Go checks | Normal runtime cutover and full release qualification remain later gates. |
-| R04 | VERIFIED LOCALLY | Platform HTTP adapters, shared worker construction/progress, cleanup ownership, correction state hook; rendering preserved | Exact image and full release qualification remain R13. Optional request-driven worker binding is tracked in R11. |
-| R05 | VERIFIED LOCALLY | Task-based navigation; two-account first run; one Guide and glossary; 56 browser checks | Human assistive-technology and physical-device review remain unclaimed. Systems Lab visibility belongs to R11. |
-| R06 | VERIFIED LOCALLY | Private bounded tracing; immutable event origins; linked attempts; authorized diagnostics; API 3.6.0 | No hosted viewer or collector deployment claim. R17 must validate collector compatibility before enablement. |
-| R07 | VERIFIED LOCALLY | Seven real local failure scenarios; bounded host runner; hashed binaries/artifacts; read-only Systems Lab | One-host synthetic Go-binary evidence. Candidate API images and multi-host/managed claims remain separate gates. |
-| R08 | VERIFIED LOCALLY | Independent exact model; 320 generated database steps; bounded replay/minimizer; immutable evidence checks | Bounded USD model and selected concurrent schedules. Reservations require an R16 model extension; full release qualification remains R13/final repeat. |
-| R09 | VERIFIED LOCALLY | Bounded offered-load runner; scoped receipt grouping; three 300-second local qualifications; real recovery and cancellation; measured limits | 10 offered commands/s includes 8.8 new postings/s for this mix. 20/s is unqualified. HTTP/BFF/image and native worker CPU/RSS qualification remain R13. |
-| R10 | VERIFIED LOCALLY | Unfiltered candidate backup; exact restored rows; restricted commands and original replay; cache/worker recovery; upgrade and interruption tests; separate Recovery proof | Local synthetic candidate only. Oldest supported snapshot is phase seven through migration 000012; unknown historical schemas need explicit compatibility repair. Repeat against the final R15/R16 schema. |
+| R01 | VERIFIED LOCALLY | Six ADRs, import guard, demo schema/validator, CI controls and work packets | R02/R03/R11 enforcement and prior main CI are complete for their recorded source. New audit edits require their own checks. |
+| R02 | VERIFIED LOCALLY | Actor-aware transactions, forced row policies, bounded worker access and real-role upgrade evidence | Shared workload remains trusted. Core and extension policies have separate proof. Normal runtime remains schema64. |
+| R03 | VERIFIED LOCALLY | Controlled financial/evidence writers, dedicated owners, explicit EXECUTE allowlists and real-role checks | No normal cutover. New diagnostic instrumentation needs an affected runtime repeat; financial authority is unchanged. |
+| R04 | VERIFIED FOR SELECTED HOTSPOTS | HTTP adapters, shared worker lifetime/progress and correction state ownership; architecture guard | Later image and optional-adapter qualification passed for the recorded candidate. See current audit changes before claiming a new release. |
+| R05 | IMPLEMENTED; HUMAN ACCEPTANCE OPEN | Task navigation, first-run guide and automated journey/keyboard/reflow checks; new human review protocol | Fresh-person observations, independent assistive-technology and physical-device acceptance remain open. |
+| R06 | SOURCE REPAIRED; RUNTIME REPEAT OPEN | Pool/wait and policy-lock metrics; native alert evaluation; opaque receiver context; bounded trace evidence checks | Actual command trace and collector regression on the changed source remain open while Docker is stopped. |
+| R07 | SOURCE REPAIRED; RUNTIME MATRIX OPEN | No-write preview; 14 fixed scenarios covering 13 required rows; HTTP post-commit loss and API-survival tests | New database tests compile. Full matrix execution remains open. Archived seven-scenario results stay historical. |
+| R08 | UNIT/MODEL PASS; DATABASE REPEAT OPEN | Independent lifecycle/approval model, serial-history checker and seeded harness defect controls; database tests compile | Run new workflow and competing histories against the exact isolated candidate. Prior seeds retain their original identity. |
+| R09 | PARTIAL; OFFLINE TOOLS VERIFIED | Separate workload/arrival profiles; owned worker CPU/RSS sampler; fixed-total/per-replica comparison plan | New sustained runs and the actual container HTTP/BFF matrix execution remain open. No new capacity or scaling claim. |
+| R10 | VERIFIED LOCALLY FOR PRIOR CANDIDATE | Unfiltered backup/restore, original outcomes, cache/worker recovery, supported upgrades and 76-table extension restore | Final schema66 affected-feature repeat passed before this audit. New changed-source runtime qualification remains open. |
 | R11 | VERIFIED LOCALLY | Strict server feature sets; direct disabled-route denial; read-only old room links; separate restricted cron worker pool; retained optional modules | Core, study and collaboration are bounded separate sets. Combined optional flags are rejected. No managed TURN, arbitrary combination or physical cross-network browser-call claim. |
 | R12 | VERIFIED LOCALLY | Working TypeScript client/receiver; durable exact retry and credential binding; real HTTP/finance/reconciliation/delivery proof; generated API 3.7.0 and precise retry guidance | Clean synthetic data/configuration and separate Node processes, not an independent human or deployed OAuth/provider/image claim. SQLite is experimental in the pinned local example runtime; core PostgreSQL authority is unchanged. |
-| R13 | VERIFIED LOCALLY | Qualified schema-000064 candidate; six browser journeys; restart replay; exact-main CI; four image scans/SBOMs; fresh capacity/recovery and extended model | Local synthetic portfolio only. Development-tool braces risk, physical-device/independent accessibility and managed identity/recovery remain explicit. R15/R16 require final integrated repeats. |
-| R14 | VERIFIED LOCALLY | Portfolio overview, quickstart, demo/case study, five diagrams, capacity chart, limitations and maintainer handover; reproducible failure demonstration | Written local handover and author review. No independent new-user acceptance, recording, public site or managed deployment claim. R15/R16 remain selected extensions. |
+| R13 | PRIOR CANDIDATE VERIFIED; REQUALIFICATION OPEN | Schema66 source/image evidence and three exact-main workflows passed before audit source changes | Current edits need affected runtime/image checks. P-062 and human acceptance remain open. See the repair register for Windows timing. |
+| R14 | DOCS IMPLEMENTED; HUMAN REVIEW OPEN | Overview, guides, diagrams, chart, maintainer handover and current status correction | Unfamiliar-person explanation/reproduction remains open. Video and public hosting are optional. |
 | R15 | VERIFIED LOCALLY | Strict CSV v1; immutable source and snapshot; exact unique matching; audited review/downloads; protected API/BFF/UI; schema65 and contract 3.9.0 | One immutable INR mapping and one unquoted CSV format; synthetic source only. No automatic adjustment, bank connection, external settlement or normal-stack upgrade. |
 | R16 | VERIFIED LOCALLY | Full create/capture/release/expiry; original receipts; exact ledger/reserved/available values; fifth worker queue; event compatibility; audited obligation export; schema66 | No partial capture, renewal, FX, cards or external authorization. Active holds remain reserved until terminal commit. Rollback requires schema66-compatible binaries. |
-| R17 | VERIFIED LOCALLY | Prepared local package; exact four-image scan/SBOM bindings; pinned collector/TLS rehearsal; health-loss and shutdown proof; full affected regression, model, recovery, browser and three capacity rounds | Prepared, not deployed. Provider, identity, network, registry, budget, owners, managed backup/failover and human acceptance remain unselected. P-062 and native Windows timing P-106 remain bounded limits. |
+| R17 | PRIOR LOCAL PACKAGE VERIFIED; NOT DEPLOYED | Recorded four-image package, collector/TLS proof and operating procedures; normal runtime remains preserved | No current-image qualification is implied for new audit edits. Provider inputs and managed execution remain separate and unapproved. |
 
-The current table and newest completion entries state the latest result. Earlier dated checkpoints remain as history; they do not reset later completion.
+The table and audit repair register state the current result. Dated completion entries below are immutable point-in-time evidence. Their previous complete labels do not close newly identified audit gaps.
 
 ## R13 resumed checkpoint — 15 October 2026
 
@@ -285,7 +289,7 @@ Both intermediate Go stages passed local production/unit/contract/architecture/m
 
 The final stage has 43 review files and one critical CI file. Its local trusted-base guard passed. Hosted Review policy also passed for all four new PRs, #29–#32. Other checks on these new heads are tracked separately; a passed scope check is not a claim that all CI or production acceptance is complete.
 
-## Ordered main integration — 17 October 2026
+## Historical pre-final-review integration checkpoint — 17 October 2026
 
 The owner authorized main integration in the order #29, #30, #31, #32 and #28. The first four stages passed all nine required checks and are merged into main in that order. Main deployment is disabled in both Vercel roots. Docker remains stopped; no normal migration, seed or financial command ran. Existing data, containers, volumes, images, backups, recovery refs and stashes remain.
 
@@ -297,3 +301,9 @@ The owner authorized main integration in the order #29, #30, #31, #32 and #28. T
 | #32 | `1312a04558e1e90ec66f4820ae4e33536f28107e` | `97f04b0cd1298c6f819425d4af470403244e3ce5` |
 
 This record is prepared for the final #28 review. Its integration review has 44 files, including the new integration evidence record, and one critical CI file. Its required checks and merge are the last step; consult the PR merged state for the final commit. The external phase plan and retained private integration journal record the final outcome. The original qualified application source and all historical evidence identities remain. No branch protection, review budget or production acceptance gate was removed.
+
+## Main integration final state and audit repair
+
+All five PRs merged in the requested order: #29, #30, #31, #32 and #28. Final main is `9b2dfaf0bc0d7c91d345e28541b02a7afd7d72c8`. Quality gates, Contract validation and Supply-chain/security passed on that exact commit. See [the final integration record](../release-evidence/portfolio/r17/main-integration-final.json). These passes predate the current uncommitted audit edits.
+
+The main and five review-branch deployment guards remain disabled in both Vercel roots. No Docker, normal schema/data operation, deployment, commit or push was performed by the audit repair pass. Read [current source work and open gates](audit-remediation.md).

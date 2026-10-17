@@ -32,6 +32,20 @@ func TestPortfolioCapacity(t *testing.T) {
 	if err != nil || (maximumRate != 10 && maximumRate != 20 && maximumRate != 30) {
 		t.Fatal("unsupported bounded capacity rate")
 	}
+	profile := os.Getenv("LEDGERSYNC_CAPACITY_PROFILE")
+	if profile == "" {
+		profile = "mixed"
+	}
+	if _, err := capacityPairIndex(profile, 0); err != nil {
+		t.Fatal(err)
+	}
+	arrival := os.Getenv("LEDGERSYNC_CAPACITY_ARRIVAL_MODE")
+	if arrival == "" {
+		arrival = "open-loop"
+	}
+	if arrival != "open-loop" && arrival != "closed-clients" {
+		t.Fatal("unsupported bounded arrival model")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 530*time.Second)
 	defer cancel()
 	fixture := newCapacityFixture(t, ctx)
@@ -69,7 +83,7 @@ func TestPortfolioCapacity(t *testing.T) {
 		accepted = add(fmt.Sprintf("ramp-%d", rate), "open-loop", rate, rampSeconds, false)
 	}
 	if accepted {
-		accepted = add("steady", "open-loop", maximumRate, seconds, false)
+		accepted = add("steady", arrival, maximumRate, seconds, false)
 	}
 	if accepted && seconds == 300 {
 		faultCtx, faultCancel := context.WithCancel(ctx)
@@ -120,7 +134,7 @@ func TestPortfolioCapacity(t *testing.T) {
 			t.Fatalf("capacity reconciliation mismatch: %+v", result)
 		}
 	}
-	report := map[string]any{"schema": "ledgersync-local-capacity/v1", "batch_size": batch, "target_commands_per_second": maximumRate, "projection_drain_seconds": projectionDrain.Seconds(), "steady_seconds": seconds, "qualification_requested": seconds == 300, "qualified": qualified, "calibration_only": seconds == 10, "financial_invariants": true, "recovery_faults_verified": faultsVerified, "stop_constraint": constraint, "drain_seconds": drain.Seconds(), "stages": stages, "journals": work.ledger.Journals, "unique_intents": len(work.receipts), "limits": []string{"Local financial application service and actual native continuous worker; excludes HTTP, BFF and candidate API images.", "Synthetic USD, six accounts, two tenants, eight bounded driver workers, API pool four and worker pool two.", "Database and Redis each have one CPU; memory limits are 768 MiB and 256 MiB.", "Queue and lock statistics are sampled once per second. Driver CPU excludes the native worker; container resource samples are separate.", "A short calibration never qualifies the five-minute steady state. No maximum capacity or production SLA claim."}}
+	report := map[string]any{"schema": "ledgersync-local-capacity/v1", "workload_profile": profile, "steady_arrival_model": arrival, "batch_size": batch, "target_commands_per_second": maximumRate, "projection_drain_seconds": projectionDrain.Seconds(), "steady_seconds": seconds, "qualification_requested": seconds == 300, "qualified": qualified, "calibration_only": seconds == 10, "financial_invariants": true, "recovery_faults_verified": faultsVerified, "stop_constraint": constraint, "drain_seconds": drain.Seconds(), "stages": stages, "journals": work.ledger.Journals, "unique_intents": len(work.receipts), "limits": []string{"Local financial application service and actual native continuous worker; excludes HTTP, BFF and candidate API images.", "Synthetic USD, six accounts, two tenants, eight bounded driver workers, API pool four and worker pool two.", "Database and Redis each have one CPU; memory limits are 768 MiB and 256 MiB.", "Queue and lock statistics are sampled once per second. Driver CPU excludes the native worker; native worker process CPU/RSS and container samples are separately bound in host artifacts.", "A short calibration never qualifies the five-minute steady state. No maximum capacity or production SLA claim."}}
 	encoded, err := json.Marshal(report)
 	if err != nil {
 		t.Fatal(err)
