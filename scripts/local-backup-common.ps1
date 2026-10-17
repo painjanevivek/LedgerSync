@@ -20,7 +20,7 @@ BEGIN
   'ledgersync_api','ledgersync_break_glass','ledgersync_maintenance',
   'ledgersync_maintenance_owner','ledgersync_migration_owner','ledgersync_preflight_owner',
   'ledgersync_provisioning','ledgersync_queue_owner','ledgersync_reconciliation',
-  'ledgersync_scheduler','ledgersync_support_readonly','ledgersync_worker'] LOOP
+  'ledgersync_scheduler','ledgersync_statement_owner','ledgersync_support_readonly','ledgersync_worker'] LOOP
   IF EXISTS(SELECT 1 FROM pg_roles r WHERE r.rolname=role_name AND
    (r.rolcanlogin OR r.rolsuper OR r.rolcreatedb OR r.rolcreaterole OR r.rolreplication OR r.rolbypassrls
     OR EXISTS(SELECT 1 FROM pg_auth_members m WHERE m.member=r.oid OR m.roleid=r.oid))) THEN

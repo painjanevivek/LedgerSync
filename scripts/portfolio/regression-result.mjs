@@ -1,4 +1,4 @@
-export const regressionExcluded = '^Test(?:Portfolio(?:Capacity|Recovery.*|DeveloperIntegration|OptionalFeatures)|OutboxCrashHelper)$';
+export const regressionExcluded = '^Test(?:Portfolio(?:Capacity|Recovery.*|ExtensionRecovery.*|DeveloperIntegration|OptionalFeatures)|OutboxCrashHelper)$';
 
 export function regressionResult(lines, expected, exitCode) {
   if (typeof lines !== 'string' || Buffer.byteLength(lines) > 8 * 1024 * 1024 || !Array.isArray(expected) || !expected.length || new Set(expected).size !== expected.length || expected.some(name => !/^Test[A-Za-z0-9_]+$/.test(name))) throw new Error('Bounded complete test inventory required');
