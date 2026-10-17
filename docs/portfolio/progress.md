@@ -284,3 +284,16 @@ The complete 840d7a7 source passed hosted Quality gates, Production-path CI, Con
 Both intermediate Go stages passed local production/unit/contract/architecture/model checks with two workers. The new stage bodies and exact changed-file lists passed the trusted-base governance guard. Every review branch has automatic previews disabled before its first push. Docker remains stopped and no normal data operation ran. Each new head must pass its own hosted checks. See [the review order and safe retargeting instructions](review-stack.md). The earlier P-110 failure and all point-in-time phase evidence remain retained.
 
 The final stage has 43 review files and one critical CI file. Its local trusted-base guard passed. Hosted Review policy also passed for all four new PRs, #29–#32. Other checks on these new heads are tracked separately; a passed scope check is not a claim that all CI or production acceptance is complete.
+
+## Ordered main integration — 17 October 2026
+
+The owner authorized main integration in the order #29, #30, #31, #32 and #28. The first four stages passed all nine required checks and are merged into main in that order. Main deployment is disabled in both Vercel roots. Docker remains stopped; no normal migration, seed or financial command ran. Existing data, containers, volumes, images, backups, recovery refs and stashes remain.
+
+| PR | Qualified head | Main merge |
+|---|---|---|
+| #29 | `85415d5ac4e57d744b8997a221b2186dfb03cf33` | `7d75ee526448a1c5ef363286927503169ceea80a` |
+| #30 | `66ae6e3542e9f2b8bd5eccded0a236d151e4e3fe` | `6b8b23bbb8efb15ed156a2b2ec98e5a9cc660059` |
+| #31 | `0bc9fe9f09612481e17b78b82f806a1c88b4e9c4` | `20b9d859bcc0138d935f83f066c2d0da9c846ff8` |
+| #32 | `1312a04558e1e90ec66f4820ae4e33536f28107e` | `97f04b0cd1298c6f819425d4af470403244e3ce5` |
+
+This record is prepared for the final #28 review. Its integration review has 44 files, including the new integration evidence record, and one critical CI file. Its required checks and merge are the last step; consult the PR merged state for the final commit. The external phase plan and retained private integration journal record the final outcome. The original qualified application source and all historical evidence identities remain. No branch protection, review budget or production acceptance gate was removed.

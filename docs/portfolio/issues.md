@@ -294,3 +294,16 @@ Status: RESOLVED LOCALLY. The exact v2.13.1 lint check passed with zero issues a
 ### P-110 — PR #28 exceeds the approved review scope
 
 Status: CORRECTED BY ORDERED REVIEW SPLIT. PRs #29, #30, #31 and #32 now carry the runtime foundation, backend, console and release tools. PR #28 is the final documentation and completion-check stage, based on PR #32. Review counts are 13, 58, 55, 27 and fewer than 60 for the final stage. The eight reviewed images and their ledger remain separately counted under the existing policy. Both intermediate Go stages passed local tests with two workers and no Docker. All four new stages passed the trusted-base local governance guard before publication. Each pushed head receives its own hosted checks; their current results must be checked before merge. No review limit, independent approval or production gate is weakened. The original 840d7a7 source and branch history remain. See the review-stack record for integration and retargeting instructions. The old 194-file failure remains historical evidence, not the current review scope.
+
+## Ordered main integration — 17 October 2026
+
+The owner authorized main integration in the order #29, #30, #31, #32 and #28. The first four stages passed all nine required checks and are merged into main in that order. Main deployment is disabled in both Vercel roots. Docker remains stopped; no normal migration, seed or financial command ran. Existing data, containers, volumes, images, backups, recovery refs and stashes remain.
+
+| PR | Qualified head | Main merge |
+|---|---|---|
+| #29 | `85415d5ac4e57d744b8997a221b2186dfb03cf33` | `7d75ee526448a1c5ef363286927503169ceea80a` |
+| #30 | `66ae6e3542e9f2b8bd5eccded0a236d151e4e3fe` | `6b8b23bbb8efb15ed156a2b2ec98e5a9cc660059` |
+| #31 | `0bc9fe9f09612481e17b78b82f806a1c88b4e9c4` | `20b9d859bcc0138d935f83f066c2d0da9c846ff8` |
+| #32 | `1312a04558e1e90ec66f4820ae4e33536f28107e` | `97f04b0cd1298c6f819425d4af470403244e3ce5` |
+
+This record is prepared for the final #28 review. Its integration review has 44 files, including the new integration evidence record, and one critical CI file. Its required checks and merge are the last step; consult the PR merged state for the final commit. The external phase plan and retained private integration journal record the final outcome. The original qualified application source and all historical evidence identities remain. No branch protection, review budget or production acceptance gate was removed.
