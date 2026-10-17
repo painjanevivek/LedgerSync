@@ -52,14 +52,14 @@ export function ConsoleShell({ section, children, tenantLabel, environmentLabel,
   return <WorkspaceLayoutContext.Provider value={setFocused}><div className={`app-shell guided-shell${focused ? " is-focused" : ""}`}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="guided-topbar" inert={navigationOpen || undefined}>
-      <Link className="brand" href="/" aria-label="LedgerSync overview">Ledger<span>Sync</span></Link>
-      {focused ? <nav className="guided-breadcrumb" aria-label="Breadcrumb"><Link href={focused.returnTo}>{focused.returnLabel.replace(/^Back to /, "")}</Link><span aria-hidden="true">/</span><span>{focused.title}</span></nav> : <span className="guided-workspace-name">{tenantLabel}</span>}
-      {!focused && <nav className="guided-desktop-nav" aria-label="Primary navigation">{links}<Link href="/guide" aria-current={section === "guide" ? "page" : undefined}>Help</Link>{expertLinks}</nav>}
+      <Link prefetch={false} className="brand" href="/" aria-label="LedgerSync overview">Ledger<span>Sync</span></Link>
+      {focused ? <nav className="guided-breadcrumb" aria-label="Breadcrumb"><Link prefetch={false} href={focused.returnTo}>{focused.returnLabel.replace(/^Back to /, "")}</Link><span aria-hidden="true">/</span><span>{focused.title}</span></nav> : <span className="guided-workspace-name">{tenantLabel}</span>}
+      {!focused && <nav className="guided-desktop-nav" aria-label="Primary navigation">{links}<Link prefetch={false} href="/guide" aria-current={section === "guide" ? "page" : undefined}>Help</Link>{expertLinks}</nav>}
       {focused && <span className="guided-mode-indicator">{mode === "simple" ? "Simple view" : "Expert view"}</span>}
-      <details className="workspace-popover profile-popover" onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}><summary><UserCircle aria-hidden="true" /><span>Profile</span><CaretDown aria-hidden="true" /></summary><div className="workspace-popover-content"><strong>{operatorLabel}</strong><p>{operatorMeta} · {environmentLabel}</p><p>{mode === "simple" ? "Simple view" : "Expert view"}</p><ExperienceModeSwitch /><Link href="/welcome">About LedgerSync</Link>{session && <button className="button secondary" type="button" disabled={signOutPending || !online} onClick={() => void signOut()} aria-describedby={!online ? "sign-out-offline" : signOutError ? "sign-out-error" : undefined}><SignOut aria-hidden="true" />{signOutPending ? "Signing out" : "Sign out"}</button>}{!online && <p id="sign-out-offline">Reconnect to sign out safely.</p>}{signOutError && <p id="sign-out-error" role="alert">{signOutError}</p>}</div></details>
+      <details className="workspace-popover profile-popover" onKeyDown={event => { if (event.key === "Escape") { event.currentTarget.open = false; event.currentTarget.querySelector("summary")?.focus(); } }}><summary><UserCircle aria-hidden="true" /><span>Profile</span><CaretDown aria-hidden="true" /></summary><div className="workspace-popover-content"><strong>{operatorLabel}</strong><p>{operatorMeta} · {environmentLabel}</p><p>{mode === "simple" ? "Simple view" : "Expert view"}</p><ExperienceModeSwitch /><Link prefetch={false} href="/welcome">About LedgerSync</Link>{session && <button className="button secondary" type="button" disabled={signOutPending || !online} onClick={() => void signOut()} aria-describedby={!online ? "sign-out-offline" : signOutError ? "sign-out-error" : undefined}><SignOut aria-hidden="true" />{signOutPending ? "Signing out" : "Sign out"}</button>}{!online && <p id="sign-out-offline">Reconnect to sign out safely.</p>}{signOutError && <p id="sign-out-error" role="alert">{signOutError}</p>}</div></details>
       {!focused && <button className="guided-menu-button button secondary" ref={menuButton} type="button" aria-expanded={navigationOpen} aria-controls="workspace-navigation" onClick={() => setNavigationOpen(true)}><List aria-hidden="true" />Menu</button>}
     </header>
-    {navigationOpen && <><button className="guided-nav-backdrop" aria-label="Close navigation" onClick={closeNavigation} /><aside className="guided-nav-drawer" ref={drawer} id="workspace-navigation" role="dialog" aria-modal="true" aria-label="LedgerSync workspace"><button className="button secondary" onClick={closeNavigation} aria-label="Close navigation"><X aria-hidden="true" />Close</button><nav aria-label="Primary navigation">{links}<Link href="/guide" onClick={() => setNavigationOpen(false)}>Help</Link>{expertLinks}</nav></aside></>}
+    {navigationOpen && <><button className="guided-nav-backdrop" aria-label="Close navigation" onClick={closeNavigation} /><aside className="guided-nav-drawer" ref={drawer} id="workspace-navigation" role="dialog" aria-modal="true" aria-label="LedgerSync workspace"><button className="button secondary" onClick={closeNavigation} aria-label="Close navigation"><X aria-hidden="true" />Close</button><nav aria-label="Primary navigation">{links}<Link prefetch={false} href="/guide" onClick={() => setNavigationOpen(false)}>Help</Link>{expertLinks}</nav></aside></>}
     <div className="workspace-column" inert={navigationOpen || undefined}><main id="main-content" className={`console-main section-${section} experience-${mode}`}>{children}</main></div>
   </div></WorkspaceLayoutContext.Provider>;
 }
@@ -70,7 +70,7 @@ export function ConsoleFooter({ pending = false }: { pending?: boolean } = {}) {
       aria-hidden={pending || undefined}
     >
       <span>LedgerSync · Internal ledger</span>
-      <Link href="/guide">Help and guide</Link>
+      <Link prefetch={false} href="/guide">Help and guide</Link>
     </footer>
   );
 }

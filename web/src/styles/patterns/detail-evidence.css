@@ -106,6 +106,10 @@
   grid-column: 1/-1;
   background: var(--paper-subtle);
 }
+.review-grid.balance-components > div:last-child {
+  grid-column: auto;
+  background: transparent;
+}
 .review-grid dt {
   color: var(--muted);
   font-size: var(--type-label);

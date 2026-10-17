@@ -5,12 +5,12 @@ import { deliveryEvent, mockOperatorConsole, sourceAccount } from "./fixtures";
 test("same-account refresh failure retains timestamped historical balance and history", async ({ page }) => {
   await mockOperatorConsole(page);
   await page.goto(`/accounts/${sourceAccount.account_id}`);
-  await expect(page.getByLabel("INR 1250.00 posted balance")).toBeVisible();
+  await expect(page.getByLabel("INR 1250.00 available balance")).toBeVisible();
   await page.getByText("Transactions and export", { exact: true }).click();
   await page.unroute("**/api/accounts/*/balance");
   await page.route("**/api/accounts/*/balance", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "temporary_unavailable" } }) }));
   await page.getByRole("button", { name: "Refresh accounts" }).click();
-  await expect(page.getByLabel("INR 1250.00 historical posted balance")).toBeVisible();
+  await expect(page.getByLabel("INR 1250.00 historical available balance")).toBeVisible();
   await expect(page.getByText(/Balance details not refreshed/)).toBeVisible();
   await expect(page.getByText("transfer-existing", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Close account" })).toBeEnabled();

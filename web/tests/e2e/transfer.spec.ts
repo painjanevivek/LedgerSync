@@ -176,5 +176,5 @@ test("an insufficient-funds outcome clearly states that no movement occurred", a
   await page.getByLabel("Amount").fill("999.00");
   await page.getByRole("button", { name: "Review transfer" }).click();
   await page.getByRole("button", { name: "Confirm transfer" }).click();
-  await expect(page.getByText("Transfer rejected — insufficient posted balance. No money moved.")).toBeVisible();
+  await expect(page.getByText("Transfer rejected — insufficient available funds. No money moved.")).toBeVisible();
 });

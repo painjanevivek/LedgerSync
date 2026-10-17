@@ -1,0 +1,3 @@
+row_id,source_account_ref,period_start,period_end,posted_at,external_reference,direction,amount_minor,currency,opening_minor,closing_minor
+synthetic-row-001,synthetic-clearing,2026-10-01T00:00:00Z,2026-11-01T00:00:00Z,2026-10-15T12:00:00Z,00000000-0000-4000-8000-000000000101,debit,250,INR,1000,850
+synthetic-row-002,synthetic-clearing,2026-10-01T00:00:00Z,2026-11-01T00:00:00Z,2026-10-15T13:00:00Z,00000000-0000-4000-8000-000000000102,credit,100,INR,1000,850

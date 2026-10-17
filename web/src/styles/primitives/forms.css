@@ -77,3 +77,17 @@
   font-size: var(--type-label);
   line-height: 1.5;
 }
+
+/* Shared exact-value and evidence controls use the established command style. */
+.evidence-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  padding: 10px 11px;
+  background: var(--white);
+  color: var(--ink);
+  font: var(--type-label)/1.45 var(--font-sans);
+}
+.evidence-input[readonly] { background: var(--paper-subtle); }
