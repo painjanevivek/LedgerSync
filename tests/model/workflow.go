@@ -96,11 +96,11 @@ func (w *Workflow) apply(c WorkflowCommand, actor workflowActor) WorkflowResult 
 		if !exists || account.Tenant != c.Tenant || account.Owner != c.Actor {
 			return result("not_found")
 		}
-		if c.ExpectedVersion != account.Version {
-			return result("stale")
-		}
 		if account.State == "closed" {
 			return result("terminal")
+		}
+		if c.ExpectedVersion != account.Version {
+			return result("stale")
 		}
 		target := map[string]string{"freeze": "frozen", "reactivate": "active", "close": "closed"}[c.Kind]
 		if target == account.State {
