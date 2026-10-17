@@ -74,7 +74,10 @@
     "scope": "Phase documentation, retained evidence, completion checks and review records",
     "pull_request": 28,
     "review_files": 43,
-    "critical_files": 1
+    "critical_files": 1,
+    "policy_checked_head": "55fbe70c0e5b13b1e5e7badd510a92f4d817935b",
+    "hosted_review_policy": "passed",
+    "hosted_governance_run": 39024023788
   },
   "limits": [
     "Hosted checks apply to each new head separately.",
