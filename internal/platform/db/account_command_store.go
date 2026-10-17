@@ -86,7 +86,8 @@ SELECT * FROM public.controlled_lock_owned_account_v1($1,$2,$3)`, tenantID, acco
 func authoritativeCloseState(ctx context.Context, tx *sql.Tx, accountID string, available, projectedLedger int64) (accountdomain.FinancialState, error) {
 	var unresolved bool
 	if err := tx.QueryRowContext(ctx, `
-SELECT EXISTS(SELECT 1 FROM transfers WHERE status='pending' AND (debit_account_id=$1 OR credit_account_id=$1))
+SELECT EXISTS(SELECT 1 FROM account_holds WHERE state='active' AND (debit_account_id=$1 OR credit_account_id=$1))
+ OR EXISTS(SELECT 1 FROM transfers WHERE status='pending' AND (debit_account_id=$1 OR credit_account_id=$1))
  OR EXISTS(SELECT 1 FROM funding_events WHERE status IN ('requested','approved') AND destination_account_id=$1)
  OR EXISTS(
    SELECT 1 FROM transfer_corrections correction

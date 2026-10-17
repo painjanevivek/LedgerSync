@@ -11,6 +11,15 @@ func TestControlledFunctionExecuteAllowlist(t *testing.T) {
 	_, admin := requireTransferService(t, 10000)
 	requireWorkloadRoles(t, admin)
 	allowed := map[string]string{
+		"controlled_create_hold_v1":                       "ledgersync_api",
+		"controlled_decide_hold_v1":                       "ledgersync_api",
+		"controlled_claim_hold_expiry_v1":                 "ledgersync_worker",
+		"controlled_expire_hold_v1":                       "ledgersync_worker",
+		"controlled_statement_mapping_v1":                 "ledgersync_api",
+		"controlled_statement_import_v1":                  "ledgersync_api",
+		"controlled_statement_prepare_v1":                 "ledgersync_api",
+		"controlled_statement_complete_v1":                "ledgersync_api",
+		"controlled_statement_review_v1":                  "ledgersync_api",
 		"controlled_request_opening_import_v1":            "ledgersync_provisioning",
 		"controlled_approve_opening_import_v1":            "ledgersync_provisioning",
 		"controlled_execute_opening_import_v1":            "ledgersync_provisioning",

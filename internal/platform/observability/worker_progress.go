@@ -14,7 +14,8 @@ const (
 	WorkerQueueWebhookDelivery     = "webhook_delivery"
 	WorkerQueueWebhookVerification = "webhook_verification"
 	WorkerQueueProjection          = "balance_projection"
-	workerQueueCount               = 4
+	WorkerQueueHoldExpiry          = "hold_expiry"
+	workerQueueCount               = 5
 )
 
 var workerQueues = [workerQueueCount]string{
@@ -22,6 +23,7 @@ var workerQueues = [workerQueueCount]string{
 	WorkerQueueWebhookDelivery,
 	WorkerQueueWebhookVerification,
 	WorkerQueueProjection,
+	WorkerQueueHoldExpiry,
 }
 
 // WorkerProgressReport contains bounded operational state. The item hash is

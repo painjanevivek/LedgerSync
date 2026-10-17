@@ -315,7 +315,7 @@ func publicTransferError(err error) error {
 	case errors.Is(err, db.ErrAccountInactive):
 		return &httptransport.PublicError{Status: http.StatusConflict, Code: "account_inactive", Message: "An account is not active for this transfer."}
 	case errors.Is(err, db.ErrInsufficientFunds):
-		return &httptransport.PublicError{Status: http.StatusConflict, Code: "insufficient_funds", Message: "The source account has insufficient posted balance."}
+		return &httptransport.PublicError{Status: http.StatusConflict, Code: "insufficient_funds", Message: "The source account has insufficient available funds."}
 	case errors.Is(err, db.ErrTransferBelowMinimum), errors.Is(err, db.ErrTransferAboveMaximum), errors.Is(err, db.ErrActorVelocityExceeded), errors.Is(err, db.ErrSourceVelocityExceeded), errors.Is(err, db.ErrTenantVelocityExceeded):
 		return &httptransport.PublicError{Status: http.StatusUnprocessableEntity, Code: "transfer_policy_denied", Message: "The transfer is outside the tenant's approved amount or rolling limits."}
 	case errors.Is(err, db.ErrTenantPolicyMissing), errors.Is(err, db.ErrUnsupportedPilotCurrency):

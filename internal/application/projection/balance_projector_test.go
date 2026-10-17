@@ -42,3 +42,15 @@ func TestLifecycleOutboxEventAdvancesBalanceConsumerWithoutProjectionMutation(t 
 		t.Fatalf("acked=%q cache-called=%t", stream.acked, cache.called)
 	}
 }
+
+func TestReservedBalanceEventPreservesPostedFunds(t *testing.T) {
+	event := outbox.Event{ID: "hold-event", TenantID: "tenant", AccountID: "account", EventType: ReservedBalanceChangedEventType, AggregateVersion: 3, Payload: []byte(`{"event_id":"hold-event","event_type":"account.balance.changed.v2","account_id":"account","currency":"INR","available_minor":"700","ledger_minor":"1000","reserved_minor":"300","balance_version":"3","occurred_at":"2026-10-16T00:00:00Z"}`)}
+	balance, err := decodeBalance(event)
+	if err != nil || balance.LedgerMinor != 1000 || balance.AvailableMinor != 700 || balance.Version != 3 {
+		t.Fatalf("reserved projection %+v %v", balance, err)
+	}
+	event.Payload = []byte(`{"event_id":"hold-event","event_type":"account.balance.changed.v2","account_id":"account","currency":"INR","available_minor":"700","ledger_minor":"1000","reserved_minor":"301","balance_version":"3","occurred_at":"2026-10-16T00:00:00Z"}`)
+	if _, err := decodeBalance(event); err == nil {
+		t.Fatal("invalid reservation equation projected")
+	}
+}

@@ -36,11 +36,13 @@ type Command struct {
 // Balance is the committed projection returned with a posted transfer. It is
 // deliberately an exact minor-unit value, not a display-formatted decimal.
 type Balance struct {
-	AccountID   string `json:"account_id"`
-	Currency    string `json:"currency"`
-	PostedMinor int64  `json:"posted_minor"`
-	Version     int64  `json:"version"`
-	AsOf        string `json:"as_of"`
+	AccountID      string `json:"account_id"`
+	Currency       string `json:"currency"`
+	PostedMinor    int64  `json:"posted_minor"`
+	AvailableMinor string `json:"available_minor,omitempty"`
+	ReservedMinor  string `json:"reserved_minor,omitempty"`
+	Version        int64  `json:"version"`
+	AsOf           string `json:"as_of"`
 }
 
 // Result is persisted verbatim as the idempotency outcome. Keeping the result
@@ -69,11 +71,13 @@ type resultJSON struct {
 }
 
 type balanceJSON struct {
-	AccountID   string `json:"account_id"`
-	Currency    string `json:"currency"`
-	PostedMinor string `json:"posted_minor"`
-	Version     string `json:"version"`
-	AsOf        string `json:"as_of"`
+	AccountID      string `json:"account_id"`
+	Currency       string `json:"currency"`
+	PostedMinor    string `json:"posted_minor"`
+	AvailableMinor string `json:"available_minor,omitempty"`
+	ReservedMinor  string `json:"reserved_minor,omitempty"`
+	Version        string `json:"version"`
+	AsOf           string `json:"as_of"`
 }
 
 // MarshalJSON preserves signed-64-bit financial values across JavaScript by
@@ -85,7 +89,7 @@ func (r Result) MarshalJSON() ([]byte, error) {
 	}
 	balances := make(map[string]balanceJSON, len(r.Balances))
 	for accountID, balance := range r.Balances {
-		balances[accountID] = balanceJSON{AccountID: balance.AccountID, Currency: balance.Currency, PostedMinor: strconv.FormatInt(balance.PostedMinor, 10), Version: strconv.FormatInt(balance.Version, 10), AsOf: balance.AsOf}
+		balances[accountID] = balanceJSON{AccountID: balance.AccountID, Currency: balance.Currency, PostedMinor: strconv.FormatInt(balance.PostedMinor, 10), AvailableMinor: balance.AvailableMinor, ReservedMinor: balance.ReservedMinor, Version: strconv.FormatInt(balance.Version, 10), AsOf: balance.AsOf}
 	}
 	return json.Marshal(resultJSON{TransferID: r.TransferID, Status: r.Status, Currency: r.Currency, AmountMinor: strconv.FormatInt(r.AmountMinor, 10), OccurredAt: r.OccurredAt, MinimumBalanceVersions: versions, Balances: balances, RejectionCode: r.RejectionCode})
 }
@@ -119,7 +123,17 @@ func (r *Result) UnmarshalJSON(data []byte) error {
 		if err != nil {
 			return fmt.Errorf("decode balance version: %w", err)
 		}
-		balances[accountID] = Balance{AccountID: value.AccountID, Currency: value.Currency, PostedMinor: posted, Version: version, AsOf: value.AsOf}
+		if value.AvailableMinor != "" || value.ReservedMinor != "" {
+			available, e := parseFinancialInt(value.AvailableMinor, true)
+			if e != nil {
+				return fmt.Errorf("invalid receipt available_minor: %w", e)
+			}
+			reserved, e := parseFinancialInt(value.ReservedMinor, true)
+			if e != nil || posted < available || posted-available != reserved {
+				return fmt.Errorf("invalid receipt reservation equation")
+			}
+		}
+		balances[accountID] = Balance{AvailableMinor: value.AvailableMinor, ReservedMinor: value.ReservedMinor, AccountID: value.AccountID, Currency: value.Currency, PostedMinor: posted, Version: version, AsOf: value.AsOf}
 	}
 	*r = Result{TransferID: encoded.TransferID, Status: encoded.Status, Currency: encoded.Currency, AmountMinor: amount, OccurredAt: encoded.OccurredAt, MinimumBalanceVersions: versions, Balances: balances, RejectionCode: encoded.RejectionCode}
 	return nil
