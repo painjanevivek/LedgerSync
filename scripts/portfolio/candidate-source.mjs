@@ -22,7 +22,7 @@ export function sourceIdentity() {
 
 export function captureCandidateSource(root) {
   const allowed = resolve(repository, 'data/portfolio'), offset = relative(allowed, root);
-  if (isAbsolute(offset) || offset.startsWith('..') || !/^r(?:1[3-7])-\d{8}[\\/]candidate-\d{14}-[a-f0-9]{8}$/.test(offset)) throw new Error('Exact private candidate root required');
+  if (isAbsolute(offset) || offset.startsWith('..') || !/^r(?:09|1[3-7])-\d{8}[\\/]candidate-\d{14}-[a-f0-9]{8}$/.test(offset)) throw new Error('Exact private candidate root required');
   mkdirSync(root, { recursive: true });
   if (realpathSync(root) !== root) throw new Error('Candidate output symlinks are forbidden');
   const identity = sourceIdentity(), manifest = JSON.stringify({ captured_at: new Date().toISOString(), ...identity }, null, 2) + '\n';

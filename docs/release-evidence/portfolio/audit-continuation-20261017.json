@@ -1,0 +1,323 @@
+{
+  "schema": "ledgersync-audit-continuation/v1",
+  "recorded_at": "2026-10-17T16:27:13.593Z",
+  "base_main": "8422ac502bfc88e6eed52f96596c9bd437aea024",
+  "source_state": "uncommitted continuation; not a release or image qualification",
+  "result": "offline_source_verified_runtime_acceptance_open",
+  "execution": {
+    "docker_commands": 0,
+    "normal_services_started": 0,
+    "normal_financial_queries": 0,
+    "deployment": false,
+    "owned_native_http_fixtures": true,
+    "owned_temporary_mocked_frontend": true
+  },
+  "verification": {
+    "portfolio_tests": {
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0
+    },
+    "syntax_modules": 14,
+    "documentation": {
+      "status": "verified_local",
+      "documents": 22,
+      "local_links": 163,
+      "command_entries": 28,
+      "source_backed_diagrams": 5,
+      "chart_values_match_archived_source": true,
+      "failures": []
+    },
+    "javascript_bytes": 1791892,
+    "largest_javascript_chunk_bytes": 229820,
+    "native_windows_lcp": {
+      "budget_ms": 2500,
+      "passed": 0,
+      "failed": 3,
+      "results_ms": [
+        2880,
+        2744,
+        2804
+      ],
+      "assertions_and_throttles_unchanged": true
+    },
+    "hosted_ci_for_new_source": "not run"
+  },
+  "preservation": {
+    "checked_at": "2026-10-17T16:21:42.430Z",
+    "head": "8422ac502bfc88e6eed52f96596c9bd437aea024",
+    "phase_entry_source_paths_present": 1941,
+    "archived_original_hashes_match": true,
+    "physical_index_unchanged": true,
+    "web_source_hashes_unchanged": 524,
+    "all_changes_uncommitted": true,
+    "docker_command_run": false,
+    "normal_financial_query_run": false,
+    "original_private_media_hashes": 122,
+    "stashes": 2,
+    "older_worktrees": 14,
+    "older_worktree_dirty_file_hashes": 473,
+    "deployment_guards_unchanged": true,
+    "normal_database": "preserved schema64; no fresh financial query or migration"
+  },
+  "plan": {
+    "version": "1.31",
+    "path": "D:/Work/Project/Plans/LedgerSync/ledgersync-portfolio-restructuring-plan-2026-10-13.md",
+    "sha256": "0352195809be09d1fe36185a1ab43829c6f26cd5dae6a72d6b353610a34c0115",
+    "original_phase_headings": 18
+  },
+  "resolved_status_correction": {
+    "R07": "Actual main CI passed response-loss and surviving-API tests; complete host packet remains open",
+    "R08": "Both 64-step workflow seeds 17/29 and competing histories passed actual PostgreSQL CI on base main"
+  },
+  "remaining": [
+    {
+      "phase": "R06",
+      "gate": "Real full command/retry trace and affected collector acceptance"
+    },
+    {
+      "phase": "R07",
+      "gate": "Complete current 14-scenario host-coordinator capture"
+    },
+    {
+      "phase": "R09",
+      "gate": "First actual topology/collector/SQL rehearsal, new sustained component profiles and all 27 HTTP/BFF captures"
+    },
+    {
+      "phase": "R13",
+      "gate": "P-106 unchanged-method Windows timing, P-062 compatible upstream fix and affected image/runtime qualification"
+    },
+    {
+      "phase": "R05/R14",
+      "gate": "Lord Master review not complete; actual observations and unfamiliarity/independence attestation required"
+    },
+    {
+      "phase": "R17",
+      "gate": "Separate later normal-runtime cutover and exact source/image handover; managed inputs and deployment remain excluded"
+    }
+  ],
+  "dependency_advisory": {
+    "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+    "checked_on": "2026-10-17",
+    "patched_version_listed": false,
+    "forced_fix_or_suppression": false
+  },
+  "changed_source_files": [
+    {
+      "path": "docs/portfolio/audit-remediation.md",
+      "bytes": 12517,
+      "sha256": "99b9986549c93ec4d0fd4a63dae5e385761f7f095cc1c6cda874e9478759a37f"
+    },
+    {
+      "path": "docs/portfolio/capacity.md",
+      "bytes": 12906,
+      "sha256": "96f4d5531bfd7903caba706fbfbacf6886281873f3eb1ffaf1afdddd86a0da66"
+    },
+    {
+      "path": "docs/portfolio/http-capacity-coordinator.md",
+      "bytes": 11487,
+      "sha256": "4b63a4c3d0cf8e05f24d2e28bd4902c23d91c0b2224c6dd7262bc45245bfee75"
+    },
+    {
+      "path": "docs/portfolio/human-acceptance.md",
+      "bytes": 4554,
+      "sha256": "dfda3899256350e0045a013a57ab67f9226b3ec06c2382a2f890217a8d1904b8"
+    },
+    {
+      "path": "docs/portfolio/issues.md",
+      "bytes": 61087,
+      "sha256": "87a239ba391b34c4882573ed8797aa2356152aa4d91ae6955374b13b1bd34ef4"
+    },
+    {
+      "path": "docs/portfolio/limitations.md",
+      "bytes": 3584,
+      "sha256": "e7d90e11a0d6faac85ff04ceb902b6f2ed5ff5d0ee418542af9a1051800ac67d"
+    },
+    {
+      "path": "docs/portfolio/progress.md",
+      "bytes": 67975,
+      "sha256": "bfbc3e14e69333f6fa690009fbac46b855b5c1b24c55f53976c378f452c6a41f"
+    },
+    {
+      "path": "docs/portfolio/work-packets.md",
+      "bytes": 70398,
+      "sha256": "7de244ed32f44bd3a379d823f91f80b4df2db46443d7ba07d606b86ff062dc85"
+    },
+    {
+      "path": "scripts/portfolio/candidate-source.mjs",
+      "bytes": 4508,
+      "sha256": "3db11e06da46ad0b0d06ddc581b013ef12f69c2faabf72b192b8ed9cb08f428d"
+    },
+    {
+      "path": "scripts/portfolio/capacity-matrix.mjs",
+      "bytes": 6064,
+      "sha256": "24c2662a2509e3b87659c9b3b708fd7b474964f7a2ff1d7b49034c193bb2f6d3"
+    },
+    {
+      "path": "scripts/portfolio/capacity-matrix.test.mjs",
+      "bytes": 3000,
+      "sha256": "13e58091f527c15de7f2579263881f288a8e547eb6e890e3868969ea0ff122fe"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity-evidence.test.mjs",
+      "bytes": 10301,
+      "sha256": "1cc9d1ca6295e491706e1d09076bb5f43f193ba417ae5b68de0c53bc9b5ac5df"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity-http.test.mjs",
+      "bytes": 7997,
+      "sha256": "33fef5b996eccea579e51d1b4e7af477234f31c3b27dfd28c40389b9c16f0c0d"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity-lifecycle.test.mjs",
+      "bytes": 13164,
+      "sha256": "3dc0d831a64e3eb5d5f652224f180f79795138412d70b557b6b05a9198a6b42a"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity.test.mjs",
+      "bytes": 7782,
+      "sha256": "4fa685f6bcfcc882e3234f935941917d472e12940d99d2f48e21b60562c93c65"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/boundary.mjs",
+      "bytes": 4763,
+      "sha256": "ba130b3b575926a88fc61f65631e84ed2f188165e86e38b91cf77720be272df1"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/compose.mjs",
+      "bytes": 11191,
+      "sha256": "7a93410a8be7f8b873abfe723696bea8d3cfbf759c3d1c7634a61619e1a6aabb"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/coordinator.mjs",
+      "bytes": 2333,
+      "sha256": "f745c85dcfc64b1d1ccf7440037f92409a7e49a85994bc48d2822fe191894d8a"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/definition.mjs",
+      "bytes": 3908,
+      "sha256": "716f880ea510191595818f9eb7d77ac1487e54debc5996e538df6825c49dd0ae"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/driver.mjs",
+      "bytes": 16456,
+      "sha256": "310ed58d1bfb26c9e6e43f600dce1ee551aa570ae1262228fdefbe83cf44b77e"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/evidence.mjs",
+      "bytes": 8714,
+      "sha256": "58bcdb2d14e35cf8305688b2b3a108aea2b433f05d9b98bd43ba6ad3eaaadfe5"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/measurement.mjs",
+      "bytes": 2108,
+      "sha256": "b2afc50d30c78f45689df1d86a252066feb7c6964570d9c314dc8234b9c87ffe"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/queries.mjs",
+      "bytes": 3125,
+      "sha256": "e5a54f0e432688c4ae720f1bf6554e442c8b2c1a6a7d0008d22b1923274749cc"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/router.mjs",
+      "bytes": 3064,
+      "sha256": "f8004aab09add67b80877303a00d6b5ca892c020ae9211f867443fbf524fdcb3"
+    },
+    {
+      "path": "scripts/portfolio/http-capacity/runtime.mjs",
+      "bytes": 33288,
+      "sha256": "8507ecad97af0dcbbd03090dfe8ac9cb6b51ab937f9df41c7cd61b3d41c3c406"
+    },
+    {
+      "path": "scripts/portfolio/run-http-capacity.mjs",
+      "bytes": 2958,
+      "sha256": "0855d0c4c26ae483e4f02f8487ee14e245e70ded9b2289ec3bd9ad01d2e17c1e"
+    },
+    {
+      "path": "scripts/portfolio/verify-portfolio-docs.mjs",
+      "bytes": 4237,
+      "sha256": "84877833911225cf92cbbd0f2010103f9ec9982744f82ab6300acbe07532ec33"
+    }
+  ],
+  "changed_source_list_sha256": "fc0161ee798ff32aed4d2d103a22dcf47061bb76ceaacfd9d35184accc280510",
+  "record_self_excluded_from_source_list": true,
+  "private_evidence_root": "data/portfolio/audit-continuation-20261017",
+  "artifacts": [
+    {
+      "path": "host-suite-repeat-final.txt",
+      "bytes": 7269,
+      "sha256": "a0d99049f09a7e780aa4f06abac0ac939cc8d39ac7abc882c497c697bcae331b"
+    },
+    {
+      "path": "syntax-final.json",
+      "bytes": 71,
+      "sha256": "d931ae5b1f3818b4bc2444831e886be8f0d0e123a97367127aa287615204e578"
+    },
+    {
+      "path": "documentation-final.txt",
+      "bytes": 203,
+      "sha256": "6a024b8dda0306d3d3a616cd02f43d7ac4390e63f9fcd79fbc2f6f0ffdc28f5e"
+    },
+    {
+      "path": "web-asset-budget.txt",
+      "bytes": 548,
+      "sha256": "4ad761fed1dc6e7712181fe9999fe9e8052e748045f041473911d650104f8cf9"
+    },
+    {
+      "path": "windows-performance-repeat.txt",
+      "bytes": 11937,
+      "sha256": "3d6d0df3d8e736882bc35d6c407ef1b2a6f93413c7085c7a3eca4a3c6a4f2cf0"
+    },
+    {
+      "path": "windows-performance-summary.json",
+      "bytes": 26280,
+      "sha256": "e8c29ab7b536f819e0e927c9cba7e063b8ec22ab554b0a6e1a9f18dda0ed59c0"
+    },
+    {
+      "path": "preservation-final.txt",
+      "bytes": 342,
+      "sha256": "bcc64ff07b80cbc8cf39aacccfe0209e0167d4cb4f720e290cc6c2931ee0d3d2"
+    },
+    {
+      "path": "preservation-continuation.json",
+      "bytes": 366,
+      "sha256": "114731c9278928e75205832c16514483b584c6eca491cb038fd169454aeb1ada"
+    },
+    {
+      "path": "runtime-stopped-final.json",
+      "bytes": 230,
+      "sha256": "bc0662eee3060938fd75d3311c687c278772aed4fa0ab1ca19bf61661b97ff7a"
+    },
+    {
+      "path": "r09-expanded-tests.txt",
+      "bytes": 5823,
+      "sha256": "834873ea42d6ee928062a8bfbb232722ae1a611027b83790a25f54c333ed2cab"
+    },
+    {
+      "path": "r09-expanded-permitted.txt",
+      "bytes": 1992,
+      "sha256": "85650002a2c8ca09c6fbc8ab3c20ec9d3d55d90844882bfb01df9aead0ed395f"
+    },
+    {
+      "path": "r09-input-permissions-final.txt",
+      "bytes": 1123,
+      "sha256": "b1b72ac90ce90cea225e039e14f319900230f61c6bfff62e7ba5fa2151ee9c22"
+    },
+    {
+      "path": "r09-drain-final.txt",
+      "bytes": 1162,
+      "sha256": "b7ccfa199ca667a579e79384b6e647c2f74b6bc85971f989f1fa2f189eac13a1"
+    },
+    {
+      "path": "documentation-final-with-record.txt",
+      "bytes": 203,
+      "sha256": "2afc1cae17d014e5dc4b70b671b1d74fc11a599c7bd50fb3aaddc4cd284a8180"
+    }
+  ],
+  "limits": [
+    "Offline fixtures do not authenticate real container execution or establish capacity.",
+    "Actual collector compatibility, SQL execution and non-root mounted-input behavior require the later real rehearsal.",
+    "Earlier main CI and image captures retain their own source identity.",
+    "No human acceptance, Windows timing pass or managed-production acceptance is generated."
+  ]
+}

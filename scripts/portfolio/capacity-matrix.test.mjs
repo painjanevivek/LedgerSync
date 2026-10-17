@@ -26,3 +26,8 @@ test('failed/flat measurements remain visible; missing repeats and mixed source 
   assert.equal(summarizeCapacityComparisons(reports).all_cases_qualified,false);
   for(const edit of [r=>r.pop(),r=>{r[1].source_manifest_sha256='3'.repeat(64);},r=>{r[1].allocation={...r[1].allocation,memory_mib_per_replica:1024};},r=>{r[1].id=r[0].id;},r=>{r[1].resource_samples=0;},r=>{r[1].schema='ledgersync-local-capacity/v1';},r=>{r[1].technical_failures=1;}]) { const input=fixtures();edit(input);assert.throws(()=>summarizeCapacityComparisons(input)); }
 });
+
+test('unfavourable captured performance is retained without granting capacity acceptance',()=>{
+  const reports=fixtures();Object.assign(reports[0],{capacity_qualified:false,stop_constraint:'technical_failures',technical_failures:2,dropped:3,resource_samples:0});
+  const summary=summarizeCapacityComparisons(reports);assert.equal(summary.all_cases_qualified,false);assert.ok(summary.comparisons[0].cohorts[0].constraints.includes('technical_failures'));
+});
