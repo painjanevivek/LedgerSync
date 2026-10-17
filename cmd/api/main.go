@@ -75,6 +75,12 @@ func main() {
 			defer cancel()
 			return database.PingContext(ctx)
 		}
+		stopPoolMetrics, metricsErr := telemetry.RegisterDatabasePool("api", database.Stats)
+		if metricsErr != nil {
+			slog.Error("database telemetry registration failed")
+			os.Exit(1)
+		}
+		defer stopPoolMetrics()
 		if configuration.Environment != "development" {
 			if err := db.ValidatePilotCurrency(context.Background(), database, configuration.PilotCurrency); err != nil {
 				slog.Error("pilot currency validation failed", "error", err)
@@ -415,6 +421,12 @@ func main() {
 					os.Exit(1)
 				}
 				defer func() { _ = workerDatabase.Close() }()
+				stopWorkerMetrics, metricsErr := telemetry.RegisterDatabasePool("cron_worker", workerDatabase.Stats)
+				if metricsErr != nil {
+					slog.Error("cron worker telemetry registration failed")
+					os.Exit(1)
+				}
+				defer stopWorkerMetrics()
 				workerRunner, runnerErr := bootstrap.NewCronWorkerRunner(startupContext, configuration, workerDatabase, redisClient, telemetry)
 				if runnerErr != nil {
 					slog.Error("cron worker initialization failed", "error", runnerErr)

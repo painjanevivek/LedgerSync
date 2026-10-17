@@ -16,7 +16,6 @@ export default defineConfig({
   webServer: {
     command: "node scripts/prepare-e2e-server.mjs && node -e \"process.env.HOSTNAME='0.0.0.0'; process.env.PORT='3100'; require('./.next/standalone/server.js')\"",
     env: {
-      ...process.env,
       LEDGERSYNC_DEPLOYMENT_ENV: "development",
       LEDGERSYNC_PUBLIC_ORIGIN: "http://127.0.0.1:3100",
     },

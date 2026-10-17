@@ -2,7 +2,7 @@ import { readFileSync, lstatSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import type { ClientOptions } from '../../../contracts/generated/typescript/ledgersync.ts';
 
-export type ExampleConfig = { statePath: string; baseUrl: string; principals: Record<string, { token: string }>; receiver?: { statePath: string; keyId: string; keyBase64: string; readyPath?: string; failurePath?: string } };
+export type ExampleConfig = { statePath: string; baseUrl: string; principals: Record<string, { token: string }>; receiver?: { statePath: string; keyId: string; keyBase64: string; readyPath?: string; failurePath?: string; tracePath?: string } };
 export function readPrivateJSON(path: string, maximum = 16_384): unknown {
   const info = lstatSync(path); if (!info.isFile() || info.size > maximum) throw new Error('Bounded regular private file required');
   return JSON.parse(readFileSync(path, 'utf8'));

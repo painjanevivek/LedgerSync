@@ -33,8 +33,10 @@ type TelemetryConfig struct {
 }
 
 type Telemetry struct {
-	enabled bool
-	tracer  trace.Tracer
+	enabled              bool
+	tracer               trace.Tracer
+	meter                metric.Meter
+	databaseLockDuration metric.Float64Histogram
 
 	requests                     metric.Int64Counter
 	boundaryCalls                metric.Int64Counter
@@ -98,6 +100,12 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	tracerProvider := sdktrace.NewTracerProvider(sdktrace.WithBatcher(traceExporter, sdktrace.WithMaxQueueSize(512), sdktrace.WithMaxExportBatchSize(64), sdktrace.WithBatchTimeout(time.Second), sdktrace.WithExportTimeout(time.Second)), sdktrace.WithSampler(sdktrace.TraceIDRatioBased(0.1)), sdktrace.WithResource(resources))
 	meterProvider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(15*time.Second), sdkmetric.WithTimeout(time.Second))), sdkmetric.WithResource(resources))
 	meter := meterProvider.Meter(instrumentationName)
+	telemetry.meter = meter
+	if err := telemetry.initializeDatabaseMetrics(); err != nil {
+		_ = meterProvider.Shutdown(ctx)
+		_ = tracerProvider.Shutdown(ctx)
+		return nil, err
+	}
 	requests, err := meter.Int64Counter("ledgersync.http.requests")
 	if err != nil {
 		return nil, err
@@ -251,7 +259,7 @@ func (t *Telemetry) Start(ctx context.Context, name string) (context.Context, tr
 	if t == nil {
 		return noop.NewTracerProvider().Tracer(instrumentationName).Start(ctx, name)
 	}
-	return t.tracer.Start(ctx, name)
+	return t.tracer.Start(context.WithValue(ctx, databaseObserverKey{}, t), name)
 }
 
 func (t *Telemetry) ObserveBoundary(ctx context.Context, boundary, operation string, started time.Time, err error) {

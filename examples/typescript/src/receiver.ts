@@ -2,6 +2,7 @@ import { createHmac, createHash, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import type { DatabaseSync } from 'node:sqlite';
 import { openState } from './storage.ts';
+import { receiverTrace, type ReceiverTrace } from './diagnostic.ts';
 
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 export type Receipt = { status: number; outcome: string; headers?: Record<string, string> };
@@ -55,8 +56,14 @@ CREATE TABLE IF NOT EXISTS projections(aggregate_key TEXT PRIMARY KEY,version TE
   close() { this.database.close(); }
 }
 
-export function receiverServer(store: ReceiverStore, shouldFail: () => boolean = () => false) {
+export function receiverServer(store: ReceiverStore, shouldFail: () => boolean = () => false, observeTrace?: (span: ReceiverTrace) => void) {
   return createServer(async (request, response) => {
+    if (observeTrace) response.once('finish', () => {
+      const span = receiverTrace(request.headers.traceparent, response.statusCode);
+      if (span) {
+        try { observeTrace(span); } catch { /* Diagnostic loss cannot change signed delivery handling. */ }
+      }
+    });
     if (request.method !== 'POST' || request.url !== '/hooks') { response.writeHead(404).end(); return; }
     const headers: Record<string, string> = {};
     for (let i = 0; i < request.rawHeaders.length; i += 2) {

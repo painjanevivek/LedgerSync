@@ -2,13 +2,15 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { loadExampleConfig } from './config.ts';
 import { ReceiverStore, receiverServer } from './receiver.ts';
+import { privateTraceSink } from './diagnostic.ts';
 
 try {
   if (process.argv.length !== 3) throw new Error('Protected configuration path required');
   const config = loadExampleConfig(process.argv[2]), receiver = config.receiver;
   if (!receiver || !isAbsolute(receiver.statePath) || receiver.readyPath && !isAbsolute(receiver.readyPath) || receiver.failurePath && !isAbsolute(receiver.failurePath)) throw new Error('Explicit protected receiver paths required');
   const store = new ReceiverStore(receiver.statePath, { [receiver.keyId]: Buffer.from(receiver.keyBase64, 'base64') });
-  const server = receiverServer(store, () => Boolean(receiver.failurePath && existsSync(receiver.failurePath)));
+  const traceSink = receiver.tracePath ? privateTraceSink(receiver.tracePath, receiver.statePath) : undefined;
+  const server = receiverServer(store, () => Boolean(receiver.failurePath && existsSync(receiver.failurePath)), traceSink);
   server.requestTimeout = 5000; server.headersTimeout = 5000; server.maxHeadersCount = 32;
   server.listen(0, '127.0.0.1', () => {
     const address = server.address(); if (!address || typeof address === 'string') throw new Error('Loopback receiver allocation failed');
