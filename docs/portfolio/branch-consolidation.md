@@ -29,8 +29,8 @@ The initial disclosure port exposed a standalone-rendering regression in existin
 ## Publish in reviewable stages
 
 1. [PR #33](https://github.com/painjanevivek/LedgerSync/pull/33): bounded diagnostics, native alert tests, browser report privacy and deployment guards; 27 files. All nine checks passed at `ed7bf85`; main merge `a4b933f` has the same tested tree.
-2. [PR #34](https://github.com/painjanevivek/LedgerSync/pull/34): complete fault mapping, independent workflow/history checks and bounded component capacity tools. Its first actual-database run rejected a USD local-account fixture. The repair uses INR for this workflow, preserves USD for archived model seeds, and explicitly rejects cross-currency moves. The failed log remains private. Exact-head checks must pass after this repair and the real main-base update.
-3. The final review stage carries the retained audit records, human-review protocol, current documentation and recovered UI/runbook changes. Its base follows stage 2. Keep each review within the existing scope limit.
+2. [PR #34](https://github.com/painjanevivek/LedgerSync/pull/34): complete fault mapping, independent workflow/history checks and bounded component capacity tools. Actual-database runs exposed inconsistent fixture currencies and an incorrect assumed policy key. The repaired workflow uses INR for local accounts, its independent model, both isolated database policies and its explicitly configured transfer adapter. Policy updates require one affected row. Existing USD model seeds and production rules remain unchanged. Failed logs remain private. Exact-head checks must pass after the repair and the real main-base update.
+3. [PR #35](https://github.com/painjanevivek/LedgerSync/pull/35) carries the retained audit records, human-review protocol, current documentation and recovered UI/runbook changes. Its base follows stage 2. Keep each review within the existing scope limit.
 
 All nine required main checks remain mandatory. Before merging each dependent stage, update it to the actual protected base, inspect its remaining diff and require checks on the exact head. Preserve failed attempts. Do not weaken a check or replace a failed result with an earlier pass.
 
@@ -39,6 +39,8 @@ All nine required main checks remain mandatory. Before merging each dependent st
 Local draft `32aa535` joins all 38 published branch heads while retaining the exact initial main tree. It contains the parent fork's main history and excludes private backup histories. The draft is unpublished. It demonstrates a preserving history join; it is not the final application candidate.
 
 Main currently requires linear history. A squash can carry the code but cannot make the original parent commits ancestors. The owner approved one history merge: allow that merge after all nine required checks pass, then restore the linear-history rule. Apply this exception only to the reviewed history merge. Keep every other required check, force-push prohibition and deployment block. Save and compare the protection settings before and after the merge.
+
+A native Gitleaks 8.30.1 scan of the unpublished public-history draft passed: 363 commits and about 26 MB were scanned. The official binary checksum was verified first. Git text conversion was disabled for the complete scan. An earlier attempt stopped at a local text-conversion error; its partial result is not accepted. The complete scan uses the repository's existing exact historical fingerprints. No new ignore rule was added.
 
 ## Current limits
 
