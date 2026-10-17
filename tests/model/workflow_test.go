@@ -45,6 +45,10 @@ func TestWorkflowPredictsLifecycleAuthorityAndOriginalReceipts(t *testing.T) {
 	if got := w.Apply(changed); got.Status != "terminal" {
 		t.Fatal("closed account reactivated")
 	}
+	changed.Key, changed.ExpectedVersion = "closed-active-stale-version", 1
+	if got := w.Apply(changed); got.Status != "terminal" {
+		t.Fatal("closed account must stay terminal even with an old revision")
+	}
 	foreign := create
 	foreign.Tenant, foreign.Account, foreign.Key = "other", "secret", "foreign"
 	if got := w.Apply(foreign); got.Status != "forbidden" || len(w.Accounts) != 1 {
