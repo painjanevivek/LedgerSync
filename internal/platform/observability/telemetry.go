@@ -28,7 +28,8 @@ const instrumentationName = "ledgersync/platform"
 type TelemetryConfig struct {
 	Enabled     bool
 	ServiceName string
-	Endpoint    string // private OTLP/HTTP host:port, for example otel-collector:4318
+	Endpoint    string // HTTPS authority in production; bare host:port remains local-only.
+	CAFile      string
 }
 
 type Telemetry struct {
@@ -74,11 +75,21 @@ func NewTelemetry(ctx context.Context, cfg TelemetryConfig) (*Telemetry, error) 
 	if cfg.ServiceName == "" || cfg.Endpoint == "" {
 		return nil, errors.New("enabled telemetry requires service name and private OTLP endpoint")
 	}
-	traceExporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpoint(cfg.Endpoint), otlptracehttp.WithInsecure(), otlptracehttp.WithTimeout(time.Second), otlptracehttp.WithRetry(otlptracehttp.RetryConfig{Enabled: false}))
+	endpoint, tlsConfig, err := telemetryTransport(cfg.Endpoint, cfg.CAFile)
 	if err != nil {
 		return nil, err
 	}
-	metricExporter, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpoint(cfg.Endpoint), otlpmetrichttp.WithInsecure(), otlpmetrichttp.WithTimeout(time.Second), otlpmetrichttp.WithRetry(otlpmetrichttp.RetryConfig{Enabled: false}))
+	traceOptions := []otlptracehttp.Option{otlptracehttp.WithEndpointURL(endpoint + "/v1/traces"), otlptracehttp.WithTimeout(time.Second), otlptracehttp.WithRetry(otlptracehttp.RetryConfig{Enabled: false})}
+	metricOptions := []otlpmetrichttp.Option{otlpmetrichttp.WithEndpointURL(endpoint + "/v1/metrics"), otlpmetrichttp.WithTimeout(time.Second), otlpmetrichttp.WithRetry(otlpmetrichttp.RetryConfig{Enabled: false})}
+	if tlsConfig != nil {
+		traceOptions = append(traceOptions, otlptracehttp.WithTLSClientConfig(tlsConfig))
+		metricOptions = append(metricOptions, otlpmetrichttp.WithTLSClientConfig(tlsConfig))
+	}
+	traceExporter, err := otlptracehttp.New(ctx, traceOptions...)
+	if err != nil {
+		return nil, err
+	}
+	metricExporter, err := otlpmetrichttp.New(ctx, metricOptions...)
 	if err != nil {
 		return nil, err
 	}

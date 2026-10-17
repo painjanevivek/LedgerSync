@@ -39,7 +39,7 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	telemetry, err := observability.NewTelemetry(ctx, observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint})
+	telemetry, err := observability.NewTelemetry(ctx, observability.TelemetryConfig{Enabled: configuration.TelemetryEnabled, ServiceName: configuration.TelemetryServiceName, Endpoint: configuration.OTLPHTTPEndpoint, CAFile: configuration.OTLPCAFile})
 	if err != nil {
 		slog.Error("telemetry initialization failed", "error", err)
 		os.Exit(1)
