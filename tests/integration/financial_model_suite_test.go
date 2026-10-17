@@ -136,6 +136,18 @@ func (s *financialModelSuite) check(ctx context.Context) error {
 	if journals != s.ledger.Journals || postings != 2*s.ledger.Journals || unbalanced != 0 {
 		return mismatch("journal", "journals=%d postings=%d unbalanced=%d expected_journals=%d", journals, postings, unbalanced, s.ledger.Journals)
 	}
+	observation := oracle.LedgerObservation{Accounts: map[string]oracle.Account{}, JournalCount: journals, PostingCount: postings, Unbalanced: unbalanced != 0}
+	for alias := range s.ledger.Accounts {
+		value := actual[s.bindings[alias]]
+		version, parseErr := strconv.ParseUint(value[2], 10, 64)
+		if parseErr != nil {
+			return mismatch("version", "invalid stored version")
+		}
+		observation.Accounts[alias] = oracle.Account{Minor: value[0], Version: version}
+	}
+	if err := oracle.VerifyObservation(s.ledger, observation); err != nil {
+		return mismatch("observation", "%v", err)
+	}
 	rows, err = s.admin.QueryContext(ctx, `SELECT 'journal:'||id::text,md5(row_to_json(j)::text) FROM journal_transactions j UNION ALL SELECT 'posting:'||id::text,md5(row_to_json(p)::text) FROM ledger_postings p UNION ALL SELECT 'transfer:'||id::text,md5(row_to_json(t)::text) FROM transfers t WHERE status='posted'`)
 	if err != nil {
 		return err

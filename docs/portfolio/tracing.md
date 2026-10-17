@@ -1,5 +1,7 @@
 # Diagnostic tracing
 
+Current repair status: [audit repair register](audit-remediation.md). The following R06 measurements retain their original source. The new pool/lock and receiver changes need an affected runtime repeat before a new integrated trace claim.
+
 R06 extends the existing OpenTelemetry adapter. PostgreSQL remains the financial authority. A trace is a diagnostic record. It grants no tenant, role, approval, replay, or money authority.
 
 ## Request and delayed work
@@ -41,3 +43,21 @@ The collector stays on the private observability network. Its existing memory li
 Tests cover diagnostic-only headers, forbidden metadata, raw-error exclusion, independent attempt links, malformed context, parent-span lifetime, down-collector requests, and bounded shutdown. Isolated database tests cover commit, retries, immutable origin and connection reuse. Existing tenant, worker crash, webhook and Lamport tests remain part of qualification.
 
 Three 10,000-operation local microbenchmarks on Windows amd64, Intel i9-13980HX, measured 298–381 ns per disabled request and 1,460–1,647 ns with telemetry enabled and the collector down. The enabled path allocated approximately 1.7 KiB and 17 objects per request. This is a synthetic handler benchmark, run beside other local tests. It does not measure database latency, production capacity, or exporter delivery success. Raw results stay in the private R06 evidence directory. R09 measures whole-workload capacity.
+
+## Audit additions — 17 October 2026
+
+The API, worker and optional cron worker register their own in-process database pool counters. Labels are the fixed pool role and connection state. Wait count and wait duration are cumulative counters; duration uses seconds. These callbacks use `database/sql` statistics and make no extra query. They unregister before pool closure. They export no DSN, tenant or account.
+
+The existing tenant-policy advisory-lock call records its duration and a fixed success/error label. This includes a database round trip. It is not a measurement of every PostgreSQL row lock. The local capacity harness still samples database lock waiters separately. No lock order, policy lock, retry, financial writer or transaction rule was removed.
+
+Webhook dispatch now sends only an opaque `traceparent` for receiver diagnostics. It remains outside the financial event envelope and signature input. It does not grant receiver authority. The example receiver can save a bounded private sibling `.trace.jsonl` file when `receiver.tracePath` is explicitly configured. It saves only span name, opaque trace/span ancestry and result class. Diagnostic loss cannot change signature verification or the receiver's durable effect.
+
+Use a verified native promtool 3.15.0 executable for the actual rule evaluator:
+
+```powershell
+node scripts/portfolio/verify-alerts.mjs
+```
+
+First set `LEDGERSYNC_PROMTOOL_PATH` to the checksum-verified local executable. The command starts no Prometheus server and sends no notification. Tests cover reconciliation mismatch, a delayed stalled-worker alert, recovery and negative conditions. All 16 alert runbook paths must exist. The [official rule-test format](https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/) defines the evaluator input. Later operating alert destinations remain separate.
+
+The [capture checker](../../scripts/portfolio/trace-evidence.mjs) requires the BFF, API, database, publisher, failed/successful delivery attempts and receiver. It requires separate referenced financial evidence. Its unit fixtures are not runtime captures. Full command capture remains open while PostgreSQL/Redis and Docker are stopped. No trace alone proves a financial result.

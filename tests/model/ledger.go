@@ -30,6 +30,7 @@ type Ledger struct {
 	Journals int
 	requests map[requestKey]stored
 	total    *big.Int
+	currency string
 }
 
 var canonicalPositive = regexp.MustCompile(`^[1-9][0-9]*$`)
@@ -37,7 +38,16 @@ var maximum = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 63), big.NewInt(1
 var minimum = new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), 63))
 
 func New(accounts map[string]Account) *Ledger {
-	ledger := &Ledger{Accounts: map[string]Account{}, requests: map[requestKey]stored{}, total: new(big.Int)}
+	return NewForCurrency(accounts, "USD")
+}
+
+// NewForCurrency selects one currency for the complete independent fixture.
+// New keeps USD so archived seeds and replay inputs retain their meaning.
+func NewForCurrency(accounts map[string]Account, currency string) *Ledger {
+	if currency != "USD" && currency != "INR" {
+		panic("unsupported model fixture currency")
+	}
+	ledger := &Ledger{Accounts: map[string]Account{}, requests: map[requestKey]stored{}, total: new(big.Int), currency: currency}
 	for id, account := range accounts {
 		ledger.Accounts[id] = account
 		value, ok := new(big.Int).SetString(account.Minor, 10)
@@ -69,7 +79,7 @@ func (l *Ledger) Move(intent Intent) Outcome {
 	from, fromOK := l.Accounts[intent.From]
 	to, toOK := l.Accounts[intent.To]
 	amount, ok := new(big.Int).SetString(intent.Minor, 10)
-	if !ok || !canonicalPositive.MatchString(intent.Minor) || amount.Cmp(maximum) > 0 || !fromOK || !toOK || intent.From == intent.To || intent.Currency != "USD" || intent.Tenant == "" || intent.Actor == "" || intent.Operation == "" || intent.Key == "" {
+	if !ok || !canonicalPositive.MatchString(intent.Minor) || amount.Cmp(maximum) > 0 || !fromOK || !toOK || intent.From == intent.To || intent.Currency != l.currency || intent.Tenant == "" || intent.Actor == "" || intent.Operation == "" || intent.Key == "" {
 		return Outcome{Status: "invalid"}
 	}
 	source, _ := new(big.Int).SetString(from.Minor, 10)

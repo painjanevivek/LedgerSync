@@ -1,0 +1,15 @@
+{
+  "schema": "ledgersync-human-acceptance/v1",
+  "purpose": "template",
+  "source_manifest_sha256": null,
+  "reviewed_at": null,
+  "reviewer": {
+    "reference": null,
+    "unfamiliar_with_project": null,
+    "is_author": null,
+    "human_attestation": null
+  },
+  "tasks": [],
+  "reviewer_explanation": null,
+  "status": "awaiting_human"
+}

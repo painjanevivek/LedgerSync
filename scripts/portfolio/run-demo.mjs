@@ -8,18 +8,10 @@ import { assertDisposableTarget, demoPurpose, fileDigest, scenarioResult, verify
 import { withCapacityWorker } from './capacity-worker.mjs';
 import { restoreCandidate } from './restore-candidate.mjs';
 import { regressionExcluded, regressionResult } from './regression-result.mjs';
+import { failureScenarios, demoPreview } from './demo-scenarios.mjs';
 
 const repo = realpathSync(resolve(dirname(fileURLToPath(import.meta.url)), '../..'));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const failureScenarios = [
-  ['lost-response', 'integration', 'TestReplaySurvivesLostResponseAndServiceRestart'],
-  ['duplicate-command', 'integration', 'TestConcurrentSameKeyRequestsResolveToOneMovement'],
-  ['duplicate-and-reordered-event', 'integration', 'TestBalanceProjectionIsIdempotentAndNeverRegressesVersion'],
-  ['stale-worker', 'integration', 'TestOutboxGenerationRejectsPreviousClaimFromSameOwner'],
-  ['cache-loss', 'fault', 'TestRedisLossUsesPrimaryAndRebuildsTheBalanceCache'],
-  ['dependency-loss', 'fault', 'TestRedisDependencyLossReschedulesWithoutChangingFinancialRecords'],
-  ['process-crash', 'integration', 'TestOutboxProcessCrashRecovery'],
-];
 const stateRoot = join(repo, 'data/portfolio/demo-runs');
 
 function command(executable, args, options = {}) {
@@ -63,17 +55,17 @@ function boundedProcess(executable, args, env, signal, secret, timeout = 180000)
   });
 }
 
-export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSize=10,capacitySteadySeconds=300,capacityRate=30}={}) {
-  if(!['failures','financial-model','capacity','recovery','optional-features','developer-integration','regression','statement-reconciliation','reservations','extension-recovery'].includes(profile)||modelReplayJSON!==undefined&&(profile!=='financial-model'||typeof modelReplayJSON!=='string'||Buffer.byteLength(modelReplayJSON)>24000)||![10,25,50].includes(outboxBatchSize)||![10,300].includes(capacitySteadySeconds)||![10,20,30].includes(capacityRate))throw new Error('Unsupported bounded host profile');
-  const scenarios=profile==='extension-recovery'?[['extension-recovery-fixture','integration','TestPortfolioExtensionRecoverySeed'],['extension-recovery-restored','integration','TestPortfolioExtensionRecoveryRestored']]:profile==='reservations'?[['internal-reservations','integration','TestInternalReservations'],['reservation-model','integration','TestReservationGeneratedModel'],['reservation-int64','integration','TestReservationExactIntegerBoundary'],['reservation-financial-boundary','integration','TestReservationsPreserveFundingAndCorrectionBoundary']]:profile==='statement-reconciliation'?[['statement-reconciliation','integration','TestStatementReconciliation'],['statement-snapshot','integration','TestStatementSnapshotIsolationAndConsumption'],['statement-bounds','integration','TestStatementRowBoundsAndPaging']]:profile==='developer-integration'?[['independent-developer-integration','integration','TestPortfolioDeveloperIntegration']]:profile==='optional-features'?[['optional-features','integration','TestPortfolioOptionalFeatures']]:profile==='financial-model'?[['generated-financial-model','integration','TestGeneratedFinancialModel']]:profile==='capacity'?[['bounded-capacity','integration','TestPortfolioCapacity']]:profile==='recovery'?[['candidate-recovery-fixture','integration','TestPortfolioRecoverySeed'],['candidate-recovery-restored','integration','TestPortfolioRecoveryRestored'],['candidate-recovery-migrations','integration','TestPortfolioRecoveryMigrations']]:failureScenarios;
-  if(profile==='regression')scenarios.splice(0,scenarios.length,['complete-integration','integration','Test'],['complete-fault','fault','Test']);
+export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSize=10,capacitySteadySeconds=300,capacityRate=30,capacityProfile='mixed',capacityArrivalMode='open-loop'}={}) {
+  if(!['failures','financial-model','capacity','recovery','optional-features','developer-integration','regression','statement-reconciliation','reservations','extension-recovery'].includes(profile)||modelReplayJSON!==undefined&&(profile!=='financial-model'||typeof modelReplayJSON!=='string'||Buffer.byteLength(modelReplayJSON)>24000)||![10,25,50].includes(outboxBatchSize)||![10,300].includes(capacitySteadySeconds)||![10,20,30].includes(capacityRate)||!['mixed','independent-pairs','hot-pair','multi-tenant'].includes(capacityProfile)||!['open-loop','closed-clients'].includes(capacityArrivalMode))throw new Error('Unsupported bounded host profile');
+  let scenarios=profile==='extension-recovery'?[['extension-recovery-fixture','integration','TestPortfolioExtensionRecoverySeed'],['extension-recovery-restored','integration','TestPortfolioExtensionRecoveryRestored']]:profile==='reservations'?[['internal-reservations','integration','TestInternalReservations'],['reservation-model','integration','TestReservationGeneratedModel'],['reservation-int64','integration','TestReservationExactIntegerBoundary'],['reservation-financial-boundary','integration','TestReservationsPreserveFundingAndCorrectionBoundary']]:profile==='statement-reconciliation'?[['statement-reconciliation','integration','TestStatementReconciliation'],['statement-snapshot','integration','TestStatementSnapshotIsolationAndConsumption'],['statement-bounds','integration','TestStatementRowBoundsAndPaging']]:profile==='developer-integration'?[['independent-developer-integration','integration','TestPortfolioDeveloperIntegration']]:profile==='optional-features'?[['optional-features','integration','TestPortfolioOptionalFeatures']]:profile==='financial-model'?[['generated-financial-model','integration','TestGeneratedFinancialModel'],['workflow-financial-model','integration','TestGeneratedWorkflowModel'],['concurrent-financial-histories','integration','TestFinancialConcurrentHistoriesMatchSerialOrders']]:profile==='capacity'?[['bounded-capacity','integration','TestPortfolioCapacity']]:profile==='recovery'?[['candidate-recovery-fixture','integration','TestPortfolioRecoverySeed'],['candidate-recovery-restored','integration','TestPortfolioRecoveryRestored'],['candidate-recovery-migrations','integration','TestPortfolioRecoveryMigrations']]:failureScenarios.map(row=>[...row]);
+  if(profile==='regression')scenarios=[['complete-integration','integration','Test'],['complete-fault','fault','Test']];
   const started = new Date(), stamp = started.toISOString().replace(/\D/g,'').slice(0,14), suffix = randomBytes(4).toString('hex');
   const project = `ledgersync-acceptance-${stamp}-${suffix}`, runId = `demo-${stamp}-${suffix}`, root = join(stateRoot,runId);
   mkdirSync(stateRoot,{recursive:true});
   if (lstatSync(stateRoot).isSymbolicLink() || realpathSync(stateRoot) !== stateRoot || existsSync(root)) throw new Error('Unsafe or existing demonstration output');
   mkdirSync(root); const save = (name,value) => writeFileSync(join(root,name),typeof value === 'string' ? value : JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});
   const before = sourceIdentity(), normalBefore = normalIdentity(); save('source-manifest.json',before); save('normal-containers-before.json',normalBefore);
-  save('run-profile.json',{profile,host_pid:process.pid,...(modelReplayJSON?{model_replay:JSON.parse(modelReplayJSON)}:{}),...(profile==='capacity'?{outbox_batch_size:outboxBatchSize,steady_seconds:capacitySteadySeconds,target_commands_per_second:capacityRate}:{})});
+  save('run-profile.json',{profile,...(profile==='failures'?{failure_matrix_version:'r07/v2'}:{}),host_pid:process.pid,...(modelReplayJSON?{model_replay:JSON.parse(modelReplayJSON)}:{}),...(profile==='capacity'?{outbox_batch_size:outboxBatchSize,steady_seconds:capacitySteadySeconds,target_commands_per_second:capacityRate,workload_profile:capacityProfile,steady_arrival_model:capacityArrivalMode}:{})});
   const images = ['postgres','redis'].map(service => {
     const matches = normalBefore.filter(c => c.service === service); if (matches.length !== 1) throw new Error('One preserved dependency image is required');
     return {service,digest:matches[0].image};
@@ -109,7 +101,7 @@ export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSiz
     if(profile==='optional-features')env.LEDGERSYNC_RUN_OPTIONAL='true';
     if(profile==='developer-integration')env.LEDGERSYNC_RUN_DEVELOPER='true';
     if(modelReplayJSON)env.LEDGERSYNC_MODEL_REPLAY_JSON=modelReplayJSON;
-    if(profile==='capacity')Object.assign(env,{LEDGERSYNC_RUN_CAPACITY:'true',LEDGERSYNC_CAPACITY_CONTROL_DIRECTORY:root,LEDGERSYNC_CAPACITY_STEADY_SECONDS:String(capacitySteadySeconds),LEDGERSYNC_CAPACITY_RATE:String(capacityRate),LEDGERSYNC_CAPACITY_OUTBOX_BATCH_SIZE:String(outboxBatchSize)});
+    if(profile==='capacity')Object.assign(env,{LEDGERSYNC_RUN_CAPACITY:'true',LEDGERSYNC_CAPACITY_CONTROL_DIRECTORY:root,LEDGERSYNC_CAPACITY_STEADY_SECONDS:String(capacitySteadySeconds),LEDGERSYNC_CAPACITY_RATE:String(capacityRate),LEDGERSYNC_CAPACITY_PROFILE:capacityProfile,LEDGERSYNC_CAPACITY_ARRIVAL_MODE:capacityArrivalMode,LEDGERSYNC_CAPACITY_OUTBOX_BATCH_SIZE:String(outboxBatchSize)});
     const migrate = await boundedProcess('go',['run','./cmd/migrate'],env,controller.signal,password); save('migrate.txt',migrate.output+migrate.errorOutput); if(migrate.code!==0) throw new Error('Disposable migration failed');
     const roleOutput = command('docker',['exec','-i',pg.id,'psql','--single-transaction','-v','ON_ERROR_STOP=1','-U','ledgersync','-d','ledgersync','-f','-'],{input:readFileSync(join(repo,'deploy/postgres/roles.sql'))}); save('roles.txt',roleOutput);
     const applied = docker('exec',pg.id,'psql','-U','ledgersync','-d','ledgersync','-At','-c','SELECT version FROM schema_migrations ORDER BY version').split(/\r?\n/).filter(Boolean);
@@ -145,7 +137,7 @@ export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSiz
         const output=run.output.split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line)).map(event=>event.Output??'').join('');
         const reports=output.split('\n').filter(line=>line.includes('CAPACITY_REPORT ')).map(line=>JSON.parse(line.slice(line.indexOf('CAPACITY_REPORT ')+16)));
         if(reports.length!==1||reports[0].financial_invariants!==true)throw new Error('One complete capacity correctness report is required');
-        const report=reports[0];save('capacity-report.json',report);
+        const report=reports[0];const samples=JSON.parse(readFileSync(join(root,'resource-samples.json'),'utf8'));report.native_worker_resource_samples=samples.filter(sample=>sample.worker?.status==='sampled').length;if(report.qualification_requested&&report.native_worker_resource_samples<2){report.qualified=false;report.stop_constraint='native_worker_resource_evidence';}save('capacity-report.json',report);
         if(report.qualification_requested&&!report.qualified){results[i].status='incomplete';results[i].reason='The local performance budget was exceeded. Financial checks passed.';results[i].checks.push({id:'five-minute-capacity-budget',status:'failed',reason:report.stop_constraint||'Qualification did not complete'});failure=new Error('Local capacity budget was exceeded');}
         else if(report.calibration_only)results[i].checks.push({id:'five-minute-capacity-budget',status:'not-applicable',reason:'Short calibration only; no capacity qualification is claimed.'});
         else results[i].checks.push({id:'five-minute-capacity-budget',status:'passed'});
@@ -182,6 +174,7 @@ export async function runDemo({profile='failures',modelReplayJSON,outboxBatchSiz
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
-  if(process.argv.length!==2) {console.error('Usage: node scripts/portfolio/run-demo.mjs');process.exitCode=1;}
+  if(process.argv.length===3&&process.argv[2]==='--preview') console.log(JSON.stringify(demoPreview(),null,2));
+  else if(process.argv.length!==2) {console.error('Usage: node scripts/portfolio/run-demo.mjs [--preview]');process.exitCode=1;}
   else runDemo().catch(()=>{console.error('Local demonstration failed. Inspect the retained private bundle; no overall pass is claimed.');process.exitCode=1;});
 }

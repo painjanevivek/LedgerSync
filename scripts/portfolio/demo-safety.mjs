@@ -2,10 +2,12 @@ import { createHash } from 'node:crypto';
 import { createReadStream, lstatSync, realpathSync, statSync, readFileSync } from 'node:fs';
 import { resolve, relative, isAbsolute, sep } from 'node:path';
 import { validateDemoManifest } from './demo-contract.mjs';
+import { failureScenarios } from './demo-scenarios.mjs';
 
 export const demoPurpose = 'portfolio-failure-demo';
 export function canSaveFailureSummary(profile,manifest){
-  const expected=['lost-response','duplicate-command','duplicate-and-reordered-event','stale-worker','cache-loss','dependency-loss','process-crash'];
+  if(profile?.failure_matrix_version!==undefined&&profile.failure_matrix_version!=='r07/v2')return false;
+  const expected=profile?.failure_matrix_version==='r07/v2'?failureScenarios.map(row=>row[0]):['lost-response','duplicate-command','duplicate-and-reordered-event','stale-worker','cache-loss','dependency-loss','process-crash'];
   const extras=['source-and-target-preservation','runner-completion','disposable-cleanup'];
   return profile?.profile==='failures'&&expected.every(id=>manifest.scenarios.filter(s=>s.id===id).length===1)&&manifest.scenarios.every(s=>expected.includes(s.id)||extras.includes(s.id));
 }

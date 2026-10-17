@@ -25,6 +25,7 @@ type capacityFixture struct {
 	control           string
 	pairs             []capacityPair
 	initial           map[string]int64
+	profile           string
 }
 
 func capacityControlDirectory(t *testing.T) string { t.Helper(); return portfolioControlDirectory(t) }
@@ -94,7 +95,11 @@ func newCapacityFixture(t *testing.T, ctx context.Context) *capacityFixture {
 		t.Fatal(err)
 	}
 	fixture := &capacityFixture{admin: admin, api: api.db, recon: recon.db, service: service, balances: balances, redis: client, control: control, pairs: []capacityPair{{"hot", testTenantID, testSourceID, testDestinationID}, {"independent-pair", testTenantID, c, d}, {"second-tenant", capacityTenant2, e, f}}, initial: map[string]int64{testSourceID: 1_000_000, testDestinationID: 2000, c: 1_000_000, d: 0, e: 1_000_000, f: 0}}
-	fixture.writeControl(t, "capacity-ready.json", map[string]any{"pid": os.Getpid(), "synthetic": true, "accounts": 6})
+	fixture.profile = os.Getenv("LEDGERSYNC_CAPACITY_PROFILE")
+	if fixture.profile == "" {
+		fixture.profile = "mixed"
+	}
+	fixture.writeControl(t, "capacity-ready.json", map[string]any{"pid": os.Getpid(), "synthetic": true, "accounts": 6, "profile": fixture.profile})
 	deadline := time.NewTimer(45 * time.Second)
 	defer deadline.Stop()
 	ticker := time.NewTicker(100 * time.Millisecond)

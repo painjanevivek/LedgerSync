@@ -1,5 +1,34 @@
 # Portfolio issue register
 
+## Current audit repair — 17 October 2026
+
+The [repair register](audit-remediation.md) is current. Older issue rows and completion notes below retain their original dates and scope. Main `9b2dfaf` merged all five PRs and passed its recorded CI before the current uncommitted repairs. P-109/P-110 are resolved for that integration. These old CI passes do not qualify the new source.
+
+| Issue | Current disposition | Completion condition |
+|---|---|---|
+| A01 / R06 | Pool/lock metrics, native alert evaluation, receiver context and trace validation are repaired in source; affected unit/TLS tests pass | Capture a real full command/retry trace and repeat affected collector/runtime checks in a verified isolated environment. |
+| A02 / R07 | Preview, complete matrix mapping and real HTTP fault tests are implemented; host checks pass; DB tests compile | Execute all current fixed scenarios and preserve fault, financial, target and cleanup evidence. |
+| A03 / R08 | Independent workflow, concurrent histories and seeded adapter defect controls are implemented; model unit checks pass | Compare new histories with real PostgreSQL and retain exact source, witness/counterexample and financial checks. |
+| A04 / R09 | Workload profiles, timed closed clients, native worker resource sampling and comparison definitions/checks are implemented | Execute new sustained profiles and complete the actual fixed-total/per-replica HTTP/BFF comparison path and measurements. |
+| A05 / R05/R14 | Human protocol/template prepared; Lord Master nominated | Lord Master supplies observations and an independence attestation; maintainer checks origin. Nomination, generated notes and author review cannot close this gate. |
+| P-062 | OPEN, bounded development-only risk. Current npm audit still reports five HIGH findings. Latest braces is 3.0.3; upstream lists no patched version | Adopt a reviewed compatible upstream fix and repeat dependency, lint, type, build and runtime-exclusion checks. No force downgrade or suppression. |
+| P-106 | OPEN. Native Windows repeats measured 2952, 2848 and 2860 ms against 2500 ms. The chunk experiment reduced initial requests from 30 to 23, without meeting LCP | Same-method native Windows evidence meets the unchanged LCP and other budgets. Retain all failed results. The measured pre-script delay needs further host/browser diagnosis; its cause is not proved. |
+| P-111 | RESOLVED. The first audit configuration inherited two server entries. One explicit loopback server now reaches the original assertions | Failed setup is retained. Two companion performance checks passed; P-106 remains a separate failure. |
+| P-112 | Tool permission limits: sandbox denied local TLS connections and temporary symlink creation | Permitted repeats passed without changing assertions; retain both logs. This does not authorize Docker or external deployment. |
+| P-113 | Tool-version drift: `.tool-versions` still named Go 1.22/Node 20 | Pins now match go.mod 1.26.9 and the independent example's Node 24.12.0. No machine runtime was installed or changed. |
+| P-114 | RESOLVED in the new audit configuration. Explicitly copying the complete parent environment into Playwright configuration caused private JSON reports to include unrelated environment values | The audit configuration now declares only test-specific overrides. Reports remain ignored private evidence. Do not publish raw old JSON or copy environment values into a tracked report. |
+| P-115 | RESOLVED by withdrawing the chunk-size experiment. It reduced initial requests but raised total emitted JavaScript to 2031822 bytes, above 2000000 | Original settings restored. The new production build passes at 1785515 bytes, largest chunk 229820. Failed asset evidence is retained; neither budget changed. |
+
+Docker and deployments remain stopped. The normal schema64 database and all previous evidence remain. A current-source runtime, image or production pass is not claimed.
+
+## Consolidation corrections — 17 October 2026
+
+- P-116: the first actual-database workflow run rejected a USD account because local account creation supports INR. The fixture and independent workflow now select INR. Archived core model seeds still default to USD. A separate negative test rejects cross-currency movement. Unit checks and compilation pass; require the repaired exact-head database CI result.
+- P-117: carrying forward the scoped-disclosure branch change exposed existing standalone-rendering tests. Presentation now uses an optional context read and skips persistence without identity. Required authenticated consumers still throw outside their boundary. All 256 web unit tests, type checks and lint pass. Retry controls also retain native disabled semantics and accessible reasons.
+- P-118: a private native browser run used performance port 3117 for a synthetic error probe that explicitly permits only 3100. Fifteen journeys passed; the probe correctly returned 404. The unchanged probe passed at its permitted loopback host on repeat. The two private configuration setup failures and original 404 remain. No application host boundary or assertion was relaxed.
+
+The [branch consolidation record](branch-consolidation.md) explains obsolete migration names, current replacements, protected reviews and the pending fork-history decision. The current build has 1791892 JavaScript bytes, largest chunk 229820, within the original budgets. Documentation validation passes 21 documents and 147 local links before this issue-link addition. All measurements retain their own source and time.
+
 ## R13 final disposition — 16 October 2026
 
 P-053–P-061 and P-063–P-071 are resolved for the recorded R13 local candidate. The exact-main CI, final browser journeys, source-preservation guard, actual image asset budgets, role tests, five-minute capacity/recovery and current-schema extended model passed. Earlier statements below that say verification is pending are historical checkpoints. P-062 remains the bounded development-only lint-tool advisory in the qualification guide. It does not permit a clean all-dependency claim.
