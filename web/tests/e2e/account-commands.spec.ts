@@ -161,8 +161,8 @@ test("lifecycle confirmation is keyboard-modal, accessible, and 44px minimum", a
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
   await page.getByRole("button", { name: "Close account" }).click();
-  await expect(page.getByText("Available balance").locator("..")) .toContainText("INR 1250.00");
-  await expect(page.getByText("Ledger balance").locator("..")) .toContainText("INR 1250.00");
+  await expect(page.getByRole("dialog").getByText("Available balance", { exact: true }).locator("..")) .toContainText("INR 1250.00");
+  await expect(page.getByRole("dialog").getByText("Ledger balance", { exact: true }).locator("..")) .toContainText("INR 1250.00");
   await expect(page.getByRole("button", { name: "Confirm close account" })).toBeDisabled();
   await page.getByRole("button", { name: "Cancel" }).click();
 });
@@ -258,8 +258,8 @@ test("close dialog refreshes account configuration and both balances before enab
   await expect(page.getByText("Refreshing account details")).toBeHidden();
   expect(summaryReads).toBeGreaterThan(before.summaryReads);
   expect(balanceReads).toBeGreaterThan(before.balanceReads);
-  await expect(page.getByText("Available balance").locator("..")) .toContainText("INR 0.00");
-  await expect(page.getByText("Ledger balance").locator("..")) .toContainText("INR 0.00");
+  await expect(page.getByRole("dialog").getByText("Available balance", { exact: true }).locator("..")) .toContainText("INR 0.00");
+  await expect(page.getByRole("dialog").getByText("Ledger balance", { exact: true }).locator("..")) .toContainText("INR 0.00");
   await expect(page.getByText("Expected account version").last().locator("..")) .toContainText("11");
   await expect(page.getByRole("button", { name: "Confirm close account" })).toBeEnabled();
 });

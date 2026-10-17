@@ -211,7 +211,7 @@ export function useTransferSubmission(tenantId: string, csrfToken: string, onPos
     if (isDefinitiveRejection(response.status, code)) {
       clearIntent();
       if (code === "insufficient_funds") {
-        setOutcome({ kind: "error", requestReference: responseReference, message: `Transfer rejected — insufficient posted balance. No money moved. Request reference: ${responseReference}.` });
+        setOutcome({ kind: "error", requestReference: responseReference, message: `Transfer rejected — insufficient available funds. No money moved. Request reference: ${responseReference}.` });
       } else if (code === "idempotency_conflict") {
         setOutcome({ kind: "error", requestReference: responseReference, message: `This retry key belongs to a different transfer request. The conflicting local key was cleared; review before creating a new intent. Request reference: ${responseReference}.` });
       } else {

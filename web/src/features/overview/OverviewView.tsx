@@ -97,8 +97,8 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
         title="Create the destination account"
         message="A transfer needs two different accounts in the same currency. Keep both accounts in this workspace."
         action={capabilities.accountsWrite
-          ? <Link className="button primary" href="/accounts/new">Create second account</Link>
-          : <Link className="text-link" href="/guide">View required steps →</Link>}
+          ? <Link prefetch={false} className="button primary" href="/accounts/new">Create second account</Link>
+          : <Link prefetch={false} className="text-link" href="/guide">View required steps →</Link>}
       />
     )}
     {evidenceSettled && accountsScopeComplete && accounts.length >= 2 && workspaceStage === "account_ready" && (
@@ -106,15 +106,15 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
         title="Add or review funding"
         message="Verify the payment outside LedgerSync. Record and review it before posting."
         action={capabilities.fundingWrite
-          ? <Link className="button primary" href="/funding">Open funding</Link>
-          : <Link className="text-link" href="/guide">View required steps →</Link>}
+          ? <Link prefetch={false} className="button primary" href="/funding">Open funding</Link>
+          : <Link prefetch={false} className="text-link" href="/guide">View required steps →</Link>}
       />
     )}
     {evidenceSettled && accountsScopeComplete && accounts.length >= 2 && workspaceStage === "operational" && transfers.length === 0 && capabilities.transfersWrite && (
       <NextBestAction
         title="Make your first transfer"
         message="Choose two accounts and review the amount before you confirm."
-        action={<Link className="button primary" href="/transfers">Open transfers</Link>}
+        action={<Link prefetch={false} className="button primary" href="/transfers">Open transfers</Link>}
       />
     )}
   </>;
@@ -185,23 +185,23 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
       </>}
 
       {accounts.length > 0 && mixedCurrency && <StatePanel kind="error" title="Balances use different currencies" message="LedgerSync will not combine them. Open Accounts to review each currency separately."/>}
-      {!accountsScopeComplete && <StatePanel kind="unknown" title="Workspace totals are not available" message="Only part of the account list was loaded. Open Accounts to review individual balances; no partial sum is presented as your full workspace." action={<Link className="button secondary" href="/accounts">View accounts</Link>} />}
+      {!accountsScopeComplete && <StatePanel kind="unknown" title="Workspace totals are not available" message="Only part of the account list was loaded. Open Accounts to review individual balances; no partial sum is presented as your full workspace." action={<Link prefetch={false} className="button secondary" href="/accounts">View accounts</Link>} />}
       {accountsScopeComplete && accounts.length > 0 && !mixedCurrency && currency && <>
-        <div className="simple-section-heading"><div><h2>Your money</h2><p>Exact balances from verified ledger records.</p></div><Link className="text-link" href="/accounts">View accounts</Link></div>
+        <div className="simple-section-heading"><div><h2>Your money</h2><p>Exact balances from verified ledger records.</p></div><Link prefetch={false} className="text-link" href="/accounts">View accounts</Link></div>
         <div className="simple-financial-grid">
           <FinancialSummary label="Operating balance" amount={<Money currency={currency} minorUnits={operating} />} explanation="Available for your organization’s operations." />
           <FinancialSummary label="Customer funds" amount={<Money currency={currency} minorUnits={customerFunds} />} explanation="Held separately and never counted as operating money." />
         </div>
       </>}
 
-      {newWorkspace && <section className="friendly-empty-state home-empty-state"><h2>Start with your first account</h2><p>Create an account, add money, review it, then make a transfer. LedgerSync will guide you one step at a time.</p><div className="new-workspace-actions">{capabilities.accountsWrite && <Link className="button primary" href="/accounts/new">Create an account <ArrowRight aria-hidden="true" /></Link>}<Link className="button secondary" href="/guide">Open the guide</Link></div></section>}
+      {newWorkspace && <section className="friendly-empty-state home-empty-state"><h2>Start with your first account</h2><p>Create an account, add money, review it, then make a transfer. LedgerSync will guide you one step at a time.</p><div className="new-workspace-actions">{capabilities.accountsWrite && <Link prefetch={false} className="button primary" href="/accounts/new">Create an account <ArrowRight aria-hidden="true" /></Link>}<Link prefetch={false} className="button secondary" href="/guide">Open the guide</Link></div></section>}
 
       {!newWorkspace && transfers.length > 0 && <>
-        <div className="simple-section-heading"><div><h2>Recent activity</h2><p>Your latest money movements.</p></div><Link className="text-link" href="/transfers">View all</Link></div>
+        <div className="simple-section-heading"><div><h2>Recent activity</h2><p>Your latest money movements.</p></div><Link prefetch={false} className="text-link" href="/transfers">View all</Link></div>
         <ul className="simple-activity-list">
           {transfers.slice(0, 5).map((transfer) => {
             const status = transferStatusPresentation(transfer.financial_status);
-            return <li key={transfer.transfer_id}><Link href={`/transfers/${transfer.transfer_id}`}><span><strong>{status.title}</strong><small><RelativeTime value={transfer.completed_at || transfer.created_at} /></small></span><Money currency={transfer.currency} minorUnits={transfer.amount_minor} /></Link></li>;
+            return <li key={transfer.transfer_id}><Link prefetch={false} href={`/transfers/${transfer.transfer_id}`}><span><strong>{status.title}</strong><small><RelativeTime value={transfer.completed_at || transfer.created_at} /></small></span><Money currency={transfer.currency} minorUnits={transfer.amount_minor} /></Link></li>;
           })}
         </ul>
       </>}
@@ -219,7 +219,7 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
         title="Resolve the current evidence warning"
         message="One or more authoritative reads, reconciliation results, or connectivity checks needs attention. Review the visible warning below before relying on normal metrics."
         action={reconciliation && !isAuthoritativelyReconciled(reconciliation)
-          ? <Link className="button primary" href={`/reconciliation/${reconciliation.run_id}`}>Open reconciliation result</Link>
+          ? <Link prefetch={false} className="button primary" href={`/reconciliation/${reconciliation.run_id}`}>Open reconciliation result</Link>
           : <button className="button primary" type="button" onClick={onRefreshAll} disabled={!online || busy}>Refresh evidence</button>}
       />
     )}
@@ -231,15 +231,15 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
         <h2 id="new-workspace-title">Start with four simple steps</h2>
         <p>Create an account, add a funding record, review it, then make a transfer.</p>
         <div className="new-workspace-actions">
-          {capabilities.accountsWrite&&<Link className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>}
-          <Link className="button secondary" href="/guide">Follow the guide</Link>
+          {capabilities.accountsWrite&&<Link prefetch={false} className="button primary" href="/accounts/new">Create your first account <ArrowRight aria-hidden="true" /></Link>}
+          <Link prefetch={false} className="button secondary" href="/guide">Follow the guide</Link>
         </div>
       </div>
       <ol className="new-workspace-path" aria-label="First ledger steps">
-        {capabilities.accountsWrite&&<li><Link href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>}
-        {capabilities.fundingWrite&&<li><Link href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>}
-        {capabilities.fundingApprove&&<li><Link href="/approvals"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>}
-        {capabilities.transfersWrite&&<li><Link href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>}
+        {capabilities.accountsWrite&&<li><Link prefetch={false} href="/accounts/new"><span>01</span><strong>Create an account</strong><small>Set up where the money belongs.</small></Link></li>}
+        {capabilities.fundingWrite&&<li><Link prefetch={false} href="/funding"><span>02</span><strong>Add a funding record</strong><small>Add the payment reference and supporting document.</small></Link></li>}
+        {capabilities.fundingApprove&&<li><Link prefetch={false} href="/approvals"><span>03</span><strong>Review the record</strong><small>Check it before it can change a balance.</small></Link></li>}
+        {capabilities.transfersWrite&&<li><Link prefetch={false} href="/transfers"><span>04</span><strong>Make a transfer</strong><small>Move an exact amount between your accounts.</small></Link></li>}
       </ol>
     </section>}
     <section className="overview-data-state overview-account-state" data-data-state={accountState} aria-label="Account details state">
@@ -253,8 +253,8 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
       {accountsLoading&&accounts.length===0&&<StatePanel title="Loading account details" message="Authoritative account balances are loading. No zero balance or empty tenant is inferred."/>}
       {!newWorkspace&&!accountsError&&!accountsLoading&&accounts.length===0&&<StatePanel title="No authorized accounts" message="The verified authorized scope is empty. Create an account or ask an administrator to grant account access."/>}
       {accounts.length>0&&mixedCurrency&&<StatePanel kind="error" title="Mixed-currency pilot data blocked" message="Loaded accounts are preserved, but LedgerSync will not combine balances across currencies. Investigate tenant provisioning before relying on overview totals."/>}
-      {!accountsScopeComplete && accounts.length > 0 && <StatePanel kind="unknown" title="Workspace totals are not available" message="Only part of the authorized account list was loaded. Open Accounts to review individual balances." action={<Link href="/accounts">View accounts</Link>} />}
-      {accountsScopeComplete&&accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of <Timestamp value={asOf} /></span></div><strong className="hero-amount"><Money currency={currency} minorUnits={operating} /></strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount"><Money currency={currency} minorUnits={customerFunds} /></strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
+      {!accountsScopeComplete && accounts.length > 0 && <StatePanel kind="unknown" title="Workspace totals are not available" message="Only part of the authorized account list was loaded. Open Accounts to review individual balances." action={<Link prefetch={false} href="/accounts">View accounts</Link>} />}
+      {accountsScopeComplete&&accounts.length>0&&!mixedCurrency&&currency&&<div className="overview-metrics"><section className="balance-document"><div className="document-topline"><p>Operating-controlled balances</p><span>As of <Timestamp value={asOf} /></span></div><strong className="hero-amount"><Money currency={currency} minorUnits={operating} /></strong><p className="metric-definition">Excludes customer-funds category. Amounts with different ownership semantics are never combined silently.</p><Link prefetch={false} className="text-link" href="/accounts">View account details →</Link></section><section className="balance-document secondary-balance"><div className="document-topline"><p>Customer funds</p><span>Separately classified</span></div><strong className="hero-amount"><Money currency={currency} minorUnits={customerFunds} /></strong><p className="metric-definition">Presented separately to avoid implying these funds are operating capital.</p></section></div>}
     </section>
     {!newWorkspace&&<section className="overview-data-state overview-reconciliation-state" data-data-state={reconciliationState} aria-label="Reconciliation results state">
       {reconciliationError && <StatePanel
@@ -275,7 +275,7 @@ export function OverviewView({ accounts, accountsScopeComplete = true, transfers
           <RecordLink href={`/reconciliation/${reconciliation.run_id}`} label="Open result" />
         </section>
       ) : !reconciliationError && !reconciliationLoading ? (
-        <StatePanel kind="unknown" title="No reconciliation results" message="The verified history contains no authoritative run. No passing result is inferred." action={<Link className="text-link" href="/reconciliation">View reconciliation</Link>} />
+        <StatePanel kind="unknown" title="No reconciliation results" message="The verified history contains no authoritative run. No passing result is inferred." action={<Link prefetch={false} className="text-link" href="/reconciliation">View reconciliation</Link>} />
       ) : null}
     </section>}
     {!newWorkspace&&<section className="overview-data-state overview-transfer-state" data-data-state={transferState} aria-label="Transfer history state">

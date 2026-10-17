@@ -19,6 +19,7 @@ RUN apk upgrade --no-cache \
 WORKDIR /app
 COPY --from=builder --chown=ledgersync:ledgersync /app/.next/standalone ./
 COPY --from=builder --chown=ledgersync:ledgersync /app/.next/static ./.next/static
+COPY --from=builder --chown=ledgersync:ledgersync /app/public ./public
 USER ledgersync
 EXPOSE 3000
 CMD ["node", "server.js"]
