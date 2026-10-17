@@ -6,6 +6,10 @@ LedgerSync is an API-first, closed-loop ledger for exact, same-currency transfer
 
 Start with the [portfolio review guide](docs/portfolio/README.md) for a five-minute review, architecture, measured evidence, and maintainer handover. The [portfolio phase register](docs/portfolio/progress.md) records local restructuring work. The [master delivery register](docs/plans/ledgersync-master-progress.md) and [master plan](docs/plans/ledgersync-master-product-system-and-website-completion-plan.md) retain commercial and managed-environment gates. Neither local qualification nor a design document is production approval.
 
+The [17 October audit repair register](docs/portfolio/audit-remediation.md) states the current source changes, offline checks and open acceptance gates. Earlier image and CI results retain their original source identity. Docker and deployments remain stopped during this repair pass.
+
+The owner-requested [main branch consolidation](docs/portfolio/branch-consolidation.md) carries the latest source through bounded reviews, preserves older work and records the fork-history decision. GitHub merged states remain the authority for completion of each review.
+
 ## What works today
 
 - Exact integer-minor-unit money and immutable double-entry postings for internal transfers.

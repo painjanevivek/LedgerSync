@@ -1,5 +1,7 @@
 # LedgerSync portfolio
 
+Current repair status: [audit repair register](audit-remediation.md). Historical qualified images and main CI do not qualify the new uncommitted source. Docker and deployments remain stopped.
+
 LedgerSync records internal transfers with exact money. It keeps the financial result separate from delivery, cache freshness, and the browser response. PostgreSQL holds the financial record. The web console helps an operator understand that record.
 
 This is a local engineering portfolio. It is not a bank connection or a production finance service. Funding records contain evidence supplied by an operator. They do not establish external settlement. The [CSV statement workflow](statement-reconciliation.md) compares supplied evidence without changing money. [Internal reservations](reservations.md) separate posted ledger, reserved and available amounts. Their completion records establish the exact local scope; the preserved normal stack remains on schema64. Use a fresh schema66 candidate for extension demonstrations.

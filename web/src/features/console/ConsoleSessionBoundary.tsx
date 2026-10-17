@@ -181,9 +181,15 @@ export function ConsoleSessionBoundary({ children, initialSession, onResolved }:
 }
 
 export function useConsoleSession() {
-  const value = useContext(ConsoleSessionContext);
+  const value = useOptionalConsoleSession();
   if (!value) {
     throw new Error("useConsoleSession must be used within ConsoleSessionBoundary");
   }
   return value;
+}
+
+// Presentation primitives can render outside the authenticated workspace.
+// They may use identity to scope a preference, but never to grant authority.
+export function useOptionalConsoleSession() {
+  return useContext(ConsoleSessionContext);
 }

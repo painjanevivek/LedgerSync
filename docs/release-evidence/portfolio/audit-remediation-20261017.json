@@ -1,0 +1,242 @@
+{
+  "schema": "ledgersync-audit-remediation/v1",
+  "recorded_at": "2026-10-17T13:49:41.817Z",
+  "status": "offline_verified_with_open_acceptance_gates",
+  "base_commit": "9b2dfaf0bc0d7c91d345e28541b02a7afd7d72c8",
+  "working_tree": "uncommitted",
+  "source": {
+    "manifest_path": "data/portfolio/r13-20261017/candidate-20261017134941-2d35f587/source-manifest.json",
+    "scope": "Frozen source includes this evidence record; manifest digest is retained in private preservation-final.json to avoid a self-referential hash. This is not a release or image qualification."
+  },
+  "external_plan": {
+    "version": "1.29",
+    "sha256": "6e85d3a1872288e4cde9ccad3c94186eaca5eae53fe1c493d7e0e9041ff4e513",
+    "original_phases_retained": 18
+  },
+  "preservation": {
+    "original_source_paths": 1900,
+    "missing_original_paths": 0,
+    "original_phase_evidence_files_unchanged": 38,
+    "index_unchanged": true,
+    "head_unchanged": true,
+    "original_private_media_files_hash_matched": 122,
+    "original_stashes_present": true,
+    "backup_refs": [
+      {
+        "ref": "backup/portfolio-pre-ordered-merge-20261017",
+        "commit": "4f59411efa532a54339cbf8593208451ce93bb27"
+      },
+      {
+        "ref": "backup/pre-all-branches-20261015",
+        "commit": "32d8038d4236f71be6c0c3d0ce2aba5e6f9776b7"
+      }
+    ],
+    "normal_database_accessed": false,
+    "normal_schema_migrated": false,
+    "normal_images_rebuilt": false,
+    "volumes_changed": false
+  },
+  "checks": {
+    "go_offline_packages": "passed",
+    "go_vet": "passed",
+    "golangci_lint": {
+      "version": "2.13.1",
+      "issues": 0
+    },
+    "host_tests": {
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0
+    },
+    "typescript_example": {
+      "passed": 6,
+      "failed": 0
+    },
+    "existing_web_unit": {
+      "passed": 254,
+      "failed": 0
+    },
+    "browser_config_privacy_regression": "passed",
+    "web_and_example_types": "passed",
+    "web_lint": "passed",
+    "native_promtool": {
+      "version": "3.15.0",
+      "cases": 3,
+      "runbooks": 16,
+      "status": "passed"
+    },
+    "pure_capacity_distribution_test": "passed",
+    "integration_compilation": "passed; database tests not executed",
+    "restored_build": "passed",
+    "restored_asset_budget": {
+      "status": "passed",
+      "total_javascript_bytes": 1785515,
+      "largest_chunk_bytes": 229820
+    },
+    "documentation": "18 documents passed; final link repeat is retained in private handoff",
+    "workflow_yaml": "parsed; hosted execution not run",
+    "deployment_guards": "main and five portfolio branches disabled at both roots"
+  },
+  "failed_results_retained": {
+    "windows_lcp_ms": [
+      2952,
+      2848,
+      2860
+    ],
+    "windows_lcp_budget_ms": 2500,
+    "companion_performance_tests_passed": 2,
+    "chunk_experiment_javascript_bytes": 2031822,
+    "chunk_experiment": "withdrawn; original settings restored",
+    "sandbox_attempts": "TLS/symlink failures and stalled vet retained separately from permitted passes"
+  },
+  "open_gates": [
+    {
+      "phase": "R06",
+      "work": "Real full command/retry trace and changed-source collector/database checks"
+    },
+    {
+      "phase": "R07",
+      "work": "Execute all 14 current scenarios in verified disposable PostgreSQL/Redis"
+    },
+    {
+      "phase": "R08",
+      "work": "Execute generated workflow and competing-history PostgreSQL comparisons"
+    },
+    {
+      "phase": "R09",
+      "state": "source_and_runtime_work_open",
+      "work": "Complete actual container HTTP/BFF coordinator, exact resource enforcement, original-key recovery and financial checks, then collect sustained profiles and all repeats"
+    },
+    {
+      "phase": "R05/R14",
+      "reviewer": "Lord Master",
+      "reviewer_state": "nominated_only",
+      "work": "Actual observations, unfamiliarity/independence attestation and maintainer origin review"
+    },
+    {
+      "phase": "R13",
+      "work": "P-062 upstream dev-tool fix; P-106 Windows timing; changed-source runtime/image and exact-head hosted qualification"
+    }
+  ],
+  "excluded_operations": [
+    "Docker execution",
+    "normal financial commands or migrations",
+    "normal image or volume replacement",
+    "Git mutation or push",
+    "registry publication",
+    "provider deployment"
+  ],
+  "limits": [
+    "No new capacity, SLA, managed identity, settlement or human acceptance claim.",
+    "Trace/report structure validation does not authenticate an invented capture.",
+    "Raw old private browser JSON contains inherited environment values and must not be published.",
+    "Prior phase records retain their actual source and image identities."
+  ],
+  "artifacts": [
+    {
+      "path": "data/portfolio/audit-remediation-20261017/go-offline-suite.txt",
+      "bytes": 10168,
+      "sha256": "79f78d6784854f8347e098e861d6b7b05a69ccd11a4b5d3c28999136fa5d6ee3"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/go-vet-permitted.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/golangci-lint.txt",
+      "bytes": 11,
+      "sha256": "bc1988bf921b4da8e4a985cb6772edad177c0e408118ea21fcf3a645e1fdc016"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/capacity-profile-unit-permitted.txt",
+      "bytes": 285,
+      "sha256": "36b2e451e91cb74956444eb6c43066ca9b167712645084032848b428f93ea072"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/integration-verified-build-permitted.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/host-suite-complete.txt",
+      "bytes": 4543,
+      "sha256": "9574f8e8c81bf928f5e390415425e8c9d05de09c68faa1f0baa944e3e05c0e49"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/r06-example-verified.txt",
+      "bytes": 1156,
+      "sha256": "bcc07416f37cbff1531e2f96e291b40b9f096a92110619f2bcc4a6ae7f31b13a"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/example-types.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/web-unit.txt",
+      "bytes": 23396,
+      "sha256": "4f0f7d3eead2a9285f8580977104e3d5961e5e7b535b6f8c0d82ad73f0c3dcb4"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/browser-config-privacy.txt",
+      "bytes": 211,
+      "sha256": "178cab5033a7b09397127015314eb3493283aede13f2c713fc94aa4570dfed34"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/web-types-config-final.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/web-lint-final.txt",
+      "bytes": 45,
+      "sha256": "538cffa0e7454224ac646adb3ebaf7b8eb0b06bcda1bdeac2201113d99d10d89"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/web-build-restored.txt",
+      "bytes": 4460,
+      "sha256": "b986778f32af5a1e91895c14e86a0090602be1ff9ea805c06825cd443fe9c173"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/web-assets-restored.txt",
+      "bytes": 548,
+      "sha256": "842ede58d17c6683857d3c0f0ec13e8208ebdd85e4bd21e9e0a8222154069886"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/r06-alerts-wrapper.txt",
+      "bytes": 186,
+      "sha256": "aed812e63c312f99dda9bf7fbd8c53157fd8ea6adc9b4810247d0aa05a2405c5"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/docs-verification.txt",
+      "bytes": 203,
+      "sha256": "a1150080f415a4df31cca0fb1e381cac1970f5a61a84dc27683973068b287d4c"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/workflow-deployment-guards.json",
+      "bytes": 762,
+      "sha256": "a06562720ddc44a1a685df3b727e81e99751df7b50050a5b44a3b04f628486f0"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/windows-performance-repeat.txt",
+      "bytes": 4545,
+      "sha256": "6774df4986d37f1ad614d82327e98e88eede8326b8b24c0cd160b6f6cbe8ccd7"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/windows-performance-diagnostic.txt",
+      "bytes": 4349,
+      "sha256": "e6fa6051f9fc0a67bef49ce938b684fce5d1afec4f287f4bfa5b94ffb76fef69"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/windows-performance-chunking.txt",
+      "bytes": 4477,
+      "sha256": "649a795c9baeebcc838d7b7a6539468ed01de151b262a38d11643e03f1c240f6"
+    },
+    {
+      "path": "data/portfolio/audit-remediation-20261017/web-assets-chunking-failed.txt",
+      "bytes": 592,
+      "sha256": "ffc89e11123fb876327381df4bca55d3a110903338f9da90b6704f9419fb7f28"
+    }
+  ]
+}

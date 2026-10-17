@@ -1,5 +1,7 @@
 # Local component capacity and recovery
 
+Current repair status: [audit repair register](audit-remediation.md). The measurements below are historical. Changed profile selection, closed-client demand and process sampling require new runs before updated capacity acceptance.
+
 Qualified locally on 15 October 2026. Use this result only for its stated configuration. It is a component study with synthetic USD records. It does not qualify HTTP, the Next.js BFF, candidate API images, a cloud provider, external funds or a production service target.
 
 ## Result
@@ -71,3 +73,15 @@ The qualified measurement build is identified by each run below. Later documenta
 See [R09 completion](../release-evidence/portfolio/r09/completion.json), [the independent financial model](financial-model.md), [the guided failure suite](failure-demonstration.md), and [the issue register](issues.md). Raw bundles stay in ignored local storage. Completion records retain their hashes.
 
 The [older fixed-demand study](../release-evidence/unit-3-unit-4/performance-report.md) and [older API capacity report](../performance-baseline.md) remain historical evidence for their recorded candidates and workloads. They do not qualify this changed role and tracing implementation. Conversely, this component result does not replace an HTTP/BFF or multi-host release measurement. R13 and the final affected-feature repeat own those release checks.
+
+## Audit additions — prepared comparisons
+
+`run-capacity.mjs` now accepts one fixed `--profile`: `mixed`, `independent-pairs`, `hot-pair` or `multi-tenant`. Independent pairs alternate two pairs within one tenant. The hot profile uses one pair. The tenant profile alternates two tenants. Exact retries select the same original pair and intent. Unknown or repeated options fail before setup.
+
+`--arrival=open-loop` keeps scheduled demand. `--arrival=closed-clients` gives eight response-coupled callers with no hidden input queue. The steady interval stays bounded at 10 or 300 seconds. The full run has an 11,000-sequence guard below its 12,000-operation allowance. Reaching that bound early prevents qualification. A closed-client result cannot be called a fixed offered-rate result.
+
+The host samples its own worker process CPU seconds and resident memory. Each sample verifies a live child, exact executable and process creation identity. Restart begins a new identity. Windows uses native process statistics; Linux uses `/proc` identity and `ps`, with whole-second CPU resolution. Probe overhead is part of the method. These are finite observations, not proven memory peaks. A full run with fewer than two valid worker samples cannot qualify. The owned-process unit test is not a workload measurement.
+
+The [comparison plan](../../scripts/portfolio/capacity-matrix.mjs) defines 27 serial cases: three profiles, three resource allocations and three repeats. One API is the shared baseline. Two APIs either share the original total API CPU/memory, or each retain the original per-replica budget. Worker, PostgreSQL, Redis and BFF budgets remain fixed. The summary checker rejects missing repeats, mixed source/machine identities, changed budgets, component results substituted for HTTP/BFF results, failed correctness and missing resources. Failed performance constraints remain visible.
+
+This comparison plan starts nothing. The current native component runner does not execute the container HTTP/BFF matrix. A later approved isolated rehearsal must prepare that execution path and collect its real captures. No scaling, HTTP/BFF throughput, reservation throughput or new sustained performance result is established by these source changes. Keep Docker stopped during this repair pass.

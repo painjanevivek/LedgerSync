@@ -3,8 +3,9 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const names = ['README.md', ...['README','quickstart','demo-guide','architecture','case-study','limitations','maintainer-guide','statement-reconciliation','reservations'].map(n => `docs/portfolio/${n}.md`)];
+const names = ['README.md', ...['README','quickstart','demo-guide','architecture','case-study','limitations','maintainer-guide','statement-reconciliation','reservations','audit-remediation','human-acceptance','tracing','failure-demonstration','financial-model','capacity'].map(n => `docs/portfolio/${n}.md`)];
 names.push('deploy/production/README.md','contracts/balance-events.md');
+names.push('docs/portfolio/branch-consolidation.md','docs/runbooks/database-capability-boundary.md','docs/runbooks/tenant-rls-rollout.md');
 const failures = [], links = [], commands = [];
 const read = name => readFileSync(resolve(root, name), 'utf8').replace(/^\uFEFF/, '');
 const anchor = text => text.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/ /g, '-');

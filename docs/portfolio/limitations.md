@@ -1,5 +1,7 @@
 # Limits and release decisions
 
+Current repair status: [audit repair register](audit-remediation.md). Historical qualified images and main CI do not qualify the new uncommitted source. Docker and deployments remain stopped.
+
 The permitted target is a local technical portfolio with synthetic test data. A passing phase is a local engineering decision. It is not permission to use real customer funds or to expose a shared service.
 
 | Area | Current limit | Required next evidence |
