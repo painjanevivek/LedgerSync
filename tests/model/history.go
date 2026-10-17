@@ -66,7 +66,7 @@ func CheckHistory(initial *Ledger, history []CompletedOperation) ([]int, error) 
 }
 
 func cloneLedger(source *Ledger) *Ledger {
-	clone := &Ledger{Accounts: map[string]Account{}, requests: map[requestKey]stored{}, Journals: source.Journals, total: new(big.Int).Set(source.total)}
+	clone := &Ledger{Accounts: map[string]Account{}, requests: map[requestKey]stored{}, Journals: source.Journals, total: new(big.Int).Set(source.total), currency: source.currency}
 	for id, account := range source.Accounts {
 		clone.Accounts[id] = account
 	}

@@ -37,7 +37,7 @@ type Workflow struct {
 }
 
 func NewWorkflow() *Workflow {
-	return &Workflow{Ledger: New(map[string]Account{}), Accounts: map[string]WorkflowAccount{}, actors: map[string]workflowActor{}, requests: map[string]workflowApproval{}, receipts: map[requestKey]workflowReceipt{}}
+	return &Workflow{Ledger: NewForCurrency(map[string]Account{}, "INR"), Accounts: map[string]WorkflowAccount{}, actors: map[string]workflowActor{}, requests: map[string]workflowApproval{}, receipts: map[requestKey]workflowReceipt{}}
 }
 func (w *Workflow) Grant(actor, tenant string, finance bool) {
 	if actor == "" || tenant == "" || len(w.actors) >= 16 {
@@ -159,7 +159,7 @@ func (w *Workflow) apply(c WorkflowCommand, actor workflowActor) WorkflowResult 
 		}
 		clearing := "clearing:" + c.Tenant
 		w.Ledger.AddZeroSystem(clearing)
-		posted := w.Ledger.Move(Intent{Tenant: c.Tenant, Actor: c.Actor, Operation: "funding", Key: c.Key, From: clearing, To: request.Account, Currency: "USD", Minor: request.Minor})
+		posted := w.Ledger.Move(Intent{Tenant: c.Tenant, Actor: c.Actor, Operation: "funding", Key: c.Key, From: clearing, To: request.Account, Currency: "INR", Minor: request.Minor})
 		if posted.Status == "posted" {
 			request.State = "posted"
 			w.requests[c.Reference] = request
@@ -173,7 +173,7 @@ func (w *Workflow) apply(c WorkflowCommand, actor workflowActor) WorkflowResult 
 		if account.State != "active" || destination.State != "active" {
 			return result("inactive")
 		}
-		outcome := w.Ledger.Move(Intent{Tenant: c.Tenant, Actor: c.Actor, Operation: "transfer", Key: c.Key, From: c.Account, To: c.To, Currency: "USD", Minor: c.Minor})
+		outcome := w.Ledger.Move(Intent{Tenant: c.Tenant, Actor: c.Actor, Operation: "transfer", Key: c.Key, From: c.Account, To: c.To, Currency: "INR", Minor: c.Minor})
 		return WorkflowResult{Status: outcome.Status, Replayed: outcome.Replayed}
 	default:
 		return result("invalid")
