@@ -1,0 +1,58 @@
+# Run with a native promtool. No server, Docker or notification is started.
+rule_files:
+  - alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: reconciliation mismatch fires and links to its real runbook
+    interval: 1m
+    input_series:
+      - series: 'ledgersync_reconciliation_runs_total{status="mismatch"}'
+        values: '0 0 1 1 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: LedgerSyncReconciliationMismatch
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: LedgerSyncReconciliationMismatch
+        exp_alerts:
+          - exp_labels: {status: mismatch, severity: critical, service: ledgersync}
+            exp_annotations:
+              summary: Ledger-derived balance and PostgreSQL projection differ.
+              runbook: docs/runbooks/reconciliation-mismatch.md
+  - name: active stalled queue fires only after its pending interval
+    interval: 1m
+    input_series:
+      - series: 'ledgersync_worker_active{queue="outbox"}'
+        values: '1+0x4'
+      - series: 'ledgersync_worker_progress_age_seconds{queue="outbox"}'
+        values: '0 40 100 0 0'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: LedgerSyncWorkerQueueStalled
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: LedgerSyncWorkerQueueStalled
+        exp_alerts:
+          - exp_labels: {queue: outbox, severity: critical, service: ledgersync}
+            exp_annotations:
+              summary: A worker queue is active but has not completed its current operation.
+              runbook: docs/runbooks/worker-stall.md
+      - eval_time: 4m
+        alertname: LedgerSyncWorkerQueueStalled
+        exp_alerts: []
+  - name: idle queues and matched reconciliation do not page
+    interval: 1m
+    input_series:
+      - series: 'ledgersync_reconciliation_runs_total{status="matched"}'
+        values: '0+1x4'
+      - series: 'ledgersync_worker_active{queue="outbox"}'
+        values: '0+0x4'
+      - series: 'ledgersync_worker_progress_age_seconds{queue="outbox"}'
+        values: '100+60x4'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: LedgerSyncReconciliationMismatch
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: LedgerSyncWorkerQueueStalled
+        exp_alerts: []

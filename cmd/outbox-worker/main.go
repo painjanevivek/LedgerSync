@@ -79,6 +79,11 @@ func runWorker() error {
 			slog.Warn("database close failed", "error", closeErr)
 		}
 	}()
+	stopPoolMetrics, err := telemetry.RegisterDatabasePool("worker", database.Stats)
+	if err != nil {
+		return errors.New("database telemetry registration failed")
+	}
+	defer stopPoolMetrics()
 	redisClient, err := startup.Open(ctx, "redis", startupConfig, func(ctx context.Context) (*redis.Client, error) {
 		options, optionsErr := redisconn.Options(configuration.RedisAddress)
 		if optionsErr != nil {

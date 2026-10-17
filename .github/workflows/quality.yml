@@ -102,11 +102,18 @@ jobs:
       - working-directory: web
         run: npm ci
       - name: Verify portfolio evidence contract
-        run: node --test scripts/portfolio/demo-contract.test.mjs scripts/portfolio/demo-safety.test.mjs scripts/portfolio/model-replay.test.mjs scripts/portfolio/capacity-options.test.mjs scripts/portfolio/capacity-worker.test.mjs scripts/portfolio/candidate-backup.test.mjs scripts/portfolio/recovery-summary.test.mjs
+        run: node --test scripts/portfolio/*.test.mjs
+      - name: Evaluate alert rules with the pinned native tool
+        shell: bash
+        run: |
+          tool_dir="$RUNNER_TEMP/ledgersync-promtool-3.15.0"
+          mkdir -p "$tool_dir"
+          curl --fail --location --silent --show-error --max-time 180 https://github.com/prometheus/prometheus/releases/download/v3.15.0/prometheus-3.15.0.linux-amd64.tar.gz --output "$tool_dir/prometheus.tar.gz"
+          echo "2a542df32eac02ee17b9d844fb2aa1de00dafa5476579ba8a3ba862e9d572ea0  $tool_dir/prometheus.tar.gz" | sha256sum --check --strict
+          tar -xzf "$tool_dir/prometheus.tar.gz" --directory "$tool_dir" --strip-components=1 prometheus-3.15.0.linux-amd64/promtool
+          LEDGERSYNC_PROMTOOL_PATH="$tool_dir/promtool" node scripts/portfolio/verify-alerts.mjs
       - name: Verify portfolio links, command entries, diagrams and chart provenance
         run: node scripts/portfolio/verify-portfolio-docs.mjs
-      - name: Verify candidate context and complete regression inventory
-        run: node --test scripts/portfolio/candidate-source.test.mjs scripts/portfolio/candidate-health.test.mjs scripts/portfolio/regression-result.test.mjs scripts/portfolio/production-package.test.mjs
       - working-directory: web
         run: npm run lint && npm test && npm run build
       - name: Enforce frontend JavaScript budgets

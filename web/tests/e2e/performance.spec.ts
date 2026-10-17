@@ -3,7 +3,12 @@ import { expect, test, type Page } from "@playwright/test";
 import { mockOperatorConsole, sourceAccount } from "./fixtures";
 
 type BrowserMetrics = {
+  observerStartTime: number;
+  observerReadyTime: number;
   lcpMilliseconds: number;
+  lcpElement: string;
+  lcpRenderTime: number;
+  lcpLoadTime: number;
   cls: number;
   inpMilliseconds: number;
   interactionCount: number;
@@ -16,7 +21,12 @@ type BrowserMetrics = {
 async function installWebVitalObservers(page: Page) {
   await page.addInitScript(() => {
     const state = {
+      observerStartTime: performance.now(),
+      observerReadyTime: 0,
       lcpMilliseconds: 0,
+      lcpElement: "",
+      lcpRenderTime: 0,
+      lcpLoadTime: 0,
       cls: 0,
       inpMilliseconds: 0,
       interactionCount: 0,
@@ -27,7 +37,14 @@ async function installWebVitalObservers(page: Page) {
     };
     Object.defineProperty(globalThis, "__ledgerSyncPerformance", { value: state, configurable: true });
     new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) state.lcpMilliseconds = Math.max(state.lcpMilliseconds, entry.startTime);
+      for (const entry of list.getEntries()) {
+        if (entry.startTime < state.lcpMilliseconds) continue;
+        const largest = entry as PerformanceEntry & { element?: Element; renderTime?: number; loadTime?: number };
+        state.lcpMilliseconds = entry.startTime;
+        state.lcpElement = largest.element ? `${largest.element.tagName}.${typeof largest.element.className === "string" ? largest.element.className : ""}` : "";
+        state.lcpRenderTime = largest.renderTime ?? 0;
+        state.lcpLoadTime = largest.loadTime ?? 0;
+      }
     }).observe({ type: "largest-contentful-paint", buffered: true });
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries() as Array<PerformanceEntry & { hadRecentInput?: boolean; value?: number; sources?: Array<{ node?: Node }> }>) {
@@ -56,6 +73,7 @@ async function installWebVitalObservers(page: Page) {
         }
       }).observe({ type: "longtask", buffered: true });
     }
+    state.observerReadyTime = performance.now();
   });
 }
 
@@ -99,6 +117,13 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
   await expect(page.getByRole("heading", { name: "Overview", exact: true })).toBeVisible();
   await page.waitForTimeout(500);
   const initialLoad = await metrics(page);
+  const timing = await page.evaluate(() => ({
+    navigation: performance.getEntriesByType("navigation").map(entry => {
+      const navigation = entry as PerformanceNavigationTiming;
+      return { start: navigation.startTime, responseStart: navigation.responseStart, responseEnd: navigation.responseEnd, interactive: navigation.domInteractive };
+    }),
+    resources: (performance.getEntriesByType("resource") as PerformanceResourceTiming[]).filter(entry => /\.(js|css)$/.test(new URL(entry.name).pathname) || new URL(entry.name).pathname.startsWith("/api/")).map(entry => ({ path: new URL(entry.name).pathname, start: entry.startTime, duration: entry.duration, responseStart: entry.responseStart, responseEnd: entry.responseEnd })),
+  }));
   const initialRequestCount = boundedRequests.length;
   const initialApiRequestCount = apiRequests.length;
   initialLoadComplete = true;
@@ -116,6 +141,7 @@ test("compact throttled overview stays inside the pilot web-vital budgets", { ta
     body: Buffer.from(JSON.stringify({
       profile: { viewport: "390x844", cpuThrottle: 4, network: "constrained-4g" },
       initialLoad,
+      timing,
       observed,
       requests: { initialRequestCount, initialApiRequestCount, initialTransferredBytes, totalRequestCount: boundedRequests.length, apiRequestCount: apiRequests.length, requestFrequency },
     }, null, 2)),

@@ -18,6 +18,10 @@
     {"id": 11, "title": "Webhook key-cache capacity evictions", "type": "timeseries", "targets": [{"expr": "sum(rate(ledgersync_webhook_key_cache_evictions_total{reason=\"capacity\"}[5m]))"}]},
     {"id": 12, "title": "Webhook key-cache p99 lock wait", "type": "timeseries", "targets": [{"expr": "histogram_quantile(0.99, sum(rate(ledgersync_webhook_key_cache_lock_wait_milliseconds_bucket[5m])) by (le))"}]},
     {"id": 13, "title": "Committed response metadata unavailable", "type": "timeseries", "targets": [{"expr": "sum(rate(ledgersync_committed_response_metadata_unavailable_total[5m])) by (command_kind)"}]},
-    {"id": 14, "title": "Committed response write failures", "type": "timeseries", "targets": [{"expr": "sum(rate(ledgersync_committed_response_write_failures_total[5m])) by (command_kind)"}]}
+    {"id": 14, "title": "Committed response write failures", "type": "timeseries", "targets": [{"expr": "sum(rate(ledgersync_committed_response_write_failures_total[5m])) by (command_kind)"}]},
+    {"id": 15, "title": "Database pool connections", "type": "timeseries", "targets": [{"expr": "ledgersync_database_pool_connections"}]},
+    {"id": 16, "title": "Database pool waits / second", "type": "timeseries", "targets": [{"expr": "rate(ledgersync_database_pool_waits_total[5m])"}]},
+    {"id": 17, "title": "Database pool waiting seconds / second", "type": "timeseries", "targets": [{"expr": "rate(ledgersync_database_pool_wait_duration_seconds_total[5m])"}]},
+    {"id": 18, "title": "Tenant policy lock call p95 (includes round trip)", "type": "timeseries", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(ledgersync_database_policy_lock_duration_milliseconds_bucket[5m])) by (le))"}]}
   ]
 }

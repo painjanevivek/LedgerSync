@@ -78,6 +78,11 @@ func (d *Dispatcher) Dispatch(ctx context.Context, delivery Delivery) (outcome O
 	request.Header.Set("X-LedgerSync-Timestamp", stamp)
 	request.Header.Set("X-LedgerSync-Key-ID", delivery.SigningKeyID)
 	request.Header.Set("X-LedgerSync-Signature", signature)
+	if diagnostic := observability.TraceParent(ctx); diagnostic != "" {
+		// Diagnostic only. The signature and receiver authority still depend
+		// on the original signed bytes, key and replay rules, never this header.
+		request.Header.Set("traceparent", diagnostic)
+	}
 	response, err := d.client.Do(request)
 	if err != nil {
 		return Outcome{ResponseClass: "network_error", Retryable: true}, fmt.Errorf("send webhook: %w", err)

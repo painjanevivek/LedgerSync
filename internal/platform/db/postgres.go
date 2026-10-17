@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/painjanevivek/Real-Time-Balance-Visibility-in-Microservice-Based-Money-Transfers/internal/platform/observability"
 )
 
 // ErrLedgerSemanticViolation is the deliberately low-cardinality diagnostic
@@ -148,7 +149,10 @@ func withSerializableSequence(ctx context.Context, database *sql.DB, sequenceKey
 			return fmt.Errorf("clear prior sequence tenant scope: %w", err)
 		}
 	}
-	if _, err = connection.ExecContext(ctx, `SELECT pg_advisory_lock(hashtextextended($1,0))`, sequenceKey); err != nil {
+	lockStarted := time.Now()
+	_, err = connection.ExecContext(ctx, `SELECT pg_advisory_lock(hashtextextended($1,0))`, sequenceKey)
+	observability.ObserveDatabaseLock(ctx, lockStarted, err)
+	if err != nil {
 		return fmt.Errorf("acquire serializable sequence: %w", err)
 	}
 	defer func() {
